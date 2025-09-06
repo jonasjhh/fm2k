@@ -1,0 +1,10 @@
+{
+    "name": "ts-todo-pages",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "tsc && cp public/* dist/"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3"
+    }
+}
