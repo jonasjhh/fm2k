@@ -2,35 +2,45 @@ export interface Moment {
     id: string;
     name: string;
     date: Date;
-    callback: () => void | Promise<void>;
+    resolved: boolean;
+    callback: (payload?: Record<string, any>) => void | Promise<void>;
+    payload?: Record<string, any>;
     description?: string;
     tags?: string[];
 }
 
 export class Timeline {
-    private moments: Map<string, Moment[]> = new Map();
+    private moments = new Map<string, Moment[]>();
     private currentDate: Date;
 
-    constructor(startDate?: Date) {
-        this.currentDate = new Date(startDate ?? new Date());
+    constructor(startDate: Date = new Date()) {
+        this.currentDate = new Date(startDate);
     }
 
     registerMoment(moment: Moment): void {
         const dateKey = this.getDateKey(moment.date);
-        if (!this.moments.has(dateKey)) {
-            this.moments.set(dateKey, []);
-        }
-        this.moments.get(dateKey)!.push(moment);
+        const momentList = this.moments.get(dateKey) ?? [];
+        momentList.push(moment);
+        this.moments.set(dateKey, momentList);
     }
 
     removeMoment(momentId: string): boolean {
-        for (const [dateKey, momentList] of this.moments.entries()) {
-            const index = momentList.findIndex(moment => moment.id === momentId);
+        for (const [dateKey, momentList] of this.moments) {
+            const index = momentList.findIndex(m => m.id === momentId);
             if (index !== -1) {
                 momentList.splice(index, 1);
-                if (momentList.length === 0) {
-                    this.moments.delete(dateKey);
-                }
+                if (momentList.length === 0) this.moments.delete(dateKey);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    resolveMoment(momentId: string): boolean {
+        for (const momentList of this.moments.values()) {
+            const moment = momentList.find(m => m.id === momentId);
+            if (moment) {
+                moment.resolved = true;
                 return true;
             }
         }
@@ -38,19 +48,19 @@ export class Timeline {
     }
 
     getMomentsForDate(date: Date): Moment[] {
-        const dateKey = this.getDateKey(date);
-        return this.moments.get(dateKey) || [];
+        return this.moments.get(this.getDateKey(date)) ?? [];
+    }
+
+    getUnresolvedMomentsForDate(date: Date): Moment[] {
+        return this.getMomentsForDate(date).filter(m => !m.resolved);
     }
 
     getMomentsByTag(tag: string): Moment[] {
-        const allMoments: Moment[] = [];
-        for (const momentList of this.moments.values()) {
-            const taggedMoments = momentList.filter(moment =>
-                moment.tags?.includes(tag)
-            );
-            allMoments.push(...taggedMoments);
-        }
-        return allMoments;
+        return [...this.moments.values()].flat().filter(m => m.tags?.includes(tag));
+    }
+
+    getUnresolvedMoments(): Moment[] {
+        return [...this.moments.values()].flat().filter(m => !m.resolved);
     }
 
     getCurrentDate(): Date {
@@ -58,21 +68,18 @@ export class Timeline {
     }
 
     advanceTime(days: number): Moment[] {
-        const triggeredMoments: Moment[] = [];
-
+        const triggered: Moment[] = [];
         for (let i = 0; i < days; i++) {
             this.currentDate.setDate(this.currentDate.getDate() + 1);
-            const momentsToday = this.getMomentsForDate(this.currentDate);
-            triggeredMoments.push(...momentsToday);
+            triggered.push(...this.getMomentsForDate(this.currentDate));
         }
-
-        return triggeredMoments;
+        return triggered;
     }
 
     async fireMoments(moments: Moment[]): Promise<void> {
         for (const moment of moments) {
             try {
-                await moment.callback();
+                await moment.callback(moment.payload);
             } catch (error) {
                 console.error(`Error firing moment ${moment.id}: ${moment.description ?? 'No description'}`, error);
             }
@@ -80,6 +87,6 @@ export class Timeline {
     }
 
     private getDateKey(date: Date): string {
-        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     }
 }

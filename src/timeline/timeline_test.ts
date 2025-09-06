@@ -9,6 +9,7 @@ testRunner.addTest('Timeline should register and retrieve moments', () => {
         id: 'test-1',
         name: 'Test Moment',
         date: new Date('2024-01-05'),
+        resolved: false,
         callback: () => { momentFired = true; }
     };
 
@@ -27,6 +28,7 @@ testRunner.addTest('Timeline should advance time and trigger moments', () => {
         id: 'test-2',
         name: 'Future Moment',
         date: new Date('2024-01-03'),
+        resolved: false,
         callback: () => { momentFired = true; }
     };
 
@@ -44,6 +46,7 @@ testRunner.addTest('Timeline should remove moments by id', () => {
         id: 'remove-test',
         name: 'Moment to Remove',
         date: new Date('2024-01-01'),
+        resolved: false,
         callback: () => { }
     };
 
@@ -62,6 +65,7 @@ testRunner.addTest('Timeline should handle optional description and tags', () =>
         id: 'optional-test',
         name: 'Moment with Optional Fields',
         date: new Date('2024-01-05'),
+        resolved: false,
         callback: () => { },
         description: 'A moment with a description',
         tags: ['work', 'important']
@@ -82,6 +86,7 @@ testRunner.addTest('Timeline should find moments by tag', () => {
         id: 'tagged-1',
         name: 'Work Moment',
         date: new Date('2024-01-01'),
+        resolved: false,
         callback: () => { },
         tags: ['work', 'meeting']
     };
@@ -90,6 +95,7 @@ testRunner.addTest('Timeline should find moments by tag', () => {
         id: 'tagged-2',
         name: 'Personal Moment',
         date: new Date('2024-01-02'),
+        resolved: false,
         callback: () => { },
         tags: ['personal']
     };
@@ -100,4 +106,92 @@ testRunner.addTest('Timeline should find moments by tag', () => {
     const workMoments = timeline.getMomentsByTag('work');
     assert(workMoments.length === 1, 'Should find one work moment');
     assert(workMoments[0].id === 'tagged-1', 'Should find the correct work moment');
+});
+
+testRunner.addTest('Timeline should resolve moments', () => {
+    const timeline = new Timeline();
+
+    const moment: Moment = {
+        id: 'resolve-test',
+        name: 'Resolvable Moment',
+        date: new Date('2024-01-01'),
+        resolved: false,
+        callback: () => { }
+    };
+
+    timeline.registerMoment(moment);
+
+    const resolved = timeline.resolveMoment('resolve-test');
+    const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
+    const unresolvedMoments = timeline.getUnresolvedMomentsForDate(new Date('2024-01-01'));
+
+    assert(resolved === true, 'Should return true when moment is resolved');
+    assert(moments[0].resolved === true, 'Moment should be marked as resolved');
+    assert(unresolvedMoments.length === 0, 'Should have no unresolved moments');
+});
+
+testRunner.addTest('Timeline should filter unresolved moments', () => {
+    const timeline = new Timeline();
+
+    const moment1: Moment = {
+        id: 'unresolved-1',
+        name: 'Unresolved Moment',
+        date: new Date('2024-01-01'),
+        resolved: false,
+        callback: () => { }
+    };
+
+    const moment2: Moment = {
+        id: 'resolved-1',
+        name: 'Resolved Moment',
+        date: new Date('2024-01-01'),
+        resolved: true,
+        callback: () => { }
+    };
+
+    timeline.registerMoment(moment1);
+    timeline.registerMoment(moment2);
+
+    const allMoments = timeline.getMomentsForDate(new Date('2024-01-01'));
+    const unresolvedMoments = timeline.getUnresolvedMomentsForDate(new Date('2024-01-01'));
+    const allUnresolved = timeline.getUnresolvedMoments();
+
+    assert(allMoments.length === 2, 'Should have 2 total moments');
+    assert(unresolvedMoments.length === 1, 'Should have 1 unresolved moment for date');
+    assert(allUnresolved.length === 1, 'Should have 1 unresolved moment total');
+    assert(unresolvedMoments[0].id === 'unresolved-1', 'Should find the correct unresolved moment');
+});
+
+testRunner.addTest('Timeline should pass payload to callback when firing moments', async () => {
+    const timeline = new Timeline();
+    let receivedPayload: any = null;
+
+    interface TaskPayload {
+        priority: string;
+        assignee: string;
+    }
+
+    const moment: Moment = {
+        id: 'payload-test',
+        name: 'Task with Payload',
+        date: new Date('2024-01-01'),
+        resolved: false,
+        callback: (payload?: Record<string, any>) => {
+            receivedPayload = payload;
+        },
+        payload: {
+            priority: 'high',
+            assignee: 'Alice'
+        }
+    };
+
+    timeline.registerMoment(moment);
+    const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
+
+    // Fire the moments using the timeline's fireMoments method
+    await timeline.fireMoments(moments);
+
+    assert(receivedPayload !== null, 'Should receive payload');
+    assert(receivedPayload.priority === 'high', 'Should have correct priority');
+    assert(receivedPayload.assignee === 'Alice', 'Should have correct assignee');
 });
