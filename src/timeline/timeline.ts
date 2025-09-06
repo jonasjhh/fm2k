@@ -76,7 +76,18 @@ export class Timeline {
         return triggered;
     }
 
-    async fireMoments(moments: Moment[]): Promise<void> {
+    advanceToDate(targetDate: Date): Moment[] {
+        const triggered: Moment[] = [];
+
+        while (this.currentDate < targetDate) {
+            this.currentDate.setDate(this.currentDate.getDate() + 1);
+            triggered.push(...this.getMomentsForDate(this.currentDate));
+        }
+
+        return triggered;
+    }
+
+    async resolveMoments(moments: Moment[]): Promise<void> {
         for (const moment of moments) {
             try {
                 await moment.callback(moment.payload);

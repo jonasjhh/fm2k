@@ -189,9 +189,38 @@ testRunner.addTest('Timeline should pass payload to callback when firing moments
     const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
 
     // Fire the moments using the timeline's fireMoments method
-    await timeline.fireMoments(moments);
+    await timeline.resolveMoments(moments);
 
     assert(receivedPayload !== null, 'Should receive payload');
     assert(receivedPayload.priority === 'high', 'Should have correct priority');
     assert(receivedPayload.assignee === 'Alice', 'Should have correct assignee');
+});
+
+testRunner.addTest('Timeline should advance to specific date', () => {
+    const timeline = new Timeline(new Date('2024-01-01'));
+
+    const moment1: Moment = {
+        id: 'advance-test-1',
+        name: 'Moment on Jan 5',
+        date: new Date('2024-01-05'),
+        resolved: false,
+        callback: () => { }
+    };
+
+    const moment2: Moment = {
+        id: 'advance-test-2',
+        name: 'Moment on Jan 10',
+        date: new Date('2024-01-10'),
+        resolved: false,
+        callback: () => { }
+    };
+
+    timeline.registerMoment(moment1);
+    timeline.registerMoment(moment2);
+
+    const triggeredMoments = timeline.advanceToDate(new Date('2024-01-07'));
+
+    assert(triggeredMoments.length === 1, 'Should trigger one moment by Jan 7');
+    assert(triggeredMoments[0].id === 'advance-test-1', 'Should trigger the Jan 5 moment');
+    assert(timeline.getCurrentDate().getDate() === 7, 'Should be at Jan 7');
 });
