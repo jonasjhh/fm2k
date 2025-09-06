@@ -28,11 +28,36 @@ export const NORWEGIAN_NAMES = {
         "Ådne", "Åge", "Åsmund", "Åsen",
         "Øivind", "Ørnulf"
     ],
-
     female: [
-        "Anna", "Astrid", "Ingrid", "Katrine", "Katarina", "Catherine", "Emma", "Ella", "Sofie", "Olivia", "Maja", "Leah", "Linnea", "Emilie", "Freya", "Hedda", "Julie", "Amalie", "Adele", "Fatima", "Noor", "Rikke", "Selma", "Sigrid", "Tuva", "Vilje"
+        "Adele", "Ada", "Agnes", "Aisha", "Alma", "Alvilde", "Amalie", "Amira", "Anette", "Anja", "Anita",
+        "Anneli", "Anni", "Annika", "Anniken", "Aud", "Aurora", "Aina", "Annbjørg", "Alfhild", "Arnhild",
+        "Barbara", "Benedicte", "Berit", "Bodil", "Bjørg", "Bente", "Birgitte", "Brynhild", "Borghild", "Bjørnarine",
+        "Camilla", "Carina", "Caroline", "Cecilie", "Charlotte", "Christine", ["Catherine", "Katrine", "Katarina"], "Chloe", "Clara", "Cynthia",
+        "Dina", "Diana", "Dorothy", "Dora", "Dagny", "Dorthe", "Disa", "Dorte", "Dina-Marie", "Desiree",
+        ["Eli", "Elin"], ["Emilie", "Emilia"], "Eira", "Eivor", "Elaine", "Elida", "Elise", "Ella", "Ellen",
+        "Elina", "Emily", "Emma", "Erika", "Eva", "Evelyn", "Edle", "Edel", "Eivinda", "Elenora",
+        "Fatima", "Frida", "Freja", "Freya", "Fjolla", "Filippa", "Frodehild", "Fride", "Frøydis", "Fanny",
+        "Gabriella", "Gina", "Gjertrud", "Greta", "Gunn", "Gunhild", "Gry", "Gro", "Grynet", "Gudrun",
+        "Hanna", "Hanne", "Hedda", "Heidi", "Helen", "Helene", "Helga", "Hilde", "Hanne-Lise", "Hanne-Mari",
+        "Ida", "Inga", "Inger", "Ingrid", "Ingvild", "Iselin", "Isabel", "Irene", "Ivy", "Ingfrid",
+        "Jakobine", "Jane", "Janne", "Jeanette", "Jenny", "Joanna", "Julie", "June", "Juni", "Juliet",
+        "Jorunn", "Josefine", "Johanne", "Jorid", "Jannike",
+        "Kaja", "Karen", "Karina", "Karoline", "Katrin", "Kristin", "Kristina", "Kristine", "Kine", "Kjersti",
+        "Kari", "Kirsten", "Kirsti", "Klara", "Katrine-Marie",
+        "Lena", "Leah", "Lea", "Lene", "Lilly", "Linn", "Linnea", "Liv", "Louise", "Lotte",
+        "Lovise", "Lillian", "Lina", "Lisbet", "Lone",
+        "Maja", "Malin", "Maren", "Maria", "Marianne", "Marie", "Marthe", "Mathea", "Mathilde", "Melina",
+        "Mia", "Michelle", "Mina", "Mona", "Marlene",
+        "Nina", "Noor", "Nora", "Nina-Marie", "Nicoline", "Nadja", "Norunn", "Nanna", "Nydia", "Nille",
+        "Oda", "Olivia", "Oline", "Otilie", "Ovidia", "Othilie", "Oda-Louise", "Othilia", "Olina", "Odine",
+        "Rikke", "Ronja", "Ragnhild", "Ragna", "Ruth", "Rakel", "Randi", "Rebekka", "Rim", "Runa",
+        "Sara", "Selma", "Sigrid", "Silje", "Sofie", "Stine", "Synne", "Siv", "Synnøve", "Solfrid",
+        "Thea", "Tiril", "Tuva", "Trine", "Tove", "Tone", "Tora", "Thale", "Tina", "Tiril-Marie",
+        "Una", "Ulla", "Ulrikke", "Unni", "Urd", "Ulla-Marie", "Ulla-Lise", "Ulrika", "Unice", "Udele",
+        "Vilde", "Vilja", "Vilje", "Vera", "Veronica", "Vibeke", "Vår", "Vibeke-Marie", "Vanja", "Vivian",
+        "Ylva", "Yvonne", "Ylva-Marie", "Yngvild", "Yrsa", "Yasmin", "Yngvea", "Yasmine", "Yliane", "Yana",
+        "Åse", "Åshild", "Åsta", "Ågot", "Ånette", "Åsfrid", "Ådne", "Åselill", "Ånna", "Åline"
     ],
-
     last: [
         "Aabakken", "Aaberg", "Aamot", "Aarnes", "Aasen", "Abrahamsen", "Andreassen", "Andresen", "Antonsen", "Arnesen",
         "Ask", "Austad", "Bakke", "Bakken", "Bakkene", "Bangstad", "Barli", "Berg", "Bergdølmo", "Birkeland",
@@ -64,19 +89,68 @@ export const NORWEGIAN_NAMES = {
 
 export const ENGLISH_NAMES = {
     male: [
-        "James", "Jim",
-        "Michael", "Mike",
-        "Oliver",
-        "William"
+        "Aaron", "Abel", "Adam", "Adrian", "Aidan", "Alan", "Albert", "Alexander", "Alfred", "Andrew",
+        "Anthony", "Arthur", "Austin", "Barry", "Benjamin", "Blake", "Bradley", "Brandon", "Brian", "Bruce",
+        "Caleb", "Cameron", "Carl", "Charles", "Chris", "Christopher", "Colin", "Connor", "Corey", "Craig",
+        "Daniel", "David", "Dennis", "Derek", "Dominic", "Douglas", "Dylan", "Edward", "Edwin", "Elliot",
+        "Eric", "Ethan", "Eugene", "Evan", "Felix", "Francis", "Frank", "Fred", "Gabriel", "Gavin",
+        "George", "Gordon", "Grant", "Gregory", "Harry", "Harrison", "Henry", "Howard", "Hugh", "Ian",
+        "Isaac", "Jack", "Jacob", "Jake", "James", "Jim", "Jason", "Jasper", "Jeremy", "John",
+        "Johnny", "Jonathan", "Jordan", "Joseph", "Joshua", "Julian", "Justin", "Keith", "Kevin", "Kyle",
+        "Lawrence", "Leo", "Leonard", "Liam", "Logan", "Louis", "Luke", "Malcolm", "Marcus", "Mark",
+        "Martin", "Matthew", "Max", "Michael", "Mike", "Nathan", "Nathaniel", "Neil", "Nicholas", "Nick",
+        "Noah", "Norman", "Oliver", "Oscar", "Owen", "Patrick", "Paul", "Peter", "Philip", "Phillip",
+        "Quentin", "Ralph", "Raymond", "Richard", "Rick", "Robert", "Rob", "Roger", "Ronald", "Ross",
+        "Ryan", "Samuel", "Scott", "Sean", "Simon", "Stephen", "Steven", "Stuart", "Thomas", "Timothy",
+        "Tony", "Trevor", "Tristan", "Tyler", "Victor", "Vincent", "Walter", "Warren", "William", "Will",
+        "Zachary", "Zane", "Adrian", "Albert", "Alfred", "Alex", "Allen", "Anthony", "Ben", "Benedict",
+        "Brad", "Brendan", "Bryan", "Calvin", "Carl", "Cecil", "Clifford", "Curtis", "Damian", "Dean",
+        "Dominic", "Derek", "Edgar", "Elliott", "Emmett", "Everett", "Felix", "Finn", "Frederick", "Gideon",
+        "Graham", "Grayson", "Hector", "Hugh", "Isaiah", "Jack", "Jared", "Joel", "Jonah", "Jordan",
+        "Julian", "Keith", "Landon", "Lawrence", "Leon", "Levi", "Lloyd", "Louis", "Malcolm", "Mason",
+        "Micah", "Miles", "Mitchell", "Nathaniel", "Nicholas", "Noel", "Oliver", "Owen", "Patrick", "Peter",
+        "Philip", "Reuben", "Richard", "Robert", "Roland", "Ronan", "Russell", "Ryan", "Samuel", "Sebastian",
+        "Simon", "Spencer", "Stephen", "Steven", "Terrence", "Thomas", "Timothy", "Travis", "Trevor", "Victor",
+        "Vincent", "Walter", "Wesley", "William", "Zachary"
     ],
     female: [
-        ["Catherine", "Katherine", "Kate"],
-        "Emma",
-        "Olivia"
+        "Abigail", "Ada", "Adeline", "Alice", "Alicia", "Allison", "Amelia", "Amy", "Anna", "Annabelle",
+        "Barbara", "Beatrice", "Belinda", "Bernice", "Beth", "Betsy", "Brenda", "Brianna", "Brooke", "Camille",
+        ["Catherine", "Katherine", "Kate"], "Cecilia", "Charlotte", "Chloe", "Claire", "Clara", "Cynthia", "Daisy",
+        "Deborah", "Diana", "Diana", "Dorothy", "Edith", "Eleanor", "Elizabeth", "Ella", "Emily", "Emma",
+        "Erica", "Evelyn", "Faith", "Fiona", "Frances", "Gabriella", "Georgia", "Grace", "Hannah", "Heather",
+        "Helen", "Irene", "Isabel", "Isabella", "Ivy", "Jacqueline", "Jane", "Jasmine", "Jennifer", "Jessica",
+        "Joanna", "Julia", "Juliet", "Karen", "Katherine", "Kimberly", "Laura", "Lauren", "Leah", "Lillian",
+        "Lily", "Linda", "Lola", "Louise", "Lucia", "Lucy", "Madeline", "Madison", "Margaret", "Maria",
+        "Marian", "Marilyn", "Martha", "Mary", "Matilda", "Megan", "Melissa", "Mia", "Michelle", "Miranda",
+        "Nancy", "Natalie", "Nicole", "Nina", "Olivia", "Pamela", "Patricia", "Paula", "Rachel", "Rebecca",
+        "Renee", "Rose", "Ruby", "Samantha", "Sandra", "Sarah", "Savannah", "Sophia", "Sophie", "Stephanie",
+        "Susan", "Sylvia", "Taylor", "Theresa", "Tiffany", "Tracy", "Valerie", "Vanessa", "Victoria", "Violet",
+        "Virginia", "Wendy", "Whitney", "Abby", "Alice", "Amy", "Anna", "Audrey", "Bella", "Bianca", "Brenda",
+        "Brianna", "Camilla", "Carla", "Caroline", "Catherine", "Charlotte", "Christina", "Claire", "Clara", "Cynthia",
+        "Daisy", "Diana", "Donna", "Edith", "Elaine", "Eliza", "Elizabeth", "Ella", "Emily", "Emma",
+        "Erica", "Eva", "Evelyn", "Faith", "Fiona", "Frances", "Gabrielle", "Georgia", "Grace", "Hannah",
+        "Heather", "Helen", "Irene", "Isabel", "Isabella", "Ivy", "Jacqueline", "Jane", "Jasmine", "Jennifer",
+        "Jessica", "Joanna", "Julia", "Juliet", "Karen", "Katherine", "Kimberly", "Laura", "Lauren", "Leah",
+        "Lillian", "Lily", "Linda", "Lola", "Louise", "Lucia", "Lucy", "Madeline", "Madison", "Margaret",
+        "Maria", "Marian", "Marilyn", "Martha", "Mary", "Matilda", "Megan", "Melissa", "Mia", "Michelle"
     ],
     last: [
-        ["Johnson", "Johnston"],
-        "Smith",
-        "Williams"
+        ["Smith", "Smyth"], ["Johnson", "Johnston"], "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Anderson", "Taylor",
+        "Thomas", "Moore", "Martin", "Jackson", "Thompson", "White", "Harris", "Clark", "Lewis", "Robinson",
+        "Walker", "Perez", "Hall", "Young", "Allen", "Sanchez", "Wright", "King", "Scott", "Green",
+        "Baker", "Adams", "Nelson", "Hill", "Ramirez", "Campbell", "Mitchell", "Roberts", "Carter", "Phillips",
+        "Evans", "Turner", "Torres", "Parker", "Collins", "Edwards", "Stewart", "Flores", "Morris", "Nguyen",
+        "Murphy", "Rivera", "Cook", "Rogers", "Morgan", "Peterson", "Cooper", "Reed", "Bailey", "Bell",
+        "Gomez", "Kelly", "Howard", "Ward", "Cox", "Diaz", "Richardson", "Wood", "Watson", "Brooks",
+        "Bennett", "Gray", "James", "Reyes", "Cruz", "Hughes", "Price", "Myers", "Long", "Foster",
+        "Sanders", "Ross", "Morales", "Powell", "Sullivan", "Russell", "Ortiz", "Jenkins", "Gutierrez", "Perry",
+        "Butler", "Barnes", "Fisher", "Henderson", "Coleman", "Simmons", "Patterson", "Jordan", "Reynolds", "Hamilton",
+        "Graham", "Kim", "Gonzales", "Alexander", "Ramos", "Wallace", "Griffin", "West", "Cole", "Hayes",
+        "Bryant", "Herrera", "Gibson", "Ellis", "Tran", "Medina", "Aguilar", "Stevens", "Murray", "Ford",
+        "Castillo", "Hamilton", "Gordon", "Wagner", "Willis", "Ray", "Watkins", "Olson", "Carroll", "Duncan",
+        "Snyder", "Hart", "Cunningham", "Bradley", "Lane", "Andrews", "Ruiz", "Harper", "Fox", "Riley",
+        "Armstrong", "Carpenter", "Weaver", "Greene", "Lawrence", "Elliott", "Chavez", "Sims", "Austin", "Peters"
     ]
 };
+
