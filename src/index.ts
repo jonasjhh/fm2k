@@ -1,5 +1,4 @@
 import { testRunner } from './test-runner.js';
-import './example-component/example_component_test.js';
 import './timeline/timeline_test.js';
 import './name-generator/name_generator_test.js';
 
