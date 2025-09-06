@@ -1,38 +1,58 @@
 name: Deploy to GitHub Pages
 
-
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-steps:
-- name: Checkout code
-uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm install
 
+      - name: Build project
+        run: npm run build
 
-- name: Setup Node.js
-uses: actions/setup-node@v3
-with:
-node-version: 18
+      - name: Debug - Show dist contents
+        run: |
+          echo "=== Contents of dist folder ==="
+          ls -la dist/
+          echo ""
+          echo "=== HTML files in dist ==="
+          find dist/ -name "*.html" -type f
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-- name: Install dependencies
-run: npm install
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
 
-
-- name: Build project
-run: npm run build
-
-
-- name: Deploy to GitHub Pages
-uses: peaceiris/actions-gh-pages@v3
-with:
-github_token: ${{ secrets.GITHUB_TOKEN }}
-publish_dir: ./dist
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
