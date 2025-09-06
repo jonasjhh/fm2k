@@ -1,5 +1,6 @@
 import { testRunner } from './test-runner.js';
 import './example-component/example_component_test.js';
+import './timeline/timeline_test.js';
 
 // Generate a simple build hash from current timestamp
 const buildTime = new Date().toISOString();
