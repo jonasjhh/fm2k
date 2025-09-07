@@ -9,10 +9,11 @@
         "build": "tsc && cp -r public/* dist/",
         "rebuild": "npm run clean && npm run build",
         "test": "node dist/run-tests.js",
-        "install": "npm run rebuild && npm run test",
+        "install": "npm run lint && npm run rebuild && npm run test",
         "dev": "npm run build && cd dist && python3 -m http.server 8000"
     },
     "devDependencies": {
+        "@eslint/js": "^9.35.0",
         "@typescript-eslint/eslint-plugin": "^8.42.0",
         "@typescript-eslint/parser": "^8.42.0",
         "eslint": "^9.35.0",

@@ -3,14 +3,12 @@ import { Timeline, Moment } from './timeline.js';
 
 testRunner.addTest('Timeline should register and retrieve moments', () => {
     const timeline = new Timeline(new Date('2024-01-01'));
-    let momentFired = false;
-
     const moment: Moment = {
         id: 'test-1',
         name: 'Test Moment',
         date: new Date('2024-01-05'),
         resolved: false,
-        callback: () => { momentFired = true; }
+        callback: () => { /* test callback */ }
     };
 
     timeline.registerMoment(moment);
@@ -22,14 +20,12 @@ testRunner.addTest('Timeline should register and retrieve moments', () => {
 
 testRunner.addTest('Timeline should advance time and trigger moments', () => {
     const timeline = new Timeline(new Date('2024-01-01'));
-    let momentFired = false;
-
     const moment: Moment = {
         id: 'test-2',
         name: 'Future Moment',
         date: new Date('2024-01-03'),
         resolved: false,
-        callback: () => { momentFired = true; }
+        callback: () => { /* test callback */ }
     };
 
     timeline.registerMoment(moment);
@@ -165,11 +161,6 @@ testRunner.addTest('Timeline should filter unresolved moments', () => {
 testRunner.addTest('Timeline should pass payload to callback when firing moments', async () => {
     const timeline = new Timeline();
     let receivedPayload: any = null;
-
-    interface TaskPayload {
-        priority: string;
-        assignee: string;
-    }
 
     const moment: Moment = {
         id: 'payload-test',
