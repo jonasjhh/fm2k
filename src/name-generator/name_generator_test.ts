@@ -15,82 +15,92 @@ function parseFullName(fullName: string): { firstName: string, lastName: string 
   };
 }
 
-describe('NameGenerator', () => {
-  test('should generate Norwegian male names from correct data', () => {
-    const generator = new NameGenerator('male', 'norway');
-    const name = generator.generateName();
-    const { firstName, lastName } = parseFullName(name);
-
-    const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-    const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-
-    expect(validFirstNames).toContain(firstName);
-    expect(validLastNames).toContain(lastName);
-  });
-
-  test('should generate Norwegian female names from correct data', () => {
-    const generator = new NameGenerator('female', 'norway');
-    const name = generator.generateName();
-    const { firstName, lastName } = parseFullName(name);
-
-    const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.female);
-    const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-
-    expect(validFirstNames).toContain(firstName);
-    expect(validLastNames).toContain(lastName);
-  });
-
-  test('should generate English male names from correct data', () => {
-    const generator = new NameGenerator('male', 'england');
-    const name = generator.generateName();
-    const { firstName, lastName } = parseFullName(name);
-
-    const validFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-    const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
-
-    expect(validFirstNames).toContain(firstName);
-    expect(validLastNames).toContain(lastName);
-  });
-
-  test('should generate multiple unique names', () => {
-    const generator = new NameGenerator('all', 'all');
-    const names = generator.generateUniqueNames(10);
-
-    expect(names).toHaveLength(10);
-    const uniqueNames = new Set(names);
-    expect(uniqueNames.size).toBe(10);
-  });
-
-  test('should generate names from all countries when country is "all"', () => {
-    const generator = new NameGenerator('male', 'all');
-    const names = generator.generateNames(20);
-
-    names.forEach(name => {
+describe('NameGenerator:', () => {
+  describe('.generateName()', () => {
+    test('given a Norwegian male name generator when generating a name then should use Norwegian male and Norwegian last names', () => {
+      const generator = new NameGenerator('male', 'norway');
+      const name = generator.generateName();
       const { firstName, lastName } = parseFullName(name);
-      const norwayFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-      const englishFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-      const norwayLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-      const englishLastNames = flattenNameEntries(ENGLISH_NAMES.last);
 
-      const isValidFirstName = norwayFirstNames.includes(firstName) || englishFirstNames.includes(firstName);
-      const isValidLastName = norwayLastNames.includes(lastName) || englishLastNames.includes(lastName);
+      const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
+      const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
 
-      expect(isValidFirstName).toBe(true);
-      expect(isValidLastName).toBe(true);
+      expect(validFirstNames).toContain(firstName);
+      expect(validLastNames).toContain(lastName);
+    });
+
+    test('given a Norwegian female name generator when generating a name then should use Norwegian female and Norwegian last names', () => {
+      const generator = new NameGenerator('female', 'norway');
+      const name = generator.generateName();
+      const { firstName, lastName } = parseFullName(name);
+
+      const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.female);
+      const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
+
+      expect(validFirstNames).toContain(firstName);
+      expect(validLastNames).toContain(lastName);
+    });
+
+    test('given an English male name generator when generating a name then should use English male and English last names', () => {
+      const generator = new NameGenerator('male', 'england');
+      const name = generator.generateName();
+      const { firstName, lastName } = parseFullName(name);
+
+      const validFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
+      const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
+
+      expect(validFirstNames).toContain(firstName);
+      expect(validLastNames).toContain(lastName);
     });
   });
 
-  test('should throw error for unsupported country', () => {
-    expect(() => {
-      new NameGenerator('male', 'unsupported' as any);
-    }).toThrow('Unsupported country: unsupported');
+  describe('.generateUniqueNames()', () => {
+    test('given a name generator with all genders and countries when generating unique names then should return requested number of unique names', () => {
+      const generator = new NameGenerator('all', 'all');
+      const names = generator.generateUniqueNames(10);
+
+      expect(names).toHaveLength(10);
+      const uniqueNames = new Set(names);
+      expect(uniqueNames.size).toBe(10);
+    });
   });
 
-  test('should return configuration', () => {
-    const generator = new NameGenerator('female', 'england');
-    const config = generator.getConfig();
+  describe('.generateNames()', () => {
+    test('given a male name generator with all countries when generating names then should use names from both Norwegian and English data', () => {
+      const generator = new NameGenerator('male', 'all');
+      const names = generator.generateNames(20);
 
-    expect(config.gender).toBe('female');
-    expect(config.country).toBe('england');
+      names.forEach(name => {
+        const { firstName, lastName } = parseFullName(name);
+        const norwayFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
+        const englishFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
+        const norwayLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
+        const englishLastNames = flattenNameEntries(ENGLISH_NAMES.last);
+
+        const isValidFirstName = norwayFirstNames.includes(firstName) || englishFirstNames.includes(firstName);
+        const isValidLastName = norwayLastNames.includes(lastName) || englishLastNames.includes(lastName);
+
+        expect(isValidFirstName).toBe(true);
+        expect(isValidLastName).toBe(true);
+      });
+    });
+  });
+
+  describe('.getConfig()', () => {
+    test('given a female English name generator when getting configuration then should return correct gender and country', () => {
+      const generator = new NameGenerator('female', 'england');
+      const config = generator.getConfig();
+
+      expect(config.gender).toBe('female');
+      expect(config.country).toBe('england');
+    });
+  });
+
+  describe('constructor', () => {
+    test('given an unsupported country when creating a name generator then should throw an error', () => {
+      expect(() => {
+        new NameGenerator('male', 'unsupported' as any);
+      }).toThrow('Unsupported country: unsupported');
+    });
   });
 });

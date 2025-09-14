@@ -1,4 +1,4 @@
-import { MatchState, MatchEvent, EventType, EventContext, Player, BallPosition } from './types';
+import { MatchState, MatchEvent, EventType, EventContext, Player, BallPosition } from './types.js';
 
 export interface EventGenerator {
   canGenerate(context: EventContext): boolean;

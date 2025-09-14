@@ -364,8 +364,5 @@ export class ToastManager {
   }
 }
 
-export function createToastManager(options: ToastConfig = {}): ToastManager {
-  return new ToastManager(options);
-}
 
 export const toastManager = new ToastManager();

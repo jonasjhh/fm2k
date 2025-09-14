@@ -1,6 +1,6 @@
 import { NameGenerator, type Gender, type Country } from '../name-generator/name_generator.js';
-import { type Player, type PlayerAttributes, type Position } from '../fm-types/index.js';
-import { v4 as uuidv4 } from '../uuid/index.js';
+import { type Player, type PlayerAttributes, type Position } from '../fm-types/types.js';
+import { v4 as uuidv4 } from '../uuid/uuid.js';
 
 export interface PlayerGenerationConfig {
   position: Position;

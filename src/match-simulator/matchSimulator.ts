@@ -1,5 +1,5 @@
-import { MatchState, MatchEvent, Team, MatchResult, MatchStatistics } from './types';
-import { EventEngine, PassGenerator, ShotGenerator, GoalGenerator, SaveGenerator } from './eventEngine';
+import { MatchState, MatchEvent, Team, MatchResult, MatchStatistics } from './types.js';
+import { EventEngine, PassGenerator, ShotGenerator, GoalGenerator, SaveGenerator } from './eventEngine.js';
 
 export interface MatchConfig {
   matchDuration: number;
@@ -178,14 +178,3 @@ export class MatchSimulator {
   }
 }
 
-export function createMatchSimulator(homeTeam: Team, awayTeam: Team, options?: Partial<MatchConfig>): MatchSimulator {
-  const defaultConfig: MatchConfig = {
-    matchDuration: 90,
-    eventsPerMinute: 3,
-    homeTeam,
-    awayTeam,
-  };
-
-  const config = { ...defaultConfig, ...options };
-  return new MatchSimulator(config);
-}

@@ -1,4 +1,5 @@
-import { createMatchSimulator, Team, Player } from './index.js';
+import { MatchSimulator } from './matchSimulator.js';
+import { Team, Player } from '../fm-types/types.js';
 
 function createExamplePlayer(id: string, name: string, position: any, attributes: any = {}): Player {
   const baseAttributes = {
@@ -99,8 +100,11 @@ export function runExampleMatch(): void {
   const homeTeam = createExampleTeam();
   const awayTeam = createAwayTeam();
 
-  const simulator = createMatchSimulator(homeTeam, awayTeam, {
+  const simulator = new MatchSimulator({
+    matchDuration: 90,
     eventsPerMinute: 4,
+    homeTeam,
+    awayTeam,
   });
 
   const result = simulator.simulate();

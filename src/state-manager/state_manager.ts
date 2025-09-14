@@ -221,6 +221,3 @@ export class StateManager<T extends Record<string, any>> {
   }
 }
 
-export function createStateManager<T extends Record<string, any>>(initialState: T, options?: StateOptions): StateManager<T> {
-  return new StateManager(initialState, options);
-}
