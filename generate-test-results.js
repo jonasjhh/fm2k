@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Read the Jest results JSON
-const resultsPath = path.join(__dirname, 'dist', 'test-results.json');
+const resultsPath = path.join(__dirname, 'reports', 'test', 'test-results.json');
+const mutationResultsPath = path.join(__dirname, 'reports', 'mutation', 'mutation.json');
 const detailedOutputPath = path.join(__dirname, 'dist', 'test-results.html');
 const dashboardOutputPath = path.join(__dirname, 'dist', 'index.html');
 const dashboardJsPath = path.join(__dirname, 'dist', 'index.js');
@@ -16,6 +17,16 @@ if (!fs.existsSync(resultsPath)) {
 }
 
 const jestResults = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+
+// Read mutation test results if available
+let mutationResults = null;
+if (fs.existsSync(mutationResultsPath)) {
+  try {
+    mutationResults = JSON.parse(fs.readFileSync(mutationResultsPath, 'utf8'));
+  } catch (error) {
+    console.log('Could not parse mutation results:', error.message);
+  }
+}
 
 // Parse results
 function parseJestResults(jestResults) {
@@ -129,16 +140,19 @@ function generateDashboardHTML() {
   return `<body>
     <h1>FM2K - Component Test Dashboard</h1>
     <div style="margin: 20px 0;">
-        <a href="test-results.html" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Test Results</a>
+        <a href="test-results.html" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Test Results</a>
     </div>
     <div id="test-results"></div>
+    <div id="mutation-results"></div>
     <div id="version-hash"></div>
     <script type="module" src="./index.js"></script>
 </body>`;
 }
 
 // Generate dashboard JavaScript
-function generateDashboardJS() {
+function generateDashboardJS(mutationData) {
+  const mutationDataJson = mutationData ? JSON.stringify(mutationData) : 'null';
+
   return `// Load and display test results summary
 async function loadTestResults() {
   try {
@@ -176,6 +190,36 @@ async function loadTestResults() {
   }
 }
 
+// Load and display mutation test results
+function loadMutationResults() {
+  const mutationData = ${mutationDataJson};
+  const mutationDiv = document.getElementById('mutation-results');
+
+  if (mutationData) {
+    const score = mutationData.thresholds?.high || mutationData.mutationScore || 0;
+    const scoreColor = score >= 80 ? '#28a745' : score >= 60 ? '#ffc107' : '#dc3545';
+
+    mutationDiv.innerHTML = \`
+      <div style="padding: 15px; margin: 20px 0; border-radius: 5px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+        <h2>🧬 Mutation Test Results</h2>
+        <p><strong>Mutation Score:</strong> <span style="color: \${scoreColor}; font-size: 1.2em; font-weight: bold;">\${score}%</span></p>
+        <p><strong>Total Mutants:</strong> \${mutationData.totalMutants || 'N/A'}</p>
+        <p><strong>Killed:</strong> <span style="color: #28a745;">\${mutationData.totalKilled || 'N/A'}</span></p>
+        <p><strong>Survived:</strong> <span style="color: #dc3545;">\${mutationData.totalSurvived || 'N/A'}</span></p>
+        <p><strong>Timeout:</strong> \${mutationData.totalTimedOut || 'N/A'}</p>
+      </div>
+    \`;
+  } else {
+    mutationDiv.innerHTML = \`
+      <div style="padding: 15px; margin: 20px 0; border-radius: 5px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+        <h2>🧬 Mutation Test Results</h2>
+        <p>No mutation test results available. Run mutation tests to see results.</p>
+        <p><em>Run: <code>pnpm run test:mutation</code></em></p>
+      </div>
+    \`;
+  }
+}
+
 // Load version information
 function loadVersionInfo() {
   const versionDiv = document.getElementById('version-hash');
@@ -189,6 +233,7 @@ function loadVersionInfo() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadTestResults();
+  loadMutationResults();
   loadVersionInfo();
 });`;
 }
@@ -196,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const report = parseJestResults(jestResults);
 const detailedHtml = generateTestResultsHTML(report);
 const dashboardHtml = generateDashboardHTML();
-const dashboardJs = generateDashboardJS();
+const dashboardJs = generateDashboardJS(mutationResults);
 
 // Write all files
 fs.writeFileSync(detailedOutputPath, detailedHtml);

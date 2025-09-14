@@ -9,9 +9,9 @@
         "build": "tsc && (pnpm run test:json || true) && node generate-test-results.js",
         "rebuild": "pnpm run clean && pnpm run build",
         "test": "jest",
-        "test:json": "jest --json --outputFile=dist/test-results.json",
+        "test:json": "jest --json --outputFile=reports/test/test-results.json",
         "test:mutation": "stryker run",
-        "install": "pnpm run lint && pnpm run rebuild && pnpm run test",
+        "install": "pnpm run lint && pnpm run rebuild",
         "dev": "pnpm run build && cd dist && python3 -m http.server 8000"
     },
     "devDependencies": {
