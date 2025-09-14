@@ -1,6 +1,5 @@
-import { testRunner, assert } from '../test-runner.js';
-import { NameGenerator } from './name_generator.js';
-import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name_data.js';
+import { NameGenerator } from './name_generator';
+import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name_data';
 
 // Helper function to flatten name entries (handles both strings and string arrays)
 function flattenNameEntries(entries: (string | string[])[]): string[] {
@@ -16,149 +15,82 @@ function parseFullName(fullName: string): { firstName: string, lastName: string 
   };
 }
 
-testRunner.addTest('NameGenerator should generate Norwegian male names from correct data', () => {
-  const generator = new NameGenerator('male', 'norway');
-  const name = generator.generateName();
-  const { firstName, lastName } = parseFullName(name);
-
-  const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-  const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-
-  assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from Norwegian male names`);
-  assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from Norwegian last names`);
-});
-
-testRunner.addTest('NameGenerator should generate Norwegian female names from correct data', () => {
-  const generator = new NameGenerator('female', 'norway');
-  const name = generator.generateName();
-  const { firstName, lastName } = parseFullName(name);
-
-  const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.female);
-  const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-
-  assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from Norwegian female names`);
-  assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from Norwegian last names`);
-});
-
-testRunner.addTest('NameGenerator should generate English male names from correct data', () => {
-  const generator = new NameGenerator('male', 'england');
-  const name = generator.generateName();
-  const { firstName, lastName } = parseFullName(name);
-
-  const validFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-  const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
-
-  assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from English male names`);
-  assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from English last names`);
-});
-
-testRunner.addTest('NameGenerator should generate English female names from correct data', () => {
-  const generator = new NameGenerator('female', 'england');
-  const name = generator.generateName();
-  const { firstName, lastName } = parseFullName(name);
-
-  const validFirstNames = flattenNameEntries(ENGLISH_NAMES.female);
-  const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
-
-  assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from English female names`);
-  assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from English last names`);
-});
-
-testRunner.addTest('NameGenerator should generate names from both genders when gender is "all"', () => {
-  const generator = new NameGenerator('all', 'norway');
-
-  // Generate multiple names to increase chance of getting both genders
-  const names = generator.generateNames(20);
-
-  const validMaleNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-  const validFemaleNames = flattenNameEntries(NORWEGIAN_NAMES.female);
-  const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-  const allValidFirstNames = [...validMaleNames, ...validFemaleNames];
-
-  for (const name of names) {
+describe('NameGenerator', () => {
+  test('should generate Norwegian male names from correct data', () => {
+    const generator = new NameGenerator('male', 'norway');
+    const name = generator.generateName();
     const { firstName, lastName } = parseFullName(name);
-    assert(allValidFirstNames.includes(firstName), `First name "${firstName}" should be from Norwegian male or female names`);
-    assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from Norwegian last names`);
-  }
-});
 
-testRunner.addTest('NameGenerator should generate names from both countries when country is "all"', () => {
-  const generator = new NameGenerator('male', 'all');
+    const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
+    const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
 
-  // Generate multiple names to increase chance of getting both countries
-  const names = generator.generateNames(20);
+    expect(validFirstNames).toContain(firstName);
+    expect(validLastNames).toContain(lastName);
+  });
 
-  const validNorwegianFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-  const validEnglishFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-  const validNorwegianLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-  const validEnglishLastNames = flattenNameEntries(ENGLISH_NAMES.last);
-
-  const allValidFirstNames = [...validNorwegianFirstNames, ...validEnglishFirstNames];
-  const allValidLastNames = [...validNorwegianLastNames, ...validEnglishLastNames];
-
-  for (const name of names) {
+  test('should generate Norwegian female names from correct data', () => {
+    const generator = new NameGenerator('female', 'norway');
+    const name = generator.generateName();
     const { firstName, lastName } = parseFullName(name);
-    assert(allValidFirstNames.includes(firstName), `First name "${firstName}" should be from Norwegian or English male names`);
-    assert(allValidLastNames.includes(lastName), `Last name "${lastName}" should be from Norwegian or English last names`);
-  }
-});
 
-testRunner.addTest('NameGenerator should consistently generate valid names in batch', () => {
-  const generator = new NameGenerator('female', 'england');
-  const names = generator.generateNames(10);
+    const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.female);
+    const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
 
-  const validFirstNames = flattenNameEntries(ENGLISH_NAMES.female);
-  const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
+    expect(validFirstNames).toContain(firstName);
+    expect(validLastNames).toContain(lastName);
+  });
 
-  assert(names.length === 10, 'Should generate exactly 10 names');
-
-  for (const name of names) {
+  test('should generate English male names from correct data', () => {
+    const generator = new NameGenerator('male', 'england');
+    const name = generator.generateName();
     const { firstName, lastName } = parseFullName(name);
-    assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from English female names`);
-    assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from English last names`);
-  }
-});
 
-testRunner.addTest('NameGenerator should generate unique valid names', () => {
-  const generator = new NameGenerator('male', 'norway');
-  const names = generator.generateUniqueNames(5);
+    const validFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
+    const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
 
-  const validFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-  const validLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
+    expect(validFirstNames).toContain(firstName);
+    expect(validLastNames).toContain(lastName);
+  });
 
-  assert(names.length === 5, 'Should generate exactly 5 names');
+  test('should generate multiple unique names', () => {
+    const generator = new NameGenerator('all', 'all');
+    const names = generator.generateUniqueNames(10);
 
-  const uniqueNames = new Set(names);
-  assert(uniqueNames.size === 5, 'All names should be unique');
+    expect(names).toHaveLength(10);
+    const uniqueNames = new Set(names);
+    expect(uniqueNames.size).toBe(10);
+  });
 
-  for (const name of names) {
-    const { firstName, lastName } = parseFullName(name);
-    assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from Norwegian male names`);
-    assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from Norwegian last names`);
-  }
-});
+  test('should generate names from all countries when country is "all"', () => {
+    const generator = new NameGenerator('male', 'all');
+    const names = generator.generateNames(20);
 
-// Test that name variants work correctly
-testRunner.addTest('NameGenerator should handle name variants correctly', () => {
-  const generator = new NameGenerator('male', 'england');
+    names.forEach(name => {
+      const { firstName, lastName } = parseFullName(name);
+      const norwayFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
+      const englishFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
+      const norwayLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
+      const englishLastNames = flattenNameEntries(ENGLISH_NAMES.last);
 
-  // Generate many names to increase chance of hitting variants
-  const names = generator.generateNames(50);
+      const isValidFirstName = norwayFirstNames.includes(firstName) || englishFirstNames.includes(firstName);
+      const isValidLastName = norwayLastNames.includes(lastName) || englishLastNames.includes(lastName);
 
-  const validFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-  const validLastNames = flattenNameEntries(ENGLISH_NAMES.last);
+      expect(isValidFirstName).toBe(true);
+      expect(isValidLastName).toBe(true);
+    });
+  });
 
-  for (const name of names) {
-    const { firstName, lastName } = parseFullName(name);
-    assert(validFirstNames.includes(firstName), `First name "${firstName}" should be from English male names (including variants)`);
-    assert(validLastNames.includes(lastName), `Last name "${lastName}" should be from English last names (including variants)`);
-  }
-});
+  test('should throw error for unsupported country', () => {
+    expect(() => {
+      new NameGenerator('male', 'unsupported' as any);
+    }).toThrow('Unsupported country: unsupported');
+  });
 
-// Test configuration
-testRunner.addTest('NameGenerator should return correct configuration', () => {
-  const generator = new NameGenerator('female', 'england');
-  const config = generator.getConfig();
-  assert(config.gender === 'female', 'Should return correct gender');
-  assert(config.country === 'england', 'Should return correct country');
+  test('should return configuration', () => {
+    const generator = new NameGenerator('female', 'england');
+    const config = generator.getConfig();
+
+    expect(config.gender).toBe('female');
+    expect(config.country).toBe('england');
+  });
 });

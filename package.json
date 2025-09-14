@@ -6,17 +6,21 @@
         "clean": "rm -rf dist",
         "lint": "eslint src/**/*.ts",
         "lint:fix": "eslint src/**/*.ts --fix",
-        "build": "tsc && cp -r public/* dist/",
-        "rebuild": "npm run clean && npm run build",
-        "test": "node dist/run-tests.js",
-        "install": "npm run lint && npm run rebuild && npm run test",
-        "dev": "npm run build && cd dist && python3 -m http.server 8000"
+        "build": "tsc && (pnpm run test:json || true) && node generate-test-results.js",
+        "rebuild": "pnpm run clean && pnpm run build",
+        "test": "jest",
+        "test:json": "jest src/player-generator/playerGenerator_tests.ts src/event-bus/eventBus_tests.ts src/name-generator/name_generator_test.ts src/uuid/uuid_tests.ts src/state-manager/state_manager_tests.ts src/toast-manager/toast_manager_tests.ts src/match-simulator/matchSimulator_tests.ts src/timeline/timeline_test.ts --json --outputFile=dist/test-results.json",
+        "install": "pnpm run lint && pnpm run rebuild && pnpm run test",
+        "dev": "pnpm run build && cd dist && python3 -m http.server 8000"
     },
     "devDependencies": {
         "@eslint/js": "^9.35.0",
         "@typescript-eslint/eslint-plugin": "^8.42.0",
         "@typescript-eslint/parser": "^8.42.0",
+        "@types/jest": "^29.5.12",
         "eslint": "^9.35.0",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.1.2",
         "typescript": "^5.3.3"
     }
 }

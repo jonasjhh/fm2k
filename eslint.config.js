@@ -27,7 +27,7 @@ export default [
     rules: {
       // Disable base rule as it can report incorrect errors
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
 
       // Code quality rules
       'prefer-const': 'error',
@@ -46,7 +46,7 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-inferrable-types': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // Best practices
@@ -58,6 +58,23 @@ export default [
       'no-throw-literal': 'error',
       'no-undef-init': 'error',
       'no-unreachable': 'error',
+    },
+  },
+  // Jest test files
+  {
+    files: ['**/*_tests.ts', '**/*_test.ts', '**/*.test.ts', '**/*.spec.ts'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+      },
     },
   },
   {

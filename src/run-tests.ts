@@ -5,6 +5,10 @@ import { testRunner } from './test-runner.js';
 async function runTests() {
     await import('./timeline/timeline_test.js');
     await import('./name-generator/name_generator_test.js');
+    await import('./event-bus/eventBus_tests.js');
+    await import('./toast-manager/toast_manager_tests.js');
+    await import('./state-manager/state_manager_tests.js');
+    await import('./match-simulator/matchSimulator_tests.js');
     await testRunner.runAllTests();
 }
 

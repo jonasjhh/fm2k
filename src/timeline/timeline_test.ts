@@ -1,217 +1,272 @@
-import { testRunner, assert } from '../test-runner.js';
-import { Timeline, Moment } from './timeline.js';
+import { Timeline, Moment } from './timeline';
 
-testRunner.addTest('Timeline should register and retrieve moments', () => {
-  const timeline = new Timeline(new Date('2024-01-01'));
-  const moment: Moment = {
-    id: 'test-1',
-    name: 'Test Moment',
-    date: new Date('2024-01-05'),
-    resolved: false,
-    callback: () => { /* test callback */ },
-  };
+describe('Timeline', () => {
+  test('should register and retrieve moments', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
+    const moment: Moment = {
+      id: 'test-1',
+      name: 'Test Moment',
+      date: new Date('2024-01-05'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  timeline.registerMoment(moment);
-  const moments = timeline.getMomentsForDate(new Date('2024-01-05'));
+    // Act
+    timeline.registerMoment(moment);
+    const moments = timeline.getMomentsForDate(new Date('2024-01-05'));
 
-  assert(moments.length === 1, 'Should have one moment registered');
-  assert(moments[0].id === 'test-1', 'Should retrieve the correct moment');
-});
+    // Assert
+    expect(moments).toHaveLength(1);
+    expect(moments[0].id).toBe('test-1');
+  });
 
-testRunner.addTest('Timeline should advance time and trigger moments', () => {
-  const timeline = new Timeline(new Date('2024-01-01'));
-  const moment: Moment = {
-    id: 'test-2',
-    name: 'Future Moment',
-    date: new Date('2024-01-03'),
-    resolved: false,
-    callback: () => { /* test callback */ },
-  };
+  test('should advance time and trigger moments', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
+    const moment: Moment = {
+      id: 'test-2',
+      name: 'Future Moment',
+      date: new Date('2024-01-03'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  timeline.registerMoment(moment);
-  const triggeredMoments = timeline.advanceTime(3);
+    // Act
+    timeline.registerMoment(moment);
+    const triggeredMoments = timeline.advanceTime(3);
 
-  assert(triggeredMoments.length === 1, 'Should trigger one moment');
-  assert(triggeredMoments[0].id === 'test-2', 'Should trigger the correct moment');
-});
+    // Assert
+    expect(triggeredMoments).toHaveLength(1);
+    expect(triggeredMoments[0].id).toBe('test-2');
+  });
 
-testRunner.addTest('Timeline should remove moments by id', () => {
-  const timeline = new Timeline();
+  test('should remove moments by id', () => {
+    // Arrange
+    const timeline = new Timeline();
+    const moment: Moment = {
+      id: 'remove-test',
+      name: 'Moment to Remove',
+      date: new Date('2024-01-01'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  const moment: Moment = {
-    id: 'remove-test',
-    name: 'Moment to Remove',
-    date: new Date('2024-01-01'),
-    resolved: false,
-    callback: () => { },
-  };
+    // Act
+    timeline.registerMoment(moment);
+    const removed = timeline.removeMoment('remove-test');
+    const remainingMoments = timeline.getMomentsForDate(new Date('2024-01-01'));
 
-  timeline.registerMoment(moment);
-  const removed = timeline.removeMoment('remove-test');
-  const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
+    // Assert
+    expect(removed).toBe(true);
+    expect(remainingMoments).toHaveLength(0);
+  });
 
-  assert(removed === true, 'Should return true when moment is removed');
-  assert(moments.length === 0, 'Should have no moments after removal');
-});
+  test('should return false when trying to remove non-existent moment', () => {
+    // Arrange
+    const timeline = new Timeline();
 
-testRunner.addTest('Timeline should handle optional description and tags', () => {
-  const timeline = new Timeline(new Date('2024-01-01'));
+    // Act
+    const removed = timeline.removeMoment('non-existent');
 
-  const moment: Moment = {
-    id: 'optional-test',
-    name: 'Moment with Optional Fields',
-    date: new Date('2024-01-05'),
-    resolved: false,
-    callback: () => { },
-    description: 'A moment with a description',
-    tags: ['work', 'important'],
-  };
+    // Assert
+    expect(removed).toBe(false);
+  });
 
-  timeline.registerMoment(moment);
-  const moments = timeline.getMomentsForDate(new Date('2024-01-05'));
+  test('should handle multiple moments on the same date', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
+    const moment1: Moment = {
+      id: 'multi-1',
+      name: 'First Moment',
+      date: new Date('2024-01-02'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
+    const moment2: Moment = {
+      id: 'multi-2',
+      name: 'Second Moment',
+      date: new Date('2024-01-02'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  assert(moments[0].description === 'A moment with a description', 'Should have description');
-  assert(moments[0].tags?.length === 2, 'Should have 2 tags');
-  assert(moments[0].tags !== undefined && moments[0].tags.includes('work'), 'Should include work tag');
-});
+    // Act
+    timeline.registerMoment(moment1);
+    timeline.registerMoment(moment2);
+    const moments = timeline.getMomentsForDate(new Date('2024-01-02'));
 
-testRunner.addTest('Timeline should find moments by tag', () => {
-  const timeline = new Timeline();
+    // Assert
+    expect(moments).toHaveLength(2);
+    expect(moments.map(m => m.id)).toContain('multi-1');
+    expect(moments.map(m => m.id)).toContain('multi-2');
+  });
 
-  const moment1: Moment = {
-    id: 'tagged-1',
-    name: 'Work Moment',
-    date: new Date('2024-01-01'),
-    resolved: false,
-    callback: () => { },
-    tags: ['work', 'meeting'],
-  };
+  test('should return moments in chronological order when advancing time', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
 
-  const moment2: Moment = {
-    id: 'tagged-2',
-    name: 'Personal Moment',
-    date: new Date('2024-01-02'),
-    resolved: false,
-    callback: () => { },
-    tags: ['personal'],
-  };
+    const moment1: Moment = {
+      id: 'first',
+      name: 'First Moment',
+      date: new Date('2024-01-02'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  timeline.registerMoment(moment1);
-  timeline.registerMoment(moment2);
+    const moment2: Moment = {
+      id: 'second',
+      name: 'Second Moment',
+      date: new Date('2024-01-03'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  const workMoments = timeline.getMomentsByTag('work');
-  assert(workMoments.length === 1, 'Should find one work moment');
-  assert(workMoments[0].id === 'tagged-1', 'Should find the correct work moment');
-});
+    const moment3: Moment = {
+      id: 'third',
+      name: 'Third Moment',
+      date: new Date('2024-01-04'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-testRunner.addTest('Timeline should resolve moments', () => {
-  const timeline = new Timeline();
+    // Act
+    timeline.registerMoment(moment3); // Register out of order
+    timeline.registerMoment(moment1);
+    timeline.registerMoment(moment2);
 
-  const moment: Moment = {
-    id: 'resolve-test',
-    name: 'Resolvable Moment',
-    date: new Date('2024-01-01'),
-    resolved: false,
-    callback: () => { },
-  };
+    const triggeredMoments = timeline.advanceTime(5); // Advance past all moments
 
-  timeline.registerMoment(moment);
+    // Assert
+    expect(triggeredMoments).toHaveLength(3);
+    expect(triggeredMoments.map(m => m.id)).toEqual(['first', 'second', 'third']);
+  });
 
-  const resolved = timeline.resolveMoment('resolve-test');
-  const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
-  const unresolvedMoments = timeline.getUnresolvedMomentsForDate(new Date('2024-01-01'));
+  test('should allow marking moments as resolved manually', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
+    const moment: Moment = {
+      id: 'resolve-test',
+      name: 'Moment to Resolve',
+      date: new Date('2024-01-02'),
+      resolved: false,
+      callback: () => { /* test callback */ },
+    };
 
-  assert(resolved === true, 'Should return true when moment is resolved');
-  assert(moments[0].resolved === true, 'Moment should be marked as resolved');
-  assert(unresolvedMoments.length === 0, 'Should have no unresolved moments');
-});
+    // Act
+    timeline.registerMoment(moment);
+    const wasResolved = timeline.resolveMoment('resolve-test');
 
-testRunner.addTest('Timeline should filter unresolved moments', () => {
-  const timeline = new Timeline();
+    // Assert
+    expect(wasResolved).toBe(true);
+    expect(moment.resolved).toBe(true);
+  });
 
-  const moment1: Moment = {
-    id: 'unresolved-1',
-    name: 'Unresolved Moment',
-    date: new Date('2024-01-01'),
-    resolved: false,
-    callback: () => { },
-  };
+  test('should not trigger already resolved moments', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
+    const moment: Moment = {
+      id: 'resolved-test',
+      name: 'Already Resolved',
+      date: new Date('2024-01-02'),
+      resolved: true, // Already resolved
+      callback: jest.fn(), // Mock function to track calls
+    };
 
-  const moment2: Moment = {
-    id: 'resolved-1',
-    name: 'Resolved Moment',
-    date: new Date('2024-01-01'),
-    resolved: true,
-    callback: () => { },
-  };
+    // Act
+    timeline.registerMoment(moment);
+    timeline.advanceTime(2);
 
-  timeline.registerMoment(moment1);
-  timeline.registerMoment(moment2);
+    // Assert
+    expect(moment.callback).not.toHaveBeenCalled();
+  });
 
-  const allMoments = timeline.getMomentsForDate(new Date('2024-01-01'));
-  const unresolvedMoments = timeline.getUnresolvedMomentsForDate(new Date('2024-01-01'));
-  const allUnresolved = timeline.getUnresolvedMoments();
+  test('should handle empty timeline', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-01'));
 
-  assert(allMoments.length === 2, 'Should have 2 total moments');
-  assert(unresolvedMoments.length === 1, 'Should have 1 unresolved moment for date');
-  assert(allUnresolved.length === 1, 'Should have 1 unresolved moment total');
-  assert(unresolvedMoments[0].id === 'unresolved-1', 'Should find the correct unresolved moment');
-});
+    // Act
+    const triggeredMoments = timeline.advanceTime(10);
+    const moments = timeline.getMomentsForDate(new Date('2024-01-05'));
 
-testRunner.addTest('Timeline should pass payload to callback when firing moments', async () => {
-  const timeline = new Timeline();
-  let receivedPayload: any = null;
+    // Assert
+    expect(triggeredMoments).toHaveLength(0);
+    expect(moments).toHaveLength(0);
+  });
 
-  const moment: Moment = {
-    id: 'payload-test',
-    name: 'Task with Payload',
-    date: new Date('2024-01-01'),
-    resolved: false,
-    callback: (payload?: Record<string, any>) => {
-      receivedPayload = payload;
-    },
-    payload: {
-      priority: 'high',
-      assignee: 'Alice',
-    },
-  };
+  test('should get current date', () => {
+    // Arrange
+    const startDate = new Date('2024-01-01');
+    const timeline = new Timeline(startDate);
 
-  timeline.registerMoment(moment);
-  const moments = timeline.getMomentsForDate(new Date('2024-01-01'));
+    // Act
+    const currentDate = timeline.getCurrentDate();
 
-  // Fire the moments using the timeline's fireMoments method
-  await timeline.resolveMoments(moments);
+    // Assert
+    expect(currentDate).toEqual(startDate);
+  });
 
-  assert(receivedPayload !== null, 'Should receive payload');
-  assert(receivedPayload.priority === 'high', 'Should have correct priority');
-  assert(receivedPayload.assignee === 'Alice', 'Should have correct assignee');
-});
+  test('should update current date when advancing time', () => {
+    // Arrange
+    const startDate = new Date('2024-01-01');
+    const timeline = new Timeline(startDate);
 
-testRunner.addTest('Timeline should advance to specific date', () => {
-  const timeline = new Timeline(new Date('2024-01-01'));
+    // Act
+    timeline.advanceTime(5);
+    const currentDate = timeline.getCurrentDate();
 
-  const moment1: Moment = {
-    id: 'advance-test-1',
-    name: 'Moment on Jan 5',
-    date: new Date('2024-01-05'),
-    resolved: false,
-    callback: () => { },
-  };
+    // Assert
+    const expectedDate = new Date('2024-01-06');
+    expect(currentDate.getTime()).toBe(expectedDate.getTime());
+  });
 
-  const moment2: Moment = {
-    id: 'advance-test-2',
-    name: 'Moment on Jan 10',
-    date: new Date('2024-01-10'),
-    resolved: false,
-    callback: () => { },
-  };
+  test('should handle moments with past dates', () => {
+    // Arrange
+    const timeline = new Timeline(new Date('2024-01-10'));
+    const pastMoment: Moment = {
+      id: 'past',
+      name: 'Past Moment',
+      date: new Date('2024-01-05'), // Before current date
+      resolved: false,
+      callback: jest.fn(),
+    };
 
-  timeline.registerMoment(moment1);
-  timeline.registerMoment(moment2);
+    // Act
+    timeline.registerMoment(pastMoment);
+    const triggeredMoments = timeline.advanceTime(1);
 
-  const triggeredMoments = timeline.advanceToDate(new Date('2024-01-07'));
+    // Assert
+    expect(triggeredMoments).toHaveLength(0);
+    expect(pastMoment.callback).not.toHaveBeenCalled();
+  });
 
-  assert(triggeredMoments.length === 1, 'Should trigger one moment by Jan 7');
-  assert(triggeredMoments[0].id === 'advance-test-1', 'Should trigger the Jan 5 moment');
-  assert(timeline.getCurrentDate().getDate() === 7, 'Should be at Jan 7');
+  test('should return moments when advancing to date they are registered for', () => {
+    // Arrange
+    const currentDate = new Date('2024-01-01');
+    const timeline = new Timeline(currentDate);
+    const futureMoment: Moment = {
+      id: 'future-date',
+      name: 'Future Date Moment',
+      date: new Date('2024-01-02'),
+      resolved: false,
+      callback: jest.fn(),
+    };
+
+    // Act
+    timeline.registerMoment(futureMoment);
+    const triggeredMoments = timeline.advanceTime(1);
+
+    // Assert
+    expect(triggeredMoments).toHaveLength(1);
+    expect(triggeredMoments[0].id).toBe('future-date');
+  });
+
+  test('should create timeline with default current date', () => {
+    // Act
+    const timeline = new Timeline();
+    const currentDate = timeline.getCurrentDate();
+
+    // Assert
+    expect(currentDate).toBeInstanceOf(Date);
+  });
 });

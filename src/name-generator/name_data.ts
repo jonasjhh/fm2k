@@ -46,12 +46,12 @@ export const NORWEGIAN_NAMES = {
     'Kari', 'Kirsten', 'Kirsti', 'Klara', 'Katrine-Marie',
     'Lena', 'Leah', 'Lea', 'Lene', 'Lilly', 'Linn', 'Linnea', 'Liv', 'Louise', 'Lotte',
     'Lovise', 'Lillian', 'Lina', 'Lisbet', 'Lone',
-    'Maja', 'Malin', 'Maren', 'Maria', 'Marianne', 'Marie', 'Marthe', 'Mathea', 'Mathilde', 'Melina',
+    'Maja', 'Malin', 'Maren', 'Maria', 'Marianne', 'Marie', 'Marthe', 'Mathea', 'Martine', 'Mathilde', 'Melina',
     'Mia', 'Michelle', 'Mina', 'Mona', 'Marlene',
     'Nina', 'Noor', 'Nora', 'Nina-Marie', 'Nicoline', 'Nadja', 'Norunn', 'Nanna', 'Nydia', 'Nille',
     'Oda', 'Olivia', 'Oline', 'Otilie', 'Ovidia', 'Othilie', 'Oda-Louise', 'Othilia', 'Olina', 'Odine',
     'Rikke', 'Ronja', 'Ragnhild', 'Ragna', 'Ruth', 'Rakel', 'Randi', 'Rebekka', 'Rim', 'Runa',
-    'Sara', 'Selma', 'Sigrid', 'Silje', 'Sofie', 'Stine', 'Synne', 'Siv', 'Synnøve', 'Solfrid',
+    'Sara', 'Selma', 'Signe', 'Sigrid', 'Silje', 'Sofie', 'Stine', 'Synne', 'Siv', 'Synnøve', 'Solfrid',
     'Thea', 'Tiril', 'Tuva', 'Trine', 'Tove', 'Tone', 'Tora', 'Thale', 'Tina', 'Tiril-Marie',
     'Una', 'Ulla', 'Ulrikke', 'Unni', 'Urd', 'Ulla-Marie', 'Ulla-Lise', 'Ulrika', 'Unice', 'Udele',
     'Vilde', 'Vilja', 'Vilje', 'Vera', 'Veronica', 'Vibeke', 'Vår', 'Vibeke-Marie', 'Vanja', 'Vivian',
@@ -61,27 +61,26 @@ export const NORWEGIAN_NAMES = {
   last: [
     'Aabakken', 'Aaberg', 'Aamot', 'Aarnes', 'Aasen', 'Abrahamsen', 'Andreassen', 'Andresen', 'Antonsen', 'Arnesen',
     'Ask', 'Austad', 'Bakke', 'Bakken', 'Bakkene', 'Bangstad', 'Barli', 'Berg', 'Bergdølmo', 'Birkeland',
-    'Bjerke', 'Bjerkan', 'Bjerknes', 'Blix', 'Blom', 'Bolstad', 'Borgen', 'Braaten', 'Bragstad', 'Bratseth',
-    'Brekke', 'Brenden', 'Bronstad', 'Brun', 'Bråten', 'Bø',
+    'Bjerke', 'Bjerkan', 'Bjerknes', 'Bjelde', 'Blix', 'Blom', 'Bolstad', 'Borgen', 'Braaten', 'Bragstad',
+    'Bratberg', 'Bratseth', 'Brekke', 'Brenden', 'Bronstad', 'Brun', 'Bråten', 'Bø', 'Bøe',
     'Dahl', 'Dahlberg', 'Dahlgren', 'Dahlum', 'Dalen', 'Dale', 'Danielsen',
     'Edvardsen', 'Egeland', 'Eik', 'Eikeland', 'Eikrem', 'Einarsen', 'Ekberg', 'Eliassen', 'Ellefsen', 'Ellingsen', 'Engen', 'Engh', 'Eriksen', 'Evensen',
-    'Fagerland', 'Fagerli', 'Finstad', 'Fjeld', 'Flatland', 'Foss', 'Fossum', 'Fredriksen', 'Frydenberg',
-    'Garberg', 'Gjerde', 'Gjertsen', 'Godal', 'Gran', 'Granheim', 'Grønn', 'Grønvold', 'Gulbrandsen',
-    'Haaland', 'Haga', 'Hagen', 'Hakonsen', 'Halvorsen', 'Hansen', 'Haugland', 'Hauge', 'Hedenstad', 'Heggem', 'Helle', 'Helland', 'Henriksen', 'Hermansen', 'Hermanrud', 'Hjelle', 'Holm', 'Holmberg', 'Holmen', 'Holstad', 'Holter', 'Horneland', 'Hornseth', 'Hovde', 'Hovland', 'Huseby', 'Husby',
+    'Fagerland', 'Fagerli', 'Fiskerstrand', 'Finstad', 'Fjeld', 'Flatland', 'Foss', 'Fossum', 'Fredriksen', 'Frydenberg',
+    'Garberg', 'Gjerde', 'Gjertsen', 'Graham', 'Godal', 'Gran', 'Granheim', 'Grønn', 'Grønvold', 'Gulbrandsen',
+    'Haaland', 'Haga', 'Hagen', 'Hakonsen', 'Halvorsen', 'Hansen', 'Haug', 'Haugland', 'Havik', 'Hedenstad', 'Heggem', 'Helle', 'Helland', 'Henriksen', 'Hermansen', 'Hermanrud', 'Hjelle', 'Holm', 'Holmberg', 'Holmen', 'Holstad', 'Holter', 'Horneland', 'Hornseth', 'Hovde', 'Hovland', 'Huseby', 'Husby', 'Haavi', 'Hegerberg', 'Harviken',
     'Ihle', 'Ingebrigtsen', 'Isaksen', 'Iversen',
     'Jacobsen', 'Jahren', 'Jansen', 'Jensen', 'Johannessen', 'Johansen', 'Johnsen', 'Jorgensen', 'Jørgensen',
     'Karlsen', 'Knudsen', 'Knutsen', 'Kristiansen', 'Kristoffersen',
     'Krogstad', 'Kvalheim',
-    'Laberg', 'Larsen', 'Lie', 'Lien', 'Lillerud', 'Lindberg', 'Loken', 'Lund', 'Lunde',
-    'Martinsen', 'Mathesen', 'Mathiesen', 'Mathisen', 'Melby', 'Meling', 'Midtsjø', 'Mikkelsen', 'Moen', 'Molde', 'Molskred', 'Myhre', 'Myhrer', 'Myklebust',
+    'Laberg', 'Larsen', 'Lie', 'Lien', 'Lillerud', 'Lindberg', 'Loken', 'Lund', 'Lunde', 'Mjelde', 'Mikalsen', 'Maanum', 'Moen', 'Molde', 'Molskred', 'Myhre', 'Myhrer', 'Myklebust',
     'Nilsen', 'Nordahl', 'Nordberg', 'Nordby', 'Nordeng', 'Nordstrom', 'Nordvik', 'Nygaard', 'Nypan',
     'Olsen', 'Olsson', 'Ostberg', 'Ottesen', 'Overbo',
     'Paulsen', 'Pedersen', 'Pettersen',
-    'Rasmussen', 'Reginiussen', 'Reitan', 'Rise', 'Riseth', 'Roed', 'Rogers', 'Rushfeldt', 'Rød', 'Rønning',
+    'Panengstuen', 'Rasmussen', 'Reginiussen', 'Reitan', 'Reiten', 'Rise', 'Riseth', 'Roed', 'Rogers', 'Rushfeldt', 'Rød', 'Rønning',
     'Saether', 'Sandberg', 'Sandvik', 'Simonsen', 'Skagen', 'Skjelbred', 'Skjerve', 'Skjold', 'Skjølsvik', 'Skogen', 'Solberg', 'Solheim', 'Sorensen', 'Stenberg', 'Stensrud', 'Storevik', 'Storflor', 'Storvik', 'Strand', 'Stranden', 'Stubhaug', 'Sunde', 'Svenning', 'Svendsen',
-    'Tagseth', 'Tangen', 'Tangvik', 'Tengstedt', 'Thoresen', 'Thorsen', 'Torgersen', 'Tvedt', 'Tveit',
+    'Tangen', 'Tangvik', 'Tengstedt', 'Terland', 'Thoresen', 'Thorsen', 'Torgersen', 'Tveit', 'Tvedt', 'Tandberg',
     'Ulland',
-    'Vagic', 'Valø', 'Valsvik', 'Vang', 'Vangen', 'Volden',
+    'Valø', 'Valsvik', 'Vang', 'Vangen', 'Volden',
     'Wangberg', 'Wiig', 'Winsnes',
     'Åsheim', 'Ødegaard', 'Ødegård', 'Østby', 'Øverland',
   ],
@@ -154,3 +153,138 @@ export const ENGLISH_NAMES = {
   ],
 };
 
+export const SWEDISH_NAMES = {
+  male: [
+    'Alexander', 'Alfred', 'Albin', 'Anders', 'Anton', 'Arvid', 'Axel', 'Bertil', 'Björn', 'Carl',
+    'Claes', 'David', 'Ebbe', 'Edvin', 'Erik', 'Felix', 'Filip', 'Fredrik', 'Gustav', 'Hugo',
+    'Isak', 'Jacob', 'Johan', 'Jonas', 'Karl', 'Lars', 'Leon', 'Magnus', 'Matteo', 'Mikael',
+    'Niklas', 'Noah', 'Oskar', 'Patrik', 'Per', 'Rasmus', 'Sebastian', 'Simon', 'Sven', 'Theo',
+    'Tobias', 'Viktor', 'William', 'Wilhelm', 'Alvar', 'Aron', 'Casper', 'Elias', 'Elmer', 'Filippo',
+    'Gustaf', 'Hannes', 'Isak', 'Joel', 'Jonathan', 'Julius', 'Leo', 'Ludvig', 'Max', 'Melker',
+    'Nils', 'Oliver', 'Olof', 'Pontus', 'Rafael', 'Richard', 'Samuel', 'Sixten', 'Teodor', 'Valter',
+    'Viggo', 'Yngve', 'Åke', 'Örjan',
+  ],
+  female: [
+    'Alice', 'Alma', 'Amelia', 'Astrid', 'Ebba', 'Ella', 'Elin', 'Elvira', 'Emma', 'Frida',
+    'Greta', 'Hanna', 'Ida', 'Ingrid', 'Isabella', 'Johanna', 'Julia', 'Kajsa', 'Karin', 'Kristin',
+    'Linn', 'Linnea', 'Lovisa', 'Maja', 'Maria', 'Matilda', 'Nellie', 'Nora', 'Olivia', 'Saga',
+    'Selma', 'Sofia', 'Stina', 'Therese', 'Tilde', 'Tyra', 'Vendela', 'Vera', 'Wilma', 'Åsa',
+    'Alva', 'Alicia', 'Anastasia', 'Anika', 'Annika', 'Caroline', 'Cecilia', 'Clara', 'Diana', 'Ebba',
+    'Eira', 'Elena', 'Elisabeth', 'Elsa', 'Estelle', 'Filippa', 'Freja', 'Hedda', 'Hedvig', 'Helena',
+    'Ines', 'Jasmine', 'Josefine', 'Junia', 'Klara', 'Livia', 'Märta', 'Sigrid', 'Tyra', 'Ylva',
+  ],
+  last: [
+    'Andersson', 'Johansson', 'Karlsson', 'Nilsson', 'Eriksson', 'Larsson', 'Olsson', 'Persson', 'Svensson', 'Gustafsson',
+    'Pettersson', 'Jonsson', 'Jansson', 'Lindberg', 'Lindström', 'Berg', 'Bergström', 'Lund', 'Lundberg', 'Hansson',
+    'Holm', 'Forsberg', 'Björk', 'Blom', 'Axelsson', 'Ek', 'Engström', 'Wallin', 'Hedlund', 'Lindqvist',
+    'Nyström', 'Fredriksson', 'Arvidsson', 'Bergman', 'Dahl', 'Lind', 'Norberg', 'Lindholm', 'Sjöberg', 'Åkesson',
+  ],
+};
+
+export const DANISH_NAMES = {
+  male: [
+    'Alexander', 'Anders', 'Anton', 'Christian', 'Emil', 'Erik', 'Frederik', 'Henrik', 'Jakob', 'Jens',
+    'Jonas', 'Kasper', 'Kristian', 'Lars', 'Magnus', 'Mads', 'Martin', 'Mathias', 'Mikkel', 'Nikolaj',
+    'Oliver', 'Oscar', 'Philip', 'Rasmus', 'Søren', 'Thomas', 'Thor', 'William', 'Villads', 'Viktor',
+    'Alfred', 'Asger', 'August', 'Benjamin', 'Carl', 'Elias', 'Esben', 'Felix', 'Hugo', 'Isak',
+    'Jakob', 'Jonathan', 'Julius', 'Liam', 'Lucas', 'Malthe', 'Noah', 'Oskar', 'Sebastian', 'Viggo',
+  ],
+  female: [
+    'Agnes', 'Alma', 'Anna', 'Caroline', 'Clara', 'Emma', 'Freja', 'Ida', 'Ingrid', 'Josefine',
+    'Julie', 'Karoline', 'Laura', 'Liva', 'Mathilde', 'Mille', 'Nora', 'Olivia', 'Signe', 'Sofie',
+    'Victoria', 'Asta', 'Astrid', 'Emilie', 'Ella', 'Eline', 'Filippa', 'Hannah', 'Isabella', 'Josephine',
+    'Kaja', 'Kristine', 'Lea', 'Linnea', 'Maja', 'Mille', 'Nanna', 'Sara', 'Sofie', 'Thea',
+    'Alberte', 'Amalie', 'Andrea', 'Anine', 'Aurora', 'Clara', 'Esther', 'Frida', 'Greta', 'Hedvig',
+  ],
+  last: [
+    'Jensen', 'Nielsen', 'Hansen', 'Pedersen', 'Andersen', 'Christensen', 'Larsen', 'Sørensen', 'Rasmussen', 'Jørgensen',
+    'Petersen', 'Madsen', 'Kristensen', 'Olsen', 'Thomsen', 'Christoffersen', 'Johansen', 'Møller', 'Mortensen', 'Knudsen',
+    'Lund', 'Berg', 'Holm', 'Lind', 'Nørgaard', 'Høgh', 'Bjerre', 'Vestergaard', 'Fischer', 'Bech',
+  ],
+};
+
+export const FRENCH_NAMES = {
+  male: [
+    'Adrien', 'Alexandre', 'Alphonse', 'Antoine', 'Benjamin', 'Charles', 'Christophe', 'Damien', 'David', 'Denis',
+    'Emmanuel', 'Etienne', 'François', 'Gabriel', 'Gaspard', 'Guillaume', 'Hugo', 'Jacques', 'Jean', 'Julien',
+    'Laurent', 'Louis', 'Lucas', 'Marc', 'Mathieu', 'Michel', 'Nicolas', 'Olivier', 'Pierre', 'Quentin',
+    'Raphaël', 'Rémi', 'Richard', 'Romain', 'Samuel', 'Sébastien', 'Simon', 'Stéphane', 'Thomas', 'Victor',
+    'Vincent', 'Yann', 'Alexis', 'Arnaud', 'Benoît', 'Clément', 'Éric', 'Fabien', 'Florian', 'Franck',
+  ],
+  female: [
+    'Adeline', 'Agathe', 'Alice', 'Amélie', 'Anaïs', 'Anne', 'Audrey', 'Camille', 'Caroline', 'Cécile',
+    'Charlotte', 'Chloé', 'Claire', 'Clémence', 'Élise', 'Élodie', 'Émilie', 'Estelle', 'Florence', 'Gabrielle',
+    'Hélène', 'Inès', 'Isabelle', 'Julie', 'Justine', 'Laure', 'Léa', 'Lise', 'Lucie', 'Madeleine',
+    'Manon', 'Margaux', 'Marie', 'Mathilde', 'Mélanie', 'Nathalie', 'Océane', 'Sophie', 'Stéphanie', 'Valérie',
+    'Vanessa', 'Victoria', 'Yasmine', 'Édith', 'Aurélie', 'Catherine', 'Anaëlle', 'Solène', 'Éva', 'Louna',
+  ],
+  last: [
+    'Martin', 'Bernard', 'Thomas', 'Petit', 'Robert', 'Richard', 'Durand', 'Dubois', 'Moreau', 'Laurent',
+    'Simon', 'Michel', 'Lefebvre', 'Leroy', 'Roux', 'David', 'Bertrand', 'Morel', 'Fournier', 'Girard',
+    'Bonnet', 'Dupont', 'Lambert', 'Fontaine', 'Rousseau', 'Blanc', 'Garnier', 'Chevalier', 'François', 'Mercier',
+    'Dupuis', 'Moulin', 'Marchand', 'Barbier', 'Gauthier', 'Guillet', 'Colin', 'Perrin', 'Jacquet', 'Lemoine',
+  ],
+};
+
+export const GERMAN_NAMES = {
+  male: [
+    'Alexander', 'Andreas', 'Benjamin', 'Christian', 'Daniel', 'David', 'Dominik', 'Felix', 'Florian', 'Frank',
+    'Gabriel', 'Hans', 'Jakob', 'Jan', 'Johannes', 'Jonas', 'Julius', 'Karl', 'Leon', 'Lukas',
+    'Markus', 'Matthias', 'Maximilian', 'Michael', 'Niklas', 'Oliver', 'Paul', 'Philipp', 'Rafael', 'Sebastian',
+    'Simon', 'Stefan', 'Thomas', 'Tobias', 'Valentin', 'Vincent', 'Werner', 'Wolfgang', 'Adrian', 'Anton',
+    'Benjamin', 'David', 'Emil', 'Erik', 'Fabian', 'Hannes', 'Jakob', 'Johann', 'Jonas', 'Lennart',
+  ],
+  female: [
+    'Anna', 'Amelie', 'Clara', 'Emilia', 'Emma', 'Hannah', 'Ida', 'Isabella', 'Johanna', 'Julia',
+    'Katharina', 'Laura', 'Lea', 'Lena', 'Lina', 'Luisa', 'Marie', 'Maria', 'Mia', 'Nina',
+    'Sophie', 'Sophia', 'Theresa', 'Vanessa', 'Victoria', 'Franziska', 'Caroline', 'Annika', 'Greta', 'Helena',
+    'Leonie', 'Paula', 'Luise', 'Amalia', 'Alina', 'Marlene', 'Claudia', 'Sarah', 'Melanie', 'Jasmin',
+    'Eva', 'Ella', 'Frida', 'Leona', 'Lilly', 'Jana', 'Alina', 'Rosalie', 'Mathilda', 'Elena',
+  ],
+  last: [
+    'Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann',
+    'Schäfer', 'Koch', 'Bauer', 'Richter', 'Klein', 'Wolf', 'Schröder', 'Neumann', 'Schwarz', 'Zimmermann',
+    'Braun', 'Krüger', 'Hofmann', 'Hartmann', 'Lange', 'Schmitt', 'Werner', 'Schmitz', 'Krause', 'Meier',
+    'Lehmann', 'Schmid', 'Schulze', 'Maier', 'Köhler', 'Herrmann', 'Walter', 'König', 'Fuchs', 'Vogel',
+  ],
+};
+
+export const ITALIAN_NAMES = {
+  male: [
+    'Alessandro', 'Andrea', 'Antonio', 'Davide', 'Diego', 'Emiliano', 'Enrico', 'Fabio', 'Federico', 'Filippo',
+    'Francesco', 'Gabriele', 'Giovanni', 'Giuseppe', 'Lorenzo', 'Luca', 'Marco', 'Matteo', 'Niccolò', 'Nicola',
+    'Paolo', 'Pietro', 'Riccardo', 'Roberto', 'Samuele', 'Simone', 'Stefano', 'Tommaso', 'Vincenzo', 'Alberto',
+    'Emanuele', 'Giorgio', 'Leonardo', 'Mattia', 'Raffaele', 'Salvatore', 'Sandro', 'Tiziano', 'Valerio', 'Vittorio',
+  ],
+  female: [
+    'Alessia', 'Alice', 'Anna', 'Beatrice', 'Chiara', 'Elena', 'Federica', 'Francesca', 'Giorgia', 'Giulia',
+    'Ilaria', 'Laura', 'Ludovica', 'Martina', 'Marta', 'Maria', 'Noemi', 'Sofia', 'Silvia', 'Valentina',
+    'Vanessa', 'Veronica', 'Vittoria', 'Camilla', 'Claudia', 'Daniela', 'Eleonora', 'Giovanna', 'Lucia', 'Nicoletta',
+    'Paola', 'Roberta', 'Sara', 'Simona', 'Stefania', 'Alberta', 'Angelica', 'Aurora', 'Beatrice', 'Carlotta',
+  ],
+  last: [
+    'Rossi', 'Russo', 'Ferrari', 'Esposito', 'Bianchi', 'Romano', 'Colombo', 'Ricci', 'Marino', 'Greco',
+    'Bruno', 'Gallo', 'Conti', 'De Luca', 'Mancini', 'Costa', 'Giordano', 'Rizzo', 'Lombardi', 'Moretti',
+    'Barbieri', 'Fontana', 'Santoro', 'Mariani', 'Rinaldi', 'Caruso', 'Ferrara', 'Galli', 'Martini', 'Leone',
+  ],
+};
+
+export const SPANISH_NAMES = {
+  male: [
+    'Adrián', 'Alejandro', 'Alfonso', 'Álvaro', 'Andrés', 'Antonio', 'Carlos', 'Daniel', 'David', 'Diego',
+    'Eduardo', 'Enrique', 'Fernando', 'Francisco', 'Gabriel', 'Gerardo', 'Gonzalo', 'Guillermo', 'Héctor', 'Ignacio',
+    'Javier', 'Jesús', 'José', 'Juan', 'Julián', 'Luis', 'Manuel', 'Marcos', 'Martín', 'Miguel',
+    'Pablo', 'Pedro', 'Rafael', 'Raúl', 'Roberto', 'Santiago', 'Sergio', 'Tomás', 'Vicente', 'Víctor',
+  ],
+  female: [
+    'Adriana', 'Alejandra', 'Alma', 'Ana', 'Beatriz', 'Carla', 'Carmen', 'Clara', 'Daniela', 'Elena',
+    'Elisa', 'Emilia', 'Esperanza', 'Fernanda', 'Gabriela', 'Isabel', 'Jimena', 'Juana', 'Laura', 'Lucía',
+    'Margarita', 'María', 'Marina', 'Marta', 'Natalia', 'Patricia', 'Raquel', 'Rosa', 'Sara', 'Silvia',
+    'Sofía', 'Teresa', 'Valentina', 'Verónica', 'Victoria', 'Yolanda', 'Zoe', 'Carlota', 'Alicia', 'Inés',
+  ],
+  last: [
+    'García', 'Martínez', 'López', 'Sánchez', 'Pérez', 'González', 'Rodríguez', 'Fernández', 'Gómez', 'Ruiz',
+    'Hernández', 'Jiménez', 'Díaz', 'Morales', 'Alonso', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez',
+    'Ramos', 'Gil', 'Ramírez', 'Serrano', 'Blanco', 'Molina', 'Suárez', 'Ortega', 'Delgado', 'Castillo',
+  ],
+};
