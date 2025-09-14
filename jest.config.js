@@ -3,7 +3,7 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/*_tests.ts', '**/*_test.ts'],
+  testMatch: ['**/*.test.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       useESM: true,

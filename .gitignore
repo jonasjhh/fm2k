@@ -15,3 +15,8 @@ Thumbs.db
 
 # Environment files (if any)
 .env
+
+# Stryker mutation testing
+.stryker-tmp/
+stryker.log
+reports/
