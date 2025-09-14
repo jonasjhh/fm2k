@@ -13,8 +13,6 @@ export default {
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*_test*.ts',
-    '!src/test-runner.ts',
-    '!src/run-tests.ts',
   ],
   moduleNameMapper: {
     '^(.+)\\.js$': '$1',
