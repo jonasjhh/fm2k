@@ -2,49 +2,20 @@ import { NameGenerator, type Gender, type Country } from '../name-generator/name
 import { type Player, type PlayerAttributes, type Position } from '../fm-types/types.js';
 import { v4 as uuidv4 } from '../uuid/uuid.js';
 
-export interface PlayerGenerationConfig {
-  position: Position;
-  gender?: Gender;
-  country?: Country;
-  minAttribute?: number;
-  maxAttribute?: number;
-}
-
 export class PlayerGenerator {
   private nameGenerator: NameGenerator;
 
-  constructor(
-    private config: {
-      gender?: Gender;
-      country?: Country;
-      minAttribute?: number;
-      maxAttribute?: number;
-    } = {},
-  ) {
-    this.nameGenerator = new NameGenerator(
-      config.gender ?? 'all',
-      config.country ?? 'all',
-    );
+  constructor(gender: Gender = 'all', country: Country = 'all') {
+    this.nameGenerator = new NameGenerator(gender, country);
   }
 
-  generatePlayer(position: Position, overrides: Partial<PlayerGenerationConfig> = {}): Player {
-    const config = { ...this.config, position, ...overrides };
-
+  generatePlayer(position: Position, minAttribute = 1, maxAttribute = 20): Player {
     return {
       id: uuidv4(),
       name: this.nameGenerator.generateName(),
       position,
-      attributes: this.generateAttributes(position, config.minAttribute, config.maxAttribute),
+      attributes: this.generateAttributes(position, minAttribute, maxAttribute),
     };
-  }
-
-  generatePlayers(position: Position, count: number, overrides: Partial<PlayerGenerationConfig> = {}): Player[] {
-    return Array.from({ length: count }, () => this.generatePlayer(position, overrides));
-  }
-
-  generateSquad(formation = '4-4-2'): Player[] {
-    const positions = this.getPositionsForFormation(formation);
-    return positions.map(position => this.generatePlayer(position));
   }
 
   private generateAttributes(position: Position, minAttr = 1, maxAttr = 20): PlayerAttributes {
@@ -140,19 +111,5 @@ export class PlayerGenerator {
 
     const boosts = positionBoosts[position];
     return boosts ? { ...attributes, ...boosts } : attributes;
-  }
-
-  private getPositionsForFormation(formation: string): Position[] {
-    const formations: Record<string, Position[]> = {
-      '4-4-2': ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'],
-      '4-3-3': ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CM', 'LW', 'ST', 'RW'],
-      '3-5-2': ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'CM', 'RM', 'ST', 'ST'],
-      '4-2-3-1': ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CDM', 'LW', 'CAM', 'RW', 'ST'],
-      '5-3-2': ['GK', 'LB', 'CB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CM', 'ST', 'ST'],
-      '4-5-1': ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'CM', 'RM', 'ST'],
-      '3-4-3': ['GK', 'CB', 'CB', 'CB', 'LM', 'CM', 'CM', 'RM', 'LW', 'ST', 'RW'],
-    };
-
-    return formations[formation] || formations['4-4-2'];
   }
 }

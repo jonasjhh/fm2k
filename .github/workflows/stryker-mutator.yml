@@ -59,14 +59,14 @@ jobs:
 
               const comment = `## 🧬 Mutation Testing Results
 
-**Mutation Score: ${score}%**
+              **Mutation Score: ${score}%**
 
-- **Total Mutants:** ${report.totalMutants || 'N/A'}
-- **Killed:** ${report.totalKilled || 'N/A'}
-- **Survived:** ${report.totalSurvived || 'N/A'}
-- **Timeout:** ${report.totalTimedOut || 'N/A'}
+              - **Total Mutants:** ${report.totalMutants || 'N/A'}
+              - **Killed:** ${report.totalKilled || 'N/A'}
+              - **Survived:** ${report.totalSurvived || 'N/A'}
+              - **Timeout:** ${report.totalTimedOut || 'N/A'}
 
-[View detailed report in artifacts](${context.payload.pull_request.html_url}/checks)`;
+              [View detailed report in artifacts](${context.payload.pull_request.html_url}/checks)`;
 
               github.rest.issues.createComment({
                 issue_number: context.issue.number,

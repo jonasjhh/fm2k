@@ -34,18 +34,8 @@ describe('PlayerGenerator:', () => {
       });
     });
 
-    test('given default configuration when generating players for different positions then should adjust attributes based on position', () => {
-      const goalkeeper = playerGenerator.generatePlayer('GK');
-      const striker = playerGenerator.generatePlayer('ST');
-
-      expect(goalkeeper.attributes.agility).toBeGreaterThanOrEqual(1);
-      expect(striker.attributes.finishing).toBeGreaterThanOrEqual(1);
-    });
-
-    test('given custom attribute range configuration when generating a player with custom min/max attributes then should respect the configured range', () => {
-      const config = { minAttribute: 15, maxAttribute: 18 };
-      const playerGen = new PlayerGenerator(config);
-      const player = playerGen.generatePlayer('CM');
+    test('given custom attribute range when generating a player then should respect the configured range', () => {
+      const player = playerGenerator.generatePlayer('CM', 15, 18);
 
       const attributeKeys = ['speed', 'strength', 'agility', 'passing', 'finishing', 'technique', 'defending', 'stamina', 'awareness', 'composure'] as const;
 
@@ -55,60 +45,22 @@ describe('PlayerGenerator:', () => {
         expect(value).toBeLessThanOrEqual(20); // Position boosts can push over maxAttribute
       });
     });
-  });
 
-  describe('.generatePlayers()', () => {
-    let playerGenerator: PlayerGenerator;
+    test('given default configuration when generating players for different positions then should adjust attributes based on position', () => {
+      const goalkeeper = playerGenerator.generatePlayer('GK');
+      const striker = playerGenerator.generatePlayer('ST');
 
-    beforeEach(() => {
-      playerGenerator = new PlayerGenerator();
+      expect(goalkeeper.attributes.agility).toBeGreaterThanOrEqual(1);
+      expect(striker.attributes.finishing).toBeGreaterThanOrEqual(1);
     });
 
-    test('given default configuration when generating multiple players then should create all players with correct position', () => {
-      const players = playerGenerator.generatePlayers('CB', 3);
+    test('given gender and country when constructing player generator then should generate names accordingly', () => {
+      const maleNorwayGenerator = new PlayerGenerator('male', 'norway');
+      const player = maleNorwayGenerator.generatePlayer('ST');
 
-      expect(players).toHaveLength(3);
-      players.forEach(player => {
-        expect(player.position).toBe('CB');
-        expect(player.id).toBeDefined();
-        expect(player.name).toBeDefined();
-      });
-    });
-
-    test('given default configuration when generating multiple players then should give each player unique ID', () => {
-      const players = playerGenerator.generatePlayers('CM', 5);
-      const ids = players.map(p => p.id);
-      const uniqueIds = new Set(ids);
-
-      expect(uniqueIds.size).toBe(5);
-    });
-  });
-
-  describe('.generateSquad()', () => {
-    let playerGenerator: PlayerGenerator;
-
-    beforeEach(() => {
-      playerGenerator = new PlayerGenerator();
-    });
-
-    test('given default configuration when generating a squad with 4-4-2 formation then should contain correct number of players per position', () => {
-      const squad = playerGenerator.generateSquad('4-4-2');
-
-      expect(squad).toHaveLength(11);
-      expect(squad.filter(p => p.position === 'GK')).toHaveLength(1);
-      expect(squad.filter(p => ['CB', 'LB', 'RB'].includes(p.position))).toHaveLength(4);
-      expect(squad.filter(p => ['CM', 'LM', 'RM'].includes(p.position))).toHaveLength(4);
-      expect(squad.filter(p => p.position === 'ST')).toHaveLength(2);
-    });
-
-    test('given default configuration when generating squads with different formations then should create 11 players with 1 goalkeeper each', () => {
-      const formations = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1'];
-
-      formations.forEach(formation => {
-        const squad = playerGenerator.generateSquad(formation);
-        expect(squad).toHaveLength(11);
-        expect(squad.filter(p => p.position === 'GK')).toHaveLength(1);
-      });
+      expect(player.name).toBeTruthy();
+      expect(typeof player.name).toBe('string');
+      expect(player.name.length).toBeGreaterThan(0);
     });
   });
 });

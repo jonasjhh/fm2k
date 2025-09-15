@@ -1,4 +1,5 @@
-import { MatchState, MatchEvent, Team, MatchResult, MatchStatistics } from './types.js';
+import { MatchState, MatchEvent, MatchResult, MatchStatistics } from './types.js';
+import { Team } from '../fm-types/types.js';
 import { EventEngine, PassGenerator, ShotGenerator, GoalGenerator, SaveGenerator } from './eventEngine.js';
 
 export interface MatchConfig {

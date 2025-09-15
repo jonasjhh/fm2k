@@ -17,4 +17,5 @@ export default {
   moduleNameMapper: {
     '^(.+)\\.js$': '$1',
   },
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.js'],
 };

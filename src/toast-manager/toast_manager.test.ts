@@ -26,10 +26,13 @@ const mockDocument = {
   querySelector: jest.fn(() => null),
 } as any;
 
+// Use Jest fake timers to properly mock setTimeout/clearTimeout
+jest.useFakeTimers();
+
 const mockWindow = {
   requestAnimationFrame: jest.fn((callback: () => void) => globalThis.setTimeout(callback, 0)),
   setTimeout: jest.fn((callback: () => void, delay: number) => globalThis.setTimeout(callback, delay)),
-  clearTimeout: jest.fn(),
+  clearTimeout: jest.fn((id: any) => globalThis.clearTimeout(id)),
 } as any;
 
 // Mock requestAnimationFrame on globalThis as well
@@ -42,11 +45,21 @@ globalThis.document = mockDocument;
 // @ts-ignore
 globalThis.window = mockWindow;
 
+// Cleanup after all tests
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 describe('ToastManager:', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
     mockElement.className = '';
     mockElement.innerHTML = '';
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
   });
 
   describe('constructor', () => {
@@ -249,18 +262,18 @@ describe('ToastManager:', () => {
   });
 
   describe('.removeToast()', () => {
-    test('given toast removal operations when removing specific toast then should remove without error', async () => {
+    test('given toast removal operations when removing specific toast then should remove without error', () => {
       // Arrange
       const toastManager = new ToastManager();
       const toastId = toastManager.show('Test message');
 
       // Act & Assert - Should not throw
-      await expect(toastManager.removeToast(toastId)).resolves.not.toThrow();
+      expect(() => toastManager.removeToast(toastId)).not.toThrow();
     });
   });
 
   describe('.clearAll()', () => {
-    test('given toast removal operations when clearing all toasts then should clear all without error', async () => {
+    test('given toast removal operations when clearing all toasts then should clear all without error', () => {
       // Arrange
       const toastManager = new ToastManager();
       toastManager.show('Message 1');
@@ -268,7 +281,7 @@ describe('ToastManager:', () => {
       toastManager.show('Message 3');
 
       // Act & Assert - Should not throw
-      await expect(toastManager.clearAll()).resolves.not.toThrow();
+      expect(() => toastManager.clearAll()).not.toThrow();
     });
   });
 });
@@ -276,6 +289,11 @@ describe('ToastManager:', () => {
 describe('ToastManager constructor:', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
   });
 
   test('given default factory usage when creating instance then should create ToastManager instance', () => {
