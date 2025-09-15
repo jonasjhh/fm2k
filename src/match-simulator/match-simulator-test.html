@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Match Simulator Test GUI</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .match-state {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .team-info {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        .home-team {
+            background-color: #e8f4fd;
+        }
+        .away-team {
+            background-color: #fff2e8;
+        }
+        .scoreboard {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .events-log {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .event-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .event-item:last-child {
+            border-bottom: none;
+        }
+        .match-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .player-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .player-card {
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚽ Match Simulator Test GUI</h1>
+
+        <div class="section">
+            <h2>Setup</h2>
+            <div class="controls">
+                <button class="btn-primary" onclick="generateTeams()">Generate Test Teams</button>
+                <button class="btn-success" onclick="startMatch()" id="startBtn" disabled>Start Match</button>
+                <button class="btn-warning" onclick="resetMatch()">Reset Match</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Match Controls</h2>
+            <div class="controls">
+                <button class="btn-primary" onclick="stepForward()" id="stepBtn" disabled>Step Forward</button>
+                <button class="btn-success" onclick="runToHalfTime()" id="halfTimeBtn" disabled>Run to Half Time</button>
+                <button class="btn-success" onclick="runToFullTime()" id="fullTimeBtn" disabled>Run to Full Time</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>State Management</h2>
+            <div class="controls">
+                <button class="btn-secondary" onclick="saveState()">Save Current State</button>
+                <button class="btn-secondary" onclick="loadState()">Load Saved State</button>
+                <button class="btn-danger" onclick="clearSavedStates()">Clear All Saves</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <label for="saveSlot">Save Slot:</label>
+                <select id="saveSlot">
+                    <option value="1">Slot 1</option>
+                    <option value="2">Slot 2</option>
+                    <option value="3">Slot 3</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section" id="matchDisplay" style="display: none;">
+            <h2>Match Status</h2>
+
+            <div class="scoreboard" id="scoreboard">
+                0 - 0
+            </div>
+
+            <div class="match-info">
+                <div class="info-item">
+                    <div class="info-label">Minute</div>
+                    <div class="info-value" id="minute">0</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phase</div>
+                    <div class="info-value" id="phase">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Possession</div>
+                    <div class="info-value" id="possession">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ball Position</div>
+                    <div class="info-value" id="ballPosition">-</div>
+                </div>
+            </div>
+
+            <div class="match-state">
+                <div class="team-info home-team">
+                    <h3 id="homeTeamName">Home Team</h3>
+                    <div id="homePlayers" class="player-list"></div>
+                </div>
+                <div class="team-info away-team">
+                    <h3 id="awayTeamName">Away Team</h3>
+                    <div id="awayPlayers" class="player-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="eventsSection" style="display: none;">
+            <h2>Match Events</h2>
+            <div class="events-log" id="eventsLog"></div>
+        </div>
+
+        <div class="section">
+            <h2>Raw State Data (JSON)</h2>
+            <textarea id="stateJson" readonly placeholder="Match state will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the simulator modules
+        import { PlayerGenerator } from './dist/player-generator/playerGenerator.js';
+        import { MatchSimulator } from './dist/match-simulator/matchSimulator.js';
+
+        // Global state
+        let matchSimulator = null;
+        let currentState = null;
+        let events = [];
+
+        // Make functions global for onclick handlers
+        window.generateTeams = generateTeams;
+        window.startMatch = startMatch;
+        window.resetMatch = resetMatch;
+        window.stepForward = stepForward;
+        window.runToHalfTime = runToHalfTime;
+        window.runToFullTime = runToFullTime;
+        window.saveState = saveState;
+        window.loadState = loadState;
+        window.clearSavedStates = clearSavedStates;
+
+        function generateTeams() {
+            try {
+                const generator = new PlayerGenerator();
+
+                // Generate home team
+                const homeTeam = {
+                    id: 'home-team',
+                    name: 'FC Home United',
+                    formation: '4-4-2',
+                    starters: [
+                        generator.generatePlayer('GK'),
+                        generator.generatePlayer('LB'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('RB'),
+                        generator.generatePlayer('LM'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('RM'),
+                        generator.generatePlayer('ST'),
+                        generator.generatePlayer('ST')
+                    ],
+                    substitutes: [
+                        generator.generatePlayer('GK'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('ST')
+                    ]
+                };
+
+                // Generate away team
+                const awayTeam = {
+                    id: 'away-team',
+                    name: 'AC Away City',
+                    formation: '4-3-3',
+                    starters: [
+                        generator.generatePlayer('GK'),
+                        generator.generatePlayer('LB'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('RB'),
+                        generator.generatePlayer('CDM'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('LW'),
+                        generator.generatePlayer('ST'),
+                        generator.generatePlayer('RW')
+                    ],
+                    substitutes: [
+                        generator.generatePlayer('GK'),
+                        generator.generatePlayer('CB'),
+                        generator.generatePlayer('CM'),
+                        generator.generatePlayer('ST')
+                    ]
+                };
+
+                // Create match simulator
+                matchSimulator = new MatchSimulator(homeTeam, awayTeam);
+                document.getElementById('startBtn').disabled = false;
+
+                alert('Teams generated successfully!');
+                console.log('Teams generated:', { homeTeam, awayTeam });
+
+            } catch (error) {
+                console.error('Error generating teams:', error);
+                alert('Error generating teams: ' + error.message);
+            }
+        }
+
+        function startMatch() {
+            if (!matchSimulator) {
+                alert('Please generate teams first!');
+                return;
+            }
+
+            try {
+                currentState = matchSimulator.getCurrentState();
+                events = [];
+                updateDisplay();
+
+                document.getElementById('stepBtn').disabled = false;
+                document.getElementById('halfTimeBtn').disabled = false;
+                document.getElementById('fullTimeBtn').disabled = false;
+                document.getElementById('matchDisplay').style.display = 'block';
+                document.getElementById('eventsSection').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error starting match:', error);
+                alert('Error starting match: ' + error.message);
+            }
+        }
+
+        function resetMatch() {
+            matchSimulator = null;
+            currentState = null;
+            events = [];
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stepBtn').disabled = true;
+            document.getElementById('halfTimeBtn').disabled = true;
+            document.getElementById('fullTimeBtn').disabled = true;
+            document.getElementById('matchDisplay').style.display = 'none';
+            document.getElementById('eventsSection').style.display = 'none';
+            document.getElementById('stateJson').value = '';
+        }
+
+        function stepForward() {
+            if (!matchSimulator || !currentState) {
+                alert('No active match!');
+                return;
+            }
+
+            try {
+                const nextEvent = matchSimulator.simulateNextEvent();
+                if (nextEvent) {
+                    events.push(nextEvent);
+                    currentState = nextEvent.resultingState;
+                    updateDisplay();
+
+                    if (currentState.phase === 'full_time') {
+                        document.getElementById('stepBtn').disabled = true;
+                        document.getElementById('halfTimeBtn').disabled = true;
+                        document.getElementById('fullTimeBtn').disabled = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error stepping forward:', error);
+                alert('Error stepping forward: ' + error.message);
+            }
+        }
+
+        function runToHalfTime() {
+            if (!matchSimulator || !currentState) {
+                alert('No active match!');
+                return;
+            }
+
+            try {
+                while (currentState.phase === 'first_half') {
+                    const nextEvent = matchSimulator.simulateNextEvent();
+                    if (nextEvent) {
+                        events.push(nextEvent);
+                        currentState = nextEvent.resultingState;
+                    } else {
+                        break;
+                    }
+                }
+                updateDisplay();
+            } catch (error) {
+                console.error('Error running to half time:', error);
+                alert('Error running to half time: ' + error.message);
+            }
+        }
+
+        function runToFullTime() {
+            if (!matchSimulator || !currentState) {
+                alert('No active match!');
+                return;
+            }
+
+            try {
+                while (currentState.phase !== 'full_time') {
+                    const nextEvent = matchSimulator.simulateNextEvent();
+                    if (nextEvent) {
+                        events.push(nextEvent);
+                        currentState = nextEvent.resultingState;
+                    } else {
+                        break;
+                    }
+                }
+                updateDisplay();
+
+                document.getElementById('stepBtn').disabled = true;
+                document.getElementById('halfTimeBtn').disabled = true;
+                document.getElementById('fullTimeBtn').disabled = true;
+            } catch (error) {
+                console.error('Error running to full time:', error);
+                alert('Error running to full time: ' + error.message);
+            }
+        }
+
+        function updateDisplay() {
+            if (!currentState) return;
+
+            // Update scoreboard
+            document.getElementById('scoreboard').textContent =
+                `${currentState.homeScore} - ${currentState.awayScore}`;
+
+            // Update match info
+            document.getElementById('minute').textContent = currentState.minute;
+            document.getElementById('phase').textContent = currentState.phase.replace('_', ' ');
+            document.getElementById('possession').textContent = currentState.possession;
+            document.getElementById('ballPosition').textContent =
+                `${currentState.ballPosition.zone}${currentState.ballPosition.side ? ' (' + currentState.ballPosition.side + ')' : ''}`;
+
+            // Update team names and players
+            document.getElementById('homeTeamName').textContent = currentState.homeTeam.name;
+            document.getElementById('awayTeamName').textContent = currentState.awayTeam.name;
+
+            updatePlayerList('homePlayers', currentState.currentPlayers.home);
+            updatePlayerList('awayPlayers', currentState.currentPlayers.away);
+
+            // Update events log
+            updateEventsLog();
+
+            // Update JSON state
+            document.getElementById('stateJson').value = JSON.stringify(currentState, null, 2);
+        }
+
+        function updatePlayerList(elementId, players) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = players.map(player => `
+                <div class="player-card">
+                    <strong>${player.name}</strong><br>
+                    <small>${player.position}</small>
+                </div>
+            `).join('');
+        }
+
+        function updateEventsLog() {
+            const log = document.getElementById('eventsLog');
+            log.innerHTML = events.slice(-20).reverse().map(event => `
+                <div class="event-item">
+                    <strong>${event.minute}'</strong> - ${event.description} (${event.team})
+                </div>
+            `).join('');
+            log.scrollTop = 0;
+        }
+
+        function saveState() {
+            if (!currentState) {
+                alert('No state to save!');
+                return;
+            }
+
+            const slot = document.getElementById('saveSlot').value;
+            const saveData = {
+                state: currentState,
+                events: events,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem(`matchState_${slot}`, JSON.stringify(saveData));
+            alert(`State saved to slot ${slot}!`);
+        }
+
+        function loadState() {
+            const slot = document.getElementById('saveSlot').value;
+            const savedData = localStorage.getItem(`matchState_${slot}`);
+
+            if (!savedData) {
+                alert(`No saved state in slot ${slot}!`);
+                return;
+            }
+
+            try {
+                const saveData = JSON.parse(savedData);
+                currentState = saveData.state;
+                events = saveData.events || [];
+
+                // Recreate match simulator with the saved state
+                if (currentState) {
+                    matchSimulator = new MatchSimulator(currentState.homeTeam, currentState.awayTeam);
+                    // TODO: Set the simulator to the saved state
+                    updateDisplay();
+
+                    document.getElementById('stepBtn').disabled = currentState.phase === 'full_time';
+                    document.getElementById('halfTimeBtn').disabled = currentState.phase !== 'first_half';
+                    document.getElementById('fullTimeBtn').disabled = currentState.phase === 'full_time';
+                    document.getElementById('matchDisplay').style.display = 'block';
+                    document.getElementById('eventsSection').style.display = 'block';
+                }
+
+                alert(`State loaded from slot ${slot}!`);
+            } catch (error) {
+                console.error('Error loading state:', error);
+                alert('Error loading state: ' + error.message);
+            }
+        }
+
+        function clearSavedStates() {
+            if (confirm('Are you sure you want to clear all saved states?')) {
+                for (let i = 1; i <= 3; i++) {
+                    localStorage.removeItem(`matchState_${i}`);
+                }
+                alert('All saved states cleared!');
+            }
+        }
+    </script>
+</body>
+</html>

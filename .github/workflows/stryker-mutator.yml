@@ -43,6 +43,36 @@ jobs:
           stryker.log
         retention-days: 30
 
+    - name: Deploy mutation results to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Clone the current gh-pages branch
+        git clone --single-branch --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp
+
+        # Copy mutation test results to the gh-pages directory
+        if [ -d "reports/mutation/html" ]; then
+          mkdir -p gh-pages-temp/reports/mutation
+          cp -r reports/mutation/html gh-pages-temp/reports/mutation/
+          echo "Mutation test results copied to gh-pages"
+        fi
+
+        # Commit and push the changes
+        cd gh-pages-temp
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update mutation test results"
+          git push
+          echo "Mutation test results deployed to GitHub Pages"
+        fi
+
+        # Cleanup
+        cd ..
+        rm -rf gh-pages-temp
+
     - name: Comment mutation score on PR
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
