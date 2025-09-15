@@ -312,7 +312,13 @@
                 };
 
                 // Create match simulator
-                matchSimulator = new MatchSimulator(homeTeam, awayTeam);
+                const matchConfig = {
+                    matchDuration: 90,
+                    eventsPerMinute: 3,
+                    homeTeam: homeTeam,
+                    awayTeam: awayTeam
+                };
+                matchSimulator = new MatchSimulator(matchConfig);
                 document.getElementById('startBtn').disabled = false;
 
                 alert('Teams generated successfully!');
@@ -517,7 +523,13 @@
 
                 // Recreate match simulator with the saved state
                 if (currentState) {
-                    matchSimulator = new MatchSimulator(currentState.homeTeam, currentState.awayTeam);
+                    const matchConfig = {
+                        matchDuration: 90,
+                        eventsPerMinute: 3,
+                        homeTeam: currentState.homeTeam,
+                        awayTeam: currentState.awayTeam
+                    };
+                    matchSimulator = new MatchSimulator(matchConfig);
                     // TODO: Set the simulator to the saved state
                     updateDisplay();
 
