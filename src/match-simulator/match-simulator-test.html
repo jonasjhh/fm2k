@@ -243,6 +243,8 @@
         let matchSimulator = null;
         let currentState = null;
         let events = [];
+        let currentEventIndex = 0;
+        let matchResult = null;
 
         // Make functions global for onclick handlers
         window.generateTeams = generateTeams;
@@ -337,8 +339,14 @@
             }
 
             try {
+                // Run the full simulation to generate all events
+                matchResult = matchSimulator.simulate();
+                events = matchResult.events;
+                currentEventIndex = 0;
+
+                // Start with initial state
                 currentState = matchSimulator.getCurrentState();
-                events = [];
+
                 updateDisplay();
 
                 document.getElementById('stepBtn').disabled = false;
@@ -357,6 +365,8 @@
             matchSimulator = null;
             currentState = null;
             events = [];
+            currentEventIndex = 0;
+            matchResult = null;
 
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stepBtn').disabled = true;
@@ -368,23 +378,27 @@
         }
 
         function stepForward() {
-            if (!matchSimulator || !currentState) {
-                alert('No active match!');
+            if (!events || events.length === 0) {
+                alert('No match events available!');
+                return;
+            }
+
+            if (currentEventIndex >= events.length) {
+                alert('No more events!');
                 return;
             }
 
             try {
-                const nextEvent = matchSimulator.simulateNextEvent();
-                if (nextEvent) {
-                    events.push(nextEvent);
-                    currentState = nextEvent.resultingState;
-                    updateDisplay();
+                const currentEvent = events[currentEventIndex];
+                currentState = currentEvent.resultingState;
+                currentEventIndex++;
 
-                    if (currentState.phase === 'full_time') {
-                        document.getElementById('stepBtn').disabled = true;
-                        document.getElementById('halfTimeBtn').disabled = true;
-                        document.getElementById('fullTimeBtn').disabled = true;
-                    }
+                updateDisplay();
+
+                if (currentState.phase === 'full_time' || currentEventIndex >= events.length) {
+                    document.getElementById('stepBtn').disabled = true;
+                    document.getElementById('halfTimeBtn').disabled = true;
+                    document.getElementById('fullTimeBtn').disabled = true;
                 }
             } catch (error) {
                 console.error('Error stepping forward:', error);
@@ -393,20 +407,16 @@
         }
 
         function runToHalfTime() {
-            if (!matchSimulator || !currentState) {
-                alert('No active match!');
+            if (!events || events.length === 0) {
+                alert('No match events available!');
                 return;
             }
 
             try {
-                while (currentState.phase === 'first_half') {
-                    const nextEvent = matchSimulator.simulateNextEvent();
-                    if (nextEvent) {
-                        events.push(nextEvent);
-                        currentState = nextEvent.resultingState;
-                    } else {
-                        break;
-                    }
+                while (currentEventIndex < events.length && currentState.phase === 'first_half') {
+                    const currentEvent = events[currentEventIndex];
+                    currentState = currentEvent.resultingState;
+                    currentEventIndex++;
                 }
                 updateDisplay();
             } catch (error) {
@@ -416,20 +426,17 @@
         }
 
         function runToFullTime() {
-            if (!matchSimulator || !currentState) {
-                alert('No active match!');
+            if (!events || events.length === 0) {
+                alert('No match events available!');
                 return;
             }
 
             try {
-                while (currentState.phase !== 'full_time') {
-                    const nextEvent = matchSimulator.simulateNextEvent();
-                    if (nextEvent) {
-                        events.push(nextEvent);
-                        currentState = nextEvent.resultingState;
-                    } else {
-                        break;
-                    }
+                // Process all remaining events
+                while (currentEventIndex < events.length) {
+                    const currentEvent = events[currentEventIndex];
+                    currentState = currentEvent.resultingState;
+                    currentEventIndex++;
                 }
                 updateDisplay();
 
@@ -482,7 +489,8 @@
 
         function updateEventsLog() {
             const log = document.getElementById('eventsLog');
-            log.innerHTML = events.slice(-20).reverse().map(event => `
+            const eventsToShow = events.slice(0, currentEventIndex);
+            log.innerHTML = eventsToShow.slice(-20).reverse().map(event => `
                 <div class="event-item">
                     <strong>${event.minute}'</strong> - ${event.description} (${event.team})
                 </div>
