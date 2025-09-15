@@ -141,6 +141,7 @@ function generateDashboardHTML() {
     <h1>FM2K - Component Test Dashboard</h1>
     <div style="margin: 20px 0;">
         <a href="test-results.html" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Test Results</a>
+        <a href="match-simulator/match-simulator-test.html" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">⚽ Match Simulator Test GUI</a>
     </div>
     <div id="test-results"></div>
     <div id="mutation-results"></div>
@@ -247,6 +248,15 @@ const dashboardJs = generateDashboardJS(mutationResults);
 fs.writeFileSync(detailedOutputPath, detailedHtml);
 fs.writeFileSync(dashboardOutputPath, dashboardHtml);
 fs.writeFileSync(dashboardJsPath, dashboardJs);
+
+// Copy match simulator test GUI to dist
+const matchSimulatorTestPath = path.join(__dirname, 'src', 'match-simulator', 'match-simulator-test.html');
+const matchSimulatorDistPath = path.join(__dirname, 'dist', 'match-simulator', 'match-simulator-test.html');
+
+if (fs.existsSync(matchSimulatorTestPath)) {
+  fs.copyFileSync(matchSimulatorTestPath, matchSimulatorDistPath);
+  console.log(`Match simulator test GUI copied to: ${matchSimulatorDistPath}`);
+}
 
 console.log(`Test results HTML generated at: ${detailedOutputPath}`);
 console.log(`Dashboard HTML generated at: ${dashboardOutputPath}`);
