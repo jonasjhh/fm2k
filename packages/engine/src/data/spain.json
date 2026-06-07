@@ -1,0 +1,363 @@
+{
+  "country": "Spain",
+  "nationality": "spanish",
+  "divisions": [
+    {
+      "id": "esp-d1",
+      "name": "La Liga",
+      "level": 1,
+      "teams": [
+        {
+          "id": "esp-01",
+          "name": "Real Madrid",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#FFD700"
+        },
+        {
+          "id": "esp-02",
+          "name": "Barcelona",
+          "players": [],
+          "primaryColor": "#A50044",
+          "secondaryColor": "#004D98"
+        },
+        {
+          "id": "esp-03",
+          "name": "Atlético de Madrid",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-04",
+          "name": "Valencia",
+          "players": [],
+          "primaryColor": "#FF6600",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "esp-05",
+          "name": "Sevilla",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-06",
+          "name": "Athletic Bilbao",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-07",
+          "name": "Real Betis",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-08",
+          "name": "Real Sociedad",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-09",
+          "name": "Villarreal",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "esp-10",
+          "name": "Deportivo de La Coruña",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-11",
+          "name": "Celta Vigo",
+          "players": [],
+          "primaryColor": "#6CABDD",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-12",
+          "name": "Espanyol",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-13",
+          "name": "Real Zaragoza",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-14",
+          "name": "Mallorca",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "esp-15",
+          "name": "Málaga",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-16",
+          "name": "Osasuna",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        }
+      ]
+    },
+    {
+      "id": "esp-d2",
+      "name": "Segunda División",
+      "level": 2,
+      "teams": [
+        {
+          "id": "esp-17",
+          "name": "Getafe",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-18",
+          "name": "Rayo Vallecano",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "esp-19",
+          "name": "Sporting Gijón",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-20",
+          "name": "Oviedo",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-21",
+          "name": "Las Palmas",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "esp-22",
+          "name": "Valladolid",
+          "players": [],
+          "primaryColor": "#800080",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-23",
+          "name": "Alavés",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "esp-24",
+          "name": "Girona",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-25",
+          "name": "Tenerife",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-26",
+          "name": "Racing Santander",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-27",
+          "name": "Cádiz",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "esp-28",
+          "name": "Granada",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-29",
+          "name": "Elche",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-30",
+          "name": "Levante",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "esp-31",
+          "name": "Almería",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-32",
+          "name": "Murcia",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        }
+      ]
+    },
+    {
+      "id": "esp-d3",
+      "name": "Primera Federación",
+      "level": 3,
+      "teams": [
+        {
+          "id": "esp-33",
+          "name": "Córdoba",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "esp-34",
+          "name": "Hércules",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "esp-35",
+          "name": "Castellón",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "esp-36",
+          "name": "Salamanca",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-37",
+          "name": "Numancia",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "esp-38",
+          "name": "Ponferradina",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-39",
+          "name": "Eibar",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "esp-40",
+          "name": "Lugo",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "esp-41",
+          "name": "Leganés",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-42",
+          "name": "Burgos",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-43",
+          "name": "Ferrol",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "esp-44",
+          "name": "Cartagena",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-45",
+          "name": "Recreativo de Huelva",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-46",
+          "name": "Sabadell",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-47",
+          "name": "Albacete",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "esp-48",
+          "name": "Gimnàstic de Tarragona",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFED00"
+        }
+      ]
+    }
+  ]
+}

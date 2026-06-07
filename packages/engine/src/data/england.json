@@ -1,0 +1,363 @@
+{
+  "country": "England",
+  "nationality": "english",
+  "divisions": [
+    {
+      "id": "eng-d1",
+      "name": "Premier League",
+      "level": 1,
+      "teams": [
+        {
+          "id": "eng-01",
+          "name": "Manchester United",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-02",
+          "name": "Liverpool",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-03",
+          "name": "Arsenal",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-04",
+          "name": "Chelsea",
+          "players": [],
+          "primaryColor": "#034694",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-05",
+          "name": "Manchester City",
+          "players": [],
+          "primaryColor": "#6CABDD",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-06",
+          "name": "Tottenham Hotspur",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#132257"
+        },
+        {
+          "id": "eng-07",
+          "name": "Newcastle United",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-08",
+          "name": "Everton",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-09",
+          "name": "Aston Villa",
+          "players": [],
+          "primaryColor": "#7B003A",
+          "secondaryColor": "#94BEE5"
+        },
+        {
+          "id": "eng-10",
+          "name": "Leeds United",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#1D428A"
+        },
+        {
+          "id": "eng-11",
+          "name": "West Ham United",
+          "players": [],
+          "primaryColor": "#7B003A",
+          "secondaryColor": "#94BEE5"
+        },
+        {
+          "id": "eng-12",
+          "name": "Leicester City",
+          "players": [],
+          "primaryColor": "#003090",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-13",
+          "name": "Blackburn Rovers",
+          "players": [],
+          "primaryColor": "#009EE0",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-14",
+          "name": "Nottingham Forest",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-15",
+          "name": "Southampton",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-16",
+          "name": "Sunderland",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    },
+    {
+      "id": "eng-d2",
+      "name": "Championship",
+      "level": 2,
+      "teams": [
+        {
+          "id": "eng-17",
+          "name": "Wolverhampton Wanderers",
+          "players": [],
+          "primaryColor": "#FDB913",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-18",
+          "name": "Crystal Palace",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#0055A5"
+        },
+        {
+          "id": "eng-19",
+          "name": "Middlesbrough",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-20",
+          "name": "Sheffield Wednesday",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-21",
+          "name": "Sheffield United",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-22",
+          "name": "Coventry City",
+          "players": [],
+          "primaryColor": "#6CABDD",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-23",
+          "name": "Derby County",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-24",
+          "name": "Ipswich Town",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-25",
+          "name": "Charlton Athletic",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-26",
+          "name": "Portsmouth",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-27",
+          "name": "Fulham",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-28",
+          "name": "West Bromwich Albion",
+          "players": [],
+          "primaryColor": "#00205B",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-29",
+          "name": "Bolton Wanderers",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#263B80"
+        },
+        {
+          "id": "eng-30",
+          "name": "Stoke City",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-31",
+          "name": "Birmingham City",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-32",
+          "name": "Norwich City",
+          "players": [],
+          "primaryColor": "#00A650",
+          "secondaryColor": "#FFED00"
+        }
+      ]
+    },
+    {
+      "id": "eng-d3",
+      "name": "League One",
+      "level": 3,
+      "teams": [
+        {
+          "id": "eng-33",
+          "name": "Watford",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-34",
+          "name": "Burnley",
+          "players": [],
+          "primaryColor": "#7B003A",
+          "secondaryColor": "#94BEE5"
+        },
+        {
+          "id": "eng-35",
+          "name": "Hull City",
+          "players": [],
+          "primaryColor": "#F5A623",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-36",
+          "name": "Reading",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-37",
+          "name": "Queens Park Rangers",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-38",
+          "name": "Millwall",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-39",
+          "name": "Preston North End",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "eng-40",
+          "name": "Blackpool",
+          "players": [],
+          "primaryColor": "#F47920",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-41",
+          "name": "Luton Town",
+          "players": [],
+          "primaryColor": "#F47920",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-42",
+          "name": "Bristol City",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-43",
+          "name": "Cardiff City",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-44",
+          "name": "Swansea City",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "eng-45",
+          "name": "Huddersfield Town",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-46",
+          "name": "Wigan Athletic",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-47",
+          "name": "Barnsley",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "eng-48",
+          "name": "Bradford City",
+          "players": [],
+          "primaryColor": "#7B003A",
+          "secondaryColor": "#F5A623"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,363 @@
+{
+  "country": "Italy",
+  "nationality": "italian",
+  "divisions": [
+    {
+      "id": "ita-d1",
+      "name": "Serie A",
+      "level": 1,
+      "teams": [
+        {
+          "id": "ita-01",
+          "name": "Juventus",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-02",
+          "name": "AC Milan",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-03",
+          "name": "Inter Milan",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-04",
+          "name": "AS Roma",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFD700"
+        },
+        {
+          "id": "ita-05",
+          "name": "Lazio",
+          "players": [],
+          "primaryColor": "#6CABDD",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-06",
+          "name": "Napoli",
+          "players": [],
+          "primaryColor": "#6CABDD",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-07",
+          "name": "Fiorentina",
+          "players": [],
+          "primaryColor": "#800080",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-08",
+          "name": "Parma",
+          "players": [],
+          "primaryColor": "#FFD700",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-09",
+          "name": "Sampdoria",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-10",
+          "name": "Torino",
+          "players": [],
+          "primaryColor": "#8B0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-11",
+          "name": "Atalanta",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-12",
+          "name": "Bologna",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-13",
+          "name": "Udinese",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-14",
+          "name": "Cagliari",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "ita-15",
+          "name": "Palermo",
+          "players": [],
+          "primaryColor": "#FF69B4",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-16",
+          "name": "Genoa",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        }
+      ]
+    },
+    {
+      "id": "ita-d2",
+      "name": "Serie B",
+      "level": 2,
+      "teams": [
+        {
+          "id": "ita-17",
+          "name": "Hellas Verona",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-18",
+          "name": "Bari",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-19",
+          "name": "Lecce",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "ita-20",
+          "name": "Catania",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-21",
+          "name": "Chievo Verona",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-22",
+          "name": "Empoli",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-23",
+          "name": "Sassuolo",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "ita-24",
+          "name": "Venezia",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "ita-25",
+          "name": "Monza",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-26",
+          "name": "Reggina",
+          "players": [],
+          "primaryColor": "#FF6600",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-27",
+          "name": "Brescia",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-28",
+          "name": "Perugia",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-29",
+          "name": "Livorno",
+          "players": [],
+          "primaryColor": "#8B0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-30",
+          "name": "Vicenza",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-31",
+          "name": "Frosinone",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-32",
+          "name": "Pisa",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#003399"
+        }
+      ]
+    },
+    {
+      "id": "ita-d3",
+      "name": "Serie C",
+      "level": 3,
+      "teams": [
+        {
+          "id": "ita-33",
+          "name": "Modena",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-34",
+          "name": "Salernitana",
+          "players": [],
+          "primaryColor": "#8B0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-35",
+          "name": "Cremonese",
+          "players": [],
+          "primaryColor": "#C0C0C0",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "ita-36",
+          "name": "Como",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-37",
+          "name": "SPAL",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ita-38",
+          "name": "Ternana",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "ita-39",
+          "name": "Padova",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "ita-40",
+          "name": "Triestina",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-41",
+          "name": "Avellino",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-42",
+          "name": "Ascoli",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-43",
+          "name": "Pescara",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-44",
+          "name": "Mantova",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-45",
+          "name": "Catanzaro",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "ita-46",
+          "name": "Cesena",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ita-47",
+          "name": "Reggiana",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ita-48",
+          "name": "Cosenza",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        }
+      ]
+    }
+  ]
+}

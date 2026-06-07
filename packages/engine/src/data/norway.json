@@ -1,0 +1,664 @@
+{
+  "country": "Norway",
+  "nationality": "norwegian",
+  "divisions": [
+    {
+      "id": "nor-d1",
+      "name": "Eliteserien",
+      "level": 1,
+      "teams": [
+        {
+          "id": "nor-01",
+          "name": "Rosenborg",
+          "players": [
+            {
+              "id": "38e85311-4263-4efa-9ca9-9b911d500562",
+              "name": "Chloe Strand",
+              "nationality": "norwegian",
+              "age": 27,
+              "position": "GK",
+              "potential": 82,
+              "attributes": {
+                "speed": 66,
+                "strength": 76,
+                "agility": 88,
+                "passing": 71,
+                "finishing": 22,
+                "technique": 67,
+                "defending": 78,
+                "stamina": 82,
+                "awareness": 87,
+                "composure": 85
+              }
+            },
+            {
+              "id": "36374ce4-1019-43d8-a45b-53c5eaf544c8",
+              "name": "Åsfrid Skjølsvik",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "LB",
+              "potential": 86,
+              "attributes": {
+                "speed": 85,
+                "strength": 77,
+                "agility": 81,
+                "passing": 73,
+                "finishing": 55,
+                "technique": 74,
+                "defending": 84,
+                "stamina": 86,
+                "awareness": 78,
+                "composure": 74
+              }
+            },
+            {
+              "id": "5c925500-4e3b-49e3-a621-e7bc3e1743a0",
+              "name": "Odine Engh",
+              "nationality": "norwegian",
+              "age": 28,
+              "position": "CB",
+              "potential": 84,
+              "attributes": {
+                "speed": 76,
+                "strength": 88,
+                "agility": 77,
+                "passing": 70,
+                "finishing": 45,
+                "technique": 72,
+                "defending": 89,
+                "stamina": 82,
+                "awareness": 85,
+                "composure": 80
+              }
+            },
+            {
+              "id": "704db19e-87cd-48b7-9c7c-d91495f8ab47",
+              "name": "Anni Stubhaug",
+              "nationality": "norwegian",
+              "age": 25,
+              "position": "CB",
+              "potential": 85,
+              "attributes": {
+                "speed": 75,
+                "strength": 87,
+                "agility": 77,
+                "passing": 71,
+                "finishing": 44,
+                "technique": 71,
+                "defending": 88,
+                "stamina": 82,
+                "awareness": 84,
+                "composure": 79
+              }
+            },
+            {
+              "id": "1914cab4-9a61-42d8-b6cd-d341bcacc54b",
+              "name": "Bodil Kristiansen",
+              "nationality": "norwegian",
+              "age": 22,
+              "position": "RB",
+              "potential": 88,
+              "attributes": {
+                "speed": 85,
+                "strength": 76,
+                "agility": 81,
+                "passing": 73,
+                "finishing": 56,
+                "technique": 74,
+                "defending": 84,
+                "stamina": 86,
+                "awareness": 78,
+                "composure": 74
+              }
+            },
+            {
+              "id": "a0b27434-fff6-4d9d-a4d3-cd68c1cf8cc5",
+              "name": "Malin Horneland",
+              "nationality": "norwegian",
+              "age": 29,
+              "position": "CM",
+              "potential": 84,
+              "attributes": {
+                "speed": 75,
+                "strength": 76,
+                "agility": 76,
+                "passing": 87,
+                "finishing": 61,
+                "technique": 83,
+                "defending": 77,
+                "stamina": 85,
+                "awareness": 85,
+                "composure": 79
+              }
+            },
+            {
+              "id": "2636c6e3-397f-497b-b4ca-9cd8a5cf477d",
+              "name": "Marlene Ask",
+              "nationality": "norwegian",
+              "age": 26,
+              "position": "CM",
+              "potential": 85,
+              "attributes": {
+                "speed": 73,
+                "strength": 77,
+                "agility": 75,
+                "passing": 86,
+                "finishing": 60,
+                "technique": 82,
+                "defending": 76,
+                "stamina": 84,
+                "awareness": 85,
+                "composure": 78
+              }
+            },
+            {
+              "id": "06cca509-a94c-4e8b-b815-34bbf26f7e87",
+              "name": "Tiril-Marie Nilsen",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "CM",
+              "potential": 89,
+              "attributes": {
+                "speed": 74,
+                "strength": 75,
+                "agility": 76,
+                "passing": 85,
+                "finishing": 59,
+                "technique": 83,
+                "defending": 75,
+                "stamina": 83,
+                "awareness": 84,
+                "composure": 77
+              }
+            },
+            {
+              "id": "232137f2-1a03-4f6f-b5b1-ac6061a017f0",
+              "name": "Amalie Birkeland",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "LW",
+              "potential": 91,
+              "attributes": {
+                "speed": 88,
+                "strength": 71,
+                "agility": 86,
+                "passing": 76,
+                "finishing": 73,
+                "technique": 84,
+                "defending": 64,
+                "stamina": 84,
+                "awareness": 78,
+                "composure": 74
+              }
+            },
+            {
+              "id": "21157765-1769-418d-87e1-c5534f61ef7f",
+              "name": "Helen Tengstedt",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "ST",
+              "potential": 88,
+              "attributes": {
+                "speed": 86,
+                "strength": 83,
+                "agility": 79,
+                "passing": 71,
+                "finishing": 90,
+                "technique": 83,
+                "defending": 53,
+                "stamina": 82,
+                "awareness": 81,
+                "composure": 87
+              }
+            },
+            {
+              "id": "43edf008-5409-4c08-aa6e-63235f6c2061",
+              "name": "Ivy Ottesen",
+              "nationality": "norwegian",
+              "age": 19,
+              "position": "RW",
+              "potential": 92,
+              "attributes": {
+                "speed": 87,
+                "strength": 71,
+                "agility": 85,
+                "passing": 76,
+                "finishing": 74,
+                "technique": 84,
+                "defending": 64,
+                "stamina": 83,
+                "awareness": 78,
+                "composure": 74
+              }
+            },
+            {
+              "id": "4fbe5d8c-5a99-40bf-ba92-ba30ffeab29b",
+              "name": "Christine Aaberg",
+              "nationality": "norwegian",
+              "age": 23,
+              "position": "GK",
+              "potential": 78,
+              "attributes": {
+                "speed": 64,
+                "strength": 73,
+                "agility": 82,
+                "passing": 67,
+                "finishing": 20,
+                "technique": 64,
+                "defending": 74,
+                "stamina": 79,
+                "awareness": 81,
+                "composure": 79
+              }
+            },
+            {
+              "id": "fadf3c40-8c74-4509-844e-317779b77479",
+              "name": "Linnea Mjelde",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CB",
+              "potential": 79,
+              "attributes": {
+                "speed": 72,
+                "strength": 84,
+                "agility": 74,
+                "passing": 67,
+                "finishing": 42,
+                "technique": 69,
+                "defending": 85,
+                "stamina": 80,
+                "awareness": 82,
+                "composure": 76
+              }
+            },
+            {
+              "id": "17c97773-3765-441e-9dbc-20ccd208c42b",
+              "name": "Ulrika Berg",
+              "nationality": "norwegian",
+              "age": 26,
+              "position": "CM",
+              "potential": 81,
+              "attributes": {
+                "speed": 70,
+                "strength": 74,
+                "agility": 73,
+                "passing": 82,
+                "finishing": 57,
+                "technique": 80,
+                "defending": 72,
+                "stamina": 81,
+                "awareness": 82,
+                "composure": 75
+              }
+            },
+            {
+              "id": "b025d520-be46-4869-aa5e-4a16ac6ed6fd",
+              "name": "Signe Johannessen",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "ST",
+              "potential": 86,
+              "attributes": {
+                "speed": 83,
+                "strength": 79,
+                "agility": 75,
+                "passing": 68,
+                "finishing": 86,
+                "technique": 79,
+                "defending": 49,
+                "stamina": 79,
+                "awareness": 77,
+                "composure": 83
+              }
+            }
+          ],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-02",
+          "name": "Molde",
+          "players": [],
+          "primaryColor": "#003DA5",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-03",
+          "name": "Vålerenga",
+          "players": [],
+          "primaryColor": "#003DA5",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-04",
+          "name": "Brann",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-05",
+          "name": "Viking",
+          "players": [],
+          "primaryColor": "#00205B",
+          "secondaryColor": "#FFD700"
+        },
+        {
+          "id": "nor-06",
+          "name": "Bodø/Glimt",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-07",
+          "name": "Lillestrøm",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-08",
+          "name": "Strømsgodset",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-09",
+          "name": "Tromsø",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-10",
+          "name": "Odd",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-11",
+          "name": "Start",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-12",
+          "name": "Fredrikstad",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-13",
+          "name": "HamKam",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-14",
+          "name": "Sarpsborg 08",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-15",
+          "name": "Aalesund",
+          "players": [],
+          "primaryColor": "#FF6600",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-16",
+          "name": "Sandefjord",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    },
+    {
+      "id": "nor-d2",
+      "name": "1. divisjon",
+      "level": 2,
+      "teams": [
+        {
+          "id": "nor-17",
+          "name": "Sogndal",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-18",
+          "name": "Moss",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-19",
+          "name": "Kongsvinger",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-20",
+          "name": "Bryne",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-21",
+          "name": "Ranheim",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "nor-22",
+          "name": "Hønefoss",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-23",
+          "name": "Mjøndalen",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "nor-24",
+          "name": "Raufoss",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-25",
+          "name": "KFUM Oslo",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-26",
+          "name": "Jerv",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-27",
+          "name": "Ull/Kisa",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-28",
+          "name": "Nest-Sotra",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-29",
+          "name": "Alta",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-30",
+          "name": "Åsane",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-31",
+          "name": "Lyn",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-32",
+          "name": "Egersund",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    },
+    {
+      "id": "nor-d3",
+      "name": "2. divisjon",
+      "level": 3,
+      "teams": [
+        {
+          "id": "nor-33",
+          "name": "Skeid",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-34",
+          "name": "Notodden",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-35",
+          "name": "Arendal",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-36",
+          "name": "Florø",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-37",
+          "name": "Tromsdalen",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-38",
+          "name": "Kjelsås",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-39",
+          "name": "Bærum",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-40",
+          "name": "Grorud",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-41",
+          "name": "Stjørdals-Blink",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-42",
+          "name": "Levanger",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-43",
+          "name": "Hødd",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-44",
+          "name": "Flekkerøy",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-45",
+          "name": "Brattvag",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-46",
+          "name": "Elverum",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-47",
+          "name": "Gjøvik-Lyn",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-48",
+          "name": "FK Toten",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    }
+  ]
+}

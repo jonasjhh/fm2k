@@ -1,0 +1,363 @@
+{
+  "country": "France",
+  "nationality": "french",
+  "divisions": [
+    {
+      "id": "fra-d1",
+      "name": "Ligue 1",
+      "level": 1,
+      "teams": [
+        {
+          "id": "fra-01",
+          "name": "Paris Saint-Germain",
+          "players": [],
+          "primaryColor": "#003087",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "fra-02",
+          "name": "Olympique de Marseille",
+          "players": [],
+          "primaryColor": "#009BDE",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-03",
+          "name": "Olympique Lyonnais",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-04",
+          "name": "AS Monaco",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-05",
+          "name": "Lille OSC",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003087"
+        },
+        {
+          "id": "fra-06",
+          "name": "Girondins de Bordeaux",
+          "players": [],
+          "primaryColor": "#003087",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-07",
+          "name": "AS Saint-Étienne",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-08",
+          "name": "RC Lens",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "fra-09",
+          "name": "FC Nantes",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "fra-10",
+          "name": "OGC Nice",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "fra-11",
+          "name": "Stade Rennais",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "fra-12",
+          "name": "Montpellier",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FF6600"
+        },
+        {
+          "id": "fra-13",
+          "name": "Toulouse FC",
+          "players": [],
+          "primaryColor": "#800080",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-14",
+          "name": "RC Strasbourg",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-15",
+          "name": "AJ Auxerre",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-16",
+          "name": "FC Metz",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        }
+      ]
+    },
+    {
+      "id": "fra-d2",
+      "name": "Ligue 2",
+      "level": 2,
+      "teams": [
+        {
+          "id": "fra-17",
+          "name": "Stade de Reims",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-18",
+          "name": "Le Havre",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-19",
+          "name": "Lorient",
+          "players": [],
+          "primaryColor": "#FF6600",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "fra-20",
+          "name": "Brest",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-21",
+          "name": "Sochaux",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-22",
+          "name": "Caen",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-23",
+          "name": "Valenciennes",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-24",
+          "name": "Nancy",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-25",
+          "name": "Guingamp",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "fra-26",
+          "name": "Angers",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-27",
+          "name": "Troyes",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-28",
+          "name": "Amiens",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-29",
+          "name": "Clermont",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-30",
+          "name": "Sedan",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "fra-31",
+          "name": "Bastia",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-32",
+          "name": "Evian",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#003399"
+        }
+      ]
+    },
+    {
+      "id": "fra-d3",
+      "name": "National",
+      "level": 3,
+      "teams": [
+        {
+          "id": "fra-33",
+          "name": "Grenoble",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-34",
+          "name": "Châteauroux",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-35",
+          "name": "Le Mans",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-36",
+          "name": "Red Star",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-37",
+          "name": "Paris FC",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "fra-38",
+          "name": "Nîmes",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-39",
+          "name": "Tours",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-40",
+          "name": "Ajaccio",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-41",
+          "name": "Gazelec Ajaccio",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "fra-42",
+          "name": "Dijon",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-43",
+          "name": "Laval",
+          "players": [],
+          "primaryColor": "#FF6600",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-44",
+          "name": "Niort",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-45",
+          "name": "Annecy",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-46",
+          "name": "Pau FC",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "fra-47",
+          "name": "Rodez",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "fra-48",
+          "name": "Martigues",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    }
+  ]
+}

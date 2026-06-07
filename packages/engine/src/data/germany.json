@@ -1,0 +1,363 @@
+{
+  "country": "Germany",
+  "nationality": "german",
+  "divisions": [
+    {
+      "id": "ger-d1",
+      "name": "Bundesliga",
+      "level": 1,
+      "teams": [
+        {
+          "id": "ger-01",
+          "name": "Bayern München",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-02",
+          "name": "Borussia Dortmund",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-03",
+          "name": "Schalke 04",
+          "players": [],
+          "primaryColor": "#004D9F",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-04",
+          "name": "Hamburger SV",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#CC0000"
+        },
+        {
+          "id": "ger-05",
+          "name": "Werder Bremen",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-06",
+          "name": "Bayer Leverkusen",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-07",
+          "name": "VfB Stuttgart",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-08",
+          "name": "Borussia Mönchengladbach",
+          "players": [],
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "ger-09",
+          "name": "Eintracht Frankfurt",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-10",
+          "name": "Hertha Berlin",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-11",
+          "name": "1. FC Köln",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-12",
+          "name": "RB Leipzig",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-13",
+          "name": "VfL Wolfsburg",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-14",
+          "name": "Hannover 96",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-15",
+          "name": "TSG Hoffenheim",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-16",
+          "name": "1. FC Kaiserslautern",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    },
+    {
+      "id": "ger-d2",
+      "name": "2. Bundesliga",
+      "level": 2,
+      "teams": [
+        {
+          "id": "ger-17",
+          "name": "1860 München",
+          "players": [],
+          "primaryColor": "#6699CC",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-18",
+          "name": "Nürnberg",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-19",
+          "name": "Fortuna Düsseldorf",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-20",
+          "name": "Karlsruher SC",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-21",
+          "name": "St. Pauli",
+          "players": [],
+          "primaryColor": "#7B3F00",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-22",
+          "name": "Union Berlin",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-23",
+          "name": "Freiburg",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-24",
+          "name": "Mainz 05",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-25",
+          "name": "Arminia Bielefeld",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-26",
+          "name": "Bochum",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-27",
+          "name": "Augsburg",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#006633"
+        },
+        {
+          "id": "ger-28",
+          "name": "Hansa Rostock",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-29",
+          "name": "Dynamo Dresden",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-30",
+          "name": "Greuther Fürth",
+          "players": [],
+          "primaryColor": "#006633",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-31",
+          "name": "Energie Cottbus",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-32",
+          "name": "Duisburg",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        }
+      ]
+    },
+    {
+      "id": "ger-d3",
+      "name": "3. Liga",
+      "level": 3,
+      "teams": [
+        {
+          "id": "ger-33",
+          "name": "Magdeburg",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-34",
+          "name": "Osnabrück",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-35",
+          "name": "Alemannia Aachen",
+          "players": [],
+          "primaryColor": "#000000",
+          "secondaryColor": "#FFED00"
+        },
+        {
+          "id": "ger-36",
+          "name": "Rot-Weiss Essen",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-37",
+          "name": "Jahn Regensburg",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-38",
+          "name": "Ingolstadt 04",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-39",
+          "name": "Chemnitzer FC",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-40",
+          "name": "Erzgebirge Aue",
+          "players": [],
+          "primaryColor": "#800080",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-41",
+          "name": "Waldhof Mannheim",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-42",
+          "name": "Preußen Münster",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-43",
+          "name": "Saarbrücken",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-44",
+          "name": "Unterhaching",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-45",
+          "name": "Viktoria Köln",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "ger-46",
+          "name": "Wehen Wiesbaden",
+          "players": [],
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "ger-47",
+          "name": "Braunschweig",
+          "players": [],
+          "primaryColor": "#FFED00",
+          "secondaryColor": "#003399"
+        },
+        {
+          "id": "ger-48",
+          "name": "Paderborn",
+          "players": [],
+          "primaryColor": "#003399",
+          "secondaryColor": "#000000"
+        }
+      ]
+    }
+  ]
+}
