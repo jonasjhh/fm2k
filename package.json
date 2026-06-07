@@ -9,8 +9,7 @@
     "test:coverage": "pnpm --filter @fm2k/engine test:coverage",
     "test:mutation": "pnpm --filter @fm2k/engine test:mutation",
     "lint": "pnpm -r lint",
-    "check": "pnpm lint && pnpm test",
-    "preinstall": "pnpm check"
+    "check": "pnpm lint && pnpm test"
   },
   "devDependencies": {
     "typescript": "^6.0.3"

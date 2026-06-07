@@ -31,19 +31,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Create reports directory
-        run: mkdir -p reports/test reports/mutation
+      - name: Lint and test
+        run: pnpm check
 
       - name: Build project
         run: pnpm run build
-
-      - name: Debug - Show dist contents
-        run: |
-          echo "=== Contents of dist folder ==="
-          ls -la dist/
-          echo ""
-          echo "=== HTML files in dist ==="
-          find dist/ -name "*.html" -type f
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -51,7 +43,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./apps/web/out
 
   deploy:
     environment:
