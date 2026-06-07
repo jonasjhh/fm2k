@@ -30,34 +30,6 @@ function scaleAttributes(attrs: PlayerAttributes, targetOvr: number): PlayerAttr
   return result;
 }
 
-function ovrToAttributes(ovr: number, position: Position): PlayerAttributes {
-  const emphasis: Record<string, Partial<Record<keyof PlayerAttributes, number>>> = {
-    GK:  { agility: 8, composure: 6, awareness: 6, finishing: -25 },
-    CB:  { defending: 10, strength: 8, finishing: -10 },
-    LB:  { speed: 6, defending: 6, stamina: 6 },
-    RB:  { speed: 6, defending: 6, stamina: 6 },
-    CDM: { defending: 8, passing: 4, strength: 6 },
-    CM:  { passing: 8, stamina: 6, technique: 4 },
-    CAM: { passing: 8, technique: 8, composure: 4 },
-    LM:  { speed: 8, agility: 4, stamina: 6, passing: 4 },
-    RM:  { speed: 8, agility: 4, stamina: 6, passing: 4 },
-    LW:  { speed: 10, agility: 6, technique: 4 },
-    RW:  { speed: 10, agility: 6, technique: 4 },
-    ST:  { finishing: 12, composure: 6, speed: 4 },
-    CF:  { finishing: 8, technique: 8, composure: 6 },
-  };
-  const e = emphasis[position] ?? {};
-  const result = {} as PlayerAttributes;
-  const keys: (keyof PlayerAttributes)[] = [
-    'speed', 'strength', 'agility', 'passing', 'finishing',
-    'technique', 'defending', 'stamina', 'awareness', 'composure',
-  ];
-  for (const k of keys) {
-    result[k] = Math.max(40, Math.min(99, ovr + (e[k] ?? 0)));
-  }
-  return result;
-}
-
 // ─── editable country types ───────────────────────────────────────────────────
 
 export interface EditableCountry {
@@ -443,7 +415,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   simulateMatchday: async () => {
-    const { leagueManager, clubManager, transferManager, currentMatchday } = get();
+    const { leagueManager, clubManager, transferManager } = get();
     if (!leagueManager || !leagueManager.hasMoreMatchdays()) return;
 
     set({ lastMatchResult: null });

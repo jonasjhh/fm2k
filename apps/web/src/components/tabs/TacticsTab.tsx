@@ -34,6 +34,17 @@ export default function TacticsTab() {
     toggleXI: s.toggleXI,
     setStartingXI: s.setStartingXI,
   })));
+
+  const players = useMemo(
+    () => clubState ? clubState.startingXI.map((id) => clubState.squad.find((p) => p.id === id)).filter(Boolean) : [],
+    [clubState],
+  );
+  const byGroup = useMemo(() => {
+    const g: Record<string, typeof players> = { GK: [], DEF: [], MID: [], ATK: [] };
+    for (const p of players) if (p) (g[POSITION_GROUP[p.position] ?? 'MID'] ??= []).push(p);
+    return g;
+  }, [players]);
+
   if (!clubState) return null;
 
   const autoSelect = (def: number, mid: number, atk: number) => {
@@ -59,15 +70,6 @@ export default function TacticsTab() {
     if (xi.length === 11) setStartingXI(xi);
   };
 
-  const players = useMemo(
-    () => clubState.startingXI.map((id) => clubState.squad.find((p) => p.id === id)).filter(Boolean),
-    [clubState.startingXI, clubState.squad],
-  );
-  const byGroup = useMemo(() => {
-    const g: Record<string, typeof players> = { GK: [], DEF: [], MID: [], ATK: [] };
-    for (const p of players) if (p) (g[POSITION_GROUP[p.position] ?? 'MID'] ??= []).push(p);
-    return g;
-  }, [players]);
 
   return (
     <Box>

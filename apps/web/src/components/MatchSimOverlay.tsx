@@ -5,7 +5,6 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import Chip from '@mui/material/Chip';
 import FastForwardIcon from '@mui/icons-material/FastForward';
 import CheckIcon from '@mui/icons-material/Check';
 import { useGameStore } from '../store/game-store';
