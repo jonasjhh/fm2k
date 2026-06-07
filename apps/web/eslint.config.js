@@ -28,6 +28,7 @@ export default [
         clearTimeout: 'readonly',
         Promise: 'readonly',
         React: 'readonly',
+        localStorage: 'readonly',
         alert: 'readonly',
         confirm: 'readonly',
         prompt: 'readonly',
