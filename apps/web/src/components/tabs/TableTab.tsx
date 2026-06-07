@@ -7,7 +7,7 @@ import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
 import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { STATUS_COLORS, leagueRowBg } from '../../utils/colors';
+import { useStatusColors, leagueRowBg } from '../../utils/colors';
 import ScrollableTable from '../ui/ScrollableTable';
 
 export default function TableTab() {
@@ -15,6 +15,8 @@ export default function TableTab() {
     leagueState: s.leagueState,
     playerTeamId: s.playerTeamId,
   })));
+  const statusColors = useStatusColors();
+
   if (!leagueState) return null;
 
   const n = leagueState.standings.length;
@@ -26,9 +28,9 @@ export default function TableTab() {
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        <Chip size="small" sx={{ bgcolor: STATUS_COLORS.promotion }} label="Promotion" />
-        <Chip size="small" sx={{ bgcolor: STATUS_COLORS.relegation }} label="Relegation" />
-        <Chip size="small" sx={{ bgcolor: STATUS_COLORS.playerTeam }} label="Your club" />
+        <Chip size="small" sx={{ bgcolor: statusColors.promotion }} label="Promotion" />
+        <Chip size="small" sx={{ bgcolor: statusColors.relegation }} label="Relegation" />
+        <Chip size="small" sx={{ bgcolor: statusColors.playerTeam }} label="Your club" />
       </Box>
 
       <ScrollableTable>
@@ -50,7 +52,7 @@ export default function TableTab() {
             {leagueState.standings.map((s, i) => {
               const pos = i + 1;
               const isPlayer = s.teamId === playerTeamId;
-              const bg = leagueRowBg(isPlayer, pos, n);
+              const bg = leagueRowBg(isPlayer, pos, n, statusColors);
               const gd = s.goalDifference >= 0 ? `+${s.goalDifference}` : String(s.goalDifference);
               return (
                 <TableRow key={s.teamId} sx={bg ? { bgcolor: bg } : {}}>

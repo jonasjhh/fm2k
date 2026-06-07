@@ -9,7 +9,7 @@ import Chip from '@mui/material/Chip';
 import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtDate } from '../../utils/formatting';
-import { STATUS_COLORS } from '../../utils/colors';
+import { useStatusColors } from '../../utils/colors';
 import SectionHeader from '../ui/SectionHeader';
 import ScrollableTable from '../ui/ScrollableTable';
 
@@ -20,6 +20,8 @@ export default function FixturesTab() {
     showAllFixtures: s.showAllFixtures,
     toggleFixtureView: s.toggleFixtureView,
   })));
+  const statusColors = useStatusColors();
+
   if (!leagueState) return null;
 
   const all = leagueState.fixtures;
@@ -54,7 +56,7 @@ export default function FixturesTab() {
         </TableHead>
         <TableBody>
           {upcoming.length ? upcoming.map((f) => (
-            <TableRow key={f.id} sx={isMine(f) ? { bgcolor: STATUS_COLORS.playerTeam } : {}}>
+            <TableRow key={f.id} sx={isMine(f) ? { bgcolor: statusColors.playerTeam } : {}}>
               <TableCell align="center">{f.matchday}</TableCell>
               <TableCell>{fmtDate(f.scheduledTime)}</TableCell>
               <TableCell>{f.homeTeamName}</TableCell>
@@ -79,7 +81,7 @@ export default function FixturesTab() {
         </TableHead>
         <TableBody>
           {results.length ? results.map((f) => (
-            <TableRow key={f.id} sx={isMine(f) ? { bgcolor: STATUS_COLORS.playerTeam } : {}}>
+            <TableRow key={f.id} sx={isMine(f) ? { bgcolor: statusColors.playerTeam } : {}}>
               <TableCell align="center">{f.matchday}</TableCell>
               <TableCell>{fmtDate(f.scheduledTime)}</TableCell>
               <TableCell>{f.homeTeamName}</TableCell>

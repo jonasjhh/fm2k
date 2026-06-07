@@ -1,10 +1,12 @@
 'use client';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
+import Snackbar from '@mui/material/Snackbar';
 import { useGameStore } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { TabId } from '../store/game-store';
@@ -36,14 +38,17 @@ import { getContrastColor } from '../utils/colors';
 import { findTeamById } from '../store/game-store';
 
 export default function GameInterface() {
-  const { activeTab, setActiveTab, setScreen, clubState, playerTeamId, editableCountries } = useGameStore(useShallow((s) => ({
+  const { activeTab, setActiveTab, setScreen, saveGame, clubState, playerTeamId, editableCountries } = useGameStore(useShallow((s) => ({
     activeTab: s.activeTab,
     setActiveTab: s.setActiveTab,
     setScreen: s.setScreen,
+    saveGame: s.saveGame,
     clubState: s.clubState,
     playerTeamId: s.playerTeamId,
     editableCountries: s.editableCountries,
   })));
+
+  const [snackOpen, setSnackOpen] = useState(false);
 
   const clubColors = useMemo(() => {
     if (!playerTeamId) return { primary: '#1B5E20', secondary: '#FFFFFF' };
@@ -68,7 +73,20 @@ export default function GameInterface() {
           <Box sx={{ flexGrow: 1 }} />
           <Button
             size="small"
-            onClick={() => setScreen('main-menu')}
+            onClick={() => { saveGame('QUICK'); setSnackOpen(true); }}
+            sx={{
+              mr: 1,
+              color: 'inherit',
+              borderColor: `${textColor}40`,
+              border: '1px solid',
+              '&:hover': { bgcolor: `${textColor}14` },
+            }}
+          >
+            Save
+          </Button>
+          <Button
+            size="small"
+            onClick={() => { saveGame('AUTO'); setScreen('main-menu'); }}
             sx={{
               color: 'inherit',
               borderColor: `${textColor}40`,
@@ -76,7 +94,7 @@ export default function GameInterface() {
               '&:hover': { bgcolor: `${textColor}14` },
             }}
           >
-            Main Menu
+            Exit to Main Menu
           </Button>
         </Toolbar>
         <Tabs
@@ -112,6 +130,13 @@ export default function GameInterface() {
 
       <MatchSimOverlay />
       <SeasonEndModal />
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={2000}
+        onClose={() => setSnackOpen(false)}
+        message="Game saved"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

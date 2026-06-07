@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -6,14 +7,31 @@ import Divider from '@mui/material/Divider';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EditIcon from '@mui/icons-material/Edit';
 import BugReportIcon from '@mui/icons-material/BugReport';
+import SettingsIcon from '@mui/icons-material/Settings';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Link from 'next/link';
 import { useGameStore } from '../store/game-store';
+import SettingsDialog from '../components/ui/SettingsDialog';
+import LoadGameDialog from '../components/ui/LoadGameDialog';
+import { readAllSaves } from '../store/save-data';
 
 const FEATURES = ['8 nations', '384 clubs', 'Transfer market', 'Club facilities', 'Full season'];
 
 export default function MainMenu() {
   const setScreen = useGameStore((s) => s.setScreen);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loadOpen, setLoadOpen] = useState(false);
+  const [hasSaves, setHasSaves] = useState(false);
+
+  useEffect(() => {
+    setHasSaves(readAllSaves().length > 0);
+  }, []);
+
+  const handleLoadOpen = () => {
+    setHasSaves(readAllSaves().length > 0);
+    setLoadOpen(true);
+  };
 
   return (
     <Box
@@ -92,6 +110,26 @@ export default function MainMenu() {
           <Button
             variant="outlined"
             size="large"
+            endIcon={hasSaves ? <ChevronRightIcon /> : undefined}
+            disabled={!hasSaves}
+            onClick={handleLoadOpen}
+            sx={{
+              py: 1.75, px: 3, borderRadius: 2, fontSize: 15, fontWeight: 700,
+              borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.85)',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+              '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' },
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <FolderOpenIcon fontSize="small" />
+              Load Game
+            </Box>
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
             endIcon={<ChevronRightIcon />}
             onClick={() => setScreen('editor')}
             sx={{
@@ -106,7 +144,27 @@ export default function MainMenu() {
               Team Editor
             </Box>
           </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={() => setSettingsOpen(true)}
+            sx={{
+              py: 1.75, px: 3, borderRadius: 2, fontSize: 15, fontWeight: 700,
+              borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.85)',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' },
+              justifyContent: 'flex-start',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <SettingsIcon fontSize="small" />
+              Settings
+            </Box>
+          </Button>
         </Box>
+
+        <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <LoadGameDialog open={loadOpen} onClose={() => setLoadOpen(false)} />
 
         {/* ── feature pills ────────────────────────────────────────────── */}
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mb: 3 }} />

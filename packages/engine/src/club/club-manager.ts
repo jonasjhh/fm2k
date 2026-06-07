@@ -57,6 +57,10 @@ export class ClubManager {
     });
   }
 
+  loadState(state: ClubState): void {
+    this.stateManager.setState(state);
+  }
+
   getState(): ClubState {
     return this.stateManager.getState();
   }

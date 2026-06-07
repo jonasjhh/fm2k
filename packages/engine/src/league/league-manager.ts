@@ -33,6 +33,10 @@ export class LeagueManager {
   private readonly fixturesPerMatchday: number;
   private readonly onMatchCompleted?: (payload: MatchCompletedPayload) => void;
 
+  loadState(state: LeagueState): void {
+    this.stateManager.setState(state);
+  }
+
   constructor(config: LeagueManagerConfig) {
     this.eventsPerMinute = config.eventsPerMinute ?? 3;
     this.fixturesPerMatchday = config.teams.length / 2;
@@ -109,12 +113,19 @@ export class LeagueManager {
         homeTeamId: string; awayTeamId: string; homeScore: number; awayScore: number
       };
 
+      let alreadyCompleted = false;
       this.stateManager.updateState(state => {
         const fixtureIdx = state.fixtures.findIndex(f => f.id === event.occurrenceId);
-        if (fixtureIdx !== -1) {
-          (state.fixtures[fixtureIdx] as Fixture).result = { homeScore, awayScore };
-          (state.fixtures[fixtureIdx] as Fixture).status = 'completed';
+        if (fixtureIdx === -1) {return;}
+
+        // Skip fixtures already marked complete (e.g. state loaded from a save)
+        if ((state.fixtures[fixtureIdx] as Fixture).status === 'completed') {
+          alreadyCompleted = true;
+          return;
         }
+
+        (state.fixtures[fixtureIdx] as Fixture).result = { homeScore, awayScore };
+        (state.fixtures[fixtureIdx] as Fixture).status = 'completed';
 
         const home = state.standings.find(s => s.teamId === homeTeamId)!;
         const away = state.standings.find(s => s.teamId === awayTeamId)!;
@@ -140,6 +151,8 @@ export class LeagueManager {
               b.goalsFor - a.goalsFor,
         );
       });
+
+      if (alreadyCompleted) {continue;}
 
       if (this.onMatchCompleted) {
         const { standings } = this.stateManager.getState();

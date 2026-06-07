@@ -10,13 +10,14 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useGameStore } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { SimEvent } from '../store/game-store';
-import { STATUS_COLORS } from '../utils/colors';
+import { useStatusColors } from '../utils/colors';
 
 function EventItem({ event }: { event: SimEvent }) {
+  const statusColors = useStatusColors();
   const color =
-    event.type === 'goal'  ? STATUS_COLORS.promotion  :
-    event.type === 'card'  ? STATUS_COLORS.caution    :
-    event.type === 'phase' ? STATUS_COLORS.playerTeam :
+    event.type === 'goal'  ? statusColors.promotion  :
+    event.type === 'card'  ? statusColors.caution    :
+    event.type === 'phase' ? statusColors.playerTeam :
     undefined;
   return (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, px: 1, bgcolor: color, borderRadius: 1 }}>

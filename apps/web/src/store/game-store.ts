@@ -6,13 +6,14 @@ import {
 } from '@fm2k/engine';
 import type {
   Team, Player, PlayerAttributes, Formation, Position,
-  LeagueState, ClubState, TransferListing, GameDateTime, MatchEvent,
+  LeagueState, ClubState, TransferListing, TransferState, GameDateTime, MatchEvent,
   StructuredDivision, CountryId,
 } from '@fm2k/engine';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, ALL_POSITIONS,
 } from '../constants';
 import { sellPrice } from '../utils/calculations';
+import { writeSave, type SaveData, type SaveType } from './save-data';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -174,6 +175,8 @@ interface GameStore {
   startNewSeason: () => void;
   simulateMatchday: () => Promise<void>;
   simulateToEnd: () => Promise<void>;
+  saveGame: (type: SaveType) => void;
+  loadGame: (save: SaveData) => void;
 
   // ── match animation ─────────────────────────────────────────────────────────
   playMatch: () => Promise<void>;
@@ -198,6 +201,64 @@ interface GameStore {
 
   // ── fixtures ────────────────────────────────────────────────────────────────
   toggleFixtureView: () => void;
+}
+
+// ─── manager factory ─────────────────────────────────────────────────────────
+
+function buildManagers(
+  editableCountries: EditableCountry[],
+  teamId: string,
+  playerGenerator: PlayerGenerator,
+  get: () => GameStore,
+  set: (partial: Partial<GameStore>) => void,
+) {
+  const team = findTeamById(editableCountries, teamId);
+  const division = findDivisionForTeam(editableCountries, teamId);
+  if (!team || !division) return { leagueManager: null, clubManager: null, transferManager: null };
+
+  const leagueManager = new LeagueManager({
+    teams: division.teams,
+    startDate: SEASON_START as GameDateTime,
+    eventsPerMinute: 3,
+    onMatchCompleted: (payload) => {
+      const { clubManager, playerTeamId } = get();
+      const { homeTeamId, awayTeamId, homeScore, awayScore, timestamp, awayStanding } = payload;
+      const isHome = homeTeamId === playerTeamId;
+      const isAway = awayTeamId === playerTeamId;
+      if (!isHome && !isAway) return;
+
+      set({ lastMatchResult: { homeTeamId, awayTeamId, homeScore, awayScore, isHome } });
+      clubManager?.handleMatchCompleted({ homeTeamId, awayTeamId, homeScore, awayScore, timestamp });
+
+      if (isHome && awayStanding) {
+        const receipt = clubManager?.calculateHomeReceipt(awayStanding);
+        if (receipt) clubManager?.recordGateReceipt(receipt, awayTeamId, timestamp);
+      }
+    },
+  });
+
+  const clubManager = new ClubManager({
+    clubId: team.id,
+    clubName: team.name,
+    divisionId: division.id,
+    squad: [...team.starters, ...team.substitutes],
+    budget: BUDGET_START,
+    formation: team.formation,
+    startingXI: team.starters.slice(0, 11).map(p => p.id),
+    benchPlayers: team.substitutes.map(p => p.id),
+    stadiumCapacity: STADIUM_START,
+  });
+
+  const transferManager = new TransferManager({
+    marketSize: 15,
+    playerFactory: () => {
+      const pos = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)] as Position;
+      const gen = playerGenerator.generatePlayer(pos, 1, 20);
+      return { ...gen, id: uuidv4(), attributes: scaleAttributes(gen.attributes, 65) };
+    },
+  });
+
+  return { leagueManager, clubManager, transferManager };
 }
 
 // ─── sync helper ─────────────────────────────────────────────────────────────
@@ -346,51 +407,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame: (teamId) => {
     const { editableCountries, playerGenerator } = get();
-    const team = findTeamById(editableCountries, teamId);
-    const division = findDivisionForTeam(editableCountries, teamId);
-    if (!team || !division) return;
-
-    const leagueManager = new LeagueManager({
-      teams: division.teams,
-      startDate: SEASON_START as GameDateTime,
-      eventsPerMinute: 3,
-      onMatchCompleted: (payload) => {
-        const { clubManager, playerTeamId } = get();
-        const { homeTeamId, awayTeamId, homeScore, awayScore, timestamp, awayStanding } = payload;
-        const isHome = homeTeamId === playerTeamId;
-        const isAway = awayTeamId === playerTeamId;
-        if (!isHome && !isAway) return;
-
-        set({ lastMatchResult: { homeTeamId, awayTeamId, homeScore, awayScore, isHome } });
-        clubManager?.handleMatchCompleted({ homeTeamId, awayTeamId, homeScore, awayScore, timestamp });
-
-        if (isHome && awayStanding) {
-          const receipt = clubManager?.calculateHomeReceipt(awayStanding);
-          if (receipt) clubManager?.recordGateReceipt(receipt, awayTeamId, timestamp);
-        }
-      },
-    });
-
-    const clubManager = new ClubManager({
-      clubId: team.id,
-      clubName: team.name,
-      divisionId: division.id,
-      squad: [...team.starters, ...team.substitutes],
-      budget: BUDGET_START,
-      formation: team.formation,
-      startingXI: team.starters.slice(0, 11).map(p => p.id),
-      benchPlayers: team.substitutes.map(p => p.id),
-      stadiumCapacity: STADIUM_START,
-    });
-
-    const transferManager = new TransferManager({
-      marketSize: 15,
-      playerFactory: () => {
-        const pos = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)] as Position;
-        const gen = playerGenerator.generatePlayer(pos, 1, 20);
-        return { ...gen, id: uuidv4(), attributes: scaleAttributes(gen.attributes, 65) };
-      },
-    });
+    const { leagueManager, clubManager, transferManager } = buildManagers(
+      editableCountries, teamId, playerGenerator, get, set,
+    );
+    if (!leagueManager || !clubManager || !transferManager) return;
 
     set({
       playerTeamId: teamId,
@@ -412,6 +432,60 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startNewSeason: () => {
     const { playerTeamId } = get();
     if (playerTeamId) get().startGame(playerTeamId);
+  },
+
+  saveGame: (type) => {
+    const s = get();
+    if (!s.playerTeamId || !s.leagueState || !s.clubState) return;
+    writeSave({
+      version: 1,
+      type,
+      savedAt: new Date().toISOString(),
+      teamName: s.clubState.clubName,
+      matchday: s.currentMatchday,
+      playerTeamId: s.playerTeamId,
+      editableCountries: s.editableCountries,
+      currentMatchday: s.currentMatchday,
+      seasonComplete: s.seasonComplete,
+      activeTab: s.activeTab,
+      lastMatchResult: s.lastMatchResult,
+      leagueState: s.leagueState,
+      clubState: s.clubState,
+      transferListings: s.transferListings,
+    });
+  },
+
+  loadGame: (save) => {
+    const { playerGenerator } = get();
+    const { leagueManager, clubManager, transferManager } = buildManagers(
+      save.editableCountries, save.playerTeamId, playerGenerator, get, set,
+    );
+    if (!leagueManager || !clubManager || !transferManager) return;
+
+    leagueManager.loadState(save.leagueState);
+    clubManager.loadState(save.clubState);
+    const transferState: TransferState = {
+      listings: save.transferListings,
+      refreshedOnMatchday: save.currentMatchday,
+    };
+    transferManager.loadState(transferState);
+
+    set({
+      screen: 'game',
+      activeTab: save.activeTab as TabId,
+      playerTeamId: save.playerTeamId,
+      editableCountries: save.editableCountries,
+      currentMatchday: save.currentMatchday,
+      seasonComplete: save.seasonComplete,
+      lastMatchResult: save.lastMatchResult,
+      showAllFixtures: false,
+      leagueManager,
+      clubManager,
+      transferManager,
+      leagueState: leagueManager.getState(),
+      clubState: clubManager.getState(),
+      transferListings: transferManager.getActiveListings(save.currentMatchday),
+    });
   },
 
   simulateMatchday: async () => {

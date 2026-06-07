@@ -137,7 +137,7 @@ export default function TacticsTab() {
           variant="outlined"
           sx={{
             width: { xs: '100%', md: 280 },
-            bgcolor: '#2E7D32',
+            bgcolor: 'success.dark',
             borderRadius: 3,
             p: 2,
             display: 'flex',

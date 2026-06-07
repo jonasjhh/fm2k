@@ -26,7 +26,9 @@ import {
 import type { Team, MatchState, OccurrenceEvent } from '@fm2k/engine';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import theme from '../../theme';
+import { createAppTheme } from '../../theme';
+
+const theme = createAppTheme('light');
 
 const KICK_OFF = createGameDateTime(2025, 8, 15, 15, 0);
 

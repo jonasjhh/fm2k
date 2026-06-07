@@ -15,7 +15,7 @@ import { useGameStore } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 
 import { sfx } from '../utils/formatting';
-import { leagueRowBg } from '../utils/colors';
+import { leagueRowBg, useStatusColors } from '../utils/colors';
 
 export default function SeasonEndModal() {
   const { seasonComplete, leagueState, playerTeamId, setScreen, startNewSeason } = useGameStore(useShallow((s) => ({
@@ -25,6 +25,8 @@ export default function SeasonEndModal() {
     setScreen: s.setScreen,
     startNewSeason: s.startNewSeason,
   })));
+
+  const statusColors = useStatusColors();
 
   if (!seasonComplete || !leagueState || !playerTeamId) return null;
 
@@ -72,7 +74,7 @@ export default function SeasonEndModal() {
             {standings.map((s, i) => {
               const p = i + 1;
               const isPlayer = s.teamId === playerTeamId;
-              const bg = leagueRowBg(isPlayer, p, n);
+              const bg = leagueRowBg(isPlayer, p, n, statusColors);
               const gd = s.goalDifference >= 0 ? `+${s.goalDifference}` : String(s.goalDifference);
               return (
                 <TableRow key={s.teamId} sx={bg ? { bgcolor: bg } : {}}>

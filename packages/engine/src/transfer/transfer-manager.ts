@@ -71,6 +71,10 @@ export class TransferManager {
     });
   }
 
+  loadState(state: TransferState): void {
+    this.stateManager.setState(state);
+  }
+
   getState(): TransferState {
     return this.stateManager.getState();
   }
