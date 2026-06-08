@@ -189,6 +189,8 @@ interface GameStore {
   // ── tactics ─────────────────────────────────────────────────────────────────
   toggleXI: (id: string) => void;
   setStartingXI: (ids: string[]) => void;
+  setBench: (ids: string[]) => void;
+  setFormation: (formation: Formation) => void;
 
   // ── transfers ───────────────────────────────────────────────────────────────
   buyPlayer: (listingId: string) => boolean;
@@ -614,6 +616,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { clubManager } = get();
     if (!clubManager) return;
     clubManager.setStartingXI(ids);
+    set({ clubState: clubManager.getState() });
+  },
+
+  setBench: (ids) => {
+    const { clubManager } = get();
+    if (!clubManager) return;
+    clubManager.setBenchPlayers(ids);
+    set({ clubState: clubManager.getState() });
+  },
+
+  setFormation: (formation) => {
+    const { clubManager } = get();
+    if (!clubManager) return;
+    clubManager.setFormation(formation);
     set({ clubState: clubManager.getState() });
   },
 

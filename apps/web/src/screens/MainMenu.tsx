@@ -110,7 +110,7 @@ export default function MainMenu() {
           <Button
             variant="outlined"
             size="large"
-            endIcon={hasSaves ? <ChevronRightIcon /> : undefined}
+            endIcon={<ChevronRightIcon />}
             disabled={!hasSaves}
             onClick={handleLoadOpen}
             sx={{
