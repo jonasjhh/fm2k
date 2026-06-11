@@ -29,15 +29,15 @@ interface Props {
 
 export default function LoadGameDialog({ open, onClose }: Props) {
   const loadGame = useGameStore((s) => s.loadGame);
-  const [saves, setSaves] = useState<SaveData[]>(() => readAllSaves());
+  const [saves, setSaves] = useState<SaveData[]>([]);
 
-  const handleOpen = () => {
-    setSaves(readAllSaves());
+  const loadSaves = async () => {
+    setSaves(await readAllSaves());
   };
 
-  const handleDelete = (save: SaveData) => {
-    deleteSave(save.type, save.teamName);
-    setSaves(readAllSaves());
+  const handleDelete = async (save: SaveData) => {
+    await deleteSave(save.type, save.teamName);
+    await loadSaves();
   };
 
   const handleLoad = (save: SaveData) => {
@@ -49,7 +49,7 @@ export default function LoadGameDialog({ open, onClose }: Props) {
     <Dialog
       open={open}
       onClose={onClose}
-      onTransitionEnter={handleOpen}
+      onTransitionEnter={loadSaves}
       maxWidth="sm"
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: 3 } } }}

@@ -178,7 +178,7 @@ interface GameStore {
   startNewSeason: () => void;
   simulateMatchday: () => Promise<void>;
   simulateToEnd: () => Promise<void>;
-  saveGame: (type: SaveType) => void;
+  saveGame: (type: SaveType) => Promise<void>;
   loadGame: (save: SaveData) => void;
 
   // ── match animation ─────────────────────────────────────────────────────────
@@ -471,10 +471,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (playerTeamId) get().startGame(playerTeamId, selectedLeagueIds);
   },
 
-  saveGame: (type) => {
+  saveGame: async (type) => {
     const s = get();
     if (!s.playerTeamId || !s.leagueState || !s.clubState) return;
-    writeSave({
+    await writeSave({
       version: SAVE_VERSION,
       type,
       savedAt: new Date().toISOString(),
@@ -482,7 +482,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       matchday: s.currentMatchday,
       playerTeamId: s.playerTeamId,
       selectedLeagueIds: s.selectedLeagueIds,
-      editableCountries: s.editableCountries,
+      editableCountries: (() => {
+        const keep = new Set(s.selectedLeagueIds ?? []);
+        const playerCountry = findCountryForTeam(s.editableCountries, s.playerTeamId!);
+        if (playerCountry) keep.add(playerCountry.id);
+        return s.editableCountries.filter(c => keep.has(c.id));
+      })(),
       currentMatchday: s.currentMatchday,
       seasonComplete: s.seasonComplete,
       activeTab: s.activeTab,
@@ -496,18 +501,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   loadGame: (save) => {
     const { playerGenerator } = get();
+    // Merge saved (partial) editableCountries with fresh defaults so all countries are available
+    const savedCountryMap = new Map(save.editableCountries.map(c => [c.id, c]));
+    const mergedCountries = buildEditableCountries().map(c => savedCountryMap.get(c.id) ?? c);
     // Backward compat: old saves without selectedLeagueIds fall back to just the player's nation
     const leagueIds = save.selectedLeagueIds
-      ?? [findCountryForTeam(save.editableCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
+      ?? [findCountryForTeam(mergedCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
     const { leagueManagers, leagueManager, clubManager, transferManager } = buildManagers(
-      save.editableCountries, save.playerTeamId, leagueIds, playerGenerator, get, set,
+      mergedCountries, save.playerTeamId, leagueIds, playerGenerator, get, set,
     );
     if (!leagueManager || !clubManager || !transferManager) return;
 
     leagueManager.loadState(save.leagueState);
     // Load other division states if present (new saves); otherwise leave them at initial state
     if (save.leagueStates) {
-      const playerDivId = findDivisionForTeam(save.editableCountries, save.playerTeamId)?.id;
+      const playerDivId = findDivisionForTeam(mergedCountries, save.playerTeamId)?.id;
       for (const [id, state] of Object.entries(save.leagueStates)) {
         if (id !== playerDivId && leagueManagers[id]) {
           leagueManagers[id].loadState(state);
@@ -536,7 +544,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       activeTab: save.activeTab as TabId,
       playerTeamId: save.playerTeamId,
       selectedLeagueIds: leagueIds,
-      editableCountries: save.editableCountries,
+      editableCountries: mergedCountries,
       currentMatchday: save.currentMatchday,
       seasonComplete: save.seasonComplete,
       lastMatchResult: save.lastMatchResult,

@@ -25,11 +25,10 @@ export default function MainMenu() {
   const [hasSaves, setHasSaves] = useState(false);
 
   useEffect(() => {
-    setHasSaves(readAllSaves().length > 0);
+    readAllSaves().then(saves => setHasSaves(saves.length > 0));
   }, []);
 
   const handleLoadOpen = () => {
-    setHasSaves(readAllSaves().length > 0);
     setLoadOpen(true);
   };
 

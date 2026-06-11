@@ -86,7 +86,7 @@ export default function GameInterface() {
           </Button>
           <Button
             size="small"
-            onClick={() => { saveGame('AUTO'); setScreen('main-menu'); }}
+            onClick={async () => { await saveGame('AUTO'); setScreen('main-menu'); }}
             sx={{
               color: 'inherit',
               borderColor: `${textColor}40`,
