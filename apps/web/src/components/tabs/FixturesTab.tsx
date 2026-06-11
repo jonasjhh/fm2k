@@ -184,10 +184,9 @@ export default function FixturesTab() {
               >
                 <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
                   <Typography
-                    flex={1}
                     align="right"
                     noWrap
-                    sx={{ fontWeight: isPlayerGame ? 600 : 400 }}
+                    sx={{ flex: 1, fontWeight: isPlayerGame ? 600 : 400 }}
                   >
                     {f.homeTeamName}
                   </Typography>
@@ -209,9 +208,8 @@ export default function FixturesTab() {
                   )}
 
                   <Typography
-                    flex={1}
                     noWrap
-                    sx={{ fontWeight: isPlayerGame ? 600 : 400 }}
+                    sx={{ flex: 1, fontWeight: isPlayerGame ? 600 : 400 }}
                   >
                     {f.awayTeamName}
                   </Typography>

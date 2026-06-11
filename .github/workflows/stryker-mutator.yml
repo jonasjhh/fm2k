@@ -31,14 +31,18 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Run regular tests first
-      run: pnpm test
+    - name: Restore Stryker incremental cache
+      uses: actions/cache@v5
+      with:
+        path: packages/engine/reports/stryker-incremental.json
+        key: stryker-${{ hashFiles('packages/engine/src/**/*.ts') }}
+        restore-keys: stryker-
 
     - name: Run mutation testing
       run: pnpm run test:mutation
 
     - name: Upload mutation report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: mutation-test-report
@@ -49,7 +53,7 @@ jobs:
 
     - name: Comment mutation score on PR
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const fs = require('fs');
