@@ -61,7 +61,7 @@ export function useLineupSlots() {
   const starterSlots = useMemo(() => lines.flat(), [lines]);
 
   const [slotAssignments, setSlotAssignments] = useState<(string | null)[]>(() => {
-    if (!clubState) return Array(15).fill(null);
+    if (!clubState) {return Array(15).fill(null);}
     return buildSlotAssignments(clubState.startingXI, clubState.benchPlayers, clubState.squad, formation);
   });
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
@@ -75,7 +75,7 @@ export function useLineupSlots() {
     const sameXi = xiKey === ourXiKeyRef.current;
     const sameBench = benchKey === ourBenchKeyRef.current;
     const sameFormation = formation === ourFormationRef.current;
-    if (sameXi && sameBench && sameFormation) return;
+    if (sameXi && sameBench && sameFormation) {return;}
     ourXiKeyRef.current = xiKey;
     ourBenchKeyRef.current = benchKey;
     ourFormationRef.current = formation;
@@ -89,7 +89,7 @@ export function useLineupSlots() {
 
   const playerSlotMap = useMemo(() => {
     const m = new Map<string, number>();
-    slotAssignments.forEach((id, i) => { if (id) m.set(id, i); });
+    slotAssignments.forEach((id, i) => { if (id) {m.set(id, i);} });
     return m;
   }, [slotAssignments]);
 
@@ -120,17 +120,17 @@ export function useLineupSlots() {
   };
 
   const handlePlayerDragOver = (e: React.DragEvent, playerId: string) => {
-    if (draggingSlot === null) return;
+    if (draggingSlot === null) {return;}
     e.preventDefault();
     setDropTargetId(playerId);
   };
 
   const handlePlayerDrop = (e: React.DragEvent, playerId: string) => {
     e.preventDefault();
-    if (draggingSlot === null) return;
+    if (draggingSlot === null) {return;}
     const next = [...slotAssignments];
     const existing = next.indexOf(playerId);
-    if (existing !== -1) next[existing] = null;
+    if (existing !== -1) {next[existing] = null;}
     next[draggingSlot] = playerId;
     commitAssignments(next);
     setDraggingSlot(null);

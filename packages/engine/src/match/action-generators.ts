@@ -141,7 +141,8 @@ export class ShortPassGenerator implements ActionGenerator {
 
 export class DribbleGenerator implements ActionGenerator {
   canPerform(player: Player, state: MatchState): boolean {
-    return (state.phase === 'first_half' || state.phase === 'second_half') &&
+    return player.position !== 'GK' &&
+           (state.phase === 'first_half' || state.phase === 'second_half') &&
            SkillCalculator.dribbling(player) > 60;
   }
 

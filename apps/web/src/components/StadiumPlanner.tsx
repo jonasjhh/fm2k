@@ -40,7 +40,7 @@ function isCorner(key: SectorKey) {
 // ─── SVG sector renderer ──────────────────────────────────────────────────────
 
 function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: string, colorB: string): string {
-  if (sector.type === 'none') return '';
+  if (sector.type === 'none') {return '';}
 
   const width  = key === 'N' || key === 'S' ? 440 : 160;
   const height = key === 'E' || key === 'W' ? 280 : 160;
@@ -68,9 +68,9 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
     const cx = key === 'NW' || key === 'SW' ? 160 : 0;
     const cy = key === 'NW' || key === 'NE' ? 160 : 0;
     let startAng = Math.PI;
-    if (key === 'NE') startAng = 1.5 * Math.PI;
-    if (key === 'SW') startAng = 0.5 * Math.PI;
-    if (key === 'SE') startAng = 0;
+    if (key === 'NE') {startAng = 1.5 * Math.PI;}
+    if (key === 'SW') {startAng = 0.5 * Math.PI;}
+    if (key === 'SE') {startAng = 0;}
     let ring = 0;
     for (let r = rMin + 6; r < rMax - 6; r += step) {
       const count = Math.max(4, Math.floor(((2 * Math.PI * r) / 4) / step));
@@ -128,12 +128,12 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
       if (key === 'N' || key === 'S') {
         svg += gridSeats(6, mid - 12, 0, width);
         svg += `<rect x="0" y="${mid - 10}" width="${width}" height="20" fill="#1e1b4b" stroke="#eab308" stroke-width="1.5"/>`;
-        for (let p = 15; p < width; p += 35) svg += `<rect x="${p}" y="${mid - 6}" width="14" height="12" fill="#f59e0b" rx="1"/>`;
+        for (let p = 15; p < width; p += 35) {svg += `<rect x="${p}" y="${mid - 6}" width="14" height="12" fill="#f59e0b" rx="1"/>`;}
         svg += gridSeats(mid + 12, height - 6, 0, width, true);
       } else {
         svg += gridSeats(0, height, 6, mid - 12);
         svg += `<rect x="${mid - 10}" y="0" width="20" height="${height}" fill="#1e1b4b" stroke="#eab308" stroke-width="1.5"/>`;
-        for (let p = 15; p < height; p += 35) svg += `<rect x="${mid - 6}" y="${p}" width="12" height="14" fill="#f59e0b" rx="1"/>`;
+        for (let p = 15; p < height; p += 35) {svg += `<rect x="${mid - 6}" y="${p}" width="12" height="14" fill="#f59e0b" rx="1"/>`;}
         svg += gridSeats(0, height, mid + 12, width - 6, true);
       }
     } else {
@@ -143,16 +143,16 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
       svg += radialSeats(102, 155);
     }
   } else {
-    if (!isCorn) svg += gridSeats(0, height, 0, width);
-    else svg += radialSeats(10, 155);
+    if (!isCorn) {svg += gridSeats(0, height, 0, width);}
+    else {svg += radialSeats(10, 155);}
   }
 
   const ec = '#94a6b8';
   if (!isCorn) {
-    if (key === 'N') svg += `<line x1="0" y1="2" x2="${width}" y2="2" stroke="${ec}" stroke-width="4"/>`;
-    if (key === 'S') svg += `<line x1="0" y1="${height - 2}" x2="${width}" y2="${height - 2}" stroke="${ec}" stroke-width="4"/>`;
-    if (key === 'W') svg += `<line x1="2" y1="0" x2="2" y2="${height}" stroke="${ec}" stroke-width="4"/>`;
-    if (key === 'E') svg += `<line x1="${width - 2}" y1="0" x2="${width - 2}" y2="${height}" stroke="${ec}" stroke-width="4"/>`;
+    if (key === 'N') {svg += `<line x1="0" y1="2" x2="${width}" y2="2" stroke="${ec}" stroke-width="4"/>`;}
+    if (key === 'S') {svg += `<line x1="0" y1="${height - 2}" x2="${width}" y2="${height - 2}" stroke="${ec}" stroke-width="4"/>`;}
+    if (key === 'W') {svg += `<line x1="2" y1="0" x2="2" y2="${height}" stroke="${ec}" stroke-width="4"/>`;}
+    if (key === 'E') {svg += `<line x1="${width - 2}" y1="0" x2="${width - 2}" y2="${height}" stroke="${ec}" stroke-width="4"/>`;}
   } else {
     const cx = key === 'NW' || key === 'SW' ? 160 : 0, cy = key === 'NW' || key === 'NE' ? 160 : 0;
     svg += `<circle cx="${cx}" cy="${cy}" r="158" fill="none" stroke="${ec}" stroke-width="4"/>`;
@@ -160,10 +160,10 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
 
   if (isRoofed) {
     if (!isCorn) {
-      if (key === 'N') svg += `<rect x="0" y="0" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;
-      if (key === 'S') svg += `<rect x="0" y="${height - roofDepth}" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;
-      if (key === 'W') svg += `<rect x="0" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;
-      if (key === 'E') svg += `<rect x="${width - roofDepth}" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;
+      if (key === 'N') {svg += `<rect x="0" y="0" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
+      if (key === 'S') {svg += `<rect x="0" y="${height - roofDepth}" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
+      if (key === 'W') {svg += `<rect x="0" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
+      if (key === 'E') {svg += `<rect x="${width - roofDepth}" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
     } else {
       const cx = key === 'NW' || key === 'SW' ? 160 : 0, cy = key === 'NW' || key === 'NE' ? 160 : 0;
       svg += `<circle cx="${cx}" cy="${cy}" r="160" fill="none" stroke="rgba(241,245,249,0.9)" stroke-width="${roofDepth}"/>`;
@@ -269,9 +269,9 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
   }, [activeSector]);
 
   const handleApply = useCallback(() => {
-    if (!canApply) return;
+    if (!canApply) {return;}
     const ok = onApply(plannedSectors, totalCost, plannedCapacity);
-    if (!ok) alert('Insufficient budget.');
+    if (!ok) {alert('Insufficient budget.');}
   }, [canApply, onApply, plannedSectors, totalCost, plannedCapacity]);
 
   const handleDiscard = useCallback(() => {

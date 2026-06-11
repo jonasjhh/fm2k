@@ -1,5 +1,5 @@
-import type { GameDateTime } from '@fm2k/timeline'
-import type { LeagueStanding } from './league/league-types.ts'
+import type { GameDateTime } from '@fm2k/timeline';
+import type { LeagueStanding } from './league/league-types.ts';
 
 export type GameEvents = {
   'match.completed': {

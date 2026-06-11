@@ -31,15 +31,18 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Restore Stryker incremental cache
+    - name: Restore Stryker incremental caches
       uses: actions/cache@v5
       with:
-        path: packages/engine/reports/stryker-incremental.json
-        key: stryker-${{ hashFiles('packages/engine/src/**/*.ts') }}
+        path: |
+          packages/engine/reports/stryker-incremental.json
+          packages/names/reports/stryker-incremental.json
+          packages/timeline/reports/stryker-incremental.json
+        key: stryker-${{ hashFiles('packages/*/src/**/*.ts') }}
         restore-keys: stryker-
 
-    - name: Run mutation testing
-      run: pnpm run test:mutation
+    - name: Run mutation testing (all packages)
+      run: pnpm test:mutation:all
 
     - name: Upload mutation report
       uses: actions/upload-artifact@v6
@@ -48,7 +51,7 @@ jobs:
         name: mutation-test-report
         path: |
           reports/
-          stryker.log
+          packages/*/stryker.log
         retention-days: 30
 
     - name: Comment mutation score on PR
@@ -58,31 +61,51 @@ jobs:
         script: |
           const fs = require('fs');
 
-          try {
-            // Try to read mutation score from reports
-            const reportPath = 'reports/mutation/mutation.json';
-            if (fs.existsSync(reportPath)) {
-              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-              const score = report.thresholds?.high || report.mutationScore || 'N/A';
-
-              const comment = `## 🧬 Mutation Testing Results
-
-              **Mutation Score: ${score}%**
-
-              - **Total Mutants:** ${report.totalMutants || 'N/A'}
-              - **Killed:** ${report.totalKilled || 'N/A'}
-              - **Survived:** ${report.totalSurvived || 'N/A'}
-              - **Timeout:** ${report.totalTimedOut || 'N/A'}
-
-              [View detailed report in artifacts](${context.payload.pull_request.html_url}/checks)`;
-
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
+          // Real Stryker mutation score from a per-package report.
+          // score = detected / valid, where detected = Killed + Timeout and
+          // valid = Killed + Timeout + Survived + NoCoverage.
+          function summarise(reportPath) {
+            if (!fs.existsSync(reportPath)) { return null; }
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const counts = { Killed: 0, Timeout: 0, Survived: 0, NoCoverage: 0 };
+            for (const file of Object.values(report.files ?? {})) {
+              for (const mutant of file.mutants ?? []) {
+                if (mutant.status in counts) { counts[mutant.status]++; }
+              }
             }
-          } catch (error) {
-            console.log('Could not post mutation score comment:', error.message);
+            const detected = counts.Killed + counts.Timeout;
+            const valid = detected + counts.Survived + counts.NoCoverage;
+            const score = valid > 0 ? ((detected / valid) * 100).toFixed(2) : 'N/A';
+            return { score, valid, ...counts };
           }
+
+          const packages = ['engine', 'names', 'timeline'];
+          const rows = [];
+          for (const pkg of packages) {
+            const s = summarise(`reports/mutation/${pkg}/mutation.json`);
+            if (!s) { continue; }
+            rows.push(`| ${pkg} | ${s.score}% | ${s.valid} | ${s.Killed} | ${s.Survived} | ${s.Timeout} | ${s.NoCoverage} |`);
+          }
+
+          if (rows.length === 0) {
+            console.log('No mutation reports found; skipping comment.');
+            return;
+          }
+
+          const body = [
+            '## 🧬 Mutation Testing Results',
+            '',
+            '| Package | Score | Mutants | Killed | Survived | Timeout | No coverage |',
+            '|---|---|---|---|---|---|---|',
+            ...rows,
+            '',
+            '[View detailed HTML reports in the workflow artifacts.]' +
+              `(${context.payload.pull_request.html_url}/checks)`,
+          ].join('\n');
+
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body,
+          });

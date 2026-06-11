@@ -18,9 +18,9 @@ export const MIN_LOADABLE_VERSION = 1;
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
 
 export function checkSaveCompatibility(save: SaveData): SaveCompatibility {
-  if (save.version > SAVE_VERSION) return 'incompatible';
-  if (save.version < MIN_LOADABLE_VERSION) return 'incompatible';
-  if (save.version < SAVE_VERSION) return 'outdated';
+  if (save.version > SAVE_VERSION) {return 'incompatible';}
+  if (save.version < MIN_LOADABLE_VERSION) {return 'incompatible';}
+  if (save.version < SAVE_VERSION) {return 'outdated';}
   return 'ok';
 }
 
@@ -95,8 +95,8 @@ function unpackPlayer(p: PlayerPack): Player {
 
 function packClubPlayer(p: ClubPlayer): ClubPlayerPack {
   const packed: ClubPlayerPack = { ...packPlayer(p), fi: p.fitness };
-  if (p.injury) packed.inj = { t: p.injury.type, mr: p.injury.matchesRemaining };
-  if (p.suspension) packed.sus = { mr: p.suspension.matchesRemaining };
+  if (p.injury) {packed.inj = { t: p.injury.type, mr: p.injury.matchesRemaining };}
+  if (p.suspension) {packed.sus = { mr: p.suspension.matchesRemaining };}
   return packed;
 }
 

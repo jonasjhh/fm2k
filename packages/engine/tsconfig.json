@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
-    "types": ["jest", "node"],
+    "types": ["vitest/globals", "node"],
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],

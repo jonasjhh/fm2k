@@ -194,7 +194,7 @@ export default function TeamEditor() {
   }
 
   function submitModal() {
-    if (!activeTeam || !teamCountry) return;
+    if (!activeTeam || !teamCountry) {return;}
     const playerData = {
       name: draftName.trim() || 'Unknown',
       position: draftPos,
@@ -378,7 +378,7 @@ export default function TeamEditor() {
                   Add Player
                 </Button>
                 <Button size="small" variant="contained" color="secondary" startIcon={<CasinoIcon />}
-                  onClick={() => { if (confirm(`Replace all players in ${activeTeam!.name}?`)) generateFullTeam(activeTeam!.id); }}>
+                  onClick={() => { if (confirm(`Replace all players in ${activeTeam!.name}?`)) {generateFullTeam(activeTeam!.id);} }}>
                   Full Team
                 </Button>
               </Box>
@@ -434,12 +434,12 @@ export default function TeamEditor() {
             </Grid>
             <Grid size={{ xs: 3, sm: 1.5 }}>
               <TextField label="Age" type="number" value={draftAge}
-                onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 15 && v <= 45) setDraftAge(v); }}
+                onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 15 && v <= 45) {setDraftAge(v);} }}
                 fullWidth size="small" slotProps={{ htmlInput: { min: 15, max: 45 } }} />
             </Grid>
             <Grid size={{ xs: 3, sm: 1.5 }}>
               <TextField label="POT" type="number" value={draftPotential}
-                onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) setDraftPotential(v); }}
+                onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) {setDraftPotential(v);} }}
                 fullWidth size="small" slotProps={{ htmlInput: { min: 1, max: 99 } }} />
             </Grid>
 
@@ -462,7 +462,7 @@ export default function TeamEditor() {
                   label={a.full} type="number" value={draftAttrs[a.key]}
                   onChange={e => {
                     const v = parseInt(e.target.value);
-                    if (!isNaN(v) && v >= 1 && v <= 99) setDraftAttrs(prev => ({ ...prev, [a.key]: v }));
+                    if (!isNaN(v) && v >= 1 && v <= 99) {setDraftAttrs(prev => ({ ...prev, [a.key]: v }));}
                   }}
                   fullWidth size="small" slotProps={{ htmlInput: { min: 1, max: 99 } }}
                 />

@@ -1,5 +1,70 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
-import { Player } from '../shared/types.ts';
+import { Player, Position } from '../shared/types.ts';
+
+// ── active-player weighting ─────────────────────────────────────────────────────
+// Picks who is "on the ball" based on where the ball is. Follows the engine
+// convention that the possessing team always attacks toward away_box, so
+// home_box = own/defensive end and away_box = attacking end regardless of which
+// team is in possession (do NOT flip by state.possession).
+
+type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
+
+const FIELD_LINE: Record<Position, FieldLine> = {
+  GK: 'GK',
+  CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF',
+  CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
+  LW: 'ATT', RW: 'ATT', ST: 'ATT', CF: 'ATT',
+};
+
+const FLANK: Record<Position, 'left' | 'right' | 'center'> = {
+  LB: 'left', LM: 'left', LW: 'left',
+  RB: 'right', RM: 'right', RW: 'right',
+  GK: 'center', CB: 'center', CDM: 'center',
+  CM: 'center', CAM: 'center', ST: 'center', CF: 'center',
+};
+
+// zone index 0..4 = home_box, home_third, middle_third, away_third, away_box
+// (home_box = possessor's own/defensive end; away_box = attacking end)
+const ZONE_INDEX: Record<BallPosition['zone'], number> = {
+  home_box: 0, home_third: 1, middle_third: 2, away_third: 3, away_box: 4,
+};
+
+// per-line weight at each zone index
+const LINE_ZONE_WEIGHT: Record<FieldLine, [number, number, number, number, number]> = {
+  GK:  [0.8, 0,   0,   0,   0],   // only own box
+  DEF: [5,   4.5, 2,   0.8, 0.4],
+  MID: [1.5, 2.5, 4,   2.5, 1.5],
+  ATT: [0.4, 0.8, 2,   4.5, 5],
+};
+
+const SIDE_MATCH = 1.6;     // player on the same flank as the ball
+const SIDE_OPPOSITE = 0.5;  // player on the opposite flank
+
+export function activePlayerWeight(player: Player, ball: BallPosition): number {
+  let w = LINE_ZONE_WEIGHT[FIELD_LINE[player.position]][ZONE_INDEX[ball.zone]];
+  if (w === 0) { return 0; }
+  if (ball.side === 'left' || ball.side === 'right') {
+    const flank = FLANK[player.position];
+    if (flank === ball.side) { w *= SIDE_MATCH; }
+    else if (flank !== 'center') { w *= SIDE_OPPOSITE; }
+  }
+  return w;
+}
+
+export function selectActivePlayer(
+  players: Player[],
+  ball: BallPosition,
+  rng: () => number = Math.random,
+): Player | null {
+  const weighted = players
+    .map(p => ({ p, w: activePlayerWeight(p, ball) }))
+    .filter(x => x.w > 0);
+  if (weighted.length === 0) { return null; }
+  const total = weighted.reduce((s, x) => s + x.w, 0);
+  let r = rng() * total;
+  for (const x of weighted) { r -= x.w; if (r <= 0) { return x.p; } }
+  return weighted[weighted.length - 1].p;
+}
 
 export interface PlayerAction {
   type: string;
@@ -42,12 +107,10 @@ export class ActionSelector {
   }
 
   private getActivePlayer(state: MatchState): Player | null {
-    const team = state.possession === 'home' ? state.currentPlayers.home : state.currentPlayers.away;
-
-    // For now, select a random player from the possessing team
-    // TODO: This should be based on ball position and player positions
-    const fieldPlayers = team.filter(p => p.position !== 'GK');
-    return fieldPlayers[Math.floor(Math.random() * fieldPlayers.length)] || null;
+    const team = state.possession === 'home'
+      ? state.currentPlayers.home
+      : state.currentPlayers.away;
+    return selectActivePlayer(team, state.ballPosition);
   }
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {

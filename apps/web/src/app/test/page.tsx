@@ -57,10 +57,10 @@ interface DisplayState {
 }
 
 function eventColor(type: string) {
-  if (type === 'goal') return '#C8E6C9';
-  if (type === 'yellow_card') return '#FFF9C4';
-  if (type === 'red_card') return '#FFCDD2';
-  if (type === 'half_time' || type === 'full_time') return '#BBDEFB';
+  if (type === 'goal') {return '#C8E6C9';}
+  if (type === 'yellow_card') {return '#FFF9C4';}
+  if (type === 'red_card') {return '#FFCDD2';}
+  if (type === 'half_time' || type === 'full_time') {return '#BBDEFB';}
   return undefined;
 }
 
@@ -77,7 +77,7 @@ export default function MatchTestPage() {
 
   const refreshDisplay = useCallback(() => {
     const match = matchRef.current;
-    if (!match) return;
+    if (!match) {return;}
     const state: MatchState = match.getMatchState();
     setDisplay({
       score: { home: state.homeScore, away: state.awayScore },
@@ -100,7 +100,7 @@ export default function MatchTestPage() {
   }, []);
 
   const startMatch = useCallback(() => {
-    if (!homeTeamRef.current || !awayTeamRef.current) return;
+    if (!homeTeamRef.current || !awayTeamRef.current) {return;}
     setError(null);
     try {
       const eventLog = new EventLog();
@@ -125,22 +125,23 @@ export default function MatchTestPage() {
 
   const step = useCallback(async (until?: 'half_time' | 'full_time') => {
     const engine = tickEngineRef.current;
-    if (!engine) return;
+    if (!engine) {return;}
     setError(null);
     try {
       const newEvents: OccurrenceEvent[] = [];
-      do {
-        if (!engine.hasNext()) break;
+      while (engine.hasNext()) {
         const result = await engine.tickToNext();
-        if (!result) break;
+        if (!result) {break;}
         newEvents.push(...result.events);
-        if (until && newEvents.some((e) => e.eventType === until)) break;
-      } while (until);
+        // No target phase: advance a single tick. Otherwise loop until reached.
+        if (!until) {break;}
+        if (newEvents.some((e) => e.eventType === until)) {break;}
+      }
 
       setEvents((prev) => [...prev, ...newEvents]);
       refreshDisplay();
 
-      if (!engine.hasNext()) setPhase('done');
+      if (!engine.hasNext()) {setPhase('done');}
     } catch (e) {
       setError(String(e));
     }

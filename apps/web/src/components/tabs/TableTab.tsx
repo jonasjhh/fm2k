@@ -45,8 +45,8 @@ export default function TableTab() {
   const [selectedDivisionId, setSelectedDivisionId] = useState(playerDiv?.id ?? '');
 
   useEffect(() => {
-    if (playerNation && !selectedNationId) setSelectedNationId(playerNation.id);
-    if (playerDiv && !selectedDivisionId) setSelectedDivisionId(playerDiv.id);
+    if (playerNation && !selectedNationId) {setSelectedNationId(playerNation.id);}
+    if (playerDiv && !selectedDivisionId) {setSelectedDivisionId(playerDiv.id);}
   }, [playerNation, playerDiv, selectedNationId, selectedDivisionId]);
 
   const selectedNation = availableNations.find(c => c.id === selectedNationId);
@@ -59,7 +59,7 @@ export default function TableTab() {
 
   const leagueState = leagueStates[selectedDivisionId] ?? null;
 
-  if (!leagueState) return null;
+  if (!leagueState) {return null;}
 
   const n = leagueState.standings.length;
 

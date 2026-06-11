@@ -280,7 +280,7 @@ describe('TickEngine:', () => {
 
     test('given an onEvents callback then it is called with all events from the tick', async () => {
       let received: readonly OccurrenceEvent[] = [];
-      const onEvents = jest.fn().mockImplementation(async (events: readonly OccurrenceEvent[]) => {
+      const onEvents = vi.fn().mockImplementation(async (events: readonly OccurrenceEvent[]) => {
         received = events;
       });
       const engine = makeEngine(dt(15, 10), { onEvents });
@@ -302,7 +302,7 @@ describe('TickEngine:', () => {
     });
 
     test('given an occurrence that emits no events then onEvents is not called', async () => {
-      const onEvents = jest.fn();
+      const onEvents = vi.fn();
       const silent: Occurrence = {
         id: 'silent',
         scheduledTime: dt(15, 14),

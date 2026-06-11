@@ -28,7 +28,7 @@ export default function SeasonEndModal() {
 
   const statusColors = useStatusColors();
 
-  if (!seasonComplete || !leagueState || !playerTeamId) return null;
+  if (!seasonComplete || !leagueState || !playerTeamId) {return null;}
 
   const standings = leagueState.standings;
   const pos = standings.findIndex((s) => s.teamId === playerTeamId) + 1;

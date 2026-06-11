@@ -20,7 +20,7 @@ export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
     seasonComplete: s.seasonComplete,
   })));
 
-  if (!clubState || !leagueState) return null;
+  if (!clubState || !leagueState) {return null;}
 
   const standings = leagueState.standings;
   const pos = standings.findIndex((s) => s.teamId === playerTeamId) + 1;

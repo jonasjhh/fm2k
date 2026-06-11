@@ -105,7 +105,7 @@ describe('NameGenerator:', () => {
   });
 
   describe('generate 25 names', () => {
-    xtest('female names for each country', () => {
+    test.skip('female names for each country', () => {
       const countries: Country[] = ['norway', 'england', 'all'];
       for (const country of countries) {
         process.stdout.write(`\n--- ${country} ---\n`);

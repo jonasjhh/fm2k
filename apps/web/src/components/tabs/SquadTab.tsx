@@ -31,19 +31,19 @@ const POSITION_ORDER: Record<string, number> = {
 };
 
 function statusRank(p: ClubPlayer): number {
-  if (p.injury) return 0;
-  if (p.suspension) return 1;
+  if (p.injury) {return 0;}
+  if (p.suspension) {return 1;}
   return 2;
 }
 
 function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir): ClubPlayer[] {
   return [...players].sort((a, b) => {
     let cmp = 0;
-    if (col === 'name') cmp = a.name.localeCompare(b.name);
-    else if (col === 'position') cmp = (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99);
-    else if (col === 'age') cmp = a.age - b.age;
-    else if (col === 'value') cmp = sellPrice(a.attributes) - sellPrice(b.attributes);
-    else if (col === 'status') cmp = statusRank(a) - statusRank(b);
+    if (col === 'name') {cmp = a.name.localeCompare(b.name);}
+    else if (col === 'position') {cmp = (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99);}
+    else if (col === 'age') {cmp = a.age - b.age;}
+    else if (col === 'value') {cmp = sellPrice(a.attributes) - sellPrice(b.attributes);}
+    else if (col === 'status') {cmp = statusRank(a) - statusRank(b);}
     return dir === 'asc' ? cmp : -cmp;
   });
 }
@@ -173,7 +173,7 @@ export default function SquadTab() {
     [clubState, sort],
   );
 
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
   const totalValue = clubState.squad.reduce((s, p) => s + sellPrice(p.attributes), 0);
   const selectedPlayer = clubState.squad.find((p) => p.id === selectedId) ?? null;

@@ -191,7 +191,7 @@ export default function TacticsTab() {
     [clubState, selectedPlayerId],
   );
 
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
 
   const playerById = new Map(clubState.squad.map(p => [p.id, p]));

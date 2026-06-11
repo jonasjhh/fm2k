@@ -32,8 +32,8 @@ export function leagueRowBg(
   total: number,
   colors: typeof STATUS_COLORS | typeof STATUS_COLORS_DARK = STATUS_COLORS,
 ): string | undefined {
-  if (isPlayer) return colors.playerTeam;
-  if (pos <= 3) return colors.promotion;
-  if (pos >= total - 1) return colors.relegation;
+  if (isPlayer) {return colors.playerTeam;}
+  if (pos <= 3) {return colors.promotion;}
+  if (pos >= total - 1) {return colors.relegation;}
   return undefined;
 }

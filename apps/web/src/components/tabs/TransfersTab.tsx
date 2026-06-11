@@ -26,16 +26,16 @@ export default function TransfersTab() {
     sellPlayer: s.sellPlayer,
     refreshTransfers: s.refreshTransfers,
   })));
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
   const handleBuy = (listingId: string, playerName: string, price: number) => {
-    if (!confirm(`Buy ${playerName} for £${fmt(price)}?`)) return;
+    if (!confirm(`Buy ${playerName} for £${fmt(price)}?`)) {return;}
     const ok = buyPlayer(listingId);
-    if (!ok) alert('Purchase failed — insufficient budget.');
+    if (!ok) {alert('Purchase failed — insufficient budget.');}
   };
 
   const handleSell = (playerId: string, playerName: string, price: number) => {
-    if (!confirm(`Sell ${playerName} for £${fmt(price)}?`)) return;
+    if (!confirm(`Sell ${playerName} for £${fmt(price)}?`)) {return;}
     sellPlayer(playerId);
   };
 

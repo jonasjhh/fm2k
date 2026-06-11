@@ -75,7 +75,7 @@ export function findTeamById(countries: EditableCountry[], teamId: string): Team
   for (const c of countries) {
     for (const d of c.divisions) {
       const t = d.teams.find(t => t.id === teamId);
-      if (t) return t;
+      if (t) {return t;}
     }
   }
   return null;
@@ -84,7 +84,7 @@ export function findTeamById(countries: EditableCountry[], teamId: string): Team
 export function findDivisionForTeam(countries: EditableCountry[], teamId: string): EditableDivision | null {
   for (const c of countries) {
     for (const d of c.divisions) {
-      if (d.teams.some(t => t.id === teamId)) return d;
+      if (d.teams.some(t => t.id === teamId)) {return d;}
     }
   }
   return null;
@@ -93,7 +93,7 @@ export function findDivisionForTeam(countries: EditableCountry[], teamId: string
 export function findCountryForTeam(countries: EditableCountry[], teamId: string): EditableCountry | null {
   for (const c of countries) {
     for (const d of c.divisions) {
-      if (d.teams.some(t => t.id === teamId)) return c;
+      if (d.teams.some(t => t.id === teamId)) {return c;}
     }
   }
   return null;
@@ -220,7 +220,7 @@ function buildManagers(
 ) {
   const team = findTeamById(editableCountries, teamId);
   const division = findDivisionForTeam(editableCountries, teamId);
-  if (!team || !division) return { leagueManagers: {}, leagueManager: null, clubManager: null, transferManager: null };
+  if (!team || !division) {return { leagueManagers: {}, leagueManager: null, clubManager: null, transferManager: null };}
 
   // Ensure the player's nation is always included even if not in leagueIds
   const playerCountry = findCountryForTeam(editableCountries, teamId);
@@ -235,7 +235,7 @@ function buildManagers(
     const { playerTeamId } = get();
     const isHome = payload.homeTeamId === playerTeamId;
     const isAway = payload.awayTeamId === playerTeamId;
-    if (!isHome && !isAway) return;
+    if (!isHome && !isAway) {return;}
     set({ lastMatchResult: { homeTeamId: payload.homeTeamId, awayTeamId: payload.awayTeamId, homeScore: payload.homeScore, awayScore: payload.awayScore, isHome } });
   });
 
@@ -243,7 +243,7 @@ function buildManagers(
   const leagueManagers: Record<string, LeagueManager> = {};
   for (const countryId of allLeagueIds) {
     const country = editableCountries.find(c => c.id === countryId);
-    if (!country) continue;
+    if (!country) {continue;}
     for (const div of country.divisions) {
       leagueManagers[div.id] = new LeagueManager({
         teams: div.teams,
@@ -373,7 +373,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         editableCountries: mapTeam(s.editableCountries, teamId, t => {
           const upd = (list: Player[]) =>
             list.map(p => {
-              if (p.id !== playerId) return p;
+              if (p.id !== playerId) {return p;}
               const q = Math.round(calculateOverall(p.attributes));
               const gen = playerGenerator.generatePlayer(p.position, 1, 20);
               return { ...p, name: gen.name, attributes: scaleAttributes(gen.attributes, q) };
@@ -440,7 +440,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { leagueManagers, leagueManager, clubManager, transferManager } = buildManagers(
       editableCountries, teamId, resolvedLeagueIds, playerGenerator, get, set,
     );
-    if (!leagueManager || !clubManager || !transferManager) return;
+    if (!leagueManager || !clubManager || !transferManager) {return;}
 
     const leagueStates: Record<string, LeagueState> = {};
     for (const [id, mgr] of Object.entries(leagueManagers)) {
@@ -468,12 +468,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startNewSeason: () => {
     const { playerTeamId, selectedLeagueIds } = get();
-    if (playerTeamId) get().startGame(playerTeamId, selectedLeagueIds);
+    if (playerTeamId) {get().startGame(playerTeamId, selectedLeagueIds);}
   },
 
   saveGame: async (type) => {
     const s = get();
-    if (!s.playerTeamId || !s.leagueState || !s.clubState) return;
+    if (!s.playerTeamId || !s.leagueState || !s.clubState) {return;}
     await writeSave({
       version: SAVE_VERSION,
       type,
@@ -485,7 +485,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       editableCountries: (() => {
         const keep = new Set(s.selectedLeagueIds ?? []);
         const playerCountry = findCountryForTeam(s.editableCountries, s.playerTeamId!);
-        if (playerCountry) keep.add(playerCountry.id);
+        if (playerCountry) {keep.add(playerCountry.id);}
         return s.editableCountries.filter(c => keep.has(c.id));
       })(),
       currentMatchday: s.currentMatchday,
@@ -510,7 +510,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { leagueManagers, leagueManager, clubManager, transferManager } = buildManagers(
       mergedCountries, save.playerTeamId, leagueIds, playerGenerator, get, set,
     );
-    if (!leagueManager || !clubManager || !transferManager) return;
+    if (!leagueManager || !clubManager || !transferManager) {return;}
 
     leagueManager.loadState(save.leagueState);
     // Load other division states if present (new saves); otherwise leave them at initial state
@@ -561,7 +561,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   simulateMatchday: async () => {
     const { leagueManager, leagueManagers, clubManager, transferManager } = get();
-    if (!leagueManager || !leagueManager.hasMoreMatchdays()) return;
+    if (!leagueManager || !leagueManager.hasMoreMatchdays()) {return;}
 
     set({ lastMatchResult: null });
     // Simulate all divisions in parallel
@@ -574,7 +574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newMatchday = leagueManager.getCompletedMatchdays();
     clubManager?.handleMatchdayComplete();
 
-    if (newMatchday > 0 && newMatchday % 3 === 0) transferManager?.refreshMarket(newMatchday);
+    if (newMatchday > 0 && newMatchday % 3 === 0) {transferManager?.refreshMarket(newMatchday);}
 
     const seasonComplete = !leagueManager.hasMoreMatchdays();
     set({ currentMatchday: newMatchday, seasonComplete });
@@ -583,27 +583,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   simulateToEnd: async () => {
     const { leagueManager } = get();
-    if (!leagueManager) return;
-    while (leagueManager.hasMoreMatchdays()) await get().simulateMatchday();
+    if (!leagueManager) {return;}
+    while (leagueManager.hasMoreMatchdays()) {await get().simulateMatchday();}
   },
 
   // ── match animation ─────────────────────────────────────────────────────────
 
   playMatch: async () => {
     const { leagueManager, playerTeamId, editableCountries } = get();
-    if (!leagueManager || !playerTeamId) return;
+    if (!leagueManager || !playerTeamId) {return;}
 
     const scheduled = leagueManager.getState().fixtures.filter(f => f.status === 'scheduled');
-    if (!scheduled.length) return;
+    if (!scheduled.length) {return;}
     const nextMd = scheduled.reduce((min, f) => Math.min(min, f.matchday), scheduled[0].matchday);
     const fixture = leagueManager.getState().fixtures.find(
       f => f.matchday === nextMd && (f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId),
     );
-    if (!fixture) return;
+    if (!fixture) {return;}
 
     const homeTeam = findTeamById(editableCountries, fixture.homeTeamId);
     const awayTeam = findTeamById(editableCountries, fixture.awayTeamId);
-    if (!homeTeam || !awayTeam) return;
+    if (!homeTeam || !awayTeam) {return;}
 
     const displaySim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 4, homeTeam, awayTeam });
     const displayResult = displaySim.simulate();
@@ -675,12 +675,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   toggleXI: (id) => {
     const { clubManager, clubState } = get();
-    if (!clubManager || !clubState) return;
+    if (!clubManager || !clubState) {return;}
     const inXI = clubState.startingXI.includes(id);
     if (inXI) {
       clubManager.setStartingXI(clubState.startingXI.filter(x => x !== id));
     } else {
-      if (clubState.startingXI.length >= 11) return;
+      if (clubState.startingXI.length >= 11) {return;}
       clubManager.setStartingXI([...clubState.startingXI, id]);
     }
     set({ clubState: clubManager.getState() });
@@ -688,21 +688,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setStartingXI: (ids) => {
     const { clubManager } = get();
-    if (!clubManager) return;
+    if (!clubManager) {return;}
     clubManager.setStartingXI(ids);
     set({ clubState: clubManager.getState() });
   },
 
   setBench: (ids) => {
     const { clubManager } = get();
-    if (!clubManager) return;
+    if (!clubManager) {return;}
     clubManager.setBenchPlayers(ids);
     set({ clubState: clubManager.getState() });
   },
 
   setFormation: (formation) => {
     const { clubManager } = get();
-    if (!clubManager) return;
+    if (!clubManager) {return;}
     clubManager.setFormation(formation);
     set({ clubState: clubManager.getState() });
   },
@@ -711,27 +711,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   buyPlayer: (listingId) => {
     const { transferManager, clubManager } = get();
-    if (!transferManager || !clubManager) return false;
+    if (!transferManager || !clubManager) {return false;}
     const ok = transferManager.purchase(listingId, clubManager);
-    if (ok) syncEngineState(get, set);
+    if (ok) {syncEngineState(get, set);}
     return ok;
   },
 
   sellPlayer: (playerId) => {
     const { clubManager } = get();
-    if (!clubManager) return false;
+    if (!clubManager) {return false;}
     const cs = clubManager.getState();
     const player = cs.squad.find(p => p.id === playerId);
-    if (!player) return false;
+    if (!player) {return false;}
     const price = sellPrice(player.attributes);
     const ok = clubManager.sellPlayer(playerId, price);
-    if (ok) set({ clubState: clubManager.getState() });
+    if (ok) {set({ clubState: clubManager.getState() });}
     return ok;
   },
 
   refreshTransfers: () => {
     const { transferManager, currentMatchday } = get();
-    if (!transferManager) return;
+    if (!transferManager) {return;}
     transferManager.refreshMarket(currentMatchday);
     set({ transferListings: transferManager.getActiveListings(currentMatchday) });
   },
@@ -740,17 +740,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   upgradeFacility: (key) => {
     const { clubManager } = get();
-    if (!clubManager) return false;
+    if (!clubManager) {return false;}
     const ok = clubManager.upgradeFacility(key as 'medical' | 'training' | 'academy');
-    if (ok) set({ clubState: clubManager.getState() });
+    if (ok) {set({ clubState: clubManager.getState() });}
     return ok;
   },
 
   applyStadiumDesign: (sectors, cost, newCapacity) => {
     const { clubManager } = get();
-    if (!clubManager) return false;
+    if (!clubManager) {return false;}
     const ok = clubManager.applyStadiumDesign(sectors, cost, newCapacity);
-    if (ok) set({ clubState: clubManager.getState() });
+    if (ok) {set({ clubState: clubManager.getState() });}
     return ok;
   },
 

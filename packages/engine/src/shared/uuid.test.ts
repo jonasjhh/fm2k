@@ -9,26 +9,34 @@ function isValidV4(uuid: string): boolean {
   return v4Regex.test(uuid);
 }
 
-// Test utility to mock crypto
+// Test utility to mock crypto. In Node, `globalThis.crypto` is a getter-only
+// global, so it must be replaced via defineProperty rather than assignment.
+function setCrypto(value: unknown) {
+  Object.defineProperty(globalThis, 'crypto', {
+    value,
+    configurable: true,
+    writable: true,
+  });
+}
+
 function mockCrypto(available: boolean) {
   const originalCrypto = globalThis.crypto;
 
   if (available) {
-    globalThis.crypto = {
-      getRandomValues: jest.fn((arr: Uint8Array) => {
+    setCrypto({
+      getRandomValues: vi.fn((arr: Uint8Array) => {
         for (let i = 0; i < arr.length; i++) {
           arr[i] = Math.floor(Math.random() * 256);
         }
         return arr;
       }),
-    } as any;
+    });
   } else {
-    // @ts-ignore
-    globalThis.crypto = undefined;
+    setCrypto(undefined);
   }
 
   return () => {
-    globalThis.crypto = originalCrypto;
+    setCrypto(originalCrypto);
   };
 }
 
@@ -176,11 +184,11 @@ describe('v4() function:', () => {
 });
 
 describe('Crypto fallback:', () => {
-  let consoleWarnSpy: jest.SpyInstance;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let restoreCrypto: () => void;
 
   beforeEach(() => {
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     // Reset the warning flag for proper test isolation
     (Uuid as any).hasWarnedAboutFallback = false;
   });
@@ -193,7 +201,7 @@ describe('Crypto fallback:', () => {
   });
 
   test('given crypto available when generating UUID then should use crypto.getRandomValues', () => {
-    const mockGetRandomValues = jest.fn((arr: any) => {
+    const mockGetRandomValues = vi.fn((arr: any) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
       }

@@ -13,7 +13,7 @@ import ScrollableTable from '../ui/ScrollableTable';
 
 export default function FinancesTab() {
   const clubState = useGameStore((s) => s.clubState);
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
   const recent = [...clubState.financialLog].reverse().slice(0, 40);
 

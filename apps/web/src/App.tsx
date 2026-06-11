@@ -20,7 +20,7 @@ export default function App() {
 
   useEffect(() => {
     const saved = localStorage.getItem('fm2k-color-mode') as 'light' | 'dark' | null;
-    if (saved) setMode(saved);
+    if (saved) {setMode(saved);}
   }, []);
 
   const colorMode = useMemo(() => ({

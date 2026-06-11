@@ -2,7 +2,7 @@ import { calculateOverall } from '@fm2k/engine';
 import type { Player } from '@fm2k/engine';
 
 export function getTeamOVR(starters: Player[]): number {
-  if (starters.length === 0) return 0;
+  if (starters.length === 0) {return 0;}
   return Math.round(starters.reduce((s, p) => s + calculateOverall(p.attributes), 0) / starters.length);
 }
 

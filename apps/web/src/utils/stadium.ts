@@ -65,7 +65,7 @@ export const DEFAULT_STADIUM_SECTORS: Record<string, StadiumSectorConfig> = {
 };
 
 export function getSectorCapacity(key: SectorKey, sector: StadiumSectorConfig): number {
-  if (sector.type === 'none') return 0;
+  if (sector.type === 'none') {return 0;}
   const baseCount = Math.floor((60 - sector.densityValue) * 85);
   return Math.floor(baseCount * STAND_TYPES[sector.type].capacityMultiplier);
 }

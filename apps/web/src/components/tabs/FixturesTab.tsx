@@ -47,8 +47,8 @@ export default function FixturesTab() {
 
   // Keep defaults in sync if playerNation/playerDiv haven't resolved yet on first render
   useEffect(() => {
-    if (playerNation && !selectedNationId) setSelectedNationId(playerNation.id);
-    if (playerDiv && !selectedDivisionId) setSelectedDivisionId(playerDiv.id);
+    if (playerNation && !selectedNationId) {setSelectedNationId(playerNation.id);}
+    if (playerDiv && !selectedDivisionId) {setSelectedDivisionId(playerDiv.id);}
   }, [playerNation, playerDiv, selectedNationId, selectedDivisionId]);
 
   const selectedNation = availableNations.find(c => c.id === selectedNationId);
@@ -90,7 +90,7 @@ export default function FixturesTab() {
     setSelectedRound(1);
   };
 
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
   return (
     <Box>

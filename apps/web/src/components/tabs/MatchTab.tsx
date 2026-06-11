@@ -31,7 +31,7 @@ export default function MatchTab() {
     simulateToEnd: s.simulateToEnd,
   })));
 
-  if (!leagueState) return null;
+  if (!leagueState) {return null;}
 
   if (seasonComplete) {
     return (
@@ -43,13 +43,13 @@ export default function MatchTab() {
   }
 
   const scheduled = leagueState.fixtures.filter((f) => f.status === 'scheduled');
-  if (!scheduled.length) return <Alert severity="info">No upcoming fixtures.</Alert>;
+  if (!scheduled.length) {return <Alert severity="info">No upcoming fixtures.</Alert>;}
 
   const nextMd = scheduled.reduce((min, f) => Math.min(min, f.matchday), scheduled[0].matchday);
   const fixture = leagueState.fixtures.find(
     (f) => f.matchday === nextMd && (f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId),
   );
-  if (!fixture) return <Alert severity="info">No upcoming fixtures for your club.</Alert>;
+  if (!fixture) {return <Alert severity="info">No upcoming fixtures for your club.</Alert>;}
 
   const isHome = fixture.homeTeamId === playerTeamId;
   const opponentId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
@@ -98,7 +98,7 @@ export default function MatchTab() {
             <Button
               variant="outlined"
               startIcon={<FastForwardIcon />}
-              onClick={() => { if (confirm('Simulate all remaining matches?')) simulateToEnd(); }}
+              onClick={() => { if (confirm('Simulate all remaining matches?')) {simulateToEnd();} }}
             >
               Sim. Season
             </Button>

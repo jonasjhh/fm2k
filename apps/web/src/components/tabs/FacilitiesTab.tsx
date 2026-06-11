@@ -32,19 +32,19 @@ export default function FacilitiesTab() {
     upgradeFacility: s.upgradeFacility,
     applyStadiumDesign: s.applyStadiumDesign,
   })));
-  if (!clubState) return null;
+  if (!clubState) {return null;}
 
   const handleUpgrade = (key: string) => {
     const lvl = clubState.facilities[key as keyof typeof clubState.facilities];
     const cost = FACILITY_COSTS[lvl];
-    if (!confirm(`Upgrade ${FACILITY_NAMES[key]} for £${fmt(cost)}?`)) return;
-    if (!upgradeFacility(key)) alert('Insufficient budget.');
+    if (!confirm(`Upgrade ${FACILITY_NAMES[key]} for £${fmt(cost)}?`)) {return;}
+    if (!upgradeFacility(key)) {alert('Insufficient budget.');}
   };
 
   const committedSectors = clubState.stadiumSectors ?? (DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>);
 
   const handleApply = (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number): boolean => {
-    if (!confirm(`Apply stadium renovation for £${fmt(cost)}? This will update your stadium to ${newCapacity.toLocaleString()} capacity.`)) return false;
+    if (!confirm(`Apply stadium renovation for £${fmt(cost)}? This will update your stadium to ${newCapacity.toLocaleString()} capacity.`)) {return false;}
     return applyStadiumDesign(sectors, cost, newCapacity);
   };
 

@@ -69,7 +69,7 @@ export class NameGenerator {
     };
 
     const result = mapping[this.country];
-    if (!result) throw new Error(`Unsupported country: ${this.country}`);
+    if (!result) {throw new Error(`Unsupported country: ${this.country}`);}
     return result;
   }
 

@@ -51,7 +51,7 @@ export default function GameInterface() {
   const [snackOpen, setSnackOpen] = useState(false);
 
   const clubColors = useMemo(() => {
-    if (!playerTeamId) return { primary: '#1B5E20', secondary: '#FFFFFF' };
+    if (!playerTeamId) {return { primary: '#1B5E20', secondary: '#FFFFFF' };}
     return findTeamById(editableCountries, playerTeamId)?.colors ?? { primary: '#1B5E20', secondary: '#FFFFFF' };
   }, [editableCountries, playerTeamId]);
   const textColor = getContrastColor(clubColors.primary);
