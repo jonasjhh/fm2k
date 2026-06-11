@@ -50,6 +50,7 @@ function makeIntegrationSetup(onMatchCompleted?: (p: MatchCompletedPayload) => v
     startingXI: playerStarters.map(p => p.id),
     benchPlayers: [],
     stadiumCapacity: 10_000,
+    stadiumSectors: {},
     rng: () => 1, // prevent injuries
   };
   const clubManager = new ClubManager(clubConfig);
@@ -164,6 +165,7 @@ describe('ClubManager wired to LeagueManager:', () => {
       startingXI: playerStarters.map(p => p.id),
       benchPlayers: [],
       stadiumCapacity: 10_000,
+      stadiumSectors: {},
       rng: () => 1, // suppress injuries
     });
     return { clubManager, leagueManager, playerTeam };
@@ -215,6 +217,7 @@ describe('ClubManager wired to LeagueManager:', () => {
       startingXI: starters.map(p => p.id),
       benchPlayers: bench.map(p => p.id),
       stadiumCapacity: 10_000,
+      stadiumSectors: {},
       rng: () => 1,
     });
 
@@ -264,6 +267,7 @@ describe('ClubManager wired to LeagueManager:', () => {
       startingXI: starters.map(p => p.id),
       benchPlayers: [],
       stadiumCapacity: 10_000,
+      stadiumSectors: {},
       rng: () => 1,
     });
 

@@ -7,11 +7,12 @@ import {
 import type {
   Team, Player, PlayerAttributes, Formation, Position,
   LeagueState, ClubState, TransferListing, TransferState, GameDateTime, MatchEvent,
-  StructuredDivision, CountryId,
+  StructuredDivision, CountryId, StadiumSectorConfig,
 } from '@fm2k/engine';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, ALL_POSITIONS,
 } from '../constants';
+import { DEFAULT_STADIUM_SECTORS, calculateTotalCapacity } from '../utils/stadium';
 import { sellPrice } from '../utils/calculations';
 import { writeSave, type SaveData, type SaveType } from './save-data';
 
@@ -199,7 +200,7 @@ interface GameStore {
 
   // ── facilities ──────────────────────────────────────────────────────────────
   upgradeFacility: (key: string) => boolean;
-  expandStadium: () => boolean;
+  applyStadiumDesign: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean;
 
   // ── fixtures ────────────────────────────────────────────────────────────────
   toggleFixtureView: () => void;
@@ -239,6 +240,7 @@ function buildManagers(
     },
   });
 
+  const defaultSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
   const clubManager = new ClubManager({
     clubId: team.id,
     clubName: team.name,
@@ -248,7 +250,8 @@ function buildManagers(
     formation: team.formation,
     startingXI: team.starters.slice(0, 11).map(p => p.id),
     benchPlayers: team.substitutes.map(p => p.id),
-    stadiumCapacity: STADIUM_START,
+    stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
+    stadiumSectors: defaultSectors,
   });
 
   const transferManager = new TransferManager({
@@ -465,7 +468,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!leagueManager || !clubManager || !transferManager) return;
 
     leagueManager.loadState(save.leagueState);
-    clubManager.loadState(save.clubState);
+    // Migrate old saves that predate stadiumSectors
+    const savedClubState = save.clubState;
+    if (!savedClubState.stadiumSectors) {
+      savedClubState.stadiumSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
+    }
+    clubManager.loadState(savedClubState);
     const transferState: TransferState = {
       listings: save.transferListings,
       refreshedOnMatchday: save.currentMatchday,
@@ -672,11 +680,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return ok;
   },
 
-  expandStadium: () => {
+  applyStadiumDesign: (sectors, cost, newCapacity) => {
     const { clubManager } = get();
     if (!clubManager) return false;
-    const cs = clubManager.getState();
-    const ok = clubManager.expandStadium(cs.stadiumCapacity + 2_000);
+    const ok = clubManager.applyStadiumDesign(sectors, cost, newCapacity);
     if (ok) set({ clubState: clubManager.getState() });
     return ok;
   },

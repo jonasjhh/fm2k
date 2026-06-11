@@ -28,6 +28,17 @@ function makeSquad(count = 15): Player[] {
   return Array.from({ length: count }, () => makePlayer());
 }
 
+const DEFAULT_SECTORS = {
+  N:  { type: 'open-bleacher', densityValue: 30 },
+  S:  { type: 'open-bleacher', densityValue: 30 },
+  E:  { type: 'open-bleacher', densityValue: 30 },
+  W:  { type: 'open-bleacher', densityValue: 30 },
+  NE: { type: 'none', densityValue: 30 },
+  NW: { type: 'none', densityValue: 30 },
+  SE: { type: 'none', densityValue: 30 },
+  SW: { type: 'none', densityValue: 30 },
+};
+
 function makeConfig(overrides: Partial<ClubManagerConfig> = {}): ClubManagerConfig {
   const squad = makeSquad(15);
   return {
@@ -40,6 +51,7 @@ function makeConfig(overrides: Partial<ClubManagerConfig> = {}): ClubManagerConf
     startingXI: squad.slice(0, 11).map(p => p.id),
     benchPlayers: squad.slice(11, 15).map(p => p.id),
     stadiumCapacity: 10_000,
+    stadiumSectors: DEFAULT_SECTORS,
     ...overrides,
   };
 }
@@ -314,36 +326,41 @@ describe('ClubManager:', () => {
     });
   });
 
-  describe('expandStadium:', () => {
-    test('increases capacity and deducts cost (100 per seat)', () => {
+  describe('applyStadiumDesign:', () => {
+    const newSectors = { ...DEFAULT_SECTORS, N: { type: 'double-tier', densityValue: 30 } };
+
+    test('updates capacity, sectors, and deducts cost', () => {
       const manager = new ClubManager(makeConfig());
-      const result = manager.expandStadium(12_000);
+      const result = manager.applyStadiumDesign(newSectors, 200_000, 15_000);
       expect(result).toBe(true);
-      expect(manager.getState().stadiumCapacity).toBe(12_000);
-      expect(manager.getState().budget).toBe(300_000); // 500k - 2000 seats * 100
+      expect(manager.getState().stadiumCapacity).toBe(15_000);
+      expect(manager.getState().budget).toBe(300_000);
+      expect(manager.getState().stadiumSectors).toEqual(newSectors);
     });
 
-    test('records facility_upgrade transaction', () => {
+    test('records a facility_upgrade transaction', () => {
       const manager = new ClubManager(makeConfig());
-      manager.expandStadium(11_000);
+      manager.applyStadiumDesign(newSectors, 150_000, 12_000);
       const log = manager.getState().financialLog;
       expect(log).toHaveLength(1);
       expect(log[0].type).toBe('facility_upgrade');
-      expect(log[0].amount).toBe(-100_000);
+      expect(log[0].amount).toBe(-150_000);
     });
 
-    test('returns false when new capacity is not larger', () => {
-      const manager = new ClubManager(makeConfig());
-      expect(manager.expandStadium(10_000)).toBe(false);
-      expect(manager.expandStadium(9_000)).toBe(false);
-      expect(manager.getState().stadiumCapacity).toBe(10_000);
-    });
-
-    test('returns false when budget insufficient', () => {
+    test('returns false and makes no changes when budget insufficient', () => {
       const manager = new ClubManager(makeConfig({ budget: 50_000 }));
-      const result = manager.expandStadium(20_000); // 10k seats * 100 = 1M
+      const result = manager.applyStadiumDesign(newSectors, 200_000, 20_000);
       expect(result).toBe(false);
       expect(manager.getState().stadiumCapacity).toBe(10_000);
+      expect(manager.getState().stadiumSectors).toEqual(DEFAULT_SECTORS);
+    });
+
+    test('applies a zero-cost design (cosmetic change)', () => {
+      const manager = new ClubManager(makeConfig());
+      const result = manager.applyStadiumDesign(newSectors, 0, 10_000);
+      expect(result).toBe(true);
+      expect(manager.getState().budget).toBe(500_000);
+      expect(manager.getState().stadiumSectors).toEqual(newSectors);
     });
   });
 

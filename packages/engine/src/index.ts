@@ -1,6 +1,6 @@
 export { ClubManager } from './club/club-manager.ts';
 export type { ClubManagerConfig } from './club/club-manager.ts';
-export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction } from './club/club-types.ts';
+export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction, StadiumSectorConfig } from './club/club-types.ts';
 
 export { generateFixtures } from './league/fixture-generator.ts';
 export { LeagueManager } from './league/league-manager.ts';

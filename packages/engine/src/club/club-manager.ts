@@ -8,6 +8,7 @@ import type {
   FacilityLevel,
   FacilityLevels,
   FinancialTransaction,
+  StadiumSectorConfig,
 } from './club-types.ts';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {
@@ -16,7 +17,6 @@ const FACILITY_UPGRADE_COSTS: Record<number, number> = {
   3: 500_000,
 };
 
-const STADIUM_COST_PER_SEAT = 100;
 const TICKET_PRICE = 20;
 const INJURY_TYPES = ['muscle_strain', 'ankle_sprain', 'knee_injury', 'hamstring_pull'] as const;
 
@@ -30,6 +30,7 @@ export interface ClubManagerConfig {
   readonly startingXI: string[]
   readonly benchPlayers: string[]
   readonly stadiumCapacity: number
+  readonly stadiumSectors: Record<string, StadiumSectorConfig>
   readonly rng?: () => number
 }
 
@@ -53,6 +54,7 @@ export class ClubManager {
       pendingSubstitutions: [],
       facilities: { medical: 1, training: 1, academy: 1 },
       stadiumCapacity: config.stadiumCapacity,
+      stadiumSectors: config.stadiumSectors,
       financialLog: [],
     });
   }
@@ -171,22 +173,24 @@ export class ClubManager {
     return true;
   }
 
-  expandStadium(newCapacity: number): boolean {
+  applyStadiumDesign(
+    sectors: Record<string, StadiumSectorConfig>,
+    cost: number,
+    newCapacity: number,
+  ): boolean {
     const state = this.stateManager.getState();
-    if (newCapacity <= state.stadiumCapacity) {return false;}
-
-    const cost = (newCapacity - state.stadiumCapacity) * STADIUM_COST_PER_SEAT;
     if (state.budget < cost) {return false;}
 
     const tx: FinancialTransaction = {
       type: 'facility_upgrade',
       amount: -cost,
-      description: `Expanded stadium to ${newCapacity} capacity`,
+      description: `Stadium renovation (${newCapacity.toLocaleString()} seats)`,
     };
 
     this.stateManager.updateState(s => {
       s.budget -= cost;
       s.stadiumCapacity = newCapacity;
+      s.stadiumSectors = sectors;
       s.financialLog.push(tx);
     });
 

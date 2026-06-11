@@ -56,6 +56,7 @@ function makeClubManager(budget: number): ClubManager {
     startingXI: squad.slice(0, 11).map(p => p.id),
     benchPlayers: squad.slice(11, 15).map(p => p.id),
     stadiumCapacity: 10_000,
+    stadiumSectors: {},
   });
 }
 

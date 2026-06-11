@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { StadiumSectorConfig } from '@fm2k/engine';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -11,12 +12,13 @@ import LinearProgress from '@mui/material/LinearProgress';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SchoolIcon from '@mui/icons-material/School';
-import StadiumIcon from '@mui/icons-material/Stadium';
 import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { FACILITY_NAMES, FACILITY_DESCS, FACILITY_COSTS, FACILITY_LEVELS } from '../../constants';
 import { fmt } from '../../utils/formatting';
 import SectionHeader from '../ui/SectionHeader';
+import StadiumPlanner from '../StadiumPlanner';
+import { DEFAULT_STADIUM_SECTORS } from '../../utils/stadium';
 
 const FACILITY_ICONS: Record<string, ReactNode> = {
   medical: <MedicalServicesIcon />,
@@ -25,10 +27,10 @@ const FACILITY_ICONS: Record<string, ReactNode> = {
 };
 
 export default function FacilitiesTab() {
-  const { clubState, upgradeFacility, expandStadium } = useGameStore(useShallow((s) => ({
+  const { clubState, upgradeFacility, applyStadiumDesign } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     upgradeFacility: s.upgradeFacility,
-    expandStadium: s.expandStadium,
+    applyStadiumDesign: s.applyStadiumDesign,
   })));
   if (!clubState) return null;
 
@@ -39,14 +41,12 @@ export default function FacilitiesTab() {
     if (!upgradeFacility(key)) alert('Insufficient budget.');
   };
 
-  const handleExpand = () => {
-    const cap = clubState.stadiumCapacity + 2_000;
-    if (!confirm(`Expand stadium to ${cap.toLocaleString()} for £${fmt(2_000 * 100)}?`)) return;
-    if (!expandStadium()) alert('Insufficient budget.');
-  };
+  const committedSectors = clubState.stadiumSectors ?? (DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>);
 
-  const stadInc = Math.round(clubState.stadiumCapacity * 0.6 * 20);
-  const stadCost = 2_000 * 100;
+  const handleApply = (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number): boolean => {
+    if (!confirm(`Apply stadium renovation for £${fmt(cost)}? This will update your stadium to ${newCapacity.toLocaleString()} capacity.`)) return false;
+    return applyStadiumDesign(sectors, cost, newCapacity);
+  };
 
   return (
     <Box>
@@ -55,14 +55,14 @@ export default function FacilitiesTab() {
         subtitle={<>Budget: <strong>£{fmt(clubState.budget)}</strong></>}
       />
 
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {(['medical', 'training', 'academy'] as const).map((key) => {
           const lvl = clubState.facilities[key];
           const maxed = lvl >= 4;
           const cost = FACILITY_COSTS[lvl];
           const canAfford = clubState.budget >= cost;
           return (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={key}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
               <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -97,34 +97,23 @@ export default function FacilitiesTab() {
             </Grid>
           );
         })}
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <StadiumIcon />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Stadium</Typography>
-              </Box>
-              <Chip label={`${clubState.stadiumCapacity.toLocaleString()} cap.`} size="small" sx={{ mb: 1 }} />
-              <LinearProgress variant="determinate" value={Math.min(100, (clubState.stadiumCapacity / 50_000) * 100)} sx={{ mb: 1 }} />
-              <Typography variant="caption" color="text.secondary">
-                Est. home income: £{fmt(stadInc)}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                variant="contained"
-                fullWidth
-                disabled={clubState.budget < stadCost}
-                onClick={handleExpand}
-              >
-                Expand +2k (£{fmt(stadCost)})
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
       </Grid>
+
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Stadium Planner</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Design your stadium layout — configure each stand sector and seating density.
+            Changes cost money and are applied only when you confirm the renovation.
+          </Typography>
+        </Box>
+        <StadiumPlanner
+          clubName={clubState.clubName}
+          committedSectors={committedSectors}
+          budget={clubState.budget}
+          onApply={handleApply}
+        />
+      </Card>
     </Box>
   );
 }

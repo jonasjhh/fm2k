@@ -27,6 +27,11 @@ export interface SubstitutionRequest {
   playerInId: string
 }
 
+export interface StadiumSectorConfig {
+  type: string         // stand type key e.g. 'double-tier', 'open-bleacher'
+  densityValue: number // seat spacing; lower = more seats (range 10–50)
+}
+
 export interface ClubState {
   clubId: string
   clubName: string
@@ -39,5 +44,6 @@ export interface ClubState {
   pendingSubstitutions: SubstitutionRequest[]
   facilities: FacilityLevels
   stadiumCapacity: number
+  stadiumSectors: Record<string, StadiumSectorConfig>
   financialLog: FinancialTransaction[]
 }
