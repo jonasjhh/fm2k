@@ -209,7 +209,7 @@ export class DribbleGenerator implements ActionGenerator {
 
 export class TackleGenerator implements ActionGenerator {
   canPerform(player: Player, state: MatchState): boolean {
-    if (state.phase !== 'first_half' && state.phase !== 'second_half') return false;
+    if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
     return getDefenders(state).length > 0;
   }
 
@@ -221,7 +221,7 @@ export class TackleGenerator implements ActionGenerator {
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
     const tackler = pickRandom(getDefenders(state));
-    if (!tackler) return null;
+    if (!tackler) { return null; }
 
     const success = Math.random() < this.calculateProbability(tackler, state);
     const newState = this.createNewState(state, success, tackler);
@@ -262,7 +262,7 @@ export class TackleGenerator implements ActionGenerator {
   }
 
   private createNewState(state: MatchState, success: boolean, tackler: Player): MatchState {
-    if (!success) return state;
+    if (!success) { return state; }
     return {
       ...state,
       possession: defTeamSide(state),
@@ -275,7 +275,7 @@ export class TackleGenerator implements ActionGenerator {
 
 export class InterceptionGenerator implements ActionGenerator {
   canPerform(player: Player, state: MatchState): boolean {
-    if (state.phase !== 'first_half' && state.phase !== 'second_half') return false;
+    if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
     return defPlayers(state).filter(p => p.position !== 'GK').length > 0;
   }
 
@@ -288,7 +288,7 @@ export class InterceptionGenerator implements ActionGenerator {
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
     const candidates = defPlayers(state).filter(p => p.position !== 'GK');
     const interceptor = pickRandom(candidates);
-    if (!interceptor) return null;
+    if (!interceptor) { return null; }
 
     const success = Math.random() < this.calculateProbability(interceptor, state);
     const side = defTeamSide(state);
