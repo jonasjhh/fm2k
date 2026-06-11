@@ -5,6 +5,8 @@ import { MatchOccurrence } from '../match/match-occurrence.ts';
 import { generateFixtures } from './fixture-generator.ts';
 import type { Team } from '../shared/types.ts';
 import type { LeagueState, LeagueStanding, Fixture } from './league-types.ts';
+import type { EventBus } from '../event-bus.ts';
+import type { GameEvents } from '../game-events.ts';
 
 export interface MatchCompletedPayload {
   homeTeamId: string
@@ -22,8 +24,7 @@ export interface LeagueManagerConfig {
   readonly name?: string
   readonly season?: string
   readonly eventsPerMinute?: number
-  // Called after standings are updated for each completed match
-  readonly onMatchCompleted?: (payload: MatchCompletedPayload) => void
+  readonly eventBus?: EventBus<GameEvents>
 }
 
 export class LeagueManager {
@@ -31,7 +32,7 @@ export class LeagueManager {
   private readonly stateManager: StateManager<LeagueState>;
   private readonly eventsPerMinute: number;
   private readonly fixturesPerMatchday: number;
-  private readonly onMatchCompleted?: (payload: MatchCompletedPayload) => void;
+  private readonly eventBus?: EventBus<GameEvents>;
 
   loadState(state: LeagueState): void {
     this.stateManager.setState(state);
@@ -40,7 +41,7 @@ export class LeagueManager {
   constructor(config: LeagueManagerConfig) {
     this.eventsPerMinute = config.eventsPerMinute ?? 3;
     this.fixturesPerMatchday = config.teams.length / 2;
-    this.onMatchCompleted = config.onMatchCompleted;
+    this.eventBus = config.eventBus;
     const fixtures = generateFixtures(config.teams, config.startDate);
     const teamMap = new Map(config.teams.map(t => [t.id, t]));
 
@@ -154,9 +155,9 @@ export class LeagueManager {
 
       if (alreadyCompleted) {continue;}
 
-      if (this.onMatchCompleted) {
+      if (this.eventBus) {
         const { standings } = this.stateManager.getState();
-        this.onMatchCompleted({
+        this.eventBus.emit('match.completed', {
           homeTeamId,
           awayTeamId,
           homeScore,

@@ -25,6 +25,8 @@ export type { SeasonState } from './season/season-types.ts';
 export type { Formation, Player, PlayerAttributes, Position, Team, TeamTactics } from './shared/types.ts';
 export { v4 } from './shared/uuid.ts';
 
+export { EventBus } from './event-bus.ts';
+export type { GameEvents } from './game-events.ts';
 export { StateManager } from './state/state-manager.ts';
 
 export { EventLog, addDays, createGameDateTime, TickEngine } from '@fm2k/timeline';

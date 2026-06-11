@@ -10,6 +10,8 @@ import type {
   FinancialTransaction,
   StadiumSectorConfig,
 } from './club-types.ts';
+import type { EventBus } from '../event-bus.ts';
+import type { GameEvents } from '../game-events.ts';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {
   1: 50_000,
@@ -32,14 +34,18 @@ export interface ClubManagerConfig {
   readonly stadiumCapacity: number
   readonly stadiumSectors: Record<string, StadiumSectorConfig>
   readonly rng?: () => number
+  readonly eventBus?: EventBus<GameEvents>
 }
 
 export class ClubManager {
   private readonly stateManager: StateManager<ClubState>;
   private readonly rng: () => number;
+  private readonly eventBus?: EventBus<GameEvents>;
 
   constructor(config: ClubManagerConfig) {
     this.rng = config.rng ?? Math.random.bind(Math);
+    this.eventBus = config.eventBus;
+    config.eventBus?.on('match.completed', payload => this.processMatchResult(payload));
     const squad: ClubPlayer[] = config.squad.map(p => ({ ...p, fitness: 100 }));
 
     this.stateManager = new StateManager<ClubState>({
@@ -219,17 +225,12 @@ export class ClubManager {
     });
   }
 
-  handleMatchCompleted(payload: {
-    homeTeamId: string
-    awayTeamId: string
-    homeScore: number
-    awayScore: number
-    timestamp: GameDateTime
-  }): void {
-    const state = this.stateManager.getState();
-    const isOurMatch =
-      payload.homeTeamId === state.clubId || payload.awayTeamId === state.clubId;
+  private processMatchResult(payload: GameEvents['match.completed']): void {
+    const clubId = this.stateManager.getState().clubId;
+    const isOurMatch = payload.homeTeamId === clubId || payload.awayTeamId === clubId;
     if (!isOurMatch) {return;}
+
+    const newInjuries: GameEvents['player.injured'][] = [];
 
     this.stateManager.updateState(s => {
       const medicalLevel = s.facilities.medical;
@@ -237,11 +238,9 @@ export class ClubManager {
       for (const player of s.squad) {
         if (!s.startingXI.includes(player.id)) {continue;}
 
-        // Fitness drain (higher stamina = smaller drain)
         const drain = Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
         player.fitness = Math.max(0, player.fitness - drain);
 
-        // Injury check (only if currently healthy)
         if (!player.injury) {
           const injuryChance = Math.max(2, 15 - Math.floor(player.attributes.stamina / 2));
           if (this.rng() * 100 < injuryChance) {
@@ -250,13 +249,28 @@ export class ClubManager {
               type: INJURY_TYPES[Math.floor(this.rng() * INJURY_TYPES.length)],
               matchesRemaining: Math.max(1, baseDuration - (medicalLevel - 1)),
             };
+            newInjuries.push({
+              playerId: player.id,
+              playerName: player.name,
+              injuryType: player.injury.type,
+              matchesRemaining: player.injury.matchesRemaining,
+            });
           }
         }
       }
 
-      // Clear substitutions now that the match is over
       s.pendingSubstitutions = [];
     });
+
+    for (const inj of newInjuries) {
+      this.eventBus?.emit('player.injured', inj);
+    }
+
+    if (payload.homeTeamId === clubId) {
+      const receipt = this.calculateHomeReceipt(payload.awayStanding);
+      this.recordGateReceipt(receipt, payload.awayTeamId, payload.timestamp);
+      this.eventBus?.emit('gate.receipt', { amount: receipt, opponentId: payload.awayTeamId, timestamp: payload.timestamp });
+    }
   }
 
   // Call once per matchday end to tick down injuries, suspensions, and recover fitness

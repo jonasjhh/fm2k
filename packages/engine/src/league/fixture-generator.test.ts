@@ -91,6 +91,30 @@ describe('generateFixtures:', () => {
     });
   });
 
+  describe('home/away alternation:', () => {
+    test('no team plays more than 2 consecutive home or away games', () => {
+      const fixtures = generateFixtures(TEAMS, START);
+      for (const team of TEAMS) {
+        const sorted = fixtures
+          .filter(f => f.homeTeamId === team.id || f.awayTeamId === team.id)
+          .sort((a, b) => a.matchday - b.matchday);
+        let maxRun = 1;
+        let run = 1;
+        for (let i = 1; i < sorted.length; i++) {
+          const prevHome = sorted[i - 1].homeTeamId === team.id;
+          const currHome = sorted[i].homeTeamId === team.id;
+          if (prevHome === currHome) {
+            run++;
+            maxRun = Math.max(maxRun, run);
+          } else {
+            run = 1;
+          }
+        }
+        expect(maxRun).toBeLessThanOrEqual(2);
+      }
+    });
+  });
+
   describe('fixture fields:', () => {
     test('all fixtures start with status scheduled and null result', () => {
       const fixtures = generateFixtures(TEAMS, START);

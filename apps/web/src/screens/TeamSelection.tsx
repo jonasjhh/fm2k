@@ -205,7 +205,7 @@ export default function TeamSelection() {
                   {d.teams.map(t => (
                     <ButtonBase
                       key={t.id}
-                      onClick={() => startGame(t.id)}
+                      onClick={() => startGame(t.id, [...selectedLeagueIds])}
                       sx={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
                         py: 1, px: 1.5, minWidth: 140, borderRadius: 1,

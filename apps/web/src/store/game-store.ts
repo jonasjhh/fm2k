@@ -1,20 +1,20 @@
 import { create } from 'zustand';
 import {
   LeagueManager, ClubManager, TransferManager, PlayerGenerator,
-  MatchSimulator,
+  MatchSimulator, EventBus,
   COUNTRY_IDS, COUNTRY_DATA, getAllDivisions, calculateOverall, v4 as uuidv4,
 } from '@fm2k/engine';
 import type {
   Team, Player, PlayerAttributes, Formation, Position,
   LeagueState, ClubState, TransferListing, TransferState, GameDateTime, MatchEvent,
-  StructuredDivision, CountryId, StadiumSectorConfig,
+  StructuredDivision, CountryId, StadiumSectorConfig, GameEvents,
 } from '@fm2k/engine';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, ALL_POSITIONS,
 } from '../constants';
 import { DEFAULT_STADIUM_SECTORS, calculateTotalCapacity } from '../utils/stadium';
 import { sellPrice } from '../utils/calculations';
-import { writeSave, type SaveData, type SaveType } from './save-data';
+import { writeSave, SAVE_VERSION, type SaveData, type SaveType } from './save-data';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -131,21 +131,23 @@ interface GameStore {
 
   // engine instances
   leagueManager: LeagueManager | null;
+  leagueManagers: Record<string, LeagueManager>;
   clubManager: ClubManager | null;
   transferManager: TransferManager | null;
   playerGenerator: PlayerGenerator;
 
   // reactive snapshots
   leagueState: LeagueState | null;
+  leagueStates: Record<string, LeagueState>;
   clubState: ClubState | null;
   transferListings: TransferListing[];
 
   // game state
   playerTeamId: string | null;
+  selectedLeagueIds: string[];
   currentMatchday: number;
   lastMatchResult: LastMatchResult | null;
   seasonComplete: boolean;
-  showAllFixtures: boolean;
 
   // match animation
   matchSimOverlayOpen: boolean;
@@ -172,7 +174,7 @@ interface GameStore {
   generateFullTeam: (teamId: string) => void;
 
   // ── game lifecycle ──────────────────────────────────────────────────────────
-  startGame: (teamId: string) => void;
+  startGame: (teamId: string, leagueIds?: string[]) => void;
   startNewSeason: () => void;
   simulateMatchday: () => Promise<void>;
   simulateToEnd: () => Promise<void>;
@@ -202,43 +204,57 @@ interface GameStore {
   upgradeFacility: (key: string) => boolean;
   applyStadiumDesign: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean;
 
-  // ── fixtures ────────────────────────────────────────────────────────────────
-  toggleFixtureView: () => void;
 }
 
 // ─── manager factory ─────────────────────────────────────────────────────────
 
+let _eventBusCleanup: (() => void) | null = null;
+
 function buildManagers(
   editableCountries: EditableCountry[],
   teamId: string,
+  leagueIds: string[],
   playerGenerator: PlayerGenerator,
   get: () => GameStore,
   set: (partial: Partial<GameStore>) => void,
 ) {
   const team = findTeamById(editableCountries, teamId);
   const division = findDivisionForTeam(editableCountries, teamId);
-  if (!team || !division) return { leagueManager: null, clubManager: null, transferManager: null };
+  if (!team || !division) return { leagueManagers: {}, leagueManager: null, clubManager: null, transferManager: null };
 
-  const leagueManager = new LeagueManager({
-    teams: division.teams,
-    startDate: SEASON_START as GameDateTime,
-    eventsPerMinute: 3,
-    onMatchCompleted: (payload) => {
-      const { clubManager, playerTeamId } = get();
-      const { homeTeamId, awayTeamId, homeScore, awayScore, timestamp, awayStanding } = payload;
-      const isHome = homeTeamId === playerTeamId;
-      const isAway = awayTeamId === playerTeamId;
-      if (!isHome && !isAway) return;
+  // Ensure the player's nation is always included even if not in leagueIds
+  const playerCountry = findCountryForTeam(editableCountries, teamId);
+  const allLeagueIds = playerCountry && !leagueIds.includes(playerCountry.id)
+    ? [...leagueIds, playerCountry.id]
+    : leagueIds;
 
-      set({ lastMatchResult: { homeTeamId, awayTeamId, homeScore, awayScore, isHome } });
-      clubManager?.handleMatchCompleted({ homeTeamId, awayTeamId, homeScore, awayScore, timestamp });
+  _eventBusCleanup?.();
+  const eventBus = new EventBus<GameEvents>();
 
-      if (isHome && awayStanding) {
-        const receipt = clubManager?.calculateHomeReceipt(awayStanding);
-        if (receipt) clubManager?.recordGateReceipt(receipt, awayTeamId, timestamp);
-      }
-    },
+  _eventBusCleanup = eventBus.on('match.completed', (payload) => {
+    const { playerTeamId } = get();
+    const isHome = payload.homeTeamId === playerTeamId;
+    const isAway = payload.awayTeamId === playerTeamId;
+    if (!isHome && !isAway) return;
+    set({ lastMatchResult: { homeTeamId: payload.homeTeamId, awayTeamId: payload.awayTeamId, homeScore: payload.homeScore, awayScore: payload.awayScore, isHome } });
   });
+
+  // Create a LeagueManager for every division across all selected nations
+  const leagueManagers: Record<string, LeagueManager> = {};
+  for (const countryId of allLeagueIds) {
+    const country = editableCountries.find(c => c.id === countryId);
+    if (!country) continue;
+    for (const div of country.divisions) {
+      leagueManagers[div.id] = new LeagueManager({
+        teams: div.teams,
+        startDate: SEASON_START as GameDateTime,
+        eventsPerMinute: 3,
+        // Only wire the EventBus to the player's own division
+        eventBus: div.id === division.id ? eventBus : undefined,
+      });
+    }
+  }
+  const leagueManager = leagueManagers[division.id];
 
   const defaultSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
   const clubManager = new ClubManager({
@@ -252,6 +268,7 @@ function buildManagers(
     benchPlayers: team.substitutes.map(p => p.id),
     stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
     stadiumSectors: defaultSectors,
+    eventBus,
   });
 
   const transferManager = new TransferManager({
@@ -263,7 +280,7 @@ function buildManagers(
     },
   });
 
-  return { leagueManager, clubManager, transferManager };
+  return { leagueManagers, leagueManager, clubManager, transferManager };
 }
 
 // ─── sync helper ─────────────────────────────────────────────────────────────
@@ -272,9 +289,14 @@ function syncEngineState(
   get: () => GameStore,
   set: (partial: Partial<GameStore>) => void,
 ) {
-  const { leagueManager, clubManager, transferManager, currentMatchday } = get();
+  const { leagueManager, leagueManagers, clubManager, transferManager, currentMatchday } = get();
+  const leagueStates: Record<string, LeagueState> = {};
+  for (const [id, mgr] of Object.entries(leagueManagers)) {
+    leagueStates[id] = mgr.getState();
+  }
   set({
     leagueState: leagueManager?.getState() ?? null,
+    leagueStates,
     clubState: clubManager?.getState() ?? null,
     transferListings: transferManager?.getActiveListings(currentMatchday) ?? [],
   });
@@ -290,19 +312,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   editingTeamId: null,
 
   leagueManager: null,
+  leagueManagers: {},
   clubManager: null,
   transferManager: null,
   playerGenerator: new PlayerGenerator(),
 
   leagueState: null,
+  leagueStates: {},
   clubState: null,
   transferListings: [],
 
   playerTeamId: null,
+  selectedLeagueIds: [],
   currentMatchday: 0,
   lastMatchResult: null,
   seasonComplete: false,
-  showAllFixtures: false,
 
   matchSimOverlayOpen: false,
   matchSimHeader: '',
@@ -410,24 +434,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // ── game lifecycle ──────────────────────────────────────────────────────────
 
-  startGame: (teamId) => {
-    const { editableCountries, playerGenerator } = get();
-    const { leagueManager, clubManager, transferManager } = buildManagers(
-      editableCountries, teamId, playerGenerator, get, set,
+  startGame: (teamId, leagueIds) => {
+    const { editableCountries, playerGenerator, selectedLeagueIds: storedIds } = get();
+    const resolvedLeagueIds = leagueIds ?? storedIds;
+    const { leagueManagers, leagueManager, clubManager, transferManager } = buildManagers(
+      editableCountries, teamId, resolvedLeagueIds, playerGenerator, get, set,
     );
     if (!leagueManager || !clubManager || !transferManager) return;
 
+    const leagueStates: Record<string, LeagueState> = {};
+    for (const [id, mgr] of Object.entries(leagueManagers)) {
+      leagueStates[id] = mgr.getState();
+    }
+
     set({
       playerTeamId: teamId,
+      selectedLeagueIds: resolvedLeagueIds,
       currentMatchday: 0,
       seasonComplete: false,
       lastMatchResult: null,
-      showAllFixtures: false,
       activeTab: 'squad',
       leagueManager,
+      leagueManagers,
       clubManager,
       transferManager,
       leagueState: leagueManager.getState(),
+      leagueStates,
       clubState: clubManager.getState(),
       transferListings: transferManager.getActiveListings(0),
       screen: 'game',
@@ -435,26 +467,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startNewSeason: () => {
-    const { playerTeamId } = get();
-    if (playerTeamId) get().startGame(playerTeamId);
+    const { playerTeamId, selectedLeagueIds } = get();
+    if (playerTeamId) get().startGame(playerTeamId, selectedLeagueIds);
   },
 
   saveGame: (type) => {
     const s = get();
     if (!s.playerTeamId || !s.leagueState || !s.clubState) return;
     writeSave({
-      version: 1,
+      version: SAVE_VERSION,
       type,
       savedAt: new Date().toISOString(),
       teamName: s.clubState.clubName,
       matchday: s.currentMatchday,
       playerTeamId: s.playerTeamId,
+      selectedLeagueIds: s.selectedLeagueIds,
       editableCountries: s.editableCountries,
       currentMatchday: s.currentMatchday,
       seasonComplete: s.seasonComplete,
       activeTab: s.activeTab,
       lastMatchResult: s.lastMatchResult,
       leagueState: s.leagueState,
+      leagueStates: s.leagueStates,
       clubState: s.clubState,
       transferListings: s.transferListings,
     });
@@ -462,12 +496,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   loadGame: (save) => {
     const { playerGenerator } = get();
-    const { leagueManager, clubManager, transferManager } = buildManagers(
-      save.editableCountries, save.playerTeamId, playerGenerator, get, set,
+    // Backward compat: old saves without selectedLeagueIds fall back to just the player's nation
+    const leagueIds = save.selectedLeagueIds
+      ?? [findCountryForTeam(save.editableCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
+    const { leagueManagers, leagueManager, clubManager, transferManager } = buildManagers(
+      save.editableCountries, save.playerTeamId, leagueIds, playerGenerator, get, set,
     );
     if (!leagueManager || !clubManager || !transferManager) return;
 
     leagueManager.loadState(save.leagueState);
+    // Load other division states if present (new saves); otherwise leave them at initial state
+    if (save.leagueStates) {
+      const playerDivId = findDivisionForTeam(save.editableCountries, save.playerTeamId)?.id;
+      for (const [id, state] of Object.entries(save.leagueStates)) {
+        if (id !== playerDivId && leagueManagers[id]) {
+          leagueManagers[id].loadState(state);
+        }
+      }
+    }
     // Migrate old saves that predate stadiumSectors
     const savedClubState = save.clubState;
     if (!savedClubState.stadiumSectors) {
@@ -480,30 +526,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
     transferManager.loadState(transferState);
 
+    const leagueStates: Record<string, LeagueState> = {};
+    for (const [id, mgr] of Object.entries(leagueManagers)) {
+      leagueStates[id] = mgr.getState();
+    }
+
     set({
       screen: 'game',
       activeTab: save.activeTab as TabId,
       playerTeamId: save.playerTeamId,
+      selectedLeagueIds: leagueIds,
       editableCountries: save.editableCountries,
       currentMatchday: save.currentMatchday,
       seasonComplete: save.seasonComplete,
       lastMatchResult: save.lastMatchResult,
-      showAllFixtures: false,
       leagueManager,
+      leagueManagers,
       clubManager,
       transferManager,
       leagueState: leagueManager.getState(),
+      leagueStates,
       clubState: clubManager.getState(),
       transferListings: transferManager.getActiveListings(save.currentMatchday),
     });
   },
 
   simulateMatchday: async () => {
-    const { leagueManager, clubManager, transferManager } = get();
+    const { leagueManager, leagueManagers, clubManager, transferManager } = get();
     if (!leagueManager || !leagueManager.hasMoreMatchdays()) return;
 
     set({ lastMatchResult: null });
-    await leagueManager.simulateNextMatchday();
+    // Simulate all divisions in parallel
+    const otherManagers = Object.values(leagueManagers).filter(m => m !== leagueManager);
+    await Promise.all([
+      leagueManager.simulateNextMatchday(),
+      ...otherManagers.filter(m => m.hasMoreMatchdays()).map(m => m.simulateNextMatchday()),
+    ]);
 
     const newMatchday = leagueManager.getCompletedMatchdays();
     clubManager?.handleMatchdayComplete();
@@ -688,7 +746,4 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return ok;
   },
 
-  // ── fixtures ────────────────────────────────────────────────────────────────
-
-  toggleFixtureView: () => set(s => ({ showAllFixtures: !s.showAllFixtures })),
 }));

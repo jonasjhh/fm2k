@@ -3,19 +3,35 @@ import type { EditableCountry, LastMatchResult } from './game-store';
 
 export type SaveType = 'QUICK' | 'AUTO';
 
+// Bump SAVE_VERSION whenever the save format changes.
+// Bump MIN_LOADABLE_VERSION only when old saves can no longer be safely migrated.
+export const SAVE_VERSION = 2;
+export const MIN_LOADABLE_VERSION = 1;
+
+export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
+
+export function checkSaveCompatibility(save: SaveData): SaveCompatibility {
+  if (save.version > SAVE_VERSION) return 'incompatible'; // written by a newer build
+  if (save.version < MIN_LOADABLE_VERSION) return 'incompatible';
+  if (save.version < SAVE_VERSION) return 'outdated';
+  return 'ok';
+}
+
 export interface SaveData {
-  version: 1;
+  version: number;
   type: SaveType;
   savedAt: string;
   teamName: string;
   matchday: number;
   playerTeamId: string;
+  selectedLeagueIds?: string[];
   editableCountries: EditableCountry[];
   currentMatchday: number;
   seasonComplete: boolean;
   activeTab: string;
   lastMatchResult: LastMatchResult | null;
   leagueState: LeagueState;
+  leagueStates?: Record<string, LeagueState>;
   clubState: ClubState;
   transferListings: TransferListing[];
 }

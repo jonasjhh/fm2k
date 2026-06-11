@@ -2,8 +2,32 @@ import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
 import type { Player } from '../shared/types.ts';
 import { createGameDateTime } from '@fm2k/timeline';
+import { EventBus } from '../event-bus.ts';
+import type { GameEvents } from '../game-events.ts';
+import type { LeagueStanding } from '../league/league-types.ts';
 
 const NOW = createGameDateTime(2025, 8, 16, 15, 0);
+
+const DUMMY_STANDING: LeagueStanding = {
+  teamId: '', teamName: '',
+  played: 0, won: 0, drawn: 0, lost: 0,
+  goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0,
+};
+
+function emitMatch(
+  bus: EventBus<GameEvents>,
+  homeTeamId: string,
+  awayTeamId: string,
+  homeScore = 0,
+  awayScore = 0,
+): void {
+  bus.emit('match.completed', {
+    homeTeamId, awayTeamId, homeScore, awayScore,
+    timestamp: NOW,
+    homeStanding: DUMMY_STANDING,
+    awayStanding: DUMMY_STANDING,
+  });
+}
 
 let playerCounter = 0;
 function makePlayer(overrides: Partial<Player> = {}): Player {
@@ -406,42 +430,27 @@ describe('ClubManager:', () => {
     });
   });
 
-  describe('handleMatchCompleted:', () => {
+  describe('match event processing (via EventBus):', () => {
     test('ignores events for other clubs', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.handleMatchCompleted({
-        homeTeamId: 'other-1',
-        awayTeamId: 'other-2',
-        homeScore: 2,
-        awayScore: 1,
-        timestamp: NOW,
-      });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      emitMatch(bus, 'other-1', 'other-2', 2, 1);
       manager.getState().squad.forEach(p => expect(p.fitness).toBe(100));
     });
 
     test('drains fitness of starting XI players', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.handleMatchCompleted({
-        homeTeamId: 'club-1',
-        awayTeamId: 'other-1',
-        homeScore: 1,
-        awayScore: 0,
-        timestamp: NOW,
-      });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1', 1, 0);
       const state = manager.getState();
       const starters = state.squad.filter(p => state.startingXI.includes(p.id));
       starters.forEach(p => expect(p.fitness).toBeLessThan(100));
     });
 
     test('bench players retain their fitness', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.handleMatchCompleted({
-        homeTeamId: 'club-1',
-        awayTeamId: 'other-1',
-        homeScore: 1,
-        awayScore: 0,
-        timestamp: NOW,
-      });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1', 1, 0);
       const state = manager.getState();
       const benchIds = new Set(state.benchPlayers);
       const startingIds = new Set(state.startingXI);
@@ -452,74 +461,87 @@ describe('ClubManager:', () => {
     });
 
     test('clears pendingSubstitutions after match', () => {
-      const config = makeConfig();
+      const bus = new EventBus<GameEvents>();
+      const config = makeConfig({ eventBus: bus });
       const manager = new ClubManager(config);
       manager.queueSubstitution(config.startingXI[0], config.benchPlayers[0]);
-      manager.handleMatchCompleted({
-        homeTeamId: 'club-1',
-        awayTeamId: 'other-1',
-        homeScore: 1,
-        awayScore: 0,
-        timestamp: NOW,
-      });
+      emitMatch(bus, 'club-1', 'other-1', 1, 0);
       expect(manager.getState().pendingSubstitutions).toHaveLength(0);
     });
 
     test('rng=0 always causes injury for starting players', () => {
-      const config = makeConfig({ rng: () => 0 });
-      const manager = new ClubManager(config);
-      manager.handleMatchCompleted({
-        homeTeamId: 'club-1',
-        awayTeamId: 'other-1',
-        homeScore: 0,
-        awayScore: 0,
-        timestamp: NOW,
-      });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 0, eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1');
       const state = manager.getState();
       const starters = state.squad.filter(p => state.startingXI.includes(p.id));
       starters.forEach(p => expect(p.injury).toBeDefined());
     });
 
     test('rng=1 never causes injury', () => {
-      const config = makeConfig({ rng: () => 1 });
-      const manager = new ClubManager(config);
-      manager.handleMatchCompleted({
-        homeTeamId: 'club-1',
-        awayTeamId: 'other-1',
-        homeScore: 0,
-        awayScore: 0,
-        timestamp: NOW,
-      });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 1, eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1');
       const state = manager.getState();
       const starters = state.squad.filter(p => state.startingXI.includes(p.id));
       starters.forEach(p => expect(p.injury).toBeUndefined());
     });
 
     test('injured players do not receive a second injury', () => {
-      const config = makeConfig({ rng: () => 0 });
-      const manager = new ClubManager(config);
-      // First match — all starters get injured
-      manager.handleMatchCompleted({ homeTeamId: 'club-1', awayTeamId: 'other-1', homeScore: 0, awayScore: 0, timestamp: NOW });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 0, eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1');
       const injuryAfterFirst = manager.getState().squad
         .filter(p => manager.getState().startingXI.includes(p.id))
         .map(p => p.injury?.matchesRemaining);
 
-      // Second match with rng=0 — already-injured players should not get re-injured
-      manager.handleMatchCompleted({ homeTeamId: 'club-1', awayTeamId: 'other-1', homeScore: 0, awayScore: 0, timestamp: NOW });
+      emitMatch(bus, 'club-1', 'other-1');
       const injuryAfterSecond = manager.getState().squad
         .filter(p => manager.getState().startingXI.includes(p.id))
         .map(p => p.injury?.matchesRemaining);
 
-      // matchesRemaining should be the same (not reset by re-injury)
       expect(injuryAfterFirst).toEqual(injuryAfterSecond);
+    });
+
+    test('emits player.injured events for each newly injured starter', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 0, eventBus: bus }));
+      const injured: GameEvents['player.injured'][] = [];
+      bus.on('player.injured', e => injured.push(e));
+      emitMatch(bus, 'club-1', 'other-1');
+      const starterCount = manager.getState().startingXI.length;
+      expect(injured).toHaveLength(starterCount);
+      injured.forEach(e => {
+        expect(typeof e.playerId).toBe('string');
+        expect(typeof e.injuryType).toBe('string');
+        expect(e.matchesRemaining).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    test('records gate receipt when club is home team', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 1, eventBus: bus }));
+      const budgetBefore = manager.getState().budget;
+      emitMatch(bus, 'club-1', 'other-1');
+      expect(manager.getState().budget).toBeGreaterThan(budgetBefore);
+      const receipts = manager.getState().financialLog.filter(t => t.type === 'gate_receipt');
+      expect(receipts).toHaveLength(1);
+    });
+
+    test('does not record gate receipt when club is away team', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 1, eventBus: bus }));
+      emitMatch(bus, 'other-1', 'club-1');
+      const receipts = manager.getState().financialLog.filter(t => t.type === 'gate_receipt');
+      expect(receipts).toHaveLength(0);
     });
   });
 
   describe('handleMatchdayComplete:', () => {
     test('recovers 15 fitness for all players', () => {
-      const config = makeConfig({ rng: () => 1 }); // no injuries
-      const manager = new ClubManager(config);
-      manager.handleMatchCompleted({ homeTeamId: 'club-1', awayTeamId: 'other-1', homeScore: 0, awayScore: 0, timestamp: NOW });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 1, eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1');
       const fitnessAfterMatch = manager.getState().squad.map(p => p.fitness);
       manager.handleMatchdayComplete();
       manager.getState().squad.forEach((p, i) => {
@@ -534,9 +556,9 @@ describe('ClubManager:', () => {
     });
 
     test('counts down injury matchesRemaining', () => {
-      const config = makeConfig({ rng: () => 0 }); // always injures
-      const manager = new ClubManager(config);
-      manager.handleMatchCompleted({ homeTeamId: 'club-1', awayTeamId: 'other-1', homeScore: 0, awayScore: 0, timestamp: NOW });
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ rng: () => 0, eventBus: bus }));
+      emitMatch(bus, 'club-1', 'other-1');
       const injuredPlayer = manager.getState().squad.find(p => p.injury)!;
       const remaining = injuredPlayer.injury!.matchesRemaining;
       manager.handleMatchdayComplete();
@@ -551,18 +573,19 @@ describe('ClubManager:', () => {
     test('clears injury when matchesRemaining reaches 0', () => {
       const squad = makeSquad(15);
       const clubId = 'club-test';
+      const bus = new EventBus<GameEvents>();
       const config = makeConfig({
         clubId,
         squad,
         rng: () => 0,
+        eventBus: bus,
         startingXI: squad.slice(0, 11).map(p => p.id),
         benchPlayers: squad.slice(11, 15).map(p => p.id),
       });
       const manager = new ClubManager(config);
 
-      // Force injury with matchesRemaining = 1 by making rng give consistent values
       // rng=0 causes injury with baseDuration = ceil(0*3) = 0, clamped to 1
-      manager.handleMatchCompleted({ homeTeamId: clubId, awayTeamId: 'other', homeScore: 0, awayScore: 0, timestamp: NOW });
+      emitMatch(bus, clubId, 'other');
       const injuredPlayer = manager.getState().squad.find(p => p.injury)!;
       expect(injuredPlayer.injury!.matchesRemaining).toBe(1); // max(1, 0-(1-1)) = 1
 

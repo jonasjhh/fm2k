@@ -10,8 +10,11 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { deleteSave, readAllSaves, type SaveData } from '../../store/save-data';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import BlockIcon from '@mui/icons-material/Block';
+import { deleteSave, readAllSaves, checkSaveCompatibility, type SaveData } from '../../store/save-data';
 import { useGameStore } from '../../store/game-store';
 
 function formatSaveDate(iso: string): string {
@@ -58,33 +61,67 @@ export default function LoadGameDialog({ open, onClose }: Props) {
             <Typography color="text.secondary">No saves found.</Typography>
           </Box>
         ) : (
-          saves.map((save, i) => (
-            <Box key={`${save.type}-${save.teamName}`}>
-              {i > 0 && <Divider />}
-              <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, gap: 1.5 }}>
-                <Chip
-                  label={save.type}
-                  size="small"
-                  color={save.type === 'QUICK' ? 'primary' : 'secondary'}
-                  sx={{ minWidth: 56, fontWeight: 700 }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                    {save.teamName} — Matchday {save.matchday}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {formatSaveDate(save.savedAt)}
-                  </Typography>
+          saves.map((save, i) => {
+            const compat = checkSaveCompatibility(save);
+            const isIncompatible = compat === 'incompatible';
+            const isOutdated = compat === 'outdated';
+            return (
+              <Box key={`${save.type}-${save.teamName}`}>
+                {i > 0 && <Divider />}
+                <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, gap: 1.5 }}>
+                  <Chip
+                    label={save.type}
+                    size="small"
+                    color={save.type === 'QUICK' ? 'primary' : 'secondary'}
+                    sx={{ minWidth: 56, fontWeight: 700 }}
+                  />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                        {save.teamName} — Matchday {save.matchday}
+                      </Typography>
+                      {isIncompatible && (
+                        <Tooltip title="This save was created with an incompatible version of the game and cannot be loaded.">
+                          <Chip
+                            icon={<BlockIcon />}
+                            label="Incompatible"
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                          />
+                        </Tooltip>
+                      )}
+                      {isOutdated && (
+                        <Tooltip title="This save was created with an older version of the game. It can still be loaded but some data may be missing.">
+                          <Chip
+                            icon={<WarningAmberIcon />}
+                            label="Outdated"
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                          />
+                        </Tooltip>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatSaveDate(save.savedAt)}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={isIncompatible}
+                    onClick={() => handleLoad(save)}
+                  >
+                    Load
+                  </Button>
+                  <IconButton size="small" color="error" onClick={() => handleDelete(save)} aria-label="Delete save">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
-                <Button size="small" variant="outlined" onClick={() => handleLoad(save)}>
-                  Load
-                </Button>
-                <IconButton size="small" color="error" onClick={() => handleDelete(save)} aria-label="Delete save">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
               </Box>
-            </Box>
-          ))
+            );
+          })
         )}
       </DialogContent>
       <DialogActions sx={{ px: 2, pb: 2 }}>

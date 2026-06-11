@@ -1,7 +1,8 @@
 import { LeagueManager } from './league-manager.ts';
-import type { MatchCompletedPayload } from './league-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
 import type { ClubManagerConfig } from '../club/club-manager.ts';
+import { EventBus } from '../event-bus.ts';
+import type { GameEvents } from '../game-events.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 import type { Team, Player, Formation } from '../shared/types.ts';
 
@@ -29,13 +30,9 @@ function makeTeam(id: string, starters: Player[]): Team {
   return { id, name: id, formation: '4-4-2' as Formation, starters, substitutes: [], colors: { primary: '#FFFFFF', secondary: '#000000' } };
 }
 
-// Build a 4-team league where the first team is controlled by the player.
-// The starters are shared between the Team object and the ClubManager,
-// ensuring handleMatchCompleted can match player IDs.
-function makeIntegrationSetup(onMatchCompleted?: (p: MatchCompletedPayload) => void) {
+function makeIntegrationSetup(eventBus?: EventBus<GameEvents>) {
   const playerStarters = Array.from({ length: 11 }, (_, i) => makePlayer(`club-p${i}`));
   const playerTeam = makeTeam('player-club', playerStarters);
-
   const otherTeams = ['team-b', 'team-c', 'team-d'].map(id =>
     makeTeam(id, Array.from({ length: 11 }, (_, i) => makePlayer(`${id}-p${i}`))),
   );
@@ -52,6 +49,7 @@ function makeIntegrationSetup(onMatchCompleted?: (p: MatchCompletedPayload) => v
     stadiumCapacity: 10_000,
     stadiumSectors: {},
     rng: () => 1, // prevent injuries
+    eventBus,
   };
   const clubManager = new ClubManager(clubConfig);
 
@@ -59,26 +57,30 @@ function makeIntegrationSetup(onMatchCompleted?: (p: MatchCompletedPayload) => v
     teams: [playerTeam, ...otherTeams],
     startDate: START,
     eventsPerMinute: 1,
-    onMatchCompleted,
+    eventBus,
   });
 
   return { clubManager, leagueManager, playerTeam, otherTeams };
 }
 
-// ── callback wiring ───────────────────────────────────────────────────────────
+// ── EventBus: LeagueManager emits match.completed ────────────────────────────
 
-describe('LeagueManager onMatchCompleted callback:', () => {
-  test('callback is invoked for each completed match', async () => {
+describe('LeagueManager eventBus:', () => {
+  test('emits match.completed for each completed match', async () => {
+    const bus = new EventBus<GameEvents>();
     let callCount = 0;
-    const { leagueManager } = makeIntegrationSetup(() => { callCount++; });
+    bus.on('match.completed', () => { callCount++; });
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateNextMatchday();
     // 4 teams → 2 fixtures per matchday
     expect(callCount).toBe(2);
   });
 
-  test('callback receives correct team ids', async () => {
-    const payloads: MatchCompletedPayload[] = [];
-    const { leagueManager } = makeIntegrationSetup(p => payloads.push(p));
+  test('payload has correct team ids', async () => {
+    const bus = new EventBus<GameEvents>();
+    const payloads: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', p => payloads.push(p));
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
@@ -88,9 +90,11 @@ describe('LeagueManager onMatchCompleted callback:', () => {
     }
   });
 
-  test('callback receives scores as numbers', async () => {
-    const payloads: MatchCompletedPayload[] = [];
-    const { leagueManager } = makeIntegrationSetup(p => payloads.push(p));
+  test('payload has scores as numbers', async () => {
+    const bus = new EventBus<GameEvents>();
+    const payloads: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', p => payloads.push(p));
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
@@ -101,21 +105,24 @@ describe('LeagueManager onMatchCompleted callback:', () => {
     }
   });
 
-  test('callback receives standings that already reflect the match result', async () => {
-    const payloads: MatchCompletedPayload[] = [];
-    const { leagueManager } = makeIntegrationSetup(p => payloads.push(p));
+  test('standings in payload already reflect the match result', async () => {
+    const bus = new EventBus<GameEvents>();
+    const payloads: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', p => payloads.push(p));
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
-      // Standings are updated before callback — both teams should have played >= 1
       expect(p.homeStanding.played).toBeGreaterThanOrEqual(1);
       expect(p.awayStanding.played).toBeGreaterThanOrEqual(1);
     }
   });
 
-  test('callback receives correct timestamp type', async () => {
-    const payloads: MatchCompletedPayload[] = [];
-    const { leagueManager } = makeIntegrationSetup(p => payloads.push(p));
+  test('payload has correct timestamp type', async () => {
+    const bus = new EventBus<GameEvents>();
+    const payloads: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', p => payloads.push(p));
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
@@ -124,14 +131,16 @@ describe('LeagueManager onMatchCompleted callback:', () => {
     }
   });
 
-  test('no callback does not throw', async () => {
+  test('no eventBus does not throw', async () => {
     const { leagueManager } = makeIntegrationSetup();
     await expect(leagueManager.simulateNextMatchday()).resolves.not.toThrow();
   });
 
-  test('callback is invoked for every match across a full season', async () => {
+  test('emits for every match across a full season', async () => {
+    const bus = new EventBus<GameEvents>();
     let callCount = 0;
-    const { leagueManager } = makeIntegrationSetup(() => { callCount++; });
+    bus.on('match.completed', () => { callCount++; });
+    const { leagueManager } = makeIntegrationSetup(bus);
     await leagueManager.simulateFullSeason();
     // 4 teams → 6 matchdays × 2 fixtures = 12 matches total
     expect(callCount).toBe(12);
@@ -142,33 +151,9 @@ describe('LeagueManager onMatchCompleted callback:', () => {
 
 describe('ClubManager wired to LeagueManager:', () => {
   function makeWiredSetup() {
-    // eslint-disable-next-line prefer-const
-    let clubManager!: ClubManager;
-    const { leagueManager, playerTeam } = makeIntegrationSetup(payload => {
-      clubManager.handleMatchCompleted({
-        homeTeamId: payload.homeTeamId,
-        awayTeamId: payload.awayTeamId,
-        homeScore: payload.homeScore,
-        awayScore: payload.awayScore,
-        timestamp: payload.timestamp,
-      });
-    });
-    // Re-build with the actual clubManager reference (closure captures it)
-    const playerStarters = Array.from({ length: 11 }, (_, i) => makePlayer(`club-p${i}`));
-    clubManager = new ClubManager({
-      clubId: 'player-club',
-      clubName: 'Player Club',
-      divisionId: 'div1',
-      squad: playerStarters,
-      budget: 500_000,
-      formation: '4-4-2' as Formation,
-      startingXI: playerStarters.map(p => p.id),
-      benchPlayers: [],
-      stadiumCapacity: 10_000,
-      stadiumSectors: {},
-      rng: () => 1, // suppress injuries
-    });
-    return { clubManager, leagueManager, playerTeam };
+    const bus = new EventBus<GameEvents>();
+    const { leagueManager, clubManager, playerTeam } = makeIntegrationSetup(bus);
+    return { bus, clubManager, leagueManager, playerTeam };
   }
 
   test('starting XI players have reduced fitness after a match', async () => {
@@ -177,15 +162,11 @@ describe('ClubManager wired to LeagueManager:', () => {
 
     const state = clubManager.getState();
     const starters = state.squad.filter(p => state.startingXI.includes(p.id));
-
-    // At least one matchday was played — if club played, starters have drained fitness
     const anyDrained = starters.some(p => p.fitness < 100);
-    // The club may be home or away on matchday 1; it plays exactly one match
     expect(anyDrained).toBe(true);
   }, 30000);
 
   test('non-participating players retain fitness 100', async () => {
-    // Create a squad with extra players not in the starting XI
     const starters = Array.from({ length: 11 }, (_, i) => makePlayer(`main-p${i}`));
     const bench = Array.from({ length: 4 }, (_, i) => makePlayer(`bench-p${i}`));
     const playerTeam = makeTeam('player-club', starters);
@@ -193,21 +174,14 @@ describe('ClubManager wired to LeagueManager:', () => {
       makeTeam(id, Array.from({ length: 11 }, (_, i) => makePlayer(`${id}-p${i}`))),
     );
 
-    // eslint-disable-next-line prefer-const
-    let club!: ClubManager;
+    const bus = new EventBus<GameEvents>();
     const lm = new LeagueManager({
       teams: [playerTeam, ...otherTeams],
       startDate: START,
       eventsPerMinute: 1,
-      onMatchCompleted: payload => club.handleMatchCompleted({
-        homeTeamId: payload.homeTeamId,
-        awayTeamId: payload.awayTeamId,
-        homeScore: payload.homeScore,
-        awayScore: payload.awayScore,
-        timestamp: payload.timestamp,
-      }),
+      eventBus: bus,
     });
-    club = new ClubManager({
+    const club = new ClubManager({
       clubId: 'player-club',
       clubName: 'Player Club',
       divisionId: 'div1',
@@ -219,11 +193,11 @@ describe('ClubManager wired to LeagueManager:', () => {
       stadiumCapacity: 10_000,
       stadiumSectors: {},
       rng: () => 1,
+      eventBus: bus,
     });
 
     await lm.simulateNextMatchday();
 
-    // Bench players (not in startingXI) must remain at 100
     bench.forEach(bp => {
       const inSquad = club.getState().squad.find(p => p.id === bp.id)!;
       expect(inSquad.fitness).toBe(100);
@@ -237,27 +211,14 @@ describe('ClubManager wired to LeagueManager:', () => {
       makeTeam(id, Array.from({ length: 11 }, (_, i) => makePlayer(`${id}-p${i}`))),
     );
 
-    // eslint-disable-next-line prefer-const
-    let club!: ClubManager;
+    const bus = new EventBus<GameEvents>();
     const lm = new LeagueManager({
       teams: [playerTeam, ...otherTeams],
       startDate: START,
       eventsPerMinute: 1,
-      onMatchCompleted: payload => {
-        club.handleMatchCompleted({
-          homeTeamId: payload.homeTeamId,
-          awayTeamId: payload.awayTeamId,
-          homeScore: payload.homeScore,
-          awayScore: payload.awayScore,
-          timestamp: payload.timestamp,
-        });
-        if (payload.homeTeamId === 'player-club') {
-          const receipt = club.calculateHomeReceipt(payload.awayStanding);
-          club.recordGateReceipt(receipt, payload.awayTeamId, payload.timestamp);
-        }
-      },
+      eventBus: bus,
     });
-    club = new ClubManager({
+    const club = new ClubManager({
       clubId: 'player-club',
       clubName: 'Player Club',
       divisionId: 'div1',
@@ -269,9 +230,9 @@ describe('ClubManager wired to LeagueManager:', () => {
       stadiumCapacity: 10_000,
       stadiumSectors: {},
       rng: () => 1,
+      eventBus: bus,
     });
 
-    // Simulate enough matches for the player's club to play at least one home game
     await lm.simulateFullSeason();
 
     const receipts = club.getState().financialLog.filter(t => t.type === 'gate_receipt');

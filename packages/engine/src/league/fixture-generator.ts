@@ -40,8 +40,11 @@ export function generateFixtures(teams: Team[], startDate: GameDateTime): Fixtur
   const fixtures: Fixture[] = [];
   let matchday = 1;
 
-  for (const round of firstLeg) {
-    const time = kickoffTime(startDate, matchday - 1);
+  for (let r = 0; r < firstLeg.length; r++) {
+    const round = firstLeg[r];
+
+    // Leg 1 — original home/away
+    const time1 = kickoffTime(startDate, matchday - 1);
     for (const [home, away] of round) {
       fixtures.push({
         id: `${home.id}-vs-${away.id}-md${matchday}`,
@@ -50,16 +53,15 @@ export function generateFixtures(teams: Team[], startDate: GameDateTime): Fixtur
         awayTeamId: away.id,
         homeTeamName: home.name,
         awayTeamName: away.name,
-        scheduledTime: time,
+        scheduledTime: time1,
         result: null,
         status: 'scheduled',
       });
     }
     matchday++;
-  }
 
-  for (const round of firstLeg) {
-    const time = kickoffTime(startDate, matchday - 1);
+    // Leg 2 — same round, home/away swapped
+    const time2 = kickoffTime(startDate, matchday - 1);
     for (const [home, away] of round) {
       fixtures.push({
         id: `${away.id}-vs-${home.id}-md${matchday}`,
@@ -68,7 +70,7 @@ export function generateFixtures(teams: Team[], startDate: GameDateTime): Fixtur
         awayTeamId: home.id,
         homeTeamName: away.name,
         awayTeamName: home.name,
-        scheduledTime: time,
+        scheduledTime: time2,
         result: null,
         status: 'scheduled',
       });
