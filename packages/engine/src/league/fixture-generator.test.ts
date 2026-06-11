@@ -1,4 +1,5 @@
 import { generateFixtures } from './fixture-generator.ts';
+import type { Fixture } from './league-types.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 
@@ -91,26 +92,23 @@ describe('generateFixtures:', () => {
     });
   });
 
-  describe('home/away alternation:', () => {
-    test('no team plays more than 2 consecutive home or away games', () => {
+  describe('opponent spacing:', () => {
+    test('no team plays the same opponent in consecutive matchdays', () => {
       const fixtures = generateFixtures(TEAMS, START);
-      for (const team of TEAMS) {
-        const sorted = fixtures
-          .filter(f => f.homeTeamId === team.id || f.awayTeamId === team.id)
-          .sort((a, b) => a.matchday - b.matchday);
-        let maxRun = 1;
-        let run = 1;
-        for (let i = 1; i < sorted.length; i++) {
-          const prevHome = sorted[i - 1].homeTeamId === team.id;
-          const currHome = sorted[i].homeTeamId === team.id;
-          if (prevHome === currHome) {
-            run++;
-            maxRun = Math.max(maxRun, run);
-          } else {
-            run = 1;
-          }
+      const fixturesByMatchday = new Map<number, Fixture[]>();
+      for (const f of fixtures) {
+        if (!fixturesByMatchday.has(f.matchday)) { fixturesByMatchday.set(f.matchday, []); }
+        fixturesByMatchday.get(f.matchday)!.push(f);
+      }
+      const matchdays = [...fixturesByMatchday.keys()].sort((a, b) => a - b);
+      for (let i = 1; i < matchdays.length; i++) {
+        const prev = fixturesByMatchday.get(matchdays[i - 1])!;
+        const curr = fixturesByMatchday.get(matchdays[i])!;
+        const prevPairs = new Set(prev.map(f => [f.homeTeamId, f.awayTeamId].sort().join('|')));
+        for (const f of curr) {
+          const pair = [f.homeTeamId, f.awayTeamId].sort().join('|');
+          expect(prevPairs.has(pair)).toBe(false);
         }
-        expect(maxRun).toBeLessThanOrEqual(2);
       }
     });
   });
