@@ -1,4 +1,5 @@
-import type { Team, Player, Formation, Position } from '../shared/types.ts';
+import { calculateBestFormation } from '../lineup/selection.ts';
+import type { Team, Player, Position } from '../shared/types.ts';
 
 export interface CountryPlayerData {
   id: string;
@@ -55,12 +56,13 @@ function toPlayer(p: CountryPlayerData, countryNationality: string): Player {
 }
 
 function toTeam(t: CountryTeamData, nationality: string): Team {
+  const players = t.players.map(p => toPlayer(p, nationality));
   return {
     id: t.id,
     name: t.name,
-    formation: '4-4-2' as Formation,
-    starters: t.players.slice(0, 11).map(p => toPlayer(p, nationality)),
-    substitutes: t.players.slice(11).map(p => toPlayer(p, nationality)),
+    formation: calculateBestFormation(players),
+    starters: players.slice(0, 11),
+    substitutes: players.slice(11),
     colors: { primary: t.primaryColor ?? '#FFFFFF', secondary: t.secondaryColor ?? '#000000' },
   };
 }

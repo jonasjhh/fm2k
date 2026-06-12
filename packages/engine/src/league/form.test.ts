@@ -32,9 +32,10 @@ describe('recentForm:', () => {
 });
 
 describe('leagueZone:', () => {
-  it('marks the top three as promotion', () => {
+  it('marks the top two as promotion', () => {
     expect(leagueZone(1, 20)).toBe('promotion');
-    expect(leagueZone(3, 20)).toBe('promotion');
+    expect(leagueZone(2, 20)).toBe('promotion');
+    expect(leagueZone(3, 20)).toBeNull();
   });
 
   it('marks the bottom two as relegation', () => {
@@ -45,5 +46,16 @@ describe('leagueZone:', () => {
   it('returns null for mid-table', () => {
     expect(leagueZone(4, 20)).toBeNull();
     expect(leagueZone(18, 20)).toBeNull();
+  });
+
+  it('marks first place in the top division as champion, with no promotion zone', () => {
+    expect(leagueZone(1, 20, { hasDivisionAbove: false })).toBe('champion');
+    expect(leagueZone(2, 20, { hasDivisionAbove: false })).toBeNull();
+    expect(leagueZone(20, 20, { hasDivisionAbove: false })).toBe('relegation');
+  });
+
+  it('omits the relegation zone for the bottom division (no division below)', () => {
+    expect(leagueZone(20, 20, { hasDivisionBelow: false })).toBeNull();
+    expect(leagueZone(1, 20, { hasDivisionBelow: false })).toBe('promotion');
   });
 });

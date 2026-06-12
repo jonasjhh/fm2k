@@ -11,17 +11,18 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import { useGameStore } from '../store/game-store';
+import { useGameStore, findCountryForTeam, findDivisionForTeam } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 
 import { sfx } from '../utils/formatting';
 import { leagueRowBg, useStatusColors } from '../utils/colors';
 
 export default function SeasonEndModal() {
-  const { seasonComplete, leagueState, playerTeamId, setScreen, startNewSeason } = useGameStore(useShallow((s) => ({
+  const { seasonComplete, leagueState, playerTeamId, editableCountries, setScreen, startNewSeason } = useGameStore(useShallow((s) => ({
     seasonComplete: s.seasonComplete,
     leagueState: s.leagueState,
     playerTeamId: s.playerTeamId,
+    editableCountries: s.editableCountries,
     setScreen: s.setScreen,
     startNewSeason: s.startNewSeason,
   })));
@@ -35,13 +36,23 @@ export default function SeasonEndModal() {
   const entry = standings.find((s) => s.teamId === playerTeamId);
   const n = standings.length;
 
+  // Where the player's division sits in its country's ladder.
+  const country = findCountryForTeam(editableCountries, playerTeamId);
+  const playerDiv = findDivisionForTeam(editableCountries, playerTeamId);
+  const ladder = [...(country?.divisions ?? [])].sort((a, b) => a.level - b.level);
+  const divIdx = ladder.findIndex(d => d.id === playerDiv?.id);
+  const hasDivisionAbove = divIdx > 0;
+  const hasDivisionBelow = divIdx >= 0 && divIdx < ladder.length - 1;
+
+  const promoted = hasDivisionAbove && pos <= 2;
+  const relegated = hasDivisionBelow && pos >= n - 1;
   const verdict =
     pos === 1 ? '🏆 CHAMPIONS! You won the league!' :
-    pos <= 3 ? `🥈 ${pos}${sfx(pos)} place — Great season!` :
-    pos <= n - 3 ? `👍 ${pos}${sfx(pos)} place — Mid-table finish.` :
-    `⚠️ ${pos}${sfx(pos)} place — Relegation zone!`;
+    promoted ? `🥈 ${pos}${sfx(pos)} place — Promoted!` :
+    relegated ? `⚠️ ${pos}${sfx(pos)} place — Relegated!` :
+    `👍 ${pos}${sfx(pos)} place — Mid-table finish.`;
 
-  const severity = pos === 1 ? 'success' : pos <= 3 ? 'info' : pos >= n - 1 ? 'error' : 'warning';
+  const severity = pos === 1 ? 'success' : promoted ? 'info' : relegated ? 'error' : 'warning';
 
   return (
     <Dialog open maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: 3 } } }}>
@@ -74,7 +85,7 @@ export default function SeasonEndModal() {
             {standings.map((s, i) => {
               const p = i + 1;
               const isPlayer = s.teamId === playerTeamId;
-              const bg = leagueRowBg(isPlayer, p, n, statusColors);
+              const bg = leagueRowBg(isPlayer, p, n, statusColors, { hasDivisionAbove, hasDivisionBelow });
               const gd = s.goalDifference >= 0 ? `+${s.goalDifference}` : String(s.goalDifference);
               return (
                 <TableRow key={s.teamId} sx={bg ? { bgcolor: bg } : {}}>

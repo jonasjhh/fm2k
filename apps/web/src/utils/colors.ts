@@ -13,8 +13,9 @@ export function leagueRowBg(
   pos: number,
   total: number,
   colors: StatusColors = STATUS_COLORS,
+  opts?: { hasDivisionAbove?: boolean; hasDivisionBelow?: boolean },
 ): string | undefined {
   if (isPlayer) {return colors.playerTeam;}
-  const zone = leagueZone(pos, total);
+  const zone = leagueZone(pos, total, opts);
   return zone ? colors[zone] : undefined;
 }

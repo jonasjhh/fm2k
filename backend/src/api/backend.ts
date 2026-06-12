@@ -11,6 +11,7 @@ import type {
 export interface BackendCommands {
   // lifecycle
   startGame(teamId: string, leagueIds: string[]): boolean;
+  startNewSeason(): boolean;
   saveGame(type: SaveType, activeTab?: string): Promise<void>;
   loadGame(save: SaveData): boolean;
   // simulation
@@ -71,6 +72,7 @@ export function createBackend(): Backend {
 
   const commands: BackendCommands = {
     startGame: (teamId, leagueIds) => s.startGame(teamId, leagueIds),
+    startNewSeason: () => s.startNewSeason(),
     saveGame: (type, activeTab) => s.saveGame(type, activeTab),
     loadGame: (save) => s.loadGame(save),
     simulateMatchday: () => s.simulateMatchday(),

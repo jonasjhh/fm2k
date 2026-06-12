@@ -5,6 +5,7 @@ export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
   return [event, ...flattenMatchEventChain(event.chainedEvent)];
 }
 import { Team } from '../shared/types.ts';
+import { selectStartingXI } from '../lineup/selection.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
   ShortPassGenerator,
@@ -19,6 +20,9 @@ export interface MatchConfig {
   eventsPerMinute: number;
   homeTeam: Team;
   awayTeam: Team;
+  /** Players that cannot play (injured/suspended/etc.); excluded from XI selection. */
+  homeUnavailableIds?: ReadonlySet<string>;
+  awayUnavailableIds?: ReadonlySet<string>;
 }
 
 export class MatchSimulator {
@@ -42,6 +46,10 @@ export class MatchSimulator {
     this.actionSelector.registerAction('shot', new ShotGenerator());
   }
 
+  private selectXI(team: Team, unavailableIds?: ReadonlySet<string>) {
+    return selectStartingXI([...team.starters, ...team.substitutes], team.formation, { unavailableIds });
+  }
+
   private createInitialState(): MatchState {
     return {
       minute: 0,
@@ -53,8 +61,8 @@ export class MatchSimulator {
       homeTeam: { ...this.config.homeTeam },
       awayTeam: { ...this.config.awayTeam },
       currentPlayers: {
-        home: [...this.config.homeTeam.starters],
-        away: [...this.config.awayTeam.starters],
+        home: this.selectXI(this.config.homeTeam, this.config.homeUnavailableIds),
+        away: this.selectXI(this.config.awayTeam, this.config.awayUnavailableIds),
       },
       bookings: {
         yellow: [],

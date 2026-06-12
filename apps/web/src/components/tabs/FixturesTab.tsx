@@ -15,8 +15,11 @@ import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../sto
 import { useShallow } from 'zustand/react/shallow';
 import { fmtDate } from '../../utils/formatting';
 import { SectionHeader } from '@fm2k/design-system';
+import TeamNameButton from '../ui/TeamNameButton';
+import TeamLineupDialog from '../TeamLineupDialog';
 
 export default function FixturesTab() {
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const { leagueStates, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:       s.leagueStates,
@@ -183,13 +186,11 @@ export default function FixturesTab() {
                 }}
               >
                 <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
-                  <Typography
-                    align="right"
-                    noWrap
-                    sx={{ flex: 1, fontWeight: isPlayerGame ? 600 : 400 }}
-                  >
-                    {f.homeTeamName}
-                  </Typography>
+                  <TeamNameButton
+                    name={f.homeTeamName}
+                    onClick={() => setSelectedTeamId(f.homeTeamId)}
+                    sx={{ flex: 1, textAlign: 'right', fontWeight: isPlayerGame ? 600 : 400 }}
+                  />
 
                   {f.status === 'completed' ? (
                     <Chip
@@ -207,18 +208,18 @@ export default function FixturesTab() {
                     </Typography>
                   )}
 
-                  <Typography
-                    noWrap
+                  <TeamNameButton
+                    name={f.awayTeamName}
+                    onClick={() => setSelectedTeamId(f.awayTeamId)}
                     sx={{ flex: 1, fontWeight: isPlayerGame ? 600 : 400 }}
-                  >
-                    {f.awayTeamName}
-                  </Typography>
+                  />
                 </Stack>
               </Paper>
             );
           })}
         </Box>
       )}
+      <TeamLineupDialog teamId={selectedTeamId} onClose={() => setSelectedTeamId(null)} />
     </Box>
   );
 }

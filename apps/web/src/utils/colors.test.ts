@@ -19,9 +19,10 @@ describe('leagueRowBg:', () => {
     expect(leagueRowBg(true, 10, total)).toBe(STATUS_COLORS.playerTeam);
   });
 
-  it('given a top-3 position then returns the promotion colour', () => {
+  it('given a top-two position then returns the promotion colour', () => {
     expect(leagueRowBg(false, 1, total)).toBe(STATUS_COLORS.promotion);
-    expect(leagueRowBg(false, 3, total)).toBe(STATUS_COLORS.promotion);
+    expect(leagueRowBg(false, 2, total)).toBe(STATUS_COLORS.promotion);
+    expect(leagueRowBg(false, 3, total)).toBeUndefined();
   });
 
   it('given a bottom-two position then returns the relegation colour', () => {
@@ -32,5 +33,16 @@ describe('leagueRowBg:', () => {
   it('given a mid-table position then returns undefined', () => {
     expect(leagueRowBg(false, 4, total)).toBeUndefined();
     expect(leagueRowBg(false, 18, total)).toBeUndefined();
+  });
+
+  it('given the top division then first place is the champion colour and there is no promotion zone', () => {
+    expect(leagueRowBg(false, 1, total, STATUS_COLORS, { hasDivisionAbove: false })).toBe(STATUS_COLORS.champion);
+    expect(leagueRowBg(false, 2, total, STATUS_COLORS, { hasDivisionAbove: false })).toBeUndefined();
+    expect(leagueRowBg(false, 20, total, STATUS_COLORS, { hasDivisionAbove: false })).toBe(STATUS_COLORS.relegation);
+  });
+
+  it('given the bottom division then no relegation colour is shown', () => {
+    expect(leagueRowBg(false, 20, total, STATUS_COLORS, { hasDivisionBelow: false })).toBeUndefined();
+    expect(leagueRowBg(false, 1, total, STATUS_COLORS, { hasDivisionBelow: false })).toBe(STATUS_COLORS.promotion);
   });
 });

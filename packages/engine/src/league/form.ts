@@ -17,9 +17,20 @@ export function recentForm(fixtures: readonly Fixture[], teamId: string, count =
     });
 }
 
-/** Which league zone a 1-based table position falls in, given the division size. */
-export function leagueZone(pos: number, total: number): 'promotion' | 'relegation' | null {
-  if (pos <= 3) { return 'promotion'; }
-  if (pos >= total - 1) { return 'relegation'; }
+/**
+ * Which league zone a 1-based table position falls in, given the division size.
+ * Top 2 promote and bottom 2 relegate — but a division only has a promotion zone
+ * when there is a division above it, and a relegation zone when there is one below.
+ * In the top division (no division above) first place is the champion instead.
+ */
+export function leagueZone(
+  pos: number,
+  total: number,
+  opts: { hasDivisionAbove?: boolean; hasDivisionBelow?: boolean } = {},
+): 'champion' | 'promotion' | 'relegation' | null {
+  const { hasDivisionAbove = true, hasDivisionBelow = true } = opts;
+  if (!hasDivisionAbove && pos === 1) { return 'champion'; }
+  if (hasDivisionAbove && pos <= 2) { return 'promotion'; }
+  if (hasDivisionBelow && pos >= total - 1) { return 'relegation'; }
   return null;
 }

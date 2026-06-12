@@ -10,6 +10,7 @@ import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
 } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
+import { applyPromotionRelegation } from '../domain/promotion.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import {
   writeSave, SAVE_VERSION, type SaveData, type SaveType,
@@ -186,6 +187,21 @@ export class GameSession {
     this.seasonComplete = false;
     this.lastMatchResult = null;
     return true;
+  }
+
+  /**
+   * Roll over to the next season: apply promotion/relegation from the just-finished
+   * standings, then rebuild every division (and the player's club) from the updated
+   * memberships.
+   */
+  startNewSeason(): boolean {
+    if (!this.playerTeamId) { return false; }
+    const ranked: Record<string, string[]> = {};
+    for (const [divId, lm] of Object.entries(this.leagueManagers)) {
+      ranked[divId] = lm.getState().standings.map(s => s.teamId);
+    }
+    this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked);
+    return this.startGame(this.playerTeamId, this.selectedLeagueIds);
   }
 
   buildSaveData(type: SaveType, activeTab = 'squad'): SaveData | null {

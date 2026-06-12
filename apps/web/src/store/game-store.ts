@@ -180,8 +180,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     startNewSeason: () => {
-      const { playerTeamId, selectedLeagueIds } = get();
-      if (playerTeamId && backend.commands.startGame(playerTeamId, selectedLeagueIds)) { refresh(); }
+      if (backend.commands.startNewSeason()) { refresh(); }
     },
 
     saveGame: async (type) => { await backend.commands.saveGame(type, get().activeTab); },

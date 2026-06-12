@@ -15,8 +15,11 @@ import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../sto
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors, leagueRowBg } from '../../utils/colors';
 import { ScrollableTable } from '@fm2k/design-system';
+import TeamNameButton from '../ui/TeamNameButton';
+import TeamLineupDialog from '../TeamLineupDialog';
 
 export default function TableTab() {
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const { leagueStates, playerTeamId, editableCountries, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:      s.leagueStates,
@@ -58,6 +61,11 @@ export default function TableTab() {
   };
 
   const leagueState = leagueStates[selectedDivisionId] ?? null;
+
+  const ladder = [...(selectedNation?.divisions ?? [])].sort((a, b) => a.level - b.level);
+  const divIdx = ladder.findIndex(d => d.id === selectedDivisionId);
+  const hasDivisionAbove = divIdx > 0;
+  const hasDivisionBelow = divIdx >= 0 && divIdx < ladder.length - 1;
 
   if (!leagueState) {return null;}
 
@@ -101,8 +109,9 @@ export default function TableTab() {
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        <Chip size="small" sx={{ bgcolor: statusColors.promotion }} label="Promotion" />
-        <Chip size="small" sx={{ bgcolor: statusColors.relegation }} label="Relegation" />
+        {!hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.champion }} label="Champion" />}
+        {hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.promotion }} label="Promotion" />}
+        {hasDivisionBelow && <Chip size="small" sx={{ bgcolor: statusColors.relegation }} label="Relegation" />}
         <Chip size="small" sx={{ bgcolor: statusColors.playerTeam }} label="Your club" />
       </Box>
 
@@ -125,14 +134,14 @@ export default function TableTab() {
           {leagueState.standings.map((s, i) => {
             const pos = i + 1;
             const isPlayer = s.teamId === playerTeamId;
-            const bg = leagueRowBg(isPlayer, pos, n, statusColors);
+            const bg = leagueRowBg(isPlayer, pos, n, statusColors, { hasDivisionAbove, hasDivisionBelow });
             const gd = s.goalDifference >= 0 ? `+${s.goalDifference}` : String(s.goalDifference);
             return (
               <TableRow key={s.teamId} sx={bg ? { bgcolor: bg } : {}}>
                 <TableCell align="center">{pos}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {s.teamName}
+                    <TeamNameButton name={s.teamName} onClick={() => setSelectedTeamId(s.teamId)} />
                     {isPlayer && <Chip label="You" size="small" color="primary" />}
                   </Box>
                 </TableCell>
@@ -149,6 +158,7 @@ export default function TableTab() {
           })}
         </TableBody>
       </ScrollableTable>
+      <TeamLineupDialog teamId={selectedTeamId} onClose={() => setSelectedTeamId(null)} />
     </Box>
   );
 }

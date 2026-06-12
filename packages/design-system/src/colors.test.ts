@@ -13,7 +13,7 @@ describe('getContrastColor:', () => {
 });
 
 describe('status tokens:', () => {
-  it('exposes the four semantic status variants', () => {
-    expect(Object.keys(STATUS_COLORS)).toEqual(['playerTeam', 'promotion', 'relegation', 'caution']);
+  it('exposes the semantic status variants', () => {
+    expect(Object.keys(STATUS_COLORS)).toEqual(['playerTeam', 'champion', 'promotion', 'relegation', 'caution']);
   });
 });
