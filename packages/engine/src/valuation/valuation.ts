@@ -1,5 +1,5 @@
-import { calculateOverall } from '@fm2k/engine';
-import type { Player } from '@fm2k/engine';
+import { calculateOverall } from '../transfer/transfer-manager.ts';
+import type { Player } from '../shared/types.ts';
 
 export function getTeamOVR(starters: Player[]): number {
   if (starters.length === 0) {return 0;}

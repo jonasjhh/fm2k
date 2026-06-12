@@ -2,50 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import type React from 'react';
 import { useGameStore } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import type { ClubPlayer, Formation } from '@fm2k/engine';
-
-export const FORMATION_LINES: Record<Formation, string[][]> = {
-  // 4-back
-  '4-4-2':   [['GK'], ['LB','CB','CB','RB'], ['LM','CM','CM','RM'],         ['ST','ST']],
-  '4-3-3':   [['GK'], ['LB','CB','CB','RB'], ['CM','CM','CM'],               ['LW','ST','RW']],
-  '4-5-1':   [['GK'], ['LB','CB','CB','RB'], ['LM','CM','CM','CM','RM'],     ['ST']],
-  '4-2-3-1': [['GK'], ['LB','CB','CB','RB'], ['CDM','CDM'], ['CAM','CAM','CAM'], ['ST']],
-  '4-1-4-1': [['GK'], ['LB','CB','CB','RB'], ['CDM'], ['LM','CM','CM','RM'], ['ST']],
-  '4-4-1-1': [['GK'], ['LB','CB','CB','RB'], ['LM','CM','CM','RM'],         ['CAM'], ['ST']],
-  '4-2-4':   [['GK'], ['LB','CB','CB','RB'], ['CDM','CDM'],                 ['LW','ST','ST','RW']],
-  // 3-back
-  '3-5-2':   [['GK'], ['CB','CB','CB'], ['LM','CM','CM','CM','RM'],          ['ST','ST']],
-  '3-4-3':   [['GK'], ['CB','CB','CB'], ['LM','CM','CM','RM'],               ['LW','ST','RW']],
-  '3-4-2-1': [['GK'], ['CB','CB','CB'], ['LM','CM','CM','RM'],               ['CAM','CAM'], ['ST']],
-  // 5-back
-  '5-3-2':   [['GK'], ['LB','CB','CB','CB','RB'], ['CM','CM','CM'],          ['ST','ST']],
-  '5-4-1':   [['GK'], ['LB','CB','CB','CB','RB'], ['LM','CM','CM','RM'],     ['ST']],
-};
-
-function buildSlotAssignments(
-  xiIds: string[],
-  benchIds: string[],
-  squad: ClubPlayer[],
-  formation: Formation,
-): (string | null)[] {
-  const slots = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat();
-  const players = xiIds.map(id => squad.find(p => p.id === id)).filter(Boolean) as ClubPlayer[];
-  const result: (string | null)[] = Array(slots.length).fill(null);
-  const used = new Set<string>();
-
-  for (let i = 0; i < slots.length; i++) {
-    const match = players.find(p => !used.has(p.id) && p.position === slots[i]);
-    if (match) { result[i] = match.id; used.add(match.id); }
-  }
-  const remaining = players.filter(p => !used.has(p.id));
-  for (let i = 0; i < result.length; i++) {
-    if (!result[i] && remaining.length) { result[i] = remaining.shift()!.id; }
-  }
-
-  const bench: (string | null)[] = Array(4).fill(null);
-  benchIds.slice(0, 4).forEach((id, i) => { bench[i] = id; });
-  return [...result, ...bench];
-}
+import { FORMATION_LINES, buildSlotAssignments } from '@fm2k/engine';
+import type { Formation } from '@fm2k/engine';
 
 export function useLineupSlots() {
   const { clubState, setStartingXI, setBench } = useGameStore(useShallow((s) => ({

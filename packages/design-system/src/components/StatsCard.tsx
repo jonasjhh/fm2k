@@ -7,7 +7,7 @@ interface StatsCardProps {
   value: string | number;
 }
 
-export default function StatsCard({ label, value }: StatsCardProps) {
+export function StatsCard({ label, value }: StatsCardProps) {
   return (
     <Card variant="outlined">
       <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 }, textAlign: 'center' }}>

@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { useGameStore } from '../store/game-store';
 import SettingsDialog from '../components/ui/SettingsDialog';
 import LoadGameDialog from '../components/ui/LoadGameDialog';
-import { readAllSaves } from '../store/save-data';
+import { readAllSaves } from '@fm2k/backend';
 
 const FEATURES = ['8 nations', '384 clubs', 'Transfer market', 'Club facilities', 'Full season'];
 

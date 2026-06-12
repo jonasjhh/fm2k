@@ -23,15 +23,23 @@ export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
 
 export type { Formation, Player, PlayerAttributes, Position, Team, TeamTactics } from './shared/types.ts';
-export { v4 } from './shared/uuid.ts';
-
-export { EventBus } from './event-bus.ts';
+export { v4, EventBus, StateManager } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
-export { StateManager } from './state/state-manager.ts';
 
 export { EventLog, addDays, createGameDateTime, TickEngine } from '@fm2k/timeline';
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
+export { sellPrice, getTeamOVR } from './valuation/valuation.ts';
+export {
+  SECTOR_KEYS, STAND_TYPES, STAND_CONSTRUCTION_COSTS, LOCATION_MULT,
+  COST_PER_SEAT_ADDED, COST_PER_SEAT_REMOVED, DEFAULT_STADIUM_SECTORS,
+  getSectorCapacity, calculateTotalCapacity, calculateSectorChangeCost,
+  calculateTotalChangeCost, hasSectorChanged,
+} from './stadium/stadium.ts';
+export type { SectorKey } from './stadium/stadium.ts';
+export { FORMATION_LINES, buildSlotAssignments } from './lineup/lineup.ts';
+export { recentForm, leagueZone } from './league/form.ts';
+export type { FormResult } from './league/form.ts';
 export type { TransferManagerConfig } from './transfer/transfer-manager.ts';
 export type { TransferListing, TransferState } from './transfer/transfer-types.ts';

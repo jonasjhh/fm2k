@@ -1,4 +1,4 @@
-import { StateManager } from '../state/state-manager.ts';
+import { StateManager } from '@fm2k/state';
 import type { Player, Formation } from '../shared/types.ts';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueStanding } from '../league/league-types.ts';
@@ -10,7 +10,7 @@ import type {
   FinancialTransaction,
   StadiumSectorConfig,
 } from './club-types.ts';
-import type { EventBus } from '../event-bus.ts';
+import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {

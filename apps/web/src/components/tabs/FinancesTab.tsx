@@ -9,7 +9,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import { useGameStore } from '../../store/game-store';
 import { fmt } from '../../utils/formatting';
-import ScrollableTable from '../ui/ScrollableTable';
+import { ScrollableTable } from '@fm2k/design-system';
 
 export default function FinancesTab() {
   const clubState = useGameStore((s) => s.clubState);

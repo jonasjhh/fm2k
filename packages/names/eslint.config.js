@@ -3,6 +3,7 @@ import { baseConfig, vitestTestGlobals } from '../../eslint.config.base.mjs';
 export default [
   ...baseConfig({
     tsconfigRootDir: import.meta.dirname,
+    forbidBackend: true,
     globals: {
       console: 'readonly',
       process: 'readonly',

@@ -2,7 +2,7 @@ import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
 import type { Player } from '../shared/types.ts';
 import { createGameDateTime } from '@fm2k/timeline';
-import { EventBus } from '../event-bus.ts';
+import { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
 

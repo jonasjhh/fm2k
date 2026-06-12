@@ -1,4 +1,4 @@
-import { StateManager } from '../state/state-manager.ts';
+import { StateManager } from '@fm2k/state';
 import { LeagueManager } from '../league/league-manager.ts';
 import type { Team } from '../shared/types.ts';
 import type { GameDateTime } from '@fm2k/timeline';

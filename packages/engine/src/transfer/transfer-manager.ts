@@ -1,6 +1,6 @@
-import { StateManager } from '../state/state-manager.ts';
+import { StateManager } from '@fm2k/state';
 import { PlayerGenerator } from '../player/player-generator.ts';
-import { v4 as uuidv4 } from '../shared/uuid.ts';
+import { v4 as uuidv4 } from '@fm2k/state';
 import type { Player, PlayerAttributes, Position } from '../shared/types.ts';
 import type { ClubPlayer } from '../club/club-types.ts';
 import type { ClubManager } from '../club/club-manager.ts';

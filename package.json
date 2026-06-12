@@ -8,9 +8,10 @@
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
     "test:mutation": "pnpm --filter @fm2k/engine test:mutation",
-    "test:mutation:all": "pnpm --filter \"./packages/*\" -r test:mutation",
+    "test:mutation:all": "pnpm -r test:mutation",
     "lint": "pnpm -r lint",
-    "check": "pnpm lint && pnpm test"
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

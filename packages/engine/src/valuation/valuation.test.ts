@@ -1,6 +1,6 @@
-import { getTeamOVR, sellPrice } from './calculations';
-import { calculateOverall } from '@fm2k/engine';
-import type { Player, PlayerAttributes } from '@fm2k/engine';
+import { getTeamOVR, sellPrice } from './valuation.ts';
+import { calculateOverall } from '../transfer/transfer-manager.ts';
+import type { Player, PlayerAttributes } from '../shared/types.ts';
 
 function attrs(value: number): PlayerAttributes {
   return {

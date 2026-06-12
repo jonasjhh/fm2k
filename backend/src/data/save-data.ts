@@ -4,7 +4,8 @@ import type {
   Player, ClubPlayer, PlayerAttributes, Team, Formation, Position, TeamTactics,
   CountryId,
 } from '@fm2k/engine';
-import type { EditableCountry, LastMatchResult } from './game-store';
+import type { EditableCountry } from '../domain/editable-country.ts';
+import type { LastMatchResult } from '../domain/match-result.ts';
 
 localforage.config({ name: 'fm2k', storeName: 'saves' });
 

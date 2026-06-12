@@ -1,6 +1,6 @@
 import { NameGenerator, type Gender, type Country } from '@fm2k/names';
 import { type Player, type PlayerAttributes, type Position } from '../shared/types.ts';
-import { v4 as uuidv4 } from '../shared/uuid.ts';
+import { v4 as uuidv4 } from '@fm2k/state';
 import type { CountryId } from '../data/teams-data.ts';
 
 const COUNTRY_NATIONALITY: Record<CountryId, string> = {

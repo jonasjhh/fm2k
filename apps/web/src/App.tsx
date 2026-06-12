@@ -3,7 +3,7 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { createAppTheme } from './theme';
+import { createAppTheme } from '@fm2k/design-system';
 import { useGameStore } from './store/game-store';
 import MainMenu from './screens/MainMenu';
 import TeamSelection from './screens/TeamSelection';

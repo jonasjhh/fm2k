@@ -14,7 +14,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtDate } from '../../utils/formatting';
-import SectionHeader from '../ui/SectionHeader';
+import { SectionHeader } from '@fm2k/design-system';
 
 export default function FixturesTab() {
   const { leagueStates, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =

@@ -55,14 +55,25 @@ export const vitestTestGlobals = {
   clearInterval: 'readonly',
 };
 
+// Architecture boundary: generic packages must never depend on the backend.
+const forbidBackendRule = {
+  'no-restricted-imports': ['error', {
+    patterns: [{
+      group: ['@fm2k/backend', '@fm2k/backend/*'],
+      message: 'Dependency rule: packages/* must not import from @fm2k/backend. The backend builds on top of the packages, never the reverse.',
+    }],
+  }],
+};
+
 /**
  * Build the base flat-config array for a workspace member.
  * @param {object} opts
  * @param {string} opts.tsconfigRootDir - import.meta.dirname of the package.
  * @param {boolean} [opts.jsx] - enable JSX parsing (apps/web).
  * @param {Record<string, 'readonly'|'writable'>} [opts.globals] - environment globals.
+ * @param {boolean} [opts.forbidBackend] - forbid importing @fm2k/backend (for packages/*).
  */
-export function baseConfig({ tsconfigRootDir, jsx = false, globals = {} }) {
+export function baseConfig({ tsconfigRootDir, jsx = false, globals = {}, forbidBackend = false }) {
   return [
     js.configs.recommended,
     {
@@ -81,7 +92,7 @@ export function baseConfig({ tsconfigRootDir, jsx = false, globals = {} }) {
       plugins: {
         '@typescript-eslint': tseslint,
       },
-      rules: sharedRules,
+      rules: { ...sharedRules, ...(forbidBackend ? forbidBackendRule : {}) },
     },
   ];
 }

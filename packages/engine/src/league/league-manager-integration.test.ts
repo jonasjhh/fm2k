@@ -1,7 +1,7 @@
 import { LeagueManager } from './league-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
 import type { ClubManagerConfig } from '../club/club-manager.ts';
-import { EventBus } from '../event-bus.ts';
+import { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 import type { Team, Player, Formation } from '../shared/types.ts';

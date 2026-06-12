@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { ClubPlayer, ClubState, LeagueState, Player, PlayerAttributes } from '@fm2k/engine';
-import type { EditableCountry } from './game-store';
+import type { EditableCountry } from '../domain/editable-country.ts';
 
 // In-memory localforage stand-in so the codec can be round-tripped without IndexedDB.
 vi.mock('localforage', () => {

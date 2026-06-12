@@ -1,5 +1,8 @@
+import { Flag } from '@fm2k/design-system';
 import type { CountryId } from '@fm2k/engine';
 
+// Football-domain mapping from our country ids to ISO codes. The generic <Flag>
+// rendering lives in the design system; the domain knowledge stays here.
 const ISO: Record<CountryId, string> = {
   norway:  'no',
   england: 'gb',
@@ -18,11 +21,6 @@ interface FlagIconProps {
 }
 
 export default function FlagIcon({ countryId, size = 20, style }: FlagIconProps) {
-  const iso = ISO[countryId as CountryId] ?? countryId.slice(0, 2).toLowerCase();
-  return (
-    <span
-      className={`fi fi-${iso}`}
-      style={{ width: size * 1.33, height: size, display: 'inline-block', borderRadius: 2, flexShrink: 0, ...style }}
-    />
-  );
+  const code = ISO[countryId as CountryId] ?? countryId.slice(0, 2).toLowerCase();
+  return <Flag code={code} size={size} style={style} />;
 }

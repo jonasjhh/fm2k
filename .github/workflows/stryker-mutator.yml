@@ -38,7 +38,9 @@ jobs:
           packages/engine/reports/stryker-incremental.json
           packages/names/reports/stryker-incremental.json
           packages/timeline/reports/stryker-incremental.json
-        key: stryker-${{ hashFiles('packages/*/src/**/*.ts') }}
+          packages/state/reports/stryker-incremental.json
+          backend/reports/stryker-incremental.json
+        key: stryker-${{ hashFiles('packages/*/src/**/*.ts', 'backend/src/**/*.ts') }}
         restore-keys: stryker-
 
     - name: Run mutation testing (all packages)
@@ -52,6 +54,7 @@ jobs:
         path: |
           reports/
           packages/*/stryker.log
+          backend/stryker.log
         retention-days: 30
 
     - name: Comment mutation score on PR
@@ -79,7 +82,7 @@ jobs:
             return { score, valid, ...counts };
           }
 
-          const packages = ['engine', 'names', 'timeline'];
+          const packages = ['engine', 'names', 'timeline', 'state', 'backend'];
           const rows = [];
           for (const pkg of packages) {
             const s = summarise(`reports/mutation/${pkg}/mutation.json`);

@@ -1,4 +1,4 @@
-                    {
+{
   "name": "@fm2k/web",
   "version": "1.0.0",
   "private": true,
@@ -9,12 +9,15 @@
     "lint": "eslint src/**/*.{ts,tsx}",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fm2k/backend": "workspace:*",
+    "@fm2k/design-system": "workspace:*",
     "@fm2k/engine": "workspace:*",
     "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.1.1",

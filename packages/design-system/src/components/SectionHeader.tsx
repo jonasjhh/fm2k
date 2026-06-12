@@ -8,7 +8,7 @@ interface SectionHeaderProps {
   action?: ReactNode;
 }
 
-export default function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
+export function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
       <Box>

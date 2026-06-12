@@ -12,9 +12,9 @@ import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateOverall } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { sellPrice } from '../../utils/calculations';
-import SectionHeader from '../ui/SectionHeader';
-import ScrollableTable from '../ui/ScrollableTable';
+import { sellPrice } from '@fm2k/engine';
+import { SectionHeader } from '@fm2k/design-system';
+import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 
 export default function TransfersTab() {

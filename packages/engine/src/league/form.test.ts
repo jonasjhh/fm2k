@@ -1,0 +1,49 @@
+import { recentForm, leagueZone } from './form.ts';
+import type { Fixture } from './league-types.ts';
+
+function fixture(id: string, matchday: number, home: string, away: string, hs: number, as: number): Fixture {
+  return {
+    id, matchday, homeTeamId: home, awayTeamId: away,
+    homeTeamName: home, awayTeamName: away,
+    scheduledTime: { year: 2025, month: 8, day: matchday, hour: 15, minute: 0 } as Fixture['scheduledTime'],
+    result: { homeScore: hs, awayScore: as }, status: 'completed',
+  };
+}
+
+describe('recentForm:', () => {
+  const fixtures: Fixture[] = [
+    fixture('f1', 1, 'A', 'B', 2, 0), // A win
+    fixture('f2', 2, 'C', 'A', 1, 1), // A draw
+    fixture('f3', 3, 'A', 'D', 0, 3), // A loss
+    { ...fixture('f4', 4, 'A', 'E', 5, 0), status: 'scheduled', result: null }, // not counted
+  ];
+
+  it('given completed fixtures then returns W/D/L oldest-to-newest from the team\'s perspective', () => {
+    expect(recentForm(fixtures, 'A')).toEqual(['W', 'D', 'L']);
+  });
+
+  it('ignores scheduled fixtures and limits to the requested count', () => {
+    expect(recentForm(fixtures, 'A', 2)).toEqual(['D', 'L']);
+  });
+
+  it('reads results from the away perspective correctly', () => {
+    expect(recentForm(fixtures, 'B')).toEqual(['L']);
+  });
+});
+
+describe('leagueZone:', () => {
+  it('marks the top three as promotion', () => {
+    expect(leagueZone(1, 20)).toBe('promotion');
+    expect(leagueZone(3, 20)).toBe('promotion');
+  });
+
+  it('marks the bottom two as relegation', () => {
+    expect(leagueZone(19, 20)).toBe('relegation');
+    expect(leagueZone(20, 20)).toBe('relegation');
+  });
+
+  it('returns null for mid-table', () => {
+    expect(leagueZone(4, 20)).toBeNull();
+    expect(leagueZone(18, 20)).toBeNull();
+  });
+});

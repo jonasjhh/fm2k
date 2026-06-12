@@ -14,10 +14,12 @@
     "test:mutation": "stryker run",
     "lint": "eslint src/**/*.ts",
     "generate-players": "tsx scripts/generate-players.ts",
-    "populate-teams": "tsx scripts/populate-teams.ts"
+    "populate-teams": "tsx scripts/populate-teams.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fm2k/names": "workspace:*",
+    "@fm2k/state": "workspace:*",
     "@fm2k/timeline": "workspace:*"
   },
   "devDependencies": {

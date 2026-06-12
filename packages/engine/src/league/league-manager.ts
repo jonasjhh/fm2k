@@ -1,11 +1,11 @@
-import { StateManager } from '../state/state-manager.ts';
+import { StateManager } from '@fm2k/state';
 import { TickEngine, EventLog } from '@fm2k/timeline';
 import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import { MatchOccurrence } from '../match/match-occurrence.ts';
 import { generateFixtures } from './fixture-generator.ts';
 import type { Team } from '../shared/types.ts';
 import type { LeagueState, LeagueStanding, Fixture } from './league-types.ts';
-import type { EventBus } from '../event-bus.ts';
+import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 
 export interface MatchCompletedPayload {

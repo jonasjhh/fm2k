@@ -12,7 +12,7 @@ import FastForwardIcon from '@mui/icons-material/FastForward';
 import { useGameStore, findTeamById } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
-import { getTeamOVR } from '../../utils/calculations';
+import { getTeamOVR, recentForm } from '@fm2k/engine';
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   const color = result === 'W' ? 'success' : result === 'D' ? 'warning' : 'error';
@@ -63,20 +63,10 @@ export default function MatchTab() {
   const oppTeam = findTeamById(editableCountries, opponentId);
   const oppOvr = oppTeam ? getTeamOVR(oppTeam.starters) : '—';
 
-  const recentForm = (teamId: string) => {
-    const done = leagueState.fixtures
-      .filter((f) => f.status === 'completed' && (f.homeTeamId === teamId || f.awayTeamId === teamId))
-      .sort((a, b) => b.matchday - a.matchday)
-      .slice(0, 5)
-      .reverse();
-    return done.map((f) => {
-      const home = f.homeTeamId === teamId;
-      const sc = home ? f.result!.homeScore : f.result!.awayScore;
-      const cc = home ? f.result!.awayScore : f.result!.homeScore;
-      const r = sc > cc ? 'W' : sc < cc ? 'L' : 'D';
-      return <FormBadge key={f.id} result={r as 'W' | 'D' | 'L'} />;
-    });
-  };
+  const formBadges = (teamId: string) =>
+    recentForm(leagueState.fixtures, teamId).map((r, i) => (
+      <FormBadge key={`${teamId}-${i}`} result={r} />
+    ));
 
   return (
     <Box>
@@ -154,7 +144,7 @@ export default function MatchTab() {
                 )}
                 <Typography variant="body2" color="text.secondary">{venue}</Typography>
                 <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
-                  {recentForm(teamId)}
+                  {formBadges(teamId)}
                 </Box>
               </CardContent>
             </Card>

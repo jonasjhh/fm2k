@@ -9,7 +9,7 @@ interface ScrollableTableProps {
   sx?: SxProps<Theme>;
 }
 
-export default function ScrollableTable({ children, sx }: ScrollableTableProps) {
+export function ScrollableTable({ children, sx }: ScrollableTableProps) {
   return (
     <Box sx={{ overflowX: 'auto', ...sx }}>
       <Paper variant="outlined">

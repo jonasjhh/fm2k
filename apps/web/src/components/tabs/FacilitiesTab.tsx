@@ -16,7 +16,7 @@ import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { FACILITY_NAMES, FACILITY_DESCS, FACILITY_COSTS, FACILITY_LEVELS } from '../../constants';
 import { fmt } from '../../utils/formatting';
-import SectionHeader from '../ui/SectionHeader';
+import { SectionHeader } from '@fm2k/design-system';
 import StadiumPlanner from '../StadiumPlanner';
 import { DEFAULT_STADIUM_SECTORS } from '../../utils/stadium';
 

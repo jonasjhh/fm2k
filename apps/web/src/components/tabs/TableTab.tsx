@@ -14,7 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors, leagueRowBg } from '../../utils/colors';
-import ScrollableTable from '../ui/ScrollableTable';
+import { ScrollableTable } from '@fm2k/design-system';
 
 export default function TableTab() {
   const { leagueStates, playerTeamId, editableCountries, selectedLeagueIds } =

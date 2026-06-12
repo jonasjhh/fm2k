@@ -26,7 +26,7 @@ import {
 import type { Team, MatchState, OccurrenceEvent } from '@fm2k/engine';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { createAppTheme } from '../../theme';
+import { createAppTheme } from '@fm2k/design-system';
 
 const theme = createAppTheme('light');
 

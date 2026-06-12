@@ -1,39 +1,20 @@
-import { useTheme } from '@mui/material/styles';
+// Design tokens/utilities are re-exported from the design system so existing
+// imports of '../utils/colors' keep working. The promotion/relegation *rule*
+// below is football-domain knowledge and stays in the app.
+import { STATUS_COLORS } from '@fm2k/design-system';
+import type { StatusColors } from '@fm2k/design-system';
+import { leagueZone } from '@fm2k/engine';
 
-export const STATUS_COLORS = {
-  playerTeam: '#BBDEFB',
-  promotion:  '#C8E6C9',
-  relegation: '#FFCDD2',
-  caution:    '#FFF9C4',
-} as const;
-
-export const STATUS_COLORS_DARK = {
-  playerTeam: 'rgba(33, 150, 243, 0.25)',
-  promotion:  'rgba(76, 175, 80, 0.25)',
-  relegation: 'rgba(244, 67, 54, 0.25)',
-  caution:    'rgba(255, 193, 7, 0.25)',
-} as const;
-
-export function getContrastColor(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#FFFFFF';
-}
-
-export function useStatusColors() {
-  const theme = useTheme();
-  return theme.palette.mode === 'dark' ? STATUS_COLORS_DARK : STATUS_COLORS;
-}
+export { STATUS_COLORS, STATUS_COLORS_DARK, getContrastColor, useStatusColors } from '@fm2k/design-system';
+export type { StatusColors, StatusVariant } from '@fm2k/design-system';
 
 export function leagueRowBg(
   isPlayer: boolean,
   pos: number,
   total: number,
-  colors: typeof STATUS_COLORS | typeof STATUS_COLORS_DARK = STATUS_COLORS,
+  colors: StatusColors = STATUS_COLORS,
 ): string | undefined {
   if (isPlayer) {return colors.playerTeam;}
-  if (pos <= 3) {return colors.promotion;}
-  if (pos >= total - 1) {return colors.relegation;}
-  return undefined;
+  const zone = leagueZone(pos, total);
+  return zone ? colors[zone] : undefined;
 }
