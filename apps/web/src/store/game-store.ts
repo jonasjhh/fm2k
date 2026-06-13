@@ -21,15 +21,19 @@ export interface SimEvent {
   type: 'goal' | 'card' | 'phase' | 'normal';
 }
 
-export type SimSpeed = 'normal' | 'fast' | 'instant';
+export const SIM_DELAY_MIN = 0;
+export const SIM_DELAY_MAX = 250;
+export const SIM_DELAY_DEFAULT = 220;
 
-const SPEED_DELAY_MS: Record<SimSpeed, number> = { normal: 220, fast: 70, instant: 0 };
-const SIM_SPEED_KEY = 'fm2k-sim-speed';
+const SIM_DELAY_KEY = 'fm2k-sim-delay';
 
-function loadSimSpeed(): SimSpeed {
-  if (typeof window === 'undefined') { return 'normal'; }
-  const v = window.localStorage.getItem(SIM_SPEED_KEY);
-  return v === 'fast' || v === 'instant' || v === 'normal' ? v : 'normal';
+const clampDelay = (ms: number) => Math.min(SIM_DELAY_MAX, Math.max(SIM_DELAY_MIN, ms));
+
+function loadSimDelay(): number {
+  if (typeof window === 'undefined') { return SIM_DELAY_DEFAULT; }
+  const v = Number(window.localStorage.getItem(SIM_DELAY_KEY));
+  return Number.isFinite(v) && window.localStorage.getItem(SIM_DELAY_KEY) !== null
+    ? clampDelay(v) : SIM_DELAY_DEFAULT;
 }
 
 function simEventFromAnim(e: AnimEvent, homeName: string, awayName: string): SimEvent {
@@ -78,7 +82,7 @@ interface GameStore {
   streamHome: number;
   streamAway: number;
   streamMinute: number;
-  simSpeed: SimSpeed;
+  simDelayMs: number;
 
   // navigation
   setScreen: (s: Screen) => void;
@@ -106,7 +110,7 @@ interface GameStore {
   advanceMatch: () => Promise<void>;   // auto-stream to the next intermission
   skipMatch: () => Promise<void>;      // skip current match to full time
   goToNextMatch: () => void;           // focus the next fixture
-  setSimSpeed: (s: SimSpeed) => void;
+  setSimDelay: (ms: number) => void;
 
   // tactics
   toggleXI: (id: string) => void;
@@ -152,7 +156,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   // Reveal one match's animation events newest-first, pacing by sim speed and
   // updating the live scoreboard as goals land.
   const animate = async (events: AnimEvent[], homeName: string, awayName: string) => {
-    const delay = SPEED_DELAY_MS[get().simSpeed];
+    const delay = get().simDelayMs;
     for (const e of events) {
       set(st => ({
         matchEvents: [simEventFromAnim(e, homeName, awayName), ...st.matchEvents],
@@ -190,7 +194,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     streamHome: 0,
     streamAway: 0,
     streamMinute: 0,
-    simSpeed: loadSimSpeed(),
+    simDelayMs: loadSimDelay(),
 
     // ── navigation ────────────────────────────────────────────────────────────
     setScreen: (screen) => set({ screen }),
@@ -262,9 +266,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0 });
     },
 
-    setSimSpeed: (simSpeed) => {
-      if (typeof window !== 'undefined') { window.localStorage.setItem(SIM_SPEED_KEY, simSpeed); }
-      set({ simSpeed });
+    setSimDelay: (ms) => {
+      const simDelayMs = clampDelay(ms);
+      if (typeof window !== 'undefined') { window.localStorage.setItem(SIM_DELAY_KEY, String(simDelayMs)); }
+      set({ simDelayMs });
     },
 
     // ── tactics ─────────────────────────────────────────────────────────────────

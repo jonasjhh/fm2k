@@ -6,6 +6,8 @@ import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
 import { useGameStore } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
@@ -20,6 +22,7 @@ import FacilitiesTab from '../components/tabs/FacilitiesTab';
 import FinancesTab from '../components/tabs/FinancesTab';
 import StatsBar from '../components/StatsBar';
 import SeasonEndModal from '../components/SeasonEndModal';
+import SettingsDialog from '../components/ui/SettingsDialog';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'squad', label: 'Squad' },
@@ -48,6 +51,7 @@ export default function GameInterface() {
   })));
 
   const [snackOpen, setSnackOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const clubColors = useMemo(() => {
     if (!playerTeamId) {return { primary: '#1B5E20', secondary: '#FFFFFF' };}
@@ -83,6 +87,21 @@ export default function GameInterface() {
           >
             Save
           </Button>
+          <IconButton
+            size="small"
+            aria-label="Settings"
+            onClick={() => setSettingsOpen(true)}
+            sx={{
+              mr: 1,
+              color: 'inherit',
+              borderColor: `${textColor}40`,
+              border: '1px solid',
+              borderRadius: 1,
+              '&:hover': { bgcolor: `${textColor}14` },
+            }}
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
           <Button
             size="small"
             onClick={async () => { await saveGame('AUTO'); setScreen('main-menu'); }}
@@ -128,6 +147,7 @@ export default function GameInterface() {
       </Box>
 
       <SeasonEndModal />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <Snackbar
         open={snackOpen}
         autoHideDuration={2000}

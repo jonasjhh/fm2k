@@ -4,13 +4,11 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import FastForwardIcon from '@mui/icons-material/FastForward';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import { useGameStore } from '../store/game-store';
-import type { SimEvent, SimSpeed } from '../store/game-store';
+import type { SimEvent } from '../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors } from '../utils/colors';
 
@@ -38,7 +36,7 @@ function EventItem({ event }: { event: SimEvent }) {
 export default function MatchSimPanel() {
   const {
     focusFixture, focusLive, matchEvents, isStreaming, streamHome, streamAway, streamMinute,
-    simSpeed, clubState, advanceMatch, skipMatch, goToNextMatch, simulateToEnd, setSimSpeed,
+    clubState, advanceMatch, skipMatch, goToNextMatch, simulateToEnd,
   } = useGameStore(useShallow((s) => ({
     focusFixture: s.focusFixture,
     focusLive: s.focusLive,
@@ -47,13 +45,11 @@ export default function MatchSimPanel() {
     streamHome: s.streamHome,
     streamAway: s.streamAway,
     streamMinute: s.streamMinute,
-    simSpeed: s.simSpeed,
     clubState: s.clubState,
     advanceMatch: s.advanceMatch,
     skipMatch: s.skipMatch,
     goToNextMatch: s.goToNextMatch,
     simulateToEnd: s.simulateToEnd,
-    setSimSpeed: s.setSimSpeed,
   })));
 
   if (!focusFixture) { return null; }
@@ -132,19 +128,6 @@ export default function MatchSimPanel() {
           Your starting XI includes a suspended player. Fix your lineup in the Tactics tab before playing.
         </Alert>
       )}
-
-      <Divider />
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75 }}>
-        <Typography variant="caption" color="text.secondary">Speed</Typography>
-        <ToggleButtonGroup
-          size="small" exclusive value={simSpeed}
-          onChange={(_, v: SimSpeed | null) => { if (v) { setSimSpeed(v); } }}
-        >
-          <ToggleButton value="normal">Normal</ToggleButton>
-          <ToggleButton value="fast">Fast</ToggleButton>
-          <ToggleButton value="instant">Instant</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
 
       <Divider />
       <Box sx={{ maxHeight: 320, overflowY: 'auto', p: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>

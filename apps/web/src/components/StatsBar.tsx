@@ -12,11 +12,10 @@ interface StatsBarProps {
 }
 
 export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
-  const { clubState, leagueState, playerTeamId, currentMatchday, seasonComplete } = useGameStore(useShallow((s) => ({
+  const { clubState, leagueState, playerTeamId, seasonComplete } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     leagueState: s.leagueState,
     playerTeamId: s.playerTeamId,
-    currentMatchday: s.currentMatchday,
     seasonComplete: s.seasonComplete,
   })));
 
@@ -29,6 +28,12 @@ export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
   const nextFixture = leagueState.fixtures.find(
     (f) => f.status === 'scheduled' && (f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId),
   );
+
+  // Total league rounds = double round-robin over the teams in this division.
+  const totalRounds = standings.length > 1 ? (standings.length - 1) * 2 : TOTAL_MATCHDAYS;
+  // Show the matchday currently being played (the next scheduled fixture), or the
+  // final round once the season is over.
+  const displayMatchday = nextFixture?.matchday ?? totalRounds;
 
   const bg = clubColors?.primary ?? 'primary.dark';
   const fg = textColor ?? 'primary.contrastText';
@@ -52,7 +57,7 @@ export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
         { label: 'Budget', value: `£${Math.round(clubState.budget).toLocaleString()}` },
         { label: 'Position', value: `${pos}${sfx(pos)}` },
         { label: 'Points', value: String(entry?.points ?? 0) },
-        { label: 'Matchday', value: `${currentMatchday}/${TOTAL_MATCHDAYS}` },
+        { label: 'Matchday', value: `${displayMatchday}/${totalRounds}` },
       ].map(({ label, value }) => (
         <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography variant="caption" sx={{ opacity: 0.65, color: 'inherit' }}>{label}:</Typography>
