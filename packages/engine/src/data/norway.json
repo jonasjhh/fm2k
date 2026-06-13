@@ -512,8 +512,8 @@
               }
             }
           ],
-          "primaryColor": "#FF6600",
-          "secondaryColor": "#000000"
+          "primaryColor": "#FF8300",
+          "secondaryColor": "#0075BF"
         },
         {
           "id": "nor-02",
@@ -3560,7 +3560,7 @@
               }
             }
           ],
-          "primaryColor": "#003DA5",
+          "primaryColor": "#2173B9",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -5084,7 +5084,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#005EB8",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -5592,8 +5592,8 @@
               }
             }
           ],
-          "primaryColor": "#FFED00",
-          "secondaryColor": "#000000"
+          "primaryColor": "#002B59",
+          "secondaryColor": "#FFFFFF"
         },
         {
           "id": "nor-12",
@@ -6100,7 +6100,7 @@
               }
             }
           ],
-          "primaryColor": "#FFFFFF",
+          "primaryColor": "#F3D000",
           "secondaryColor": "#000000"
         },
         {
@@ -6608,7 +6608,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#002145",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -7116,7 +7116,7 @@
               }
             }
           ],
-          "primaryColor": "#CC0000",
+          "primaryColor": "#C40009",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -7624,8 +7624,8 @@
               }
             }
           ],
-          "primaryColor": "#00205B",
-          "secondaryColor": "#FFD700"
+          "primaryColor": "#132847",
+          "secondaryColor": "#FFFFFF"
         },
         {
           "id": "nor-16",
@@ -8132,7 +8132,7 @@
               }
             }
           ],
-          "primaryColor": "#003DA5",
+          "primaryColor": "#024DA1",
           "secondaryColor": "#FFFFFF"
         }
       ]
@@ -8647,8 +8647,8 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#005AA1",
+          "secondaryColor": "#FFED00"
         },
         {
           "id": "nor-18",
@@ -9155,8 +9155,8 @@
               }
             }
           ],
-          "primaryColor": "#FFED00",
-          "secondaryColor": "#000000"
+          "primaryColor": "#CE3A3A",
+          "secondaryColor": "#FFFFFF"
         },
         {
           "id": "nor-19",
@@ -9663,8 +9663,8 @@
               }
             }
           ],
-          "primaryColor": "#CC0000",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#FFDD00",
+          "secondaryColor": "#1D1D1B"
         },
         {
           "id": "nor-20",
@@ -10171,7 +10171,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#076B00",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -10679,8 +10679,8 @@
               }
             }
           ],
-          "primaryColor": "#FFED00",
-          "secondaryColor": "#000000"
+          "primaryColor": "#FFCE00",
+          "secondaryColor": "#005CB9"
         },
         {
           "id": "nor-22",
@@ -11187,7 +11187,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#D91C23",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -11695,7 +11695,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#D42027",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -12203,7 +12203,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#A30013",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -12711,8 +12711,8 @@
               }
             }
           ],
-          "primaryColor": "#000000",
-          "secondaryColor": "#FFED00"
+          "primaryColor": "#5C1F09",
+          "secondaryColor": "#FFFFFF"
         },
         {
           "id": "nor-26",
@@ -13219,519 +13219,11 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#FFE500",
+          "secondaryColor": "#010101"
         },
         {
           "id": "nor-27",
-          "name": "Nest-Sotra",
-          "players": [
-            {
-              "id": "368beecb-e94b-406a-9df2-0fd498e09939",
-              "name": "Rikke Barli",
-              "nationality": "norwegian",
-              "age": 30,
-              "position": "GK",
-              "potential": 61,
-              "attributes": {
-                "speed": 78,
-                "strength": 61,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 65,
-                "technique": 52,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 65,
-                "composure": 40
-              }
-            },
-            {
-              "id": "f8e0f0ee-7947-43c2-a4c4-620e348b00d7",
-              "name": "Marie Engen",
-              "nationality": "norwegian",
-              "age": 23,
-              "position": "LB",
-              "potential": 59,
-              "attributes": {
-                "speed": 40,
-                "strength": 55,
-                "agility": 61,
-                "passing": 40,
-                "finishing": 49,
-                "technique": 61,
-                "defending": 61,
-                "stamina": 61,
-                "awareness": 58,
-                "composure": 40
-              }
-            },
-            {
-              "id": "9229ad71-1ef4-4a65-b80a-1be1e33aca4b",
-              "name": "Nina-Marie Ødegaard",
-              "nationality": "norwegian",
-              "age": 28,
-              "position": "CB",
-              "potential": 71,
-              "attributes": {
-                "speed": 51,
-                "strength": 40,
-                "agility": 40,
-                "passing": 67,
-                "finishing": 43,
-                "technique": 47,
-                "defending": 59,
-                "stamina": 40,
-                "awareness": 79,
-                "composure": 59
-              }
-            },
-            {
-              "id": "38e163c2-7173-4ba8-a3c4-362e940a7771",
-              "name": "Elenora Dahl",
-              "nationality": "norwegian",
-              "age": 29,
-              "position": "CB",
-              "potential": 64,
-              "attributes": {
-                "speed": 45,
-                "strength": 56,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 50,
-                "technique": 48,
-                "defending": 50,
-                "stamina": 53,
-                "awareness": 56,
-                "composure": 42
-              }
-            },
-            {
-              "id": "f0db3065-180f-49ec-bc09-0eb0f7f0f10e",
-              "name": "Borghild Kristiansen",
-              "nationality": "norwegian",
-              "age": 26,
-              "position": "RB",
-              "potential": 78,
-              "attributes": {
-                "speed": 84,
-                "strength": 40,
-                "agility": 84,
-                "passing": 68,
-                "finishing": 99,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "0a9802d8-714a-4c47-8e6e-c118cf677878",
-              "name": "Caroline Reginiussen",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "LM",
-              "potential": 64,
-              "attributes": {
-                "speed": 49,
-                "strength": 40,
-                "agility": 56,
-                "passing": 60,
-                "finishing": 40,
-                "technique": 56,
-                "defending": 64,
-                "stamina": 56,
-                "awareness": 68,
-                "composure": 40
-              }
-            },
-            {
-              "id": "24826a95-a415-44b8-baa4-857c668ee9a4",
-              "name": "Bodil Abrahamsen",
-              "nationality": "norwegian",
-              "age": 34,
-              "position": "CM",
-              "potential": 71,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 40,
-                "passing": 56,
-                "finishing": 56,
-                "technique": 49,
-                "defending": 99,
-                "stamina": 99,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "bb2c6862-5d90-4f48-99bf-12ff077eda27",
-              "name": "Ivy Molskred",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CM",
-              "potential": 62,
-              "attributes": {
-                "speed": 82,
-                "strength": 40,
-                "agility": 40,
-                "passing": 51,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 99,
-                "awareness": 82,
-                "composure": 57
-              }
-            },
-            {
-              "id": "93b4f375-eb71-497f-8672-d5daaf01c85c",
-              "name": "Yngvea Nordberg",
-              "nationality": "norwegian",
-              "age": 22,
-              "position": "RM",
-              "potential": 65,
-              "attributes": {
-                "speed": 77,
-                "strength": 40,
-                "agility": 40,
-                "passing": 50,
-                "finishing": 40,
-                "technique": 44,
-                "defending": 50,
-                "stamina": 55,
-                "awareness": 40,
-                "composure": 99
-              }
-            },
-            {
-              "id": "cf62584c-355c-4012-83bd-11c8941b2366",
-              "name": "Synnøve Brekke",
-              "nationality": "norwegian",
-              "age": 35,
-              "position": "ST",
-              "potential": 76,
-              "attributes": {
-                "speed": 98,
-                "strength": 40,
-                "agility": 44,
-                "passing": 44,
-                "finishing": 84,
-                "technique": 89,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 59
-              }
-            },
-            {
-              "id": "60947bb4-8da7-40ff-bdaa-91435bb7a136",
-              "name": "Vilja Nordberg",
-              "nationality": "norwegian",
-              "age": 24,
-              "position": "ST",
-              "potential": 68,
-              "attributes": {
-                "speed": 71,
-                "strength": 45,
-                "agility": 40,
-                "passing": 56,
-                "finishing": 75,
-                "technique": 40,
-                "defending": 53,
-                "stamina": 75,
-                "awareness": 49,
-                "composure": 40
-              }
-            },
-            {
-              "id": "293fb473-a406-44f9-93e9-2506c294f381",
-              "name": "Anneli Kristiansen",
-              "nationality": "norwegian",
-              "age": 29,
-              "position": "GK",
-              "potential": 72,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 91,
-                "passing": 41,
-                "finishing": 40,
-                "technique": 87,
-                "defending": 87,
-                "stamina": 40,
-                "awareness": 68,
-                "composure": 40
-              }
-            },
-            {
-              "id": "00855107-0e25-4c74-b3ec-cd2c48c1d70a",
-              "name": "Udele Gulbrandsen",
-              "nationality": "norwegian",
-              "age": 32,
-              "position": "CB",
-              "potential": 63,
-              "attributes": {
-                "speed": 40,
-                "strength": 79,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 52,
-                "technique": 40,
-                "defending": 79,
-                "stamina": 67,
-                "awareness": 40,
-                "composure": 79
-              }
-            },
-            {
-              "id": "b4aab590-157f-4c28-9600-68eda6493fd4",
-              "name": "Arnhild Nordahl",
-              "nationality": "norwegian",
-              "age": 23,
-              "position": "LB",
-              "potential": 66,
-              "attributes": {
-                "speed": 81,
-                "strength": 76,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 47,
-                "defending": 52,
-                "stamina": 95,
-                "awareness": 40,
-                "composure": 57
-              }
-            },
-            {
-              "id": "2fd52d56-a2cc-4701-8b14-fa225fddece3",
-              "name": "Ylva-Marie Skagen",
-              "nationality": "norwegian",
-              "age": 30,
-              "position": "RB",
-              "potential": 61,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 65,
-                "passing": 61,
-                "finishing": 40,
-                "technique": 68,
-                "defending": 54,
-                "stamina": 43,
-                "awareness": 57,
-                "composure": 50
-              }
-            },
-            {
-              "id": "55145433-757d-4e45-8dc1-6f73b9bbe330",
-              "name": "Vanja Nordeng",
-              "nationality": "norwegian",
-              "age": 21,
-              "position": "CDM",
-              "potential": 77,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 80,
-                "technique": 76,
-                "defending": 40,
-                "stamina": 71,
-                "awareness": 80,
-                "composure": 67
-              }
-            },
-            {
-              "id": "bd1a2eff-f948-428e-a549-f96be362d048",
-              "name": "Dorte Bragstad",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CDM",
-              "potential": 72,
-              "attributes": {
-                "speed": 70,
-                "strength": 70,
-                "agility": 50,
-                "passing": 40,
-                "finishing": 70,
-                "technique": 40,
-                "defending": 75,
-                "stamina": 41,
-                "awareness": 46,
-                "composure": 40
-              }
-            },
-            {
-              "id": "9c241873-271b-451d-81c2-bec20c6e7073",
-              "name": "Dina-Marie Sunde",
-              "nationality": "norwegian",
-              "age": 24,
-              "position": "CAM",
-              "potential": 61,
-              "attributes": {
-                "speed": 66,
-                "strength": 40,
-                "agility": 66,
-                "passing": 45,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 74,
-                "awareness": 78,
-                "composure": 62
-              }
-            },
-            {
-              "id": "9aaa1b86-bb0d-468e-aa84-8ac1906d2c21",
-              "name": "Linn Haaland",
-              "nationality": "norwegian",
-              "age": 27,
-              "position": "CAM",
-              "potential": 64,
-              "attributes": {
-                "speed": 77,
-                "strength": 43,
-                "agility": 51,
-                "passing": 51,
-                "finishing": 51,
-                "technique": 73,
-                "defending": 47,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 69
-              }
-            },
-            {
-              "id": "6c51d53a-5119-4c44-8290-c503b7aa761d",
-              "name": "Cecilie Reitan",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "LW",
-              "potential": 58,
-              "attributes": {
-                "speed": 99,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 50,
-                "technique": 56,
-                "defending": 44,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 75
-              }
-            },
-            {
-              "id": "4ca6e4e2-f380-4892-a369-07e985453b26",
-              "name": "Karoline Ihle",
-              "nationality": "norwegian",
-              "age": 28,
-              "position": "RW",
-              "potential": 70,
-              "attributes": {
-                "speed": 86,
-                "strength": 40,
-                "agility": 40,
-                "passing": 52,
-                "finishing": 56,
-                "technique": 60,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 60,
-                "composure": 77
-              }
-            },
-            {
-              "id": "2b65e564-9ae5-4816-a097-9cffcd0700a2",
-              "name": "Jane Reginiussen",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "ST",
-              "potential": 71,
-              "attributes": {
-                "speed": 57,
-                "strength": 40,
-                "agility": 66,
-                "passing": 63,
-                "finishing": 63,
-                "technique": 63,
-                "defending": 47,
-                "stamina": 43,
-                "awareness": 57,
-                "composure": 40
-              }
-            },
-            {
-              "id": "2fd76868-4818-4fab-9dc6-124395680c1c",
-              "name": "Ulla Bjerke",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "CF",
-              "potential": 76,
-              "attributes": {
-                "speed": 71,
-                "strength": 67,
-                "agility": 79,
-                "passing": 40,
-                "finishing": 75,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 58,
-                "awareness": 40,
-                "composure": 58
-              }
-            },
-            {
-              "id": "9f0e5c09-27ca-4e28-880c-bd712802905d",
-              "name": "Frida Sunde",
-              "nationality": "norwegian",
-              "age": 32,
-              "position": "CF",
-              "potential": 75,
-              "attributes": {
-                "speed": 64,
-                "strength": 40,
-                "agility": 97,
-                "passing": 91,
-                "finishing": 48,
-                "technique": 70,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "df43bfed-e6d0-4082-80ac-e725d87f8d55",
-              "name": "Kirsten Holmen",
-              "nationality": "norwegian",
-              "age": 27,
-              "position": "CM",
-              "potential": 64,
-              "attributes": {
-                "speed": 82,
-                "strength": 82,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 65,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 71,
-                "awareness": 82,
-                "composure": 40
-              }
-            }
-          ],
-          "primaryColor": "#CC0000",
-          "secondaryColor": "#FFFFFF"
-        },
-        {
-          "id": "nor-28",
           "name": "Ranheim",
           "players": [
             {
@@ -14235,11 +13727,11 @@
               }
             }
           ],
-          "primaryColor": "#CC0000",
-          "secondaryColor": "#FFED00"
+          "primaryColor": "#213479",
+          "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-29",
+          "id": "nor-28",
           "name": "Raufoss",
           "players": [
             {
@@ -14747,8 +14239,8 @@
           "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-30",
-          "name": "Sogndal",
+          "id": "nor-29",
+          "name": "Sandnes Ulf",
           "players": [
             {
               "id": "8b7ec361-ecb4-46e3-8b0a-12dfff471908",
@@ -15251,12 +14743,12 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#397AAC",
           "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-31",
-          "name": "Ull/Kisa",
+          "id": "nor-30",
+          "name": "Sogndal",
           "players": [
             {
               "id": "3947bfe6-0da8-4b47-90fb-5ac0fbcab395",
@@ -15759,7 +15251,515 @@
               }
             }
           ],
-          "primaryColor": "#FFED00",
+          "primaryColor": "#FFFFFF",
+          "secondaryColor": "#000000"
+        },
+        {
+          "id": "nor-31",
+          "name": "Stabæk",
+          "players": [
+            {
+              "id": "368beecb-e94b-406a-9df2-0fd498e09939",
+              "name": "Rikke Barli",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "GK",
+              "potential": 61,
+              "attributes": {
+                "speed": 78,
+                "strength": 61,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 65,
+                "technique": 52,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 65,
+                "composure": 40
+              }
+            },
+            {
+              "id": "f8e0f0ee-7947-43c2-a4c4-620e348b00d7",
+              "name": "Marie Engen",
+              "nationality": "norwegian",
+              "age": 23,
+              "position": "LB",
+              "potential": 59,
+              "attributes": {
+                "speed": 40,
+                "strength": 55,
+                "agility": 61,
+                "passing": 40,
+                "finishing": 49,
+                "technique": 61,
+                "defending": 61,
+                "stamina": 61,
+                "awareness": 58,
+                "composure": 40
+              }
+            },
+            {
+              "id": "9229ad71-1ef4-4a65-b80a-1be1e33aca4b",
+              "name": "Nina-Marie Ødegaard",
+              "nationality": "norwegian",
+              "age": 28,
+              "position": "CB",
+              "potential": 71,
+              "attributes": {
+                "speed": 51,
+                "strength": 40,
+                "agility": 40,
+                "passing": 67,
+                "finishing": 43,
+                "technique": 47,
+                "defending": 59,
+                "stamina": 40,
+                "awareness": 79,
+                "composure": 59
+              }
+            },
+            {
+              "id": "38e163c2-7173-4ba8-a3c4-362e940a7771",
+              "name": "Elenora Dahl",
+              "nationality": "norwegian",
+              "age": 29,
+              "position": "CB",
+              "potential": 64,
+              "attributes": {
+                "speed": 45,
+                "strength": 56,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 50,
+                "technique": 48,
+                "defending": 50,
+                "stamina": 53,
+                "awareness": 56,
+                "composure": 42
+              }
+            },
+            {
+              "id": "f0db3065-180f-49ec-bc09-0eb0f7f0f10e",
+              "name": "Borghild Kristiansen",
+              "nationality": "norwegian",
+              "age": 26,
+              "position": "RB",
+              "potential": 78,
+              "attributes": {
+                "speed": 84,
+                "strength": 40,
+                "agility": 84,
+                "passing": 68,
+                "finishing": 99,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "0a9802d8-714a-4c47-8e6e-c118cf677878",
+              "name": "Caroline Reginiussen",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "LM",
+              "potential": 64,
+              "attributes": {
+                "speed": 49,
+                "strength": 40,
+                "agility": 56,
+                "passing": 60,
+                "finishing": 40,
+                "technique": 56,
+                "defending": 64,
+                "stamina": 56,
+                "awareness": 68,
+                "composure": 40
+              }
+            },
+            {
+              "id": "24826a95-a415-44b8-baa4-857c668ee9a4",
+              "name": "Bodil Abrahamsen",
+              "nationality": "norwegian",
+              "age": 34,
+              "position": "CM",
+              "potential": 71,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 40,
+                "passing": 56,
+                "finishing": 56,
+                "technique": 49,
+                "defending": 99,
+                "stamina": 99,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "bb2c6862-5d90-4f48-99bf-12ff077eda27",
+              "name": "Ivy Molskred",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CM",
+              "potential": 62,
+              "attributes": {
+                "speed": 82,
+                "strength": 40,
+                "agility": 40,
+                "passing": 51,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 99,
+                "awareness": 82,
+                "composure": 57
+              }
+            },
+            {
+              "id": "93b4f375-eb71-497f-8672-d5daaf01c85c",
+              "name": "Yngvea Nordberg",
+              "nationality": "norwegian",
+              "age": 22,
+              "position": "RM",
+              "potential": 65,
+              "attributes": {
+                "speed": 77,
+                "strength": 40,
+                "agility": 40,
+                "passing": 50,
+                "finishing": 40,
+                "technique": 44,
+                "defending": 50,
+                "stamina": 55,
+                "awareness": 40,
+                "composure": 99
+              }
+            },
+            {
+              "id": "cf62584c-355c-4012-83bd-11c8941b2366",
+              "name": "Synnøve Brekke",
+              "nationality": "norwegian",
+              "age": 35,
+              "position": "ST",
+              "potential": 76,
+              "attributes": {
+                "speed": 98,
+                "strength": 40,
+                "agility": 44,
+                "passing": 44,
+                "finishing": 84,
+                "technique": 89,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 59
+              }
+            },
+            {
+              "id": "60947bb4-8da7-40ff-bdaa-91435bb7a136",
+              "name": "Vilja Nordberg",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "ST",
+              "potential": 68,
+              "attributes": {
+                "speed": 71,
+                "strength": 45,
+                "agility": 40,
+                "passing": 56,
+                "finishing": 75,
+                "technique": 40,
+                "defending": 53,
+                "stamina": 75,
+                "awareness": 49,
+                "composure": 40
+              }
+            },
+            {
+              "id": "293fb473-a406-44f9-93e9-2506c294f381",
+              "name": "Anneli Kristiansen",
+              "nationality": "norwegian",
+              "age": 29,
+              "position": "GK",
+              "potential": 72,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 91,
+                "passing": 41,
+                "finishing": 40,
+                "technique": 87,
+                "defending": 87,
+                "stamina": 40,
+                "awareness": 68,
+                "composure": 40
+              }
+            },
+            {
+              "id": "00855107-0e25-4c74-b3ec-cd2c48c1d70a",
+              "name": "Udele Gulbrandsen",
+              "nationality": "norwegian",
+              "age": 32,
+              "position": "CB",
+              "potential": 63,
+              "attributes": {
+                "speed": 40,
+                "strength": 79,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 52,
+                "technique": 40,
+                "defending": 79,
+                "stamina": 67,
+                "awareness": 40,
+                "composure": 79
+              }
+            },
+            {
+              "id": "b4aab590-157f-4c28-9600-68eda6493fd4",
+              "name": "Arnhild Nordahl",
+              "nationality": "norwegian",
+              "age": 23,
+              "position": "LB",
+              "potential": 66,
+              "attributes": {
+                "speed": 81,
+                "strength": 76,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 47,
+                "defending": 52,
+                "stamina": 95,
+                "awareness": 40,
+                "composure": 57
+              }
+            },
+            {
+              "id": "2fd52d56-a2cc-4701-8b14-fa225fddece3",
+              "name": "Ylva-Marie Skagen",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "RB",
+              "potential": 61,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 65,
+                "passing": 61,
+                "finishing": 40,
+                "technique": 68,
+                "defending": 54,
+                "stamina": 43,
+                "awareness": 57,
+                "composure": 50
+              }
+            },
+            {
+              "id": "55145433-757d-4e45-8dc1-6f73b9bbe330",
+              "name": "Vanja Nordeng",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "CDM",
+              "potential": 77,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 80,
+                "technique": 76,
+                "defending": 40,
+                "stamina": 71,
+                "awareness": 80,
+                "composure": 67
+              }
+            },
+            {
+              "id": "bd1a2eff-f948-428e-a549-f96be362d048",
+              "name": "Dorte Bragstad",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CDM",
+              "potential": 72,
+              "attributes": {
+                "speed": 70,
+                "strength": 70,
+                "agility": 50,
+                "passing": 40,
+                "finishing": 70,
+                "technique": 40,
+                "defending": 75,
+                "stamina": 41,
+                "awareness": 46,
+                "composure": 40
+              }
+            },
+            {
+              "id": "9c241873-271b-451d-81c2-bec20c6e7073",
+              "name": "Dina-Marie Sunde",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "CAM",
+              "potential": 61,
+              "attributes": {
+                "speed": 66,
+                "strength": 40,
+                "agility": 66,
+                "passing": 45,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 74,
+                "awareness": 78,
+                "composure": 62
+              }
+            },
+            {
+              "id": "9aaa1b86-bb0d-468e-aa84-8ac1906d2c21",
+              "name": "Linn Haaland",
+              "nationality": "norwegian",
+              "age": 27,
+              "position": "CAM",
+              "potential": 64,
+              "attributes": {
+                "speed": 77,
+                "strength": 43,
+                "agility": 51,
+                "passing": 51,
+                "finishing": 51,
+                "technique": 73,
+                "defending": 47,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 69
+              }
+            },
+            {
+              "id": "6c51d53a-5119-4c44-8290-c503b7aa761d",
+              "name": "Cecilie Reitan",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "LW",
+              "potential": 58,
+              "attributes": {
+                "speed": 99,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 50,
+                "technique": 56,
+                "defending": 44,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 75
+              }
+            },
+            {
+              "id": "4ca6e4e2-f380-4892-a369-07e985453b26",
+              "name": "Karoline Ihle",
+              "nationality": "norwegian",
+              "age": 28,
+              "position": "RW",
+              "potential": 70,
+              "attributes": {
+                "speed": 86,
+                "strength": 40,
+                "agility": 40,
+                "passing": 52,
+                "finishing": 56,
+                "technique": 60,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 60,
+                "composure": 77
+              }
+            },
+            {
+              "id": "2b65e564-9ae5-4816-a097-9cffcd0700a2",
+              "name": "Jane Reginiussen",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "ST",
+              "potential": 71,
+              "attributes": {
+                "speed": 57,
+                "strength": 40,
+                "agility": 66,
+                "passing": 63,
+                "finishing": 63,
+                "technique": 63,
+                "defending": 47,
+                "stamina": 43,
+                "awareness": 57,
+                "composure": 40
+              }
+            },
+            {
+              "id": "2fd76868-4818-4fab-9dc6-124395680c1c",
+              "name": "Ulla Bjerke",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "CF",
+              "potential": 76,
+              "attributes": {
+                "speed": 71,
+                "strength": 67,
+                "agility": 79,
+                "passing": 40,
+                "finishing": 75,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 58,
+                "awareness": 40,
+                "composure": 58
+              }
+            },
+            {
+              "id": "9f0e5c09-27ca-4e28-880c-bd712802905d",
+              "name": "Frida Sunde",
+              "nationality": "norwegian",
+              "age": 32,
+              "position": "CF",
+              "potential": 75,
+              "attributes": {
+                "speed": 64,
+                "strength": 40,
+                "agility": 97,
+                "passing": 91,
+                "finishing": 48,
+                "technique": 70,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "df43bfed-e6d0-4082-80ac-e725d87f8d55",
+              "name": "Kirsten Holmen",
+              "nationality": "norwegian",
+              "age": 27,
+              "position": "CM",
+              "potential": 64,
+              "attributes": {
+                "speed": 82,
+                "strength": 82,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 65,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 71,
+                "awareness": 82,
+                "composure": 40
+              }
+            }
+          ],
+          "primaryColor": "#1660C9",
           "secondaryColor": "#000000"
         },
         {
@@ -16267,8 +16267,8 @@
               }
             }
           ],
-          "primaryColor": "#CC0000",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#F44601",
+          "secondaryColor": "#000000"
         }
       ]
     },
@@ -16782,7 +16782,7 @@
               }
             }
           ],
-          "primaryColor": "#003399",
+          "primaryColor": "#002D56",
           "secondaryColor": "#FFFFFF"
         },
         {
@@ -17290,8 +17290,8 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#0066FF",
+          "secondaryColor": "#FFEE00"
         },
         {
           "id": "nor-35",
@@ -17798,1027 +17798,11 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#FFE300",
+          "secondaryColor": "#000000"
         },
         {
           "id": "nor-36",
-          "name": "Elverum",
-          "players": [
-            {
-              "id": "b15993b3-d88d-45f3-b062-ec932f30773e",
-              "name": "Sofie Skjerve",
-              "nationality": "norwegian",
-              "age": 30,
-              "position": "GK",
-              "potential": 64,
-              "attributes": {
-                "speed": 75,
-                "strength": 40,
-                "agility": 41,
-                "passing": 67,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 67,
-                "stamina": 40,
-                "awareness": 71,
-                "composure": 40
-              }
-            },
-            {
-              "id": "8368da7d-1f52-43be-899d-81c04594e913",
-              "name": "Nina-Marie Holm",
-              "nationality": "norwegian",
-              "age": 19,
-              "position": "LB",
-              "potential": 67,
-              "attributes": {
-                "speed": 40,
-                "strength": 72,
-                "agility": 95,
-                "passing": 95,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 45,
-                "stamina": 50,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "3cfd274c-feb4-41eb-8b7e-6fc758382022",
-              "name": "Dorothy Fiskerstrand",
-              "nationality": "norwegian",
-              "age": 21,
-              "position": "CB",
-              "potential": 58,
-              "attributes": {
-                "speed": 40,
-                "strength": 74,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 45,
-                "defending": 40,
-                "stamina": 66,
-                "awareness": 40,
-                "composure": 82
-              }
-            },
-            {
-              "id": "51c1c8f6-2d80-4728-9be6-7e4fb5ad1d2d",
-              "name": "Amalie Holmberg",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "CB",
-              "potential": 67,
-              "attributes": {
-                "speed": 40,
-                "strength": 74,
-                "agility": 40,
-                "passing": 62,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 78,
-                "awareness": 41,
-                "composure": 50
-              }
-            },
-            {
-              "id": "dbe4e5c2-28a3-42c1-ba37-20fe5c3fe12f",
-              "name": "Kristin Tandberg",
-              "nationality": "norwegian",
-              "age": 27,
-              "position": "RB",
-              "potential": 63,
-              "attributes": {
-                "speed": 40,
-                "strength": 91,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 57,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 91
-              }
-            },
-            {
-              "id": "8643c47b-a992-4c7e-8ae0-8deb90911f6a",
-              "name": "Ulla Hermanrud",
-              "nationality": "norwegian",
-              "age": 28,
-              "position": "LM",
-              "potential": 59,
-              "attributes": {
-                "speed": 65,
-                "strength": 59,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 46,
-                "defending": 52,
-                "stamina": 59,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "f5c1c573-a776-4291-905e-b2f22139069a",
-              "name": "Mona Nypan",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "CM",
-              "potential": 62,
-              "attributes": {
-                "speed": 40,
-                "strength": 64,
-                "agility": 40,
-                "passing": 44,
-                "finishing": 40,
-                "technique": 54,
-                "defending": 40,
-                "stamina": 68,
-                "awareness": 40,
-                "composure": 68
-              }
-            },
-            {
-              "id": "880ca31f-d599-4467-9c3c-fc6f7dbd3727",
-              "name": "Åline Nordby",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CM",
-              "potential": 64,
-              "attributes": {
-                "speed": 55,
-                "strength": 40,
-                "agility": 40,
-                "passing": 51,
-                "finishing": 63,
-                "technique": 40,
-                "defending": 42,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 67
-              }
-            },
-            {
-              "id": "9e7e86bd-eb75-4b09-b73c-0d2c9f46ae83",
-              "name": "Tiril-Marie Solberg",
-              "nationality": "norwegian",
-              "age": 23,
-              "position": "RM",
-              "potential": 55,
-              "attributes": {
-                "speed": 55,
-                "strength": 40,
-                "agility": 55,
-                "passing": 40,
-                "finishing": 49,
-                "technique": 43,
-                "defending": 40,
-                "stamina": 52,
-                "awareness": 40,
-                "composure": 52
-              }
-            },
-            {
-              "id": "b0603741-4ee0-4d9e-a729-8ff8210ded7e",
-              "name": "Ella Henriksen",
-              "nationality": "norwegian",
-              "age": 28,
-              "position": "ST",
-              "potential": 65,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 73,
-                "passing": 44,
-                "finishing": 44,
-                "technique": 40,
-                "defending": 54,
-                "stamina": 65,
-                "awareness": 40,
-                "composure": 73
-              }
-            },
-            {
-              "id": "73ee0d37-8dad-43df-8ec5-4dc4e5f6f37d",
-              "name": "Ånette Knudsen",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "ST",
-              "potential": 59,
-              "attributes": {
-                "speed": 49,
-                "strength": 58,
-                "agility": 40,
-                "passing": 52,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 61,
-                "stamina": 55,
-                "awareness": 40,
-                "composure": 43
-              }
-            },
-            {
-              "id": "642023cb-ae39-4540-a782-73d75bfeaccf",
-              "name": "Isabell Danielsen",
-              "nationality": "norwegian",
-              "age": 32,
-              "position": "GK",
-              "potential": 66,
-              "attributes": {
-                "speed": 40,
-                "strength": 65,
-                "agility": 46,
-                "passing": 46,
-                "finishing": 40,
-                "technique": 46,
-                "defending": 42,
-                "stamina": 54,
-                "awareness": 65,
-                "composure": 40
-              }
-            },
-            {
-              "id": "1f2f9a03-16f2-4786-809b-ac7ca05aea5b",
-              "name": "Tuva Aasen",
-              "nationality": "norwegian",
-              "age": 34,
-              "position": "CB",
-              "potential": 53,
-              "attributes": {
-                "speed": 55,
-                "strength": 62,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 59,
-                "defending": 40,
-                "stamina": 52,
-                "awareness": 40,
-                "composure": 46
-              }
-            },
-            {
-              "id": "6cc0affb-bb96-4949-9a20-2e6510c5c549",
-              "name": "Caroline Hovland",
-              "nationality": "norwegian",
-              "age": 21,
-              "position": "LB",
-              "potential": 62,
-              "attributes": {
-                "speed": 40,
-                "strength": 60,
-                "agility": 66,
-                "passing": 40,
-                "finishing": 48,
-                "technique": 40,
-                "defending": 48,
-                "stamina": 78,
-                "awareness": 72,
-                "composure": 40
-              }
-            },
-            {
-              "id": "700d27b7-d8a2-4098-847e-6c2e43d8140d",
-              "name": "Yana Bratseth",
-              "nationality": "norwegian",
-              "age": 27,
-              "position": "RB",
-              "potential": 61,
-              "attributes": {
-                "speed": 70,
-                "strength": 55,
-                "agility": 40,
-                "passing": 47,
-                "finishing": 47,
-                "technique": 43,
-                "defending": 62,
-                "stamina": 62,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "47437271-161e-42c1-af4b-d774ed765ad2",
-              "name": "Dorothy Bolstad",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CDM",
-              "potential": 65,
-              "attributes": {
-                "speed": 58,
-                "strength": 40,
-                "agility": 62,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 42,
-                "defending": 58,
-                "stamina": 73,
-                "awareness": 66,
-                "composure": 40
-              }
-            },
-            {
-              "id": "86f4daf7-f31d-4c11-9780-7e2a70d56768",
-              "name": "Eli Eriksen",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "CDM",
-              "potential": 67,
-              "attributes": {
-                "speed": 40,
-                "strength": 72,
-                "agility": 68,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 76,
-                "stamina": 47,
-                "awareness": 40,
-                "composure": 51
-              }
-            },
-            {
-              "id": "ec9f123e-dfeb-4a4c-86f5-bcafce5ca3e0",
-              "name": "Birgitte Fredriksen",
-              "nationality": "norwegian",
-              "age": 29,
-              "position": "CAM",
-              "potential": 68,
-              "attributes": {
-                "speed": 40,
-                "strength": 74,
-                "agility": 53,
-                "passing": 78,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 70,
-                "stamina": 40,
-                "awareness": 74,
-                "composure": 61
-              }
-            },
-            {
-              "id": "d6e2eeaf-ea1a-4896-8b9a-0f28d58189ae",
-              "name": "Vivian Skogen",
-              "nationality": "norwegian",
-              "age": 19,
-              "position": "CAM",
-              "potential": 67,
-              "attributes": {
-                "speed": 43,
-                "strength": 40,
-                "agility": 40,
-                "passing": 72,
-                "finishing": 40,
-                "technique": 72,
-                "defending": 69,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 65
-              }
-            },
-            {
-              "id": "f42ebabd-da9a-4354-ba05-3e346b906eee",
-              "name": "Karina Iversen",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "LW",
-              "potential": 64,
-              "attributes": {
-                "speed": 40,
-                "strength": 50,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 68,
-                "defending": 47,
-                "stamina": 68,
-                "awareness": 65,
-                "composure": 40
-              }
-            },
-            {
-              "id": "0e012183-7cb4-4081-afac-a0e5f803dc30",
-              "name": "Udele Johnsen",
-              "nationality": "norwegian",
-              "age": 34,
-              "position": "RW",
-              "potential": 58,
-              "attributes": {
-                "speed": 99,
-                "strength": 72,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 41,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 77
-              }
-            },
-            {
-              "id": "b059688d-8d98-44b6-947b-f8e5fc0cccc9",
-              "name": "Kari Nordeng",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "ST",
-              "potential": 55,
-              "attributes": {
-                "speed": 40,
-                "strength": 43,
-                "agility": 56,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 56,
-                "stamina": 56,
-                "awareness": 40,
-                "composure": 46
-              }
-            },
-            {
-              "id": "99f7fbee-2426-499c-8adf-0e4ef32cbe45",
-              "name": "Noor Jorgensen",
-              "nationality": "norwegian",
-              "age": 25,
-              "position": "CF",
-              "potential": 53,
-              "attributes": {
-                "speed": 42,
-                "strength": 52,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 42,
-                "technique": 40,
-                "defending": 65,
-                "stamina": 58,
-                "awareness": 65,
-                "composure": 40
-              }
-            },
-            {
-              "id": "a1990b2d-f7d9-40a7-b5f1-9a194a317893",
-              "name": "Jenny Haug",
-              "nationality": "norwegian",
-              "age": 30,
-              "position": "CF",
-              "potential": 59,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 49,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 53,
-                "awareness": 76,
-                "composure": 40
-              }
-            },
-            {
-              "id": "e3d10924-9063-4f42-873b-a86ca6e5ddaf",
-              "name": "Bente Egeland",
-              "nationality": "norwegian",
-              "age": 25,
-              "position": "CM",
-              "potential": 59,
-              "attributes": {
-                "speed": 77,
-                "strength": 40,
-                "agility": 40,
-                "passing": 77,
-                "finishing": 64,
-                "technique": 40,
-                "defending": 69,
-                "stamina": 52,
-                "awareness": 40,
-                "composure": 40
-              }
-            }
-          ],
-          "primaryColor": "#CC0000",
-          "secondaryColor": "#FFFFFF"
-        },
-        {
-          "id": "nor-37",
-          "name": "FK Toten",
-          "players": [
-            {
-              "id": "191a8a87-0ff6-47af-bdbe-de6ea7b13f93",
-              "name": "Filippa Graham",
-              "nationality": "norwegian",
-              "age": 35,
-              "position": "GK",
-              "potential": 68,
-              "attributes": {
-                "speed": 40,
-                "strength": 88,
-                "agility": 60,
-                "passing": 70,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 46,
-                "stamina": 42,
-                "awareness": 42,
-                "composure": 40
-              }
-            },
-            {
-              "id": "44040c11-6573-4ea8-b1e8-2a7bb548a1ee",
-              "name": "Greta Edvardsen",
-              "nationality": "norwegian",
-              "age": 22,
-              "position": "LB",
-              "potential": 67,
-              "attributes": {
-                "speed": 59,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 67,
-                "stamina": 76,
-                "awareness": 59,
-                "composure": 40
-              }
-            },
-            {
-              "id": "e0fc39b5-3471-4483-a87a-cd90ff367b7a",
-              "name": "Michelle Bratseth",
-              "nationality": "norwegian",
-              "age": 24,
-              "position": "CB",
-              "potential": 64,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 88,
-                "passing": 70,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 65,
-                "stamina": 40,
-                "awareness": 83,
-                "composure": 40
-              }
-            },
-            {
-              "id": "3c69d41a-dcd2-4be4-9faf-ad3e3611a814",
-              "name": "Tuva Fjeld",
-              "nationality": "norwegian",
-              "age": 25,
-              "position": "CB",
-              "potential": 61,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 67,
-                "passing": 40,
-                "finishing": 51,
-                "technique": 64,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 61,
-                "composure": 40
-              }
-            },
-            {
-              "id": "56a76e5c-dd03-40e2-a57e-c714289ce619",
-              "name": "Agnes Birkeland",
-              "nationality": "norwegian",
-              "age": 34,
-              "position": "RB",
-              "potential": 55,
-              "attributes": {
-                "speed": 54,
-                "strength": 40,
-                "agility": 57,
-                "passing": 40,
-                "finishing": 67,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 61,
-                "composure": 40
-              }
-            },
-            {
-              "id": "48a478cb-12ab-4583-9d59-c8426a0fba59",
-              "name": "Hege Egeland",
-              "nationality": "norwegian",
-              "age": 21,
-              "position": "LM",
-              "potential": 64,
-              "attributes": {
-                "speed": 64,
-                "strength": 40,
-                "agility": 72,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 52,
-                "defending": 56,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "2fbe28d8-af02-45bc-bb35-eef1227c0493",
-              "name": "Yana Dahlum",
-              "nationality": "norwegian",
-              "age": 25,
-              "position": "CM",
-              "potential": 59,
-              "attributes": {
-                "speed": 53,
-                "strength": 40,
-                "agility": 40,
-                "passing": 49,
-                "finishing": 56,
-                "technique": 40,
-                "defending": 66,
-                "stamina": 43,
-                "awareness": 40,
-                "composure": 46
-              }
-            },
-            {
-              "id": "06b34ea4-5931-4a6c-828f-89f66a45517e",
-              "name": "Gunn Holm",
-              "nationality": "norwegian",
-              "age": 35,
-              "position": "CM",
-              "potential": 70,
-              "attributes": {
-                "speed": 53,
-                "strength": 57,
-                "agility": 67,
-                "passing": 40,
-                "finishing": 67,
-                "technique": 40,
-                "defending": 67,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "21f83da4-72e6-46af-8c11-debe92f1cba3",
-              "name": "Filippa Tangen",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "RM",
-              "potential": 51,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 40,
-                "passing": 47,
-                "finishing": 47,
-                "technique": 55,
-                "defending": 40,
-                "stamina": 55,
-                "awareness": 40,
-                "composure": 44
-              }
-            },
-            {
-              "id": "31bf162e-2328-4e72-b11c-8f29c51b098c",
-              "name": "Vilja Engh",
-              "nationality": "norwegian",
-              "age": 23,
-              "position": "ST",
-              "potential": 64,
-              "attributes": {
-                "speed": 47,
-                "strength": 40,
-                "agility": 54,
-                "passing": 58,
-                "finishing": 68,
-                "technique": 41,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 51
-              }
-            },
-            {
-              "id": "cb032530-f393-450a-aa60-b9a836b72d0b",
-              "name": "Ingrid Engen",
-              "nationality": "norwegian",
-              "age": 35,
-              "position": "ST",
-              "potential": 61,
-              "attributes": {
-                "speed": 42,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 65,
-                "technique": 40,
-                "defending": 55,
-                "stamina": 52,
-                "awareness": 65,
-                "composure": 49
-              }
-            },
-            {
-              "id": "3d75672c-9398-4852-93ed-71a6c5be5884",
-              "name": "Barbara Aarnes",
-              "nationality": "norwegian",
-              "age": 29,
-              "position": "GK",
-              "potential": 72,
-              "attributes": {
-                "speed": 40,
-                "strength": 58,
-                "agility": 78,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 70,
-                "defending": 74,
-                "stamina": 40,
-                "awareness": 41,
-                "composure": 83
-              }
-            },
-            {
-              "id": "c8a5c5cb-e733-4e90-b934-bc708195ed34",
-              "name": "Elida Bergsvand",
-              "nationality": "norwegian",
-              "age": 33,
-              "position": "CB",
-              "potential": 55,
-              "attributes": {
-                "speed": 45,
-                "strength": 41,
-                "agility": 40,
-                "passing": 48,
-                "finishing": 69,
-                "technique": 55,
-                "defending": 55,
-                "stamina": 48,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "4ba40d7c-5f40-4c64-83e2-0c8927cf978d",
-              "name": "Jorunn Storevik",
-              "nationality": "norwegian",
-              "age": 21,
-              "position": "LB",
-              "potential": 52,
-              "attributes": {
-                "speed": 40,
-                "strength": 40,
-                "agility": 40,
-                "passing": 45,
-                "finishing": 40,
-                "technique": 41,
-                "defending": 40,
-                "stamina": 57,
-                "awareness": 45,
-                "composure": 74
-              }
-            },
-            {
-              "id": "9c522051-1de5-4469-b578-af6fbe252f16",
-              "name": "Sofie Haavi",
-              "nationality": "norwegian",
-              "age": 30,
-              "position": "RB",
-              "potential": 66,
-              "attributes": {
-                "speed": 40,
-                "strength": 73,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 68,
-                "technique": 40,
-                "defending": 94,
-                "stamina": 47,
-                "awareness": 58,
-                "composure": 40
-              }
-            },
-            {
-              "id": "22e4b5e7-3bbd-4e34-b8f5-5b197cc08b3a",
-              "name": "Tora Dalen",
-              "nationality": "norwegian",
-              "age": 17,
-              "position": "CDM",
-              "potential": 65,
-              "attributes": {
-                "speed": 40,
-                "strength": 43,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 63,
-                "defending": 67,
-                "stamina": 40,
-                "awareness": 67,
-                "composure": 40
-              }
-            },
-            {
-              "id": "af837a5e-9761-4c22-a4be-41bfd9cf1faf",
-              "name": "Alvilde Braaten",
-              "nationality": "norwegian",
-              "age": 32,
-              "position": "CDM",
-              "potential": 63,
-              "attributes": {
-                "speed": 60,
-                "strength": 40,
-                "agility": 50,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 66,
-                "composure": 60
-              }
-            },
-            {
-              "id": "8c62107d-be79-4df1-b331-58484ab2d6ca",
-              "name": "Aisha Svenning",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CAM",
-              "potential": 56,
-              "attributes": {
-                "speed": 40,
-                "strength": 58,
-                "agility": 58,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 46,
-                "awareness": 40,
-                "composure": 55
-              }
-            },
-            {
-              "id": "dacfb7f1-dea8-40a5-a7b6-94dbc1748162",
-              "name": "Hege Foss",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CAM",
-              "potential": 68,
-              "attributes": {
-                "speed": 50,
-                "strength": 40,
-                "agility": 69,
-                "passing": 65,
-                "finishing": 40,
-                "technique": 50,
-                "defending": 40,
-                "stamina": 73,
-                "awareness": 40,
-                "composure": 40
-              }
-            },
-            {
-              "id": "fec05e4d-0510-4624-9dd0-24c0aaccc5f1",
-              "name": "Maren Tveit",
-              "nationality": "norwegian",
-              "age": 24,
-              "position": "LW",
-              "potential": 62,
-              "attributes": {
-                "speed": 41,
-                "strength": 51,
-                "agility": 51,
-                "passing": 51,
-                "finishing": 51,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 48,
-                "awareness": 40,
-                "composure": 51
-              }
-            },
-            {
-              "id": "7fcad742-03e7-4919-83a1-03ae794442a7",
-              "name": "Gabriella Nygaard",
-              "nationality": "norwegian",
-              "age": 18,
-              "position": "RW",
-              "potential": 65,
-              "attributes": {
-                "speed": 40,
-                "strength": 53,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 40,
-                "technique": 59,
-                "defending": 56,
-                "stamina": 59,
-                "awareness": 40,
-                "composure": 47
-              }
-            },
-            {
-              "id": "6bd40aac-17f8-4ec2-ad94-adaca32d4759",
-              "name": "Solveig Lien",
-              "nationality": "norwegian",
-              "age": 20,
-              "position": "ST",
-              "potential": 67,
-              "attributes": {
-                "speed": 72,
-                "strength": 40,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 72,
-                "technique": 61,
-                "defending": 40,
-                "stamina": 61,
-                "awareness": 50,
-                "composure": 47
-              }
-            },
-            {
-              "id": "b56f75c1-f8a2-4d43-b4d0-efef60cc773d",
-              "name": "Yrsa Lillerud",
-              "nationality": "norwegian",
-              "age": 33,
-              "position": "CF",
-              "potential": 71,
-              "attributes": {
-                "speed": 40,
-                "strength": 42,
-                "agility": 66,
-                "passing": 66,
-                "finishing": 70,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 40,
-                "composure": 70
-              }
-            },
-            {
-              "id": "c9689c86-9a55-4483-a2c2-f951c54dc8e6",
-              "name": "Christine Brekke",
-              "nationality": "norwegian",
-              "age": 31,
-              "position": "CF",
-              "potential": 58,
-              "attributes": {
-                "speed": 40,
-                "strength": 53,
-                "agility": 40,
-                "passing": 40,
-                "finishing": 63,
-                "technique": 40,
-                "defending": 40,
-                "stamina": 40,
-                "awareness": 74,
-                "composure": 42
-              }
-            },
-            {
-              "id": "bade7df8-0332-4253-9cc5-9eac25ceb3d7",
-              "name": "Johanne Grønvold",
-              "nationality": "norwegian",
-              "age": 34,
-              "position": "CM",
-              "potential": 58,
-              "attributes": {
-                "speed": 47,
-                "strength": 40,
-                "agility": 86,
-                "passing": 73,
-                "finishing": 40,
-                "technique": 40,
-                "defending": 51,
-                "stamina": 40,
-                "awareness": 47,
-                "composure": 40
-              }
-            }
-          ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
-        },
-        {
-          "id": "nor-38",
           "name": "Flekkerøy",
           "players": [
             {
@@ -19322,11 +18306,11 @@
               }
             }
           ],
-          "primaryColor": "#CC0000",
+          "primaryColor": "#26358C",
           "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-39",
+          "id": "nor-37",
           "name": "Florø",
           "players": [
             {
@@ -19830,11 +18814,11 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#111111",
+          "secondaryColor": "#2F59A0"
         },
         {
-          "id": "nor-40",
+          "id": "nor-38",
           "name": "Gjøvik-Lyn",
           "players": [
             {
@@ -20338,11 +19322,11 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#CC0000",
+          "secondaryColor": "#000000"
         },
         {
-          "id": "nor-41",
+          "id": "nor-39",
           "name": "Grorud",
           "players": [
             {
@@ -20846,11 +19830,11 @@
               }
             }
           ],
-          "primaryColor": "#006633",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#feec02",
+          "secondaryColor": "#024999"
         },
         {
-          "id": "nor-42",
+          "id": "nor-40",
           "name": "Hødd",
           "players": [
             {
@@ -21354,11 +20338,11 @@
               }
             }
           ],
-          "primaryColor": "#FFED00",
-          "secondaryColor": "#000000"
+          "primaryColor": "#1D4278",
+          "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-43",
+          "id": "nor-41",
           "name": "Kjelsås",
           "players": [
             {
@@ -21866,7 +20850,7 @@
           "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-44",
+          "id": "nor-42",
           "name": "Levanger",
           "players": [
             {
@@ -22371,10 +21355,518 @@
             }
           ],
           "primaryColor": "#CC0000",
-          "secondaryColor": "#000000"
+          "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-45",
+          "id": "nor-43",
+          "name": "Nest-Sotra",
+          "players": [
+            {
+              "id": "b15993b3-d88d-45f3-b062-ec932f30773e",
+              "name": "Sofie Skjerve",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "GK",
+              "potential": 64,
+              "attributes": {
+                "speed": 75,
+                "strength": 40,
+                "agility": 41,
+                "passing": 67,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 67,
+                "stamina": 40,
+                "awareness": 71,
+                "composure": 40
+              }
+            },
+            {
+              "id": "8368da7d-1f52-43be-899d-81c04594e913",
+              "name": "Nina-Marie Holm",
+              "nationality": "norwegian",
+              "age": 19,
+              "position": "LB",
+              "potential": 67,
+              "attributes": {
+                "speed": 40,
+                "strength": 72,
+                "agility": 95,
+                "passing": 95,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 45,
+                "stamina": 50,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "3cfd274c-feb4-41eb-8b7e-6fc758382022",
+              "name": "Dorothy Fiskerstrand",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "CB",
+              "potential": 58,
+              "attributes": {
+                "speed": 40,
+                "strength": 74,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 45,
+                "defending": 40,
+                "stamina": 66,
+                "awareness": 40,
+                "composure": 82
+              }
+            },
+            {
+              "id": "51c1c8f6-2d80-4728-9be6-7e4fb5ad1d2d",
+              "name": "Amalie Holmberg",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "CB",
+              "potential": 67,
+              "attributes": {
+                "speed": 40,
+                "strength": 74,
+                "agility": 40,
+                "passing": 62,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 78,
+                "awareness": 41,
+                "composure": 50
+              }
+            },
+            {
+              "id": "dbe4e5c2-28a3-42c1-ba37-20fe5c3fe12f",
+              "name": "Kristin Tandberg",
+              "nationality": "norwegian",
+              "age": 27,
+              "position": "RB",
+              "potential": 63,
+              "attributes": {
+                "speed": 40,
+                "strength": 91,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 57,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 91
+              }
+            },
+            {
+              "id": "8643c47b-a992-4c7e-8ae0-8deb90911f6a",
+              "name": "Ulla Hermanrud",
+              "nationality": "norwegian",
+              "age": 28,
+              "position": "LM",
+              "potential": 59,
+              "attributes": {
+                "speed": 65,
+                "strength": 59,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 46,
+                "defending": 52,
+                "stamina": 59,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "f5c1c573-a776-4291-905e-b2f22139069a",
+              "name": "Mona Nypan",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "CM",
+              "potential": 62,
+              "attributes": {
+                "speed": 40,
+                "strength": 64,
+                "agility": 40,
+                "passing": 44,
+                "finishing": 40,
+                "technique": 54,
+                "defending": 40,
+                "stamina": 68,
+                "awareness": 40,
+                "composure": 68
+              }
+            },
+            {
+              "id": "880ca31f-d599-4467-9c3c-fc6f7dbd3727",
+              "name": "Åline Nordby",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CM",
+              "potential": 64,
+              "attributes": {
+                "speed": 55,
+                "strength": 40,
+                "agility": 40,
+                "passing": 51,
+                "finishing": 63,
+                "technique": 40,
+                "defending": 42,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 67
+              }
+            },
+            {
+              "id": "9e7e86bd-eb75-4b09-b73c-0d2c9f46ae83",
+              "name": "Tiril-Marie Solberg",
+              "nationality": "norwegian",
+              "age": 23,
+              "position": "RM",
+              "potential": 55,
+              "attributes": {
+                "speed": 55,
+                "strength": 40,
+                "agility": 55,
+                "passing": 40,
+                "finishing": 49,
+                "technique": 43,
+                "defending": 40,
+                "stamina": 52,
+                "awareness": 40,
+                "composure": 52
+              }
+            },
+            {
+              "id": "b0603741-4ee0-4d9e-a729-8ff8210ded7e",
+              "name": "Ella Henriksen",
+              "nationality": "norwegian",
+              "age": 28,
+              "position": "ST",
+              "potential": 65,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 73,
+                "passing": 44,
+                "finishing": 44,
+                "technique": 40,
+                "defending": 54,
+                "stamina": 65,
+                "awareness": 40,
+                "composure": 73
+              }
+            },
+            {
+              "id": "73ee0d37-8dad-43df-8ec5-4dc4e5f6f37d",
+              "name": "Ånette Knudsen",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "ST",
+              "potential": 59,
+              "attributes": {
+                "speed": 49,
+                "strength": 58,
+                "agility": 40,
+                "passing": 52,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 61,
+                "stamina": 55,
+                "awareness": 40,
+                "composure": 43
+              }
+            },
+            {
+              "id": "642023cb-ae39-4540-a782-73d75bfeaccf",
+              "name": "Isabell Danielsen",
+              "nationality": "norwegian",
+              "age": 32,
+              "position": "GK",
+              "potential": 66,
+              "attributes": {
+                "speed": 40,
+                "strength": 65,
+                "agility": 46,
+                "passing": 46,
+                "finishing": 40,
+                "technique": 46,
+                "defending": 42,
+                "stamina": 54,
+                "awareness": 65,
+                "composure": 40
+              }
+            },
+            {
+              "id": "1f2f9a03-16f2-4786-809b-ac7ca05aea5b",
+              "name": "Tuva Aasen",
+              "nationality": "norwegian",
+              "age": 34,
+              "position": "CB",
+              "potential": 53,
+              "attributes": {
+                "speed": 55,
+                "strength": 62,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 59,
+                "defending": 40,
+                "stamina": 52,
+                "awareness": 40,
+                "composure": 46
+              }
+            },
+            {
+              "id": "6cc0affb-bb96-4949-9a20-2e6510c5c549",
+              "name": "Caroline Hovland",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "LB",
+              "potential": 62,
+              "attributes": {
+                "speed": 40,
+                "strength": 60,
+                "agility": 66,
+                "passing": 40,
+                "finishing": 48,
+                "technique": 40,
+                "defending": 48,
+                "stamina": 78,
+                "awareness": 72,
+                "composure": 40
+              }
+            },
+            {
+              "id": "700d27b7-d8a2-4098-847e-6c2e43d8140d",
+              "name": "Yana Bratseth",
+              "nationality": "norwegian",
+              "age": 27,
+              "position": "RB",
+              "potential": 61,
+              "attributes": {
+                "speed": 70,
+                "strength": 55,
+                "agility": 40,
+                "passing": 47,
+                "finishing": 47,
+                "technique": 43,
+                "defending": 62,
+                "stamina": 62,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "47437271-161e-42c1-af4b-d774ed765ad2",
+              "name": "Dorothy Bolstad",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CDM",
+              "potential": 65,
+              "attributes": {
+                "speed": 58,
+                "strength": 40,
+                "agility": 62,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 42,
+                "defending": 58,
+                "stamina": 73,
+                "awareness": 66,
+                "composure": 40
+              }
+            },
+            {
+              "id": "86f4daf7-f31d-4c11-9780-7e2a70d56768",
+              "name": "Eli Eriksen",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "CDM",
+              "potential": 67,
+              "attributes": {
+                "speed": 40,
+                "strength": 72,
+                "agility": 68,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 76,
+                "stamina": 47,
+                "awareness": 40,
+                "composure": 51
+              }
+            },
+            {
+              "id": "ec9f123e-dfeb-4a4c-86f5-bcafce5ca3e0",
+              "name": "Birgitte Fredriksen",
+              "nationality": "norwegian",
+              "age": 29,
+              "position": "CAM",
+              "potential": 68,
+              "attributes": {
+                "speed": 40,
+                "strength": 74,
+                "agility": 53,
+                "passing": 78,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 70,
+                "stamina": 40,
+                "awareness": 74,
+                "composure": 61
+              }
+            },
+            {
+              "id": "d6e2eeaf-ea1a-4896-8b9a-0f28d58189ae",
+              "name": "Vivian Skogen",
+              "nationality": "norwegian",
+              "age": 19,
+              "position": "CAM",
+              "potential": 67,
+              "attributes": {
+                "speed": 43,
+                "strength": 40,
+                "agility": 40,
+                "passing": 72,
+                "finishing": 40,
+                "technique": 72,
+                "defending": 69,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 65
+              }
+            },
+            {
+              "id": "f42ebabd-da9a-4354-ba05-3e346b906eee",
+              "name": "Karina Iversen",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "LW",
+              "potential": 64,
+              "attributes": {
+                "speed": 40,
+                "strength": 50,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 68,
+                "defending": 47,
+                "stamina": 68,
+                "awareness": 65,
+                "composure": 40
+              }
+            },
+            {
+              "id": "0e012183-7cb4-4081-afac-a0e5f803dc30",
+              "name": "Udele Johnsen",
+              "nationality": "norwegian",
+              "age": 34,
+              "position": "RW",
+              "potential": 58,
+              "attributes": {
+                "speed": 99,
+                "strength": 72,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 41,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 77
+              }
+            },
+            {
+              "id": "b059688d-8d98-44b6-947b-f8e5fc0cccc9",
+              "name": "Kari Nordeng",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "ST",
+              "potential": 55,
+              "attributes": {
+                "speed": 40,
+                "strength": 43,
+                "agility": 56,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 56,
+                "stamina": 56,
+                "awareness": 40,
+                "composure": 46
+              }
+            },
+            {
+              "id": "99f7fbee-2426-499c-8adf-0e4ef32cbe45",
+              "name": "Noor Jorgensen",
+              "nationality": "norwegian",
+              "age": 25,
+              "position": "CF",
+              "potential": 53,
+              "attributes": {
+                "speed": 42,
+                "strength": 52,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 42,
+                "technique": 40,
+                "defending": 65,
+                "stamina": 58,
+                "awareness": 65,
+                "composure": 40
+              }
+            },
+            {
+              "id": "a1990b2d-f7d9-40a7-b5f1-9a194a317893",
+              "name": "Jenny Haug",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "CF",
+              "potential": 59,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 49,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 53,
+                "awareness": 76,
+                "composure": 40
+              }
+            },
+            {
+              "id": "e3d10924-9063-4f42-873b-a86ca6e5ddaf",
+              "name": "Bente Egeland",
+              "nationality": "norwegian",
+              "age": 25,
+              "position": "CM",
+              "potential": 59,
+              "attributes": {
+                "speed": 77,
+                "strength": 40,
+                "agility": 40,
+                "passing": 77,
+                "finishing": 64,
+                "technique": 40,
+                "defending": 69,
+                "stamina": 52,
+                "awareness": 40,
+                "composure": 40
+              }
+            }
+          ],
+          "primaryColor": "#317664",
+          "secondaryColor": "#FFFFFF"
+        },
+        {
+          "id": "nor-44",
           "name": "Notodden",
           "players": [
             {
@@ -22882,7 +22374,7 @@
           "secondaryColor": "#FFFFFF"
         },
         {
-          "id": "nor-46",
+          "id": "nor-45",
           "name": "Skeid",
           "players": [
             {
@@ -23386,11 +22878,11 @@
               }
             }
           ],
-          "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "primaryColor": "#FF3300",
+          "secondaryColor": "#003399"
         },
         {
-          "id": "nor-47",
+          "id": "nor-46",
           "name": "Stjørdals-Blink",
           "players": [
             {
@@ -23898,7 +23390,7 @@
           "secondaryColor": "#000000"
         },
         {
-          "id": "nor-48",
+          "id": "nor-47",
           "name": "Tromsdalen",
           "players": [
             {
@@ -24403,7 +23895,515 @@
             }
           ],
           "primaryColor": "#003399",
-          "secondaryColor": "#FFFFFF"
+          "secondaryColor": "#FF3300"
+        },
+        {
+          "id": "nor-48",
+          "name": "Ull/Kisa",
+          "players": [
+            {
+              "id": "191a8a87-0ff6-47af-bdbe-de6ea7b13f93",
+              "name": "Filippa Graham",
+              "nationality": "norwegian",
+              "age": 35,
+              "position": "GK",
+              "potential": 68,
+              "attributes": {
+                "speed": 40,
+                "strength": 88,
+                "agility": 60,
+                "passing": 70,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 46,
+                "stamina": 42,
+                "awareness": 42,
+                "composure": 40
+              }
+            },
+            {
+              "id": "44040c11-6573-4ea8-b1e8-2a7bb548a1ee",
+              "name": "Greta Edvardsen",
+              "nationality": "norwegian",
+              "age": 22,
+              "position": "LB",
+              "potential": 67,
+              "attributes": {
+                "speed": 59,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 67,
+                "stamina": 76,
+                "awareness": 59,
+                "composure": 40
+              }
+            },
+            {
+              "id": "e0fc39b5-3471-4483-a87a-cd90ff367b7a",
+              "name": "Michelle Bratseth",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "CB",
+              "potential": 64,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 88,
+                "passing": 70,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 65,
+                "stamina": 40,
+                "awareness": 83,
+                "composure": 40
+              }
+            },
+            {
+              "id": "3c69d41a-dcd2-4be4-9faf-ad3e3611a814",
+              "name": "Tuva Fjeld",
+              "nationality": "norwegian",
+              "age": 25,
+              "position": "CB",
+              "potential": 61,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 67,
+                "passing": 40,
+                "finishing": 51,
+                "technique": 64,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 61,
+                "composure": 40
+              }
+            },
+            {
+              "id": "56a76e5c-dd03-40e2-a57e-c714289ce619",
+              "name": "Agnes Birkeland",
+              "nationality": "norwegian",
+              "age": 34,
+              "position": "RB",
+              "potential": 55,
+              "attributes": {
+                "speed": 54,
+                "strength": 40,
+                "agility": 57,
+                "passing": 40,
+                "finishing": 67,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 61,
+                "composure": 40
+              }
+            },
+            {
+              "id": "48a478cb-12ab-4583-9d59-c8426a0fba59",
+              "name": "Hege Egeland",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "LM",
+              "potential": 64,
+              "attributes": {
+                "speed": 64,
+                "strength": 40,
+                "agility": 72,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 52,
+                "defending": 56,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "2fbe28d8-af02-45bc-bb35-eef1227c0493",
+              "name": "Yana Dahlum",
+              "nationality": "norwegian",
+              "age": 25,
+              "position": "CM",
+              "potential": 59,
+              "attributes": {
+                "speed": 53,
+                "strength": 40,
+                "agility": 40,
+                "passing": 49,
+                "finishing": 56,
+                "technique": 40,
+                "defending": 66,
+                "stamina": 43,
+                "awareness": 40,
+                "composure": 46
+              }
+            },
+            {
+              "id": "06b34ea4-5931-4a6c-828f-89f66a45517e",
+              "name": "Gunn Holm",
+              "nationality": "norwegian",
+              "age": 35,
+              "position": "CM",
+              "potential": 70,
+              "attributes": {
+                "speed": 53,
+                "strength": 57,
+                "agility": 67,
+                "passing": 40,
+                "finishing": 67,
+                "technique": 40,
+                "defending": 67,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "21f83da4-72e6-46af-8c11-debe92f1cba3",
+              "name": "Filippa Tangen",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "RM",
+              "potential": 51,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 40,
+                "passing": 47,
+                "finishing": 47,
+                "technique": 55,
+                "defending": 40,
+                "stamina": 55,
+                "awareness": 40,
+                "composure": 44
+              }
+            },
+            {
+              "id": "31bf162e-2328-4e72-b11c-8f29c51b098c",
+              "name": "Vilja Engh",
+              "nationality": "norwegian",
+              "age": 23,
+              "position": "ST",
+              "potential": 64,
+              "attributes": {
+                "speed": 47,
+                "strength": 40,
+                "agility": 54,
+                "passing": 58,
+                "finishing": 68,
+                "technique": 41,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 51
+              }
+            },
+            {
+              "id": "cb032530-f393-450a-aa60-b9a836b72d0b",
+              "name": "Ingrid Engen",
+              "nationality": "norwegian",
+              "age": 35,
+              "position": "ST",
+              "potential": 61,
+              "attributes": {
+                "speed": 42,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 65,
+                "technique": 40,
+                "defending": 55,
+                "stamina": 52,
+                "awareness": 65,
+                "composure": 49
+              }
+            },
+            {
+              "id": "3d75672c-9398-4852-93ed-71a6c5be5884",
+              "name": "Barbara Aarnes",
+              "nationality": "norwegian",
+              "age": 29,
+              "position": "GK",
+              "potential": 72,
+              "attributes": {
+                "speed": 40,
+                "strength": 58,
+                "agility": 78,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 70,
+                "defending": 74,
+                "stamina": 40,
+                "awareness": 41,
+                "composure": 83
+              }
+            },
+            {
+              "id": "c8a5c5cb-e733-4e90-b934-bc708195ed34",
+              "name": "Elida Bergsvand",
+              "nationality": "norwegian",
+              "age": 33,
+              "position": "CB",
+              "potential": 55,
+              "attributes": {
+                "speed": 45,
+                "strength": 41,
+                "agility": 40,
+                "passing": 48,
+                "finishing": 69,
+                "technique": 55,
+                "defending": 55,
+                "stamina": 48,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "4ba40d7c-5f40-4c64-83e2-0c8927cf978d",
+              "name": "Jorunn Storevik",
+              "nationality": "norwegian",
+              "age": 21,
+              "position": "LB",
+              "potential": 52,
+              "attributes": {
+                "speed": 40,
+                "strength": 40,
+                "agility": 40,
+                "passing": 45,
+                "finishing": 40,
+                "technique": 41,
+                "defending": 40,
+                "stamina": 57,
+                "awareness": 45,
+                "composure": 74
+              }
+            },
+            {
+              "id": "9c522051-1de5-4469-b578-af6fbe252f16",
+              "name": "Sofie Haavi",
+              "nationality": "norwegian",
+              "age": 30,
+              "position": "RB",
+              "potential": 66,
+              "attributes": {
+                "speed": 40,
+                "strength": 73,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 68,
+                "technique": 40,
+                "defending": 94,
+                "stamina": 47,
+                "awareness": 58,
+                "composure": 40
+              }
+            },
+            {
+              "id": "22e4b5e7-3bbd-4e34-b8f5-5b197cc08b3a",
+              "name": "Tora Dalen",
+              "nationality": "norwegian",
+              "age": 17,
+              "position": "CDM",
+              "potential": 65,
+              "attributes": {
+                "speed": 40,
+                "strength": 43,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 63,
+                "defending": 67,
+                "stamina": 40,
+                "awareness": 67,
+                "composure": 40
+              }
+            },
+            {
+              "id": "af837a5e-9761-4c22-a4be-41bfd9cf1faf",
+              "name": "Alvilde Braaten",
+              "nationality": "norwegian",
+              "age": 32,
+              "position": "CDM",
+              "potential": 63,
+              "attributes": {
+                "speed": 60,
+                "strength": 40,
+                "agility": 50,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 66,
+                "composure": 60
+              }
+            },
+            {
+              "id": "8c62107d-be79-4df1-b331-58484ab2d6ca",
+              "name": "Aisha Svenning",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CAM",
+              "potential": 56,
+              "attributes": {
+                "speed": 40,
+                "strength": 58,
+                "agility": 58,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 46,
+                "awareness": 40,
+                "composure": 55
+              }
+            },
+            {
+              "id": "dacfb7f1-dea8-40a5-a7b6-94dbc1748162",
+              "name": "Hege Foss",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CAM",
+              "potential": 68,
+              "attributes": {
+                "speed": 50,
+                "strength": 40,
+                "agility": 69,
+                "passing": 65,
+                "finishing": 40,
+                "technique": 50,
+                "defending": 40,
+                "stamina": 73,
+                "awareness": 40,
+                "composure": 40
+              }
+            },
+            {
+              "id": "fec05e4d-0510-4624-9dd0-24c0aaccc5f1",
+              "name": "Maren Tveit",
+              "nationality": "norwegian",
+              "age": 24,
+              "position": "LW",
+              "potential": 62,
+              "attributes": {
+                "speed": 41,
+                "strength": 51,
+                "agility": 51,
+                "passing": 51,
+                "finishing": 51,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 48,
+                "awareness": 40,
+                "composure": 51
+              }
+            },
+            {
+              "id": "7fcad742-03e7-4919-83a1-03ae794442a7",
+              "name": "Gabriella Nygaard",
+              "nationality": "norwegian",
+              "age": 18,
+              "position": "RW",
+              "potential": 65,
+              "attributes": {
+                "speed": 40,
+                "strength": 53,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 40,
+                "technique": 59,
+                "defending": 56,
+                "stamina": 59,
+                "awareness": 40,
+                "composure": 47
+              }
+            },
+            {
+              "id": "6bd40aac-17f8-4ec2-ad94-adaca32d4759",
+              "name": "Solveig Lien",
+              "nationality": "norwegian",
+              "age": 20,
+              "position": "ST",
+              "potential": 67,
+              "attributes": {
+                "speed": 72,
+                "strength": 40,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 72,
+                "technique": 61,
+                "defending": 40,
+                "stamina": 61,
+                "awareness": 50,
+                "composure": 47
+              }
+            },
+            {
+              "id": "b56f75c1-f8a2-4d43-b4d0-efef60cc773d",
+              "name": "Yrsa Lillerud",
+              "nationality": "norwegian",
+              "age": 33,
+              "position": "CF",
+              "potential": 71,
+              "attributes": {
+                "speed": 40,
+                "strength": 42,
+                "agility": 66,
+                "passing": 66,
+                "finishing": 70,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 40,
+                "composure": 70
+              }
+            },
+            {
+              "id": "c9689c86-9a55-4483-a2c2-f951c54dc8e6",
+              "name": "Christine Brekke",
+              "nationality": "norwegian",
+              "age": 31,
+              "position": "CF",
+              "potential": 58,
+              "attributes": {
+                "speed": 40,
+                "strength": 53,
+                "agility": 40,
+                "passing": 40,
+                "finishing": 63,
+                "technique": 40,
+                "defending": 40,
+                "stamina": 40,
+                "awareness": 74,
+                "composure": 42
+              }
+            },
+            {
+              "id": "bade7df8-0332-4253-9cc5-9eac25ceb3d7",
+              "name": "Johanne Grønvold",
+              "nationality": "norwegian",
+              "age": 34,
+              "position": "CM",
+              "potential": 58,
+              "attributes": {
+                "speed": 47,
+                "strength": 40,
+                "agility": 86,
+                "passing": 73,
+                "finishing": 40,
+                "technique": 40,
+                "defending": 51,
+                "stamina": 40,
+                "awareness": 47,
+                "composure": 40
+              }
+            }
+          ],
+          "primaryColor": "#FCD434",
+          "secondaryColor": "#025C3A"
         }
       ]
     }
