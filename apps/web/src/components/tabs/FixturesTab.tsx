@@ -18,11 +18,15 @@ import { SectionHeader } from '@fm2k/design-system';
 import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
 
+type CompetitionChoice = 'league' | 'cup';
+
 export default function FixturesTab() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const { leagueStates, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =
+  const [competition, setCompetition] = useState<CompetitionChoice>('league');
+  const { leagueStates, cupStates, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:       s.leagueStates,
+      cupStates:          s.cupStates,
       playerTeamId:       s.playerTeamId,
       clubState:          s.clubState,
       editableCountries:  s.editableCountries,
@@ -39,7 +43,6 @@ export default function FixturesTab() {
     [editableCountries, playerTeamId],
   );
 
-  // Show all nations that were selected at game start
   const availableNations = useMemo(
     () => editableCountries.filter(c => selectedLeagueIds.includes(c.id)),
     [editableCountries, selectedLeagueIds],
@@ -48,7 +51,6 @@ export default function FixturesTab() {
   const [selectedNationId, setSelectedNationId] = useState(playerNation?.id ?? '');
   const [selectedDivisionId, setSelectedDivisionId] = useState(playerDiv?.id ?? '');
 
-  // Keep defaults in sync if playerNation/playerDiv haven't resolved yet on first render
   useEffect(() => {
     if (playerNation && !selectedNationId) {setSelectedNationId(playerNation.id);}
     if (playerDiv && !selectedDivisionId) {setSelectedDivisionId(playerDiv.id);}
@@ -56,35 +58,38 @@ export default function FixturesTab() {
 
   const selectedNation = availableNations.find(c => c.id === selectedNationId);
   const selectedDivision = selectedNation?.divisions.find(d => d.id === selectedDivisionId);
+  const cupState = cupStates[`${selectedNationId}-cup`] ?? null;
+  const isCup = competition === 'cup';
 
-  // All divisions that have a simulated LeagueManager are "active"
-  const isActiveLeague = selectedDivisionId in leagueStates;
+  const activeState = isCup ? cupState : (leagueStates[selectedDivisionId] ?? null);
+  const isActive = isCup ? cupState !== null : selectedDivisionId in leagueStates;
 
   const totalRounds = useMemo(() => {
+    if (isCup) { return cupState?.bracket?.rounds ?? 0; }
     const state = leagueStates[selectedDivisionId];
-    if (state) {
-      return Math.max(...state.fixtures.map(f => f.matchday));
-    }
-    if (selectedDivision) {
-      return 2 * (selectedDivision.teams.length - 1);
-    }
+    if (state) { return Math.max(...state.fixtures.map(f => f.matchday)); }
+    if (selectedDivision) { return 2 * (selectedDivision.teams.length - 1); }
     return 0;
-  }, [leagueStates, selectedDivisionId, selectedDivision]);
+  }, [isCup, cupState, leagueStates, selectedDivisionId, selectedDivision]);
 
   const [selectedRound, setSelectedRound] = useState(() =>
     Math.min(currentMatchday + 1, Math.max(totalRounds, 1)),
   );
 
+  // League follows the current matchday; cup defaults to its first round.
   useEffect(() => {
-    setSelectedRound(Math.min(currentMatchday + 1, Math.max(totalRounds, 1)));
-  }, [currentMatchday, totalRounds]);
+    setSelectedRound(isCup ? 1 : Math.min(currentMatchday + 1, Math.max(totalRounds, 1)));
+  }, [isCup, currentMatchday, totalRounds]);
 
   const fixturesInRound = useMemo(
-    () => leagueStates[selectedDivisionId]?.fixtures.filter(f => f.matchday === selectedRound) ?? [],
-    [leagueStates, selectedDivisionId, selectedRound],
+    () => activeState?.fixtures.filter(f => f.matchday === selectedRound) ?? [],
+    [activeState, selectedRound],
   );
 
   const roundDate = fixturesInRound[0]?.scheduledTime;
+  const roundLabel = isCup
+    ? (cupState?.bracket?.roundNames[selectedRound - 1] ?? `Round ${selectedRound}`)
+    : `Round ${selectedRound} of ${totalRounds || '–'}`;
 
   const handleNationChange = (id: string) => {
     setSelectedNationId(id);
@@ -99,53 +104,53 @@ export default function FixturesTab() {
     <Box>
       <SectionHeader title="Fixtures" />
 
-      {/* Nation + Division selectors */}
+      {/* Nation + Competition (+ Division) selectors */}
       <Stack direction="row" sx={{ gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Nation</InputLabel>
-          <Select
-            value={selectedNationId}
-            label="Nation"
-            onChange={e => handleNationChange(e.target.value)}
-          >
+          <Select value={selectedNationId} label="Nation" onChange={e => handleNationChange(e.target.value)}>
             {availableNations.map(c => (
               <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Division</InputLabel>
-          <Select
-            value={selectedDivisionId}
-            label="Division"
-            onChange={e => { setSelectedDivisionId(e.target.value); setSelectedRound(1); }}
-          >
-            {(selectedNation?.divisions ?? []).map(d => (
-              <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-            ))}
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Competition</InputLabel>
+          <Select value={competition} label="Competition" onChange={e => setCompetition(e.target.value as CompetitionChoice)}>
+            <MenuItem value="league">League</MenuItem>
+            <MenuItem value="cup">National Cup</MenuItem>
           </Select>
         </FormControl>
+
+        {!isCup && (
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel>Division</InputLabel>
+            <Select
+              value={selectedDivisionId}
+              label="Division"
+              onChange={e => { setSelectedDivisionId(e.target.value); setSelectedRound(1); }}
+            >
+              {(selectedNation?.divisions ?? []).map(d => (
+                <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Stack>
 
       {/* Round navigator */}
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'center', my: 2 }}>
-        <IconButton
-          size="small"
-          disabled={selectedRound <= 1}
-          onClick={() => setSelectedRound(r => r - 1)}
-        >
+        <IconButton size="small" disabled={selectedRound <= 1} onClick={() => setSelectedRound(r => r - 1)}>
           <ChevronLeftIcon />
         </IconButton>
 
         <Box sx={{ textAlign: 'center', minWidth: 220, px: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Round {selectedRound} of {totalRounds || '–'}
+            {isCup && '🏆 '}{roundLabel}
           </Typography>
           {roundDate && (
-            <Typography variant="caption" color="text.secondary">
-              {fmtDate(roundDate)}
-            </Typography>
+            <Typography variant="caption" color="text.secondary">{fmtDate(roundDate)}</Typography>
           )}
         </Box>
 
@@ -159,27 +164,29 @@ export default function FixturesTab() {
       </Stack>
 
       {/* Fixture cards or placeholder */}
-      {!isActiveLeague ? (
+      {!isActive ? (
         <Box sx={{ py: 6, textAlign: 'center', color: 'text.disabled' }}>
-          <Typography>This division is not being simulated in your current save.</Typography>
+          <Typography>
+            {isCup ? 'No cup is being simulated for this nation.' : 'This division is not being simulated in your current save.'}
+          </Typography>
         </Box>
       ) : fixturesInRound.length === 0 ? (
         <Box sx={{ py: 6, textAlign: 'center', color: 'text.disabled' }}>
-          <Typography>No fixtures for this round.</Typography>
+          <Typography>{isCup ? 'This round has not been drawn yet.' : 'No fixtures for this round.'}</Typography>
         </Box>
       ) : (
         <Box>
           {fixturesInRound.map(f => {
-            const isPlayerGame =
-              f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId;
+            const isPlayerGame = f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId;
+            const pens = f.result?.decidedBy === 'penalties' && f.result.shootout
+              ? ` (${f.result.shootout.home}–${f.result.shootout.away} pens)` : '';
+            const scoreLabel = f.result ? `${f.result.homeScore} – ${f.result.awayScore}${pens}` : '';
             return (
               <Paper
                 key={f.id}
                 variant="outlined"
                 sx={{
-                  px: 2,
-                  py: 1.5,
-                  mb: 0.75,
+                  px: 2, py: 1.5, mb: 0.75,
                   borderLeft: '3px solid',
                   borderLeftColor: isPlayerGame ? 'primary.main' : 'transparent',
                   bgcolor: isPlayerGame ? 'action.hover' : 'background.paper',
@@ -188,29 +195,25 @@ export default function FixturesTab() {
                 <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
                   <TeamNameButton
                     name={f.homeTeamName}
-                    onClick={() => setSelectedTeamId(f.homeTeamId)}
+                    onClick={() => f.homeTeamId && setSelectedTeamId(f.homeTeamId)}
                     sx={{ flex: 1, textAlign: 'right', fontWeight: isPlayerGame ? 600 : 400 }}
                   />
 
                   {f.status === 'completed' ? (
                     <Chip
-                      label={`${f.result!.homeScore} – ${f.result!.awayScore}`}
+                      label={scoreLabel}
                       size="small"
                       sx={{ minWidth: 68, fontWeight: 700 }}
                     />
                   ) : (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ minWidth: 110, textAlign: 'center' }}
-                    >
+                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 110, textAlign: 'center' }}>
                       {fmtDate(f.scheduledTime)}
                     </Typography>
                   )}
 
                   <TeamNameButton
                     name={f.awayTeamName}
-                    onClick={() => setSelectedTeamId(f.awayTeamId)}
+                    onClick={() => f.awayTeamId && setSelectedTeamId(f.awayTeamId)}
                     sx={{ flex: 1, fontWeight: isPlayerGame ? 600 : 400 }}
                   />
                 </Stack>

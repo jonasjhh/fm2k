@@ -17,12 +17,17 @@ import { useStatusColors, leagueRowBg } from '../../utils/colors';
 import { ScrollableTable } from '@fm2k/design-system';
 import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
+import CupBracket from '../CupBracket';
+
+type CompetitionChoice = 'league' | 'cup';
 
 export default function TableTab() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const { leagueStates, playerTeamId, editableCountries, selectedLeagueIds } =
+  const [competition, setCompetition] = useState<CompetitionChoice>('league');
+  const { leagueStates, cupStates, playerTeamId, editableCountries, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:      s.leagueStates,
+      cupStates:         s.cupStates,
       playerTeamId:      s.playerTeamId,
       editableCountries: s.editableCountries,
       selectedLeagueIds: s.selectedLeagueIds,
@@ -61,48 +66,64 @@ export default function TableTab() {
   };
 
   const leagueState = leagueStates[selectedDivisionId] ?? null;
+  const cupState = cupStates[`${selectedNationId}-cup`] ?? null;
 
   const ladder = [...(selectedNation?.divisions ?? [])].sort((a, b) => a.level - b.level);
   const divIdx = ladder.findIndex(d => d.id === selectedDivisionId);
   const hasDivisionAbove = divIdx > 0;
   const hasDivisionBelow = divIdx >= 0 && divIdx < ladder.length - 1;
 
-  if (!leagueState) {return null;}
+  const n = leagueState?.standings.length ?? 0;
 
-  const n = leagueState.standings.length;
+  const selectors = (
+    <Stack direction="row" sx={{ gap: 2, mb: 2, flexWrap: 'wrap' }}>
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel>Nation</InputLabel>
+        <Select value={selectedNationId} label="Nation" onChange={e => handleNationChange(e.target.value)}>
+          {availableNations.map(c => (
+            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel>Competition</InputLabel>
+        <Select value={competition} label="Competition" onChange={e => setCompetition(e.target.value as CompetitionChoice)}>
+          <MenuItem value="league">League</MenuItem>
+          <MenuItem value="cup">National Cup</MenuItem>
+        </Select>
+      </FormControl>
+
+      {competition === 'league' && (
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Division</InputLabel>
+          <Select value={selectedDivisionId} label="Division" onChange={e => setSelectedDivisionId(e.target.value)}>
+            {(selectedNation?.divisions ?? []).map(d => (
+              <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+    </Stack>
+  );
+
+  if (competition === 'cup') {
+    return (
+      <Box>
+        {availableNations.length > 0 && selectors}
+        {cupState
+          ? <CupBracket state={cupState} playerTeamId={playerTeamId} onTeamClick={setSelectedTeamId} />
+          : <Typography color="text.disabled" sx={{ py: 6, textAlign: 'center' }}>No cup is being simulated for this nation.</Typography>}
+        <TeamLineupDialog teamId={selectedTeamId} onClose={() => setSelectedTeamId(null)} />
+      </Box>
+    );
+  }
+
+  if (!leagueState) {return <Box>{availableNations.length > 0 && selectors}</Box>;}
 
   return (
     <Box>
-      {/* Nation + Division selectors */}
-      {availableNations.length > 0 && (
-        <Stack direction="row" sx={{ gap: 2, mb: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Nation</InputLabel>
-            <Select
-              value={selectedNationId}
-              label="Nation"
-              onChange={e => handleNationChange(e.target.value)}
-            >
-              {availableNations.map(c => (
-                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Division</InputLabel>
-            <Select
-              value={selectedDivisionId}
-              label="Division"
-              onChange={e => setSelectedDivisionId(e.target.value)}
-            >
-              {(selectedNation?.divisions ?? []).map(d => (
-                <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
-      )}
+      {availableNations.length > 0 && selectors}
 
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
         {leagueState.name} — {leagueState.season}

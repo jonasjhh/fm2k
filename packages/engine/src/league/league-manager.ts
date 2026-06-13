@@ -1,10 +1,8 @@
-import { StateManager } from '@fm2k/state';
-import { TickEngine, EventLog } from '@fm2k/timeline';
-import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
-import { MatchOccurrence } from '../match/match-occurrence.ts';
-import { generateFixtures } from './fixture-generator.ts';
+import { CompetitionManager } from '../competition/competition-manager.ts';
+import { LeagueFormat } from '../competition/league-format.ts';
 import type { Team } from '../shared/types.ts';
-import type { LeagueState, LeagueStanding, Fixture } from './league-types.ts';
+import type { GameDateTime } from '@fm2k/timeline';
+import type { LeagueState, LeagueStanding } from './league-types.ts';
 import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 
@@ -23,150 +21,45 @@ export interface LeagueManagerConfig {
   readonly startDate: GameDateTime
   readonly name?: string
   readonly season?: string
+  readonly competitionId?: string
   readonly eventsPerMinute?: number
   readonly eventBus?: EventBus<GameEvents>
 }
 
+/**
+ * Backwards-compatible facade over {@link CompetitionManager} running a
+ * {@link LeagueFormat}. Preserves the historical method names so existing callers
+ * and tests are unaffected by the competition-abstraction migration.
+ */
 export class LeagueManager {
-  private readonly engine: TickEngine;
-  private readonly stateManager: StateManager<LeagueState>;
-  private readonly eventsPerMinute: number;
-  private readonly fixturesPerMatchday: number;
-  private readonly eventBus?: EventBus<GameEvents>;
-
-  loadState(state: LeagueState): void {
-    this.stateManager.setState(state);
-  }
+  private readonly manager: CompetitionManager;
 
   constructor(config: LeagueManagerConfig) {
-    this.eventsPerMinute = config.eventsPerMinute ?? 3;
-    this.fixturesPerMatchday = config.teams.length / 2;
-    this.eventBus = config.eventBus;
-    const fixtures = generateFixtures(config.teams, config.startDate);
-    const teamMap = new Map(config.teams.map(t => [t.id, t]));
-
-    this.stateManager = new StateManager<LeagueState>({
+    this.manager = new CompetitionManager({
+      format: new LeagueFormat(),
+      teams: config.teams,
+      startDate: config.startDate,
+      competitionId: config.competitionId ?? config.name ?? 'league',
       name: config.name ?? 'Division One',
       season: config.season ?? '2025/26',
-      standings: config.teams.map(t => ({
-        teamId: t.id,
-        teamName: t.name,
-        played: 0, won: 0, drawn: 0, lost: 0,
-        goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0,
-      })),
-      fixtures,
+      eventsPerMinute: config.eventsPerMinute,
+      eventBus: config.eventBus,
     });
-
-    this.engine = new TickEngine({
-      startTime: config.startDate,
-      eventLog: new EventLog(),
-      onEvents: async (events) => this.handleEvents(events),
-    });
-
-    for (const fixture of fixtures) {
-      this.engine.schedule(new MatchOccurrence({
-        id: fixture.id,
-        scheduledTime: fixture.scheduledTime,
-        homeTeam: teamMap.get(fixture.homeTeamId)!,
-        awayTeam: teamMap.get(fixture.awayTeamId)!,
-        eventsPerMinute: this.eventsPerMinute,
-      }));
-    }
   }
 
-  getState(): LeagueState {
-    return this.stateManager.getState();
-  }
+  loadState(state: LeagueState): void { this.manager.loadState(state); }
+
+  getState(): LeagueState { return this.manager.getState(); }
 
   subscribe(listener: (state: LeagueState) => void): () => void {
-    return this.stateManager.subscribe(listener);
+    return this.manager.subscribe(listener);
   }
 
-  hasMoreMatchdays(): boolean {
-    return this.engine.hasNext();
-  }
+  hasMoreMatchdays(): boolean { return this.manager.hasNext(); }
 
-  getCompletedMatchdays(): number {
-    return Math.floor(
-      this.stateManager.getState().fixtures.filter(f => f.status === 'completed').length / this.fixturesPerMatchday,
-    );
-  }
+  getCompletedMatchdays(): number { return this.manager.completedRounds(); }
 
-  async simulateNextMatchday(): Promise<void> {
-    const completedBefore = this.getCompletedMatchdays();
-    while (this.engine.hasNext()) {
-      await this.engine.tickToNext();
-      if (this.getCompletedMatchdays() > completedBefore) {break;}
-    }
-  }
+  async simulateNextMatchday(): Promise<void> { return this.manager.simulateNextRound(); }
 
-  async simulateFullSeason(): Promise<void> {
-    while (this.engine.hasNext()) {
-      await this.engine.tickToNext();
-    }
-  }
-
-  private handleEvents(events: readonly OccurrenceEvent[]): void {
-    for (const event of events) {
-      if (event.eventType !== 'match.completed') {continue;}
-
-      const { homeTeamId, awayTeamId, homeScore, awayScore } = event.payload as {
-        homeTeamId: string; awayTeamId: string; homeScore: number; awayScore: number
-      };
-
-      let alreadyCompleted = false;
-      this.stateManager.updateState(state => {
-        const fixtureIdx = state.fixtures.findIndex(f => f.id === event.occurrenceId);
-        if (fixtureIdx === -1) {return;}
-
-        // Skip fixtures already marked complete (e.g. state loaded from a save)
-        if ((state.fixtures[fixtureIdx] as Fixture).status === 'completed') {
-          alreadyCompleted = true;
-          return;
-        }
-
-        (state.fixtures[fixtureIdx] as Fixture).result = { homeScore, awayScore };
-        (state.fixtures[fixtureIdx] as Fixture).status = 'completed';
-
-        const home = state.standings.find(s => s.teamId === homeTeamId)!;
-        const away = state.standings.find(s => s.teamId === awayTeamId)!;
-
-        home.played++; away.played++;
-        home.goalsFor += homeScore; home.goalsAgainst += awayScore;
-        away.goalsFor += awayScore; away.goalsAgainst += homeScore;
-
-        if (homeScore > awayScore) {
-          home.won++; home.points += 3; away.lost++;
-        } else if (homeScore < awayScore) {
-          away.won++; away.points += 3; home.lost++;
-        } else {
-          home.drawn++; home.points++; away.drawn++; away.points++;
-        }
-
-        home.goalDifference = home.goalsFor - home.goalsAgainst;
-        away.goalDifference = away.goalsFor - away.goalsAgainst;
-
-        state.standings.sort((a: LeagueStanding, b: LeagueStanding) =>
-          b.points !== a.points ? b.points - a.points :
-            b.goalDifference !== a.goalDifference ? b.goalDifference - a.goalDifference :
-              b.goalsFor - a.goalsFor,
-        );
-      });
-
-      if (alreadyCompleted) {continue;}
-
-      if (this.eventBus) {
-        const { standings } = this.stateManager.getState();
-        this.eventBus.emit('match.completed', {
-          homeTeamId,
-          awayTeamId,
-          homeScore,
-          awayScore,
-          timestamp: event.timestamp,
-          homeStanding: standings.find(s => s.teamId === homeTeamId)!,
-          awayStanding: standings.find(s => s.teamId === awayTeamId)!,
-        });
-      }
-    }
-  }
+  async simulateFullSeason(): Promise<void> { return this.manager.simulateFullSeason(); }
 }

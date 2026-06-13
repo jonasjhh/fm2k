@@ -1,0 +1,199 @@
+import { StateManager } from '@fm2k/state';
+import { TickEngine, EventLog, isAfter } from '@fm2k/timeline';
+import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
+import type { EventBus } from '@fm2k/state';
+import { MatchOccurrence } from '../match/match-occurrence.ts';
+import type { Team } from '../shared/types.ts';
+import type { GameEvents } from '../game-events.ts';
+import type {
+  CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
+} from './competition-format.ts';
+import type { CompetitionState, DecidedBy } from './competition-types.ts';
+
+export interface CompetitionManagerConfig {
+  readonly format: CompetitionFormat;
+  readonly teams: Team[];
+  readonly startDate: GameDateTime;
+  readonly competitionId: string;
+  readonly name?: string;
+  readonly season?: string;
+  readonly seasonStart?: GameDateTime;
+  readonly eventsPerMinute?: number;
+  readonly eventBus?: EventBus<GameEvents>;
+  /** Division level per team id (knockout seeding); empty for leagues. */
+  readonly levelByTeamId?: Map<string, number>;
+  readonly rng?: () => number;
+}
+
+/** Raw shape of a MatchOccurrence's `match.completed` payload. */
+interface CompletedPayload {
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  decidedBy?: DecidedBy;
+  shootout?: { home: number; away: number };
+  winnerTeamId?: string;
+}
+
+/**
+ * Generic competition runner: owns the StateManager + TickEngine and delegates all
+ * format-specific behaviour (scheduling, standings, bracket progression) to a
+ * `CompetitionFormat`. Replaces the league-only orchestration that used to live in
+ * `LeagueManager`.
+ */
+export class CompetitionManager {
+  private engine: TickEngine;
+  private readonly stateManager: StateManager<CompetitionState>;
+  private readonly format: CompetitionFormat;
+  private readonly ctx: FormatContext;
+  private readonly startDate: GameDateTime;
+  private readonly eventsPerMinute: number;
+  private readonly eventBus?: EventBus<GameEvents>;
+
+  constructor(config: CompetitionManagerConfig) {
+    this.format = config.format;
+    this.eventsPerMinute = config.eventsPerMinute ?? 3;
+    this.eventBus = config.eventBus;
+    this.startDate = config.startDate;
+
+    this.ctx = {
+      competitionId: config.competitionId,
+      name: config.name ?? config.competitionId,
+      season: config.season ?? '2025/26',
+      teams: config.teams,
+      teamsById: new Map(config.teams.map(t => [t.id, t])),
+      levelByTeamId: config.levelByTeamId ?? new Map(),
+      startDate: config.startDate,
+      seasonStart: config.seasonStart ?? config.startDate,
+      rng: config.rng ?? Math.random,
+    };
+
+    const { state, toSchedule } = this.format.init(this.ctx);
+    this.stateManager = new StateManager<CompetitionState>(state);
+    this.engine = this.newEngine();
+    this.scheduleAll(toSchedule);
+  }
+
+  private newEngine(): TickEngine {
+    return new TickEngine({
+      startTime: this.startDate,
+      eventLog: new EventLog(),
+      onEvents: async (events) => this.handleEvents(events),
+    });
+  }
+
+  getState(): CompetitionState { return this.stateManager.getState(); }
+
+  subscribe(listener: (state: CompetitionState) => void): () => void {
+    return this.stateManager.subscribe(listener);
+  }
+
+  hasNext(): boolean { return this.engine.hasNext(); }
+
+  peekNextTickTime(): GameDateTime | null { return this.engine.peekNextTickTime(); }
+
+  completedRounds(): number { return this.format.completedRounds(this.getState()); }
+
+  loadState(state: CompetitionState): void {
+    this.stateManager.setState(state);
+    // Rebuild the engine from scratch so only the not-yet-played fixtures are
+    // scheduled (completed fixtures must not re-fire or double-count).
+    this.engine = this.newEngine();
+    this.scheduleAll(this.format.rescheduleFromState(this.getState(), this.ctx));
+  }
+
+  /**
+   * Play every occurrence scheduled at or before `target`, running each match to
+   * completion. This is the global-clock "play one block" primitive: with `target`
+   * set to the earliest next kickoff across all competitions, a competition whose
+   * next match is later than `target` plays nothing, while those due at `target`
+   * play their full matchday / cup round.
+   */
+  async advanceTo(target: GameDateTime): Promise<void> {
+    while (this.engine.hasNext()) {
+      const hasActive = this.engine.getActiveOccurrences().length > 0;
+      const queued = this.engine.getScheduledOccurrences();
+      const nextDue = queued.length > 0 && !isAfter(queued[0].scheduledTime, target);
+      if (!hasActive && !nextDue) { break; }
+      await this.engine.tickToNext();
+    }
+  }
+
+  /** Advance until the next round (matchday / cup round) fully completes. */
+  async simulateNextRound(): Promise<void> {
+    const before = this.completedRounds();
+    while (this.engine.hasNext()) {
+      await this.engine.tickToNext();
+      if (this.completedRounds() > before) { break; }
+    }
+  }
+
+  async simulateFullSeason(): Promise<void> {
+    while (this.engine.hasNext()) { await this.engine.tickToNext(); }
+  }
+
+  private scheduleAll(matches: ScheduledMatch[]): void {
+    for (const m of matches) {
+      this.engine.schedule(new MatchOccurrence({
+        id: m.fixtureId,
+        scheduledTime: m.scheduledTime,
+        homeTeam: m.homeTeam,
+        awayTeam: m.awayTeam,
+        eventsPerMinute: this.eventsPerMinute,
+        knockout: m.knockout,
+        rng: this.ctx.rng,
+      }));
+    }
+  }
+
+  private handleEvents(events: readonly OccurrenceEvent[]): void {
+    for (const event of events) {
+      if (event.eventType !== 'match.completed') { continue; }
+      const p = event.payload as unknown as CompletedPayload;
+
+      const outcome: MatchOutcome = {
+        fixtureId: event.occurrenceId,
+        homeTeamId: p.homeTeamId,
+        awayTeamId: p.awayTeamId,
+        homeScore: p.homeScore,
+        awayScore: p.awayScore,
+        decidedBy: p.decidedBy,
+        shootout: p.shootout,
+        winnerTeamId: p.winnerTeamId,
+      };
+
+      let toSchedule: ScheduledMatch[] = [];
+      let applied = false;
+      this.stateManager.updateState(draft => {
+        const fixture = draft.fixtures.find(f => f.id === event.occurrenceId);
+        // Skip re-fires of fixtures already completed (e.g. state loaded from a save).
+        if (!fixture || fixture.status === 'completed') { return; }
+        toSchedule = this.format.apply(draft, outcome, this.ctx);
+        applied = true;
+      });
+
+      if (!applied) { continue; }
+      this.scheduleAll(toSchedule);
+
+      if (this.eventBus) {
+        const state = this.getState();
+        const fixture = state.fixtures.find(f => f.id === event.occurrenceId);
+        this.eventBus.emit('match.completed', {
+          homeTeamId: p.homeTeamId,
+          awayTeamId: p.awayTeamId,
+          homeScore: p.homeScore,
+          awayScore: p.awayScore,
+          timestamp: event.timestamp,
+          competitionId: this.ctx.competitionId,
+          roundLabel: fixture?.roundLabel,
+          decidedBy: p.decidedBy,
+          shootout: p.shootout,
+          winnerTeamId: p.winnerTeamId,
+          homeStanding: state.standings.find(s => s.teamId === p.homeTeamId),
+          awayStanding: state.standings.find(s => s.teamId === p.awayTeamId),
+        });
+      }
+    }
+  }
+}

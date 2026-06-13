@@ -1,6 +1,7 @@
 import type { Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 import type { GameDateTime } from '@fm2k/timeline';
-import { MatchSimulator } from './match-simulator.ts';
+import { MatchSimulator, isTerminalPhase } from './match-simulator.ts';
+import { simulateShootout } from './penalty-shootout.ts';
 import type { MatchState, MatchEvent } from './types.ts';
 import type { Team, Player } from '../shared/types.ts';
 
@@ -13,6 +14,10 @@ export interface MatchOccurrenceConfig {
   // When provided, lineup diffs are applied each tick and emitted as match.substitution_applied
   readonly playerTeamId?: string
   readonly getPlayerTeamLineup?: () => Player[]
+  /** Knockout tie: play extra time and a penalty shootout to force a winner. */
+  readonly knockout?: boolean
+  /** Injectable RNG for the shootout (deterministic tests). */
+  readonly rng?: () => number
 }
 
 export class MatchOccurrence implements Occurrence {
@@ -24,16 +29,21 @@ export class MatchOccurrence implements Occurrence {
   private matchState: MatchState;
   private readonly playerTeamSide: 'home' | 'away' | null;
   private readonly getPlayerTeamLineup?: () => Player[];
+  private readonly knockout: boolean;
+  private readonly rng: () => number;
 
   constructor(config: MatchOccurrenceConfig) {
     this.id = config.id;
     this.scheduledTime = config.scheduledTime;
     this.getPlayerTeamLineup = config.getPlayerTeamLineup;
+    this.knockout = config.knockout ?? false;
+    this.rng = config.rng ?? Math.random;
     this.simulator = new MatchSimulator({
       matchDuration: 90,
       eventsPerMinute: config.eventsPerMinute ?? 3,
       homeTeam: config.homeTeam,
       awayTeam: config.awayTeam,
+      extraTimeIfDrawn: this.knockout,
     });
     this.matchState = this.simulator.getCurrentState();
 
@@ -71,10 +81,27 @@ export class MatchOccurrence implements Occurrence {
   }
 
   isComplete(_now: GameDateTime): boolean {
-    return this.matchState.phase === 'full_time';
+    return isTerminalPhase(this.matchState.phase);
   }
 
   onComplete(_context: OccurrenceContext): OccurrenceEvent[] {
+    const { homeScore, awayScore, homeTeam, awayTeam, minute } = this.matchState;
+
+    let decidedBy: 'normal' | 'extra_time' | 'penalties' = minute > 90 ? 'extra_time' : 'normal';
+    let shootout: { home: number; away: number } | undefined;
+    let winnerTeamId: string | undefined;
+
+    if (this.knockout) {
+      if (homeScore === awayScore) {
+        const result = simulateShootout(homeTeam, awayTeam, this.rng);
+        decidedBy = 'penalties';
+        shootout = { home: result.home, away: result.away };
+        winnerTeamId = result.winner === 'home' ? homeTeam.id : awayTeam.id;
+      } else {
+        winnerTeamId = homeScore > awayScore ? homeTeam.id : awayTeam.id;
+      }
+    }
+
     return [{
       id: `${this.id}-completed`,
       eventType: 'match.completed',
@@ -82,13 +109,16 @@ export class MatchOccurrence implements Occurrence {
       occurrenceType: 'match',
       timestamp: this.scheduledTime,
       payload: {
-        homeTeamId: this.matchState.homeTeam.id,
-        awayTeamId: this.matchState.awayTeam.id,
-        homeTeam: this.matchState.homeTeam.name,
-        awayTeam: this.matchState.awayTeam.name,
-        homeScore: this.matchState.homeScore,
-        awayScore: this.matchState.awayScore,
-        finalMinute: this.matchState.minute,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+        homeTeam: homeTeam.name,
+        awayTeam: awayTeam.name,
+        homeScore,
+        awayScore,
+        finalMinute: minute,
+        decidedBy,
+        ...(shootout && { shootout }),
+        ...(winnerTeamId && { winnerTeamId }),
       },
     }];
   }

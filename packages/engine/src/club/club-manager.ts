@@ -204,9 +204,9 @@ export class ClubManager {
   }
 
   // Attendance scales with opponent win rate; returns gate receipt amount
-  calculateHomeReceipt(opponentStanding: LeagueStanding): number {
+  calculateHomeReceipt(opponentStanding?: LeagueStanding): number {
     const { stadiumCapacity } = this.stateManager.getState();
-    const winRate = opponentStanding.played > 0
+    const winRate = opponentStanding && opponentStanding.played > 0
       ? opponentStanding.won / opponentStanding.played
       : 0.5;
     const attendance = Math.floor(stadiumCapacity * (0.4 + 0.4 * winRate));

@@ -26,7 +26,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'squad', label: 'Squad' },
   { id: 'tactics', label: 'Tactics' },
   { id: 'match', label: 'Match' },
-  { id: 'table', label: 'Table' },
+  { id: 'table', label: 'Competitions' },
   { id: 'fixtures', label: 'Fixtures' },
   { id: 'transfers', label: 'Transfers' },
   { id: 'facilities', label: 'Facilities' },

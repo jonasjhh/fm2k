@@ -115,6 +115,19 @@ describe('save-data codec round-trip:', () => {
       activeTab: 'tactics', playerTeamId: 't1', version: SAVE_VERSION,
     });
   });
+
+  it('given cup states then the bracket survives the round-trip', async () => {
+    const cupStates = {
+      'norway-cup': {
+        competitionId: 'norway-cup', kind: 'knockout', name: 'Norway Cup', season: '2025/26',
+        standings: [], fixtures: [],
+        bracket: { rounds: 6, roundNames: ['Round 1'], slots: [], championTeamId: 't1' },
+      },
+    } as unknown as NonNullable<SaveData['cupStates']>;
+    await writeSave(makeSave({ cupStates }));
+    const [loaded] = await readAllSaves();
+    expect(loaded.cupStates).toEqual(cupStates);
+  });
 });
 
 describe('readAllSaves:', () => {

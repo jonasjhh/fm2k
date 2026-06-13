@@ -34,50 +34,53 @@ function kickoffTime(startDate: GameDateTime, matchdayIndex: number): GameDateTi
   return { ...date, hour: KICKOFF_HOUR, minute: 0 };
 }
 
-export function generateFixtures(teams: Team[], startDate: GameDateTime): Fixture[] {
+export function generateFixtures(
+  teams: Team[],
+  startDate: GameDateTime,
+  competitionId = 'league',
+  legs = 2,
+): Fixture[] {
   if (teams.length % 2 !== 0) {throw new Error('generateFixtures requires an even number of teams');}
 
   const firstLeg = singleRoundRobin(teams);
   const fixtures: Fixture[] = [];
   let matchday = 1;
 
+  const push = (home: Team, away: Team, time: GameDateTime, md: number, idPrefix: string): void => {
+    fixtures.push({
+      id: `${idPrefix}-md${md}`,
+      matchday: md,
+      competitionId,
+      roundLabel: `Matchday ${md}`,
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      homeTeamName: home.name,
+      awayTeamName: away.name,
+      scheduledTime: time,
+      result: null,
+      status: 'scheduled',
+    });
+  };
+
   // First leg — all rounds in order
   for (const round of firstLeg) {
     const time = kickoffTime(startDate, matchday - 1);
     for (const [home, away] of round) {
-      fixtures.push({
-        id: `${home.id}-vs-${away.id}-md${matchday}`,
-        matchday,
-        homeTeamId: home.id,
-        awayTeamId: away.id,
-        homeTeamName: home.name,
-        awayTeamName: away.name,
-        scheduledTime: time,
-        result: null,
-        status: 'scheduled',
-      });
+      push(home, away, time, matchday, `${home.id}-vs-${away.id}`);
     }
     matchday++;
   }
 
   // Second leg — same round order with home/away swapped; this guarantees
   // the minimum gap between first and second meetings is n-1 matchdays.
-  for (const round of firstLeg) {
-    const time = kickoffTime(startDate, matchday - 1);
-    for (const [home, away] of round) {
-      fixtures.push({
-        id: `${away.id}-vs-${home.id}-md${matchday}`,
-        matchday,
-        homeTeamId: away.id,
-        awayTeamId: home.id,
-        homeTeamName: away.name,
-        awayTeamName: home.name,
-        scheduledTime: time,
-        result: null,
-        status: 'scheduled',
-      });
+  if (legs >= 2) {
+    for (const round of firstLeg) {
+      const time = kickoffTime(startDate, matchday - 1);
+      for (const [home, away] of round) {
+        push(away, home, time, matchday, `${away.id}-vs-${home.id}`);
+      }
+      matchday++;
     }
-    matchday++;
   }
 
   return fixtures;

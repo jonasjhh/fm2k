@@ -1,33 +1,7 @@
-import type { GameDateTime } from '@fm2k/timeline';
-
-export interface LeagueStanding {
-  teamId: string
-  teamName: string
-  played: number
-  won: number
-  drawn: number
-  lost: number
-  goalsFor: number
-  goalsAgainst: number
-  goalDifference: number
-  points: number
-}
-
-export interface Fixture {
-  readonly id: string
-  readonly matchday: number
-  readonly homeTeamId: string
-  readonly awayTeamId: string
-  readonly homeTeamName: string
-  readonly awayTeamName: string
-  readonly scheduledTime: GameDateTime
-  result: { homeScore: number; awayScore: number } | null
-  status: 'scheduled' | 'completed'
-}
-
-export interface LeagueState {
-  name: string
-  season: string
-  standings: LeagueStanding[]
-  fixtures: Fixture[]
-}
+// The league read-model is now the `kind: 'league'` case of the unified competition
+// model. These aliases keep the historical names working across the codebase.
+export type {
+  CompetitionStanding as LeagueStanding,
+  CompetitionFixture as Fixture,
+  CompetitionState as LeagueState,
+} from '../competition/competition-types.ts';

@@ -1,6 +1,6 @@
 import localforage from 'localforage';
 import type {
-  LeagueState, ClubState, TransferListing,
+  LeagueState, CompetitionState, ClubState, TransferListing,
   Player, ClubPlayer, PlayerAttributes, Team, Formation, Position, TeamTactics,
   CountryId,
 } from '@fm2k/engine';
@@ -13,7 +13,8 @@ export type SaveType = 'QUICK' | 'AUTO';
 
 // Bump SAVE_VERSION whenever the save format changes.
 // Bump MIN_LOADABLE_VERSION only when old saves can no longer be safely migrated.
-export const SAVE_VERSION = 3;
+// v4 added `cupStates` (national cup per nation).
+export const SAVE_VERSION = 4;
 export const MIN_LOADABLE_VERSION = 1;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
@@ -40,6 +41,7 @@ export interface SaveData {
   lastMatchResult: LastMatchResult | null;
   leagueState: LeagueState;
   leagueStates?: Record<string, LeagueState>;
+  cupStates?: Record<string, CompetitionState>;
   clubState: ClubState;
   transferListings: TransferListing[];
 }

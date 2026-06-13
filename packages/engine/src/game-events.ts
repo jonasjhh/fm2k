@@ -8,8 +8,15 @@ export type GameEvents = {
     homeScore: number
     awayScore: number
     timestamp: GameDateTime
-    homeStanding: LeagueStanding
-    awayStanding: LeagueStanding
+    // League matches carry both standings; knockout matches omit them.
+    homeStanding?: LeagueStanding
+    awayStanding?: LeagueStanding
+    // Competition context + knockout outcome details.
+    competitionId?: string
+    roundLabel?: string
+    winnerTeamId?: string
+    decidedBy?: 'normal' | 'extra_time' | 'penalties'
+    shootout?: { home: number; away: number }
   }
   'player.injured': {
     playerId: string

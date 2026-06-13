@@ -14,6 +14,17 @@ export const MARKET_SIZE = 15;
 /** Refresh the transfer market every N matchdays. */
 export const MARKET_REFRESH_INTERVAL = 3;
 
+/** League matchdays per season (16 teams, double round-robin). */
+export const LEAGUE_MATCHDAYS = 30;
+
+/** National-cup round labels (6 rounds for a 48-team field). */
+export const CUP_ROUND_NAMES = [
+  'Round 1', 'Round 2', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final',
+];
+
+/** Competition id for a nation's cup, derived from its country id. */
+export const cupCompetitionId = (countryId: string): string => `${countryId}-cup`;
+
 export const ALL_POSITIONS: Position[] = [
   'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF',
 ];

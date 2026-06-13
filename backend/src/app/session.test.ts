@@ -44,3 +44,47 @@ describe('GameSession lifecycle:', () => {
     expect(snap.leagueState?.fixtures.length).toBe(save!.leagueState.fixtures.length);
   });
 });
+
+describe('GameSession national cup:', () => {
+  it('given a started game then the player nation has a cup with a fresh bracket', () => {
+    const { session, country } = newGame();
+    const cup = session.snapshot().cupStates[`${country.id}-cup`];
+    expect(cup).toBeDefined();
+    expect(cup.kind).toBe('knockout');
+    expect(cup.bracket?.slots).toHaveLength(47);
+    expect(cup.bracket?.championTeamId).toBeNull();
+    // Only the preliminary round exists up front (16 ties); later rounds are TBD.
+    expect(cup.fixtures).toHaveLength(16);
+    expect(cup.fixtures.every(f => f.matchday === 1)).toBe(true);
+  });
+
+  it('a save mid-season carries the cup bracket and restores it', async () => {
+    const { session, country } = newGame();
+    await session.simulateMatchday();
+    await session.simulateMatchday();
+
+    const save = session.buildSaveData('QUICK')!;
+    expect(save.cupStates).toBeDefined();
+
+    const restored = new GameSession();
+    expect(restored.loadGame(save)).toBe(true);
+    const cup = restored.snapshot().cupStates[`${country.id}-cup`];
+    expect(cup.bracket?.slots).toHaveLength(47);
+  });
+
+  it('simulating the full season crowns a cup champion and completes the league', async () => {
+    const { session } = newGame();
+    await session.simulateToEnd();
+
+    const snap = session.snapshot();
+    expect(snap.seasonComplete).toBe(true);
+    expect(snap.currentMatchday).toBe(30);
+
+    const cup = Object.values(snap.cupStates)[0];
+    expect(cup.bracket?.championTeamId).not.toBeNull();
+    expect(cup.fixtures).toHaveLength(47);
+    expect(cup.fixtures.every(f => f.status === 'completed')).toBe(true);
+    // Knockout ties always have a winner recorded.
+    expect(cup.fixtures.every(f => f.result?.winnerTeamId)).toBe(true);
+  }, 120000);
+});

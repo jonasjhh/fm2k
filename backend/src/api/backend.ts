@@ -4,7 +4,7 @@ import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
-  ClubState, LeagueState, TransferListing, Formation, Player, StadiumSectorConfig,
+  ClubState, LeagueState, CompetitionState, TransferListing, Formation, Player, StadiumSectorConfig,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -49,6 +49,8 @@ export interface BackendQueries {
   getClubState(): ClubState | null;
   getLeagueState(): LeagueState | null;
   getLeagueStates(): Record<string, LeagueState>;
+  getCupStates(): Record<string, CompetitionState>;
+  getCupState(nationId: string): CompetitionState | null;
   getTransferListings(): TransferListing[];
   getLastMatchResult(): LastMatchResult | null;
   getCurrentMatchday(): number;
@@ -104,6 +106,8 @@ export function createBackend(): Backend {
     getClubState: () => s.snapshot().clubState,
     getLeagueState: () => s.snapshot().leagueState,
     getLeagueStates: () => s.snapshot().leagueStates,
+    getCupStates: () => s.snapshot().cupStates,
+    getCupState: (nationId) => s.snapshot().cupStates[`${nationId}-cup`] ?? null,
     getTransferListings: () => s.snapshot().transferListings,
     getLastMatchResult: () => s.snapshot().lastMatchResult,
     getCurrentMatchday: () => s.snapshot().currentMatchday,

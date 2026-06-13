@@ -3,7 +3,8 @@ import type { Fixture } from './league-types.ts';
 
 function fixture(id: string, matchday: number, home: string, away: string, hs: number, as: number): Fixture {
   return {
-    id, matchday, homeTeamId: home, awayTeamId: away,
+    id, matchday, competitionId: 'test', roundLabel: `Matchday ${matchday}`,
+    homeTeamId: home, awayTeamId: away,
     homeTeamName: home, awayTeamName: away,
     scheduledTime: { year: 2025, month: 8, day: matchday, hour: 15, minute: 0 } as Fixture['scheduledTime'],
     result: { homeScore: hs, awayScore: as }, status: 'completed',

@@ -1,10 +1,12 @@
 import {
-  LeagueManager, ClubManager, TransferManager, PlayerGenerator, EventBus, MatchSimulator,
+  CompetitionManager, LeagueFormat, KnockoutFormat, Season,
+  ClubManager, TransferManager, PlayerGenerator, EventBus, MatchSimulator,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, sellPrice, v4 as uuidv4,
+  isBefore,
 } from '@fm2k/engine';
 import type {
-  LeagueState, ClubState, TransferListing, TransferState,
-  Position, GameEvents, StadiumSectorConfig, MatchEvent, Fixture, Player, Formation, Team,
+  LeagueState, CompetitionState, CompetitionFixture, ClubState, TransferListing, TransferState,
+  Position, GameEvents, StadiumSectorConfig, MatchEvent, Player, Formation, Team, GameDateTime,
 } from '@fm2k/engine';
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
@@ -17,7 +19,7 @@ import {
 } from '../data/save-data.ts';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
-  MARKET_REFRESH_INTERVAL, ALL_POSITIONS,
+  MARKET_REFRESH_INTERVAL, ALL_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
 } from './config.ts';
 import { scaleAttributes } from './player-scaling.ts';
 
@@ -41,6 +43,7 @@ export interface GameSnapshot {
   lastMatchResult: LastMatchResult | null;
   leagueState: LeagueState | null;
   leagueStates: Record<string, LeagueState>;
+  cupStates: Record<string, CompetitionState>;
   clubState: ClubState | null;
   transferListings: TransferListing[];
 }
@@ -52,8 +55,11 @@ export interface GameSnapshot {
  */
 export class GameSession {
   private readonly playerGenerator = new PlayerGenerator();
-  private leagueManagers: Record<string, LeagueManager> = {};
-  private leagueManager: LeagueManager | null = null;
+  private seasons: Record<string, Season> = {};
+  private leagueManagers: Record<string, CompetitionManager> = {};
+  private cupManagers: Record<string, CompetitionManager> = {};
+  private leagueManager: CompetitionManager | null = null;
+  private playerCupManager: CompetitionManager | null = null;
   private clubManager: ClubManager | null = null;
   private transferManager: TransferManager | null = null;
   private eventBus: EventBus<GameEvents> | null = null;
@@ -86,6 +92,10 @@ export class GameSession {
     for (const [id, mgr] of Object.entries(this.leagueManagers)) {
       leagueStates[id] = mgr.getState();
     }
+    const cupStates: Record<string, CompetitionState> = {};
+    for (const [id, mgr] of Object.entries(this.cupManagers)) {
+      cupStates[id] = mgr.getState();
+    }
     return {
       playerTeamId: this.playerTeamId,
       selectedLeagueIds: this.selectedLeagueIds,
@@ -95,6 +105,7 @@ export class GameSession {
       lastMatchResult: this.lastMatchResult,
       leagueState: this.leagueManager?.getState() ?? null,
       leagueStates,
+      cupStates,
       clubState: this.clubManager?.getState() ?? null,
       transferListings: this.transferManager?.getActiveListings(this.currentMatchday) ?? [],
     };
@@ -128,22 +139,67 @@ export class GameSession {
       this.lastMatchResult = {
         homeTeamId: payload.homeTeamId, awayTeamId: payload.awayTeamId,
         homeScore: payload.homeScore, awayScore: payload.awayScore, isHome,
+        competitionId: payload.competitionId,
+        roundLabel: payload.roundLabel,
+        decidedBy: payload.decidedBy,
+        shootout: payload.shootout,
+        winnerTeamId: payload.winnerTeamId,
       };
     });
 
-    const leagueManagers: Record<string, LeagueManager> = {};
+    // Build a per-nation Season: its league divisions plus its national cup. The
+    // EventBus is wired only to the player's own division and the player's cup so
+    // their results drive lastMatchResult, gate receipts, and injuries.
+    const seasons: Record<string, Season> = {};
+    const leagueManagers: Record<string, CompetitionManager> = {};
+    const cupManagers: Record<string, CompetitionManager> = {};
+
     for (const countryId of allLeagueIds) {
       const country = editableCountries.find(c => c.id === countryId);
       if (!country) { continue; }
+      const isPlayerNation = country.id === playerCountry?.id;
+      const competitions: CompetitionManager[] = [];
+
       for (const div of country.divisions) {
-        leagueManagers[div.id] = new LeagueManager({
+        const lm = new CompetitionManager({
+          format: new LeagueFormat(),
           teams: div.teams,
           startDate: SEASON_START,
+          seasonStart: SEASON_START,
+          competitionId: div.id,
+          name: div.name,
           eventsPerMinute: EVENTS_PER_MINUTE,
-          // Only wire the EventBus to the player's own division.
           eventBus: div.id === division.id ? eventBus : undefined,
         });
+        leagueManagers[div.id] = lm;
+        competitions.push(lm);
       }
+
+      const allTeams = country.divisions.flatMap(d => d.teams);
+      const levelByTeamId = new Map<string, number>();
+      for (const div of country.divisions) {
+        for (const t of div.teams) { levelByTeamId.set(t.id, div.level); }
+      }
+      const cupId = cupCompetitionId(country.id);
+      const cup = new CompetitionManager({
+        format: new KnockoutFormat({
+          kind: 'knockout', byeLevel: 1, preliminaryLevels: [2, 3],
+          roundNames: CUP_ROUND_NAMES, byeTeamPlaysAway: true, higherSlotHostsFromRound: 3,
+          leagueMatchdays: LEAGUE_MATCHDAYS,
+        }),
+        teams: allTeams,
+        levelByTeamId,
+        startDate: SEASON_START,
+        seasonStart: SEASON_START,
+        competitionId: cupId,
+        name: `${country.name} Cup`,
+        eventsPerMinute: EVENTS_PER_MINUTE,
+        eventBus: isPlayerNation ? eventBus : undefined,
+      });
+      cupManagers[cupId] = cup;
+      competitions.push(cup);
+
+      seasons[country.id] = new Season({ nationId: country.id, startDate: SEASON_START, competitions });
     }
 
     const defaultSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
@@ -170,8 +226,11 @@ export class GameSession {
       },
     });
 
+    this.seasons = seasons;
     this.leagueManagers = leagueManagers;
+    this.cupManagers = cupManagers;
     this.leagueManager = leagueManagers[division.id];
+    this.playerCupManager = playerCountry ? cupManagers[cupCompetitionId(playerCountry.id)] : null;
     this.clubManager = clubManager;
     this.transferManager = transferManager;
     return true;
@@ -225,6 +284,7 @@ export class GameSession {
       lastMatchResult: this.lastMatchResult,
       leagueState: snap.leagueState,
       leagueStates: snap.leagueStates,
+      cupStates: snap.cupStates,
       clubState: snap.clubState,
       transferListings: snap.transferListings,
     };
@@ -253,6 +313,11 @@ export class GameSession {
         }
       }
     }
+    if (save.cupStates) {
+      for (const [id, state] of Object.entries(save.cupStates)) {
+        this.cupManagers[id]?.loadState(state);
+      }
+    }
     const savedClubState = save.clubState;
     if (!savedClubState.stadiumSectors) {
       savedClubState.stadiumSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
@@ -275,59 +340,96 @@ export class GameSession {
 
   // ── simulation ──────────────────────────────────────────────────────────────
 
-  /** Simulate the next matchday across every division; updates state + notifies. */
-  async simulateMatchday(): Promise<void> {
-    const leagueManager = this.leagueManager;
-    if (!leagueManager || !leagueManager.hasMoreMatchdays()) { return; }
-
-    this.lastMatchResult = null;
-    const others = Object.values(this.leagueManagers).filter(m => m !== leagueManager);
-    await Promise.all([
-      leagueManager.simulateNextMatchday(),
-      ...others.filter(m => m.hasMoreMatchdays()).map(m => m.simulateNextMatchday()),
-    ]);
-
-    const newMatchday = leagueManager.getCompletedMatchdays();
-    this.clubManager?.handleMatchdayComplete();
-    if (newMatchday > 0 && newMatchday % MARKET_REFRESH_INTERVAL === 0) {
-      this.transferManager?.refreshMarket(newMatchday);
+  /** The player's earliest scheduled fixture across their league and cup. */
+  private playerNextFixture(): CompetitionFixture | null {
+    if (!this.playerTeamId) { return null; }
+    const managers = [this.leagueManager, this.playerCupManager].filter(Boolean) as CompetitionManager[];
+    let next: CompetitionFixture | null = null;
+    for (const mgr of managers) {
+      for (const f of mgr.getState().fixtures) {
+        if (f.status !== 'scheduled') { continue; }
+        if (f.homeTeamId !== this.playerTeamId && f.awayTeamId !== this.playerTeamId) { continue; }
+        if (next === null || isBefore(f.scheduledTime, next.scheduledTime)) { next = f; }
+      }
     }
-
-    this.currentMatchday = newMatchday;
-    this.seasonComplete = !leagueManager.hasMoreMatchdays();
-    this.notify();
+    return next;
   }
 
-  /** Simulate every remaining matchday to the end of the season. */
-  async simulateToEnd(): Promise<void> {
-    while (this.leagueManager?.hasMoreMatchdays()) {
-      await this.simulateMatchday();
+  private isFixtureCompleted(fixtureId: string): boolean {
+    for (const mgr of [...Object.values(this.leagueManagers), ...Object.values(this.cupManagers)]) {
+      const f = mgr.getState().fixtures.find(fx => fx.id === fixtureId);
+      if (f) { return f.status === 'completed'; }
     }
+    return false;
   }
 
   /**
-   * Play the player's next fixture: produce the key events to animate (from a
-   * display sim) and advance the real season (authoritative results + events).
-   * `lastMatchResult` is set from the engine's `match.completed`.
+   * Advance the global clock by one chronological block: find the earliest upcoming
+   * kickoff across every nation's competitions and play exactly the matches due then
+   * (a league matchday or a cup round). Returns false when nothing remains.
+   */
+  private async advanceBlock(): Promise<boolean> {
+    const active = Object.values(this.seasons).filter(s => s.hasNext());
+    if (!active.length) { this.seasonComplete = true; return false; }
+
+    let target: GameDateTime | null = null;
+    for (const s of active) {
+      const t = s.peekNextTickTime();
+      if (t && (target === null || isBefore(t, target))) { target = t; }
+    }
+    if (target === null) { return false; }
+
+    await Promise.all(active.map(s => s.advanceTo(target!)));
+
+    // Club recovery and the transfer market move on league-matchday boundaries only.
+    const newMatchday = this.leagueManager?.completedRounds() ?? this.currentMatchday;
+    if (newMatchday > this.currentMatchday) {
+      this.clubManager?.handleMatchdayComplete();
+      if (newMatchday % MARKET_REFRESH_INTERVAL === 0) {
+        this.transferManager?.refreshMarket(newMatchday);
+      }
+      this.currentMatchday = newMatchday;
+    }
+    this.seasonComplete = !Object.values(this.seasons).some(s => s.hasNext());
+    return true;
+  }
+
+  /** Advance until the player's next match has been played (any competition). */
+  async simulateMatchday(): Promise<void> {
+    this.lastMatchResult = null;
+    const next = this.playerNextFixture();
+    if (!next) { await this.advanceBlock(); this.notify(); return; }
+    while (!this.isFixtureCompleted(next.id)) {
+      if (!await this.advanceBlock()) { break; }
+    }
+    this.notify();
+  }
+
+  /** Simulate every remaining match across all competitions to the end of the season. */
+  async simulateToEnd(): Promise<void> {
+    this.lastMatchResult = null;
+    while (await this.advanceBlock()) { /* play every block */ }
+    this.notify();
+  }
+
+  /**
+   * Play the player's next fixture (league or cup): produce the key events to animate
+   * (from a display sim) and advance the real season through it. `lastMatchResult` is
+   * set from the engine's `match.completed`.
    */
   async playMatch(): Promise<PlayedMatch | null> {
-    const leagueManager = this.leagueManager;
-    if (!leagueManager || !this.playerTeamId) { return null; }
-
-    const fixtures = leagueManager.getState().fixtures.filter(f => f.status === 'scheduled');
-    if (!fixtures.length) { return null; }
-    const nextMd = fixtures.reduce((min, f) => Math.min(min, f.matchday), fixtures[0].matchday);
-    const fixture = leagueManager.getState().fixtures.find(
-      (f: Fixture) => f.matchday === nextMd
-        && (f.homeTeamId === this.playerTeamId || f.awayTeamId === this.playerTeamId),
-    );
+    if (!this.playerTeamId) { return null; }
+    const fixture = this.playerNextFixture();
     if (!fixture) { return null; }
 
     const homeTeam = findTeamById(this.editableCountries, fixture.homeTeamId);
     const awayTeam = findTeamById(this.editableCountries, fixture.awayTeamId);
     if (!homeTeam || !awayTeam) { return null; }
 
-    const displaySim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 4, homeTeam, awayTeam });
+    const isCup = this.playerCupManager?.getState().competitionId === fixture.competitionId;
+    const displaySim = new MatchSimulator({
+      matchDuration: 90, eventsPerMinute: 4, homeTeam, awayTeam, extraTimeIfDrawn: isCup,
+    });
     const keyEvents = displaySim.simulate().events.filter((e: MatchEvent) => KEY_EVENT_TYPES.has(e.type));
 
     await this.simulateMatchday();

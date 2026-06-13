@@ -23,6 +23,13 @@ export interface MatchConfig {
   /** Players that cannot play (injured/suspended/etc.); excluded from XI selection. */
   homeUnavailableIds?: ReadonlySet<string>;
   awayUnavailableIds?: ReadonlySet<string>;
+  /** When the scores are level after 90', play two 15-minute halves of extra time. */
+  extraTimeIfDrawn?: boolean;
+}
+
+/** Phases at which a match is over (regulation, or after extra time). */
+export function isTerminalPhase(phase: MatchState['phase']): boolean {
+  return phase === 'full_time' || phase === 'extra_time_full';
 }
 
 export class MatchSimulator {
@@ -101,11 +108,35 @@ export class MatchSimulator {
       };
       events.push(this.createPhaseEvent('kickoff', nextState, 'Second Half begins'));
     } else if (nextMinute === 90 && currentState.phase === 'second_half') {
-      nextState = { ...nextState, phase: 'full_time' };
+      if (this.config.extraTimeIfDrawn && currentState.homeScore === currentState.awayScore) {
+        nextState = { ...nextState, phase: 'extra_time_first', ballPosition: { zone: 'middle_third', side: 'center' } };
+        events.push(this.createPhaseEvent('kickoff', nextState, 'Extra Time begins'));
+      } else {
+        nextState = { ...nextState, phase: 'full_time' };
+        events.push(this.createPhaseEvent(
+          'full_time',
+          nextState,
+          `Full Time: ${nextState.homeTeam.name} ${nextState.homeScore} - ${nextState.awayScore} ${nextState.awayTeam.name}`,
+        ));
+      }
+    } else if (nextMinute === 105 && currentState.phase === 'extra_time_first') {
+      nextState = { ...nextState, phase: 'extra_time_half' };
+      events.push(this.createPhaseEvent('half_time', nextState, 'Extra Time Half'));
+    } else if (nextMinute === 106 && currentState.phase === 'extra_time_half') {
+      const newPossession = nextState.possession === 'home' ? 'away' : 'home';
+      nextState = {
+        ...nextState,
+        phase: 'extra_time_second',
+        possession: newPossession,
+        ballPosition: { zone: 'middle_third', side: 'center' },
+      };
+      events.push(this.createPhaseEvent('kickoff', nextState, 'Extra Time Second Half begins'));
+    } else if (nextMinute === 120 && currentState.phase === 'extra_time_second') {
+      nextState = { ...nextState, phase: 'extra_time_full' };
       events.push(this.createPhaseEvent(
         'full_time',
         nextState,
-        `Full Time: ${nextState.homeTeam.name} ${nextState.homeScore} - ${nextState.awayScore} ${nextState.awayTeam.name}`,
+        `Full Time (AET): ${nextState.homeTeam.name} ${nextState.homeScore} - ${nextState.awayScore} ${nextState.awayTeam.name}`,
       ));
     }
 
@@ -116,7 +147,7 @@ export class MatchSimulator {
     this.events = [];
     this.currentState = this.createInitialState();
 
-    while (this.currentState.phase !== 'full_time') {
+    while (!isTerminalPhase(this.currentState.phase)) {
       const { events, nextState } = this.simulateMinute(this.currentState);
       this.events.push(...events);
       this.currentState = nextState;

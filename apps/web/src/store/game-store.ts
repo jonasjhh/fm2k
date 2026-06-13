@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createBackend, findTeamById, findDivisionForTeam, findCountryForTeam } from '@fm2k/backend';
 import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult } from '@fm2k/backend';
 import type {
-  LeagueState, ClubState, TransferListing, Formation, Player, StadiumSectorConfig, MatchEvent,
+  LeagueState, CompetitionState, ClubState, TransferListing, Formation, Player, StadiumSectorConfig, MatchEvent,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -36,6 +36,7 @@ interface GameStore {
   editableCountries: EditableCountry[];
   leagueState: LeagueState | null;
   leagueStates: Record<string, LeagueState>;
+  cupStates: Record<string, CompetitionState>;
   clubState: ClubState | null;
   transferListings: TransferListing[];
   playerTeamId: string | null;
@@ -119,6 +120,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       editableCountries: s.editableCountries,
       leagueState: s.leagueState,
       leagueStates: s.leagueStates,
+      cupStates: s.cupStates,
       clubState: s.clubState,
       transferListings: s.transferListings,
       playerTeamId: s.playerTeamId,
@@ -139,6 +141,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     editableCountries: backend.queries.getEditableCountries(),
     leagueState: null,
     leagueStates: {},
+    cupStates: {},
     clubState: null,
     transferListings: [],
     playerTeamId: null,

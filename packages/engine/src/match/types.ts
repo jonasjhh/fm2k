@@ -31,7 +31,15 @@ export interface MatchState {
   awayScore: number;
   possession: 'home' | 'away';
   ballPosition: BallPosition;
-  phase: 'first_half' | 'half_time' | 'second_half' | 'full_time';
+  phase:
+    | 'first_half'
+    | 'half_time'
+    | 'second_half'
+    | 'full_time'
+    | 'extra_time_first'
+    | 'extra_time_half'
+    | 'extra_time_second'
+    | 'extra_time_full';
   homeTeam: Team;
   awayTeam: Team;
   currentPlayers: {

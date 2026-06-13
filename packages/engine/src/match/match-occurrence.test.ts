@@ -63,6 +63,61 @@ function advanceTicks(occ: MatchOccurrence, ticks: number): void {
   }
 }
 
+/** Deterministic PRNG (mulberry32) — varies per call so a shootout always resolves. */
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function tickUntilComplete(occ: MatchOccurrence, maxTicks = 200): number {
+  let ticks = 0;
+  while (!occ.isComplete(KICK_OFF) && ticks < maxTicks) {
+    occ.onTick(createGameDateTime(2025, 8, 15, 14 + Math.floor(ticks / 60), ticks % 60), CTX);
+    ticks++;
+  }
+  return ticks;
+}
+
+describe('MatchOccurrence knockout:', () => {
+  test('given a knockout occurrence then onComplete always names a winner', () => {
+    const occ = makeOccurrence({ knockout: true, rng: mulberry32(7) });
+    tickUntilComplete(occ);
+    expect(occ.isComplete(KICK_OFF)).toBe(true);
+    const [event] = occ.onComplete(CTX);
+    expect(['home', 'away']).toContain(event.payload.winnerTeamId);
+    expect(['normal', 'extra_time', 'penalties']).toContain(event.payload.decidedBy);
+  });
+
+  test('given a knockout occurrence that finishes level then it is decided by penalties with a shootout score', () => {
+    // Run several knockout matches; any that reach 120' level must carry a shootout.
+    for (let s = 0; s < 8; s++) {
+      const occ = makeOccurrence({ id: `cup-${s}`, knockout: true, rng: mulberry32(s + 1) });
+      tickUntilComplete(occ);
+      const [event] = occ.onComplete(CTX);
+      if (event.payload.decidedBy === 'penalties') {
+        const shootout = event.payload.shootout as { home: number; away: number };
+        expect(event.payload.homeScore).toBe(event.payload.awayScore);
+        expect(shootout).toBeDefined();
+        expect(shootout.home).not.toBe(shootout.away);
+        const winnerIsHome = shootout.home > shootout.away;
+        expect(event.payload.winnerTeamId).toBe(winnerIsHome ? 'home' : 'away');
+      }
+    }
+  });
+
+  test('given a non-knockout occurrence then onComplete carries no winnerTeamId', () => {
+    const occ = makeOccurrence();
+    advanceTicks(occ, 90);
+    const [event] = occ.onComplete(CTX);
+    expect(event.payload.winnerTeamId).toBeUndefined();
+  });
+});
+
 describe('MatchOccurrence:', () => {
   describe('properties:', () => {
     test('given a config when constructed then id matches config', () => {

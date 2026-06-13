@@ -113,8 +113,8 @@ describe('LeagueManager eventBus:', () => {
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
-      expect(p.homeStanding.played).toBeGreaterThanOrEqual(1);
-      expect(p.awayStanding.played).toBeGreaterThanOrEqual(1);
+      expect(p.homeStanding!.played).toBeGreaterThanOrEqual(1);
+      expect(p.awayStanding!.played).toBeGreaterThanOrEqual(1);
     }
   });
 

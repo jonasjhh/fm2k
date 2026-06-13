@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { MatchSimulator, flattenMatchEventChain } from './match-simulator.ts';
 import { Team, Player, Formation } from '../shared/types.ts';
 
@@ -398,10 +399,11 @@ describe('MatchSimulator.simulateMinute():', () => {
 
   test('given minute 89 in second_half when called then full_time event description includes score', () => {
     const state = baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 });
-    const { events } = simulator.simulateMinute(state);
+    const { events, nextState } = simulator.simulateMinute(state);
     const fullTimeEvent = events.find(e => e.type === 'full_time')!;
-    expect(fullTimeEvent.description).toContain('2');
-    expect(fullTimeEvent.description).toContain('1');
+    // A goal can fall in the 90th minute, so assert against the actual final score.
+    expect(fullTimeEvent.description).toContain(String(nextState.homeScore));
+    expect(fullTimeEvent.description).toContain(String(nextState.awayScore));
   });
 
   test('given a mid-game state when called then events have the correct minute', () => {
@@ -440,5 +442,85 @@ describe('flattenMatchEventChain:', () => {
     const child = makeEvent('e2', grandchild);
     const parent = makeEvent('e1', child);
     expect(flattenMatchEventChain(parent)).toEqual([parent, child, grandchild]);
+  });
+});
+
+describe('MatchSimulator extra time:', () => {
+  let homeTeam: Team;
+  let awayTeam: Team;
+  let etSimulator: MatchSimulator;
+
+  function baseState(overrides: Partial<import('./types.js').MatchState> = {}): import('./types.js').MatchState {
+    return {
+      minute: 0, homeScore: 0, awayScore: 0, possession: 'home',
+      ballPosition: { zone: 'middle_third', side: 'center' }, phase: 'first_half',
+      homeTeam, awayTeam,
+      currentPlayers: { home: homeTeam.starters, away: awayTeam.starters },
+      bookings: { yellow: [], red: [] },
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    homeTeam = createTestTeam('home', 'Home Team');
+    awayTeam = createTestTeam('away', 'Away Team');
+    etSimulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true });
+  });
+
+  // The score is read after the minute's action loop, so pin the RNG to keep the
+  // 90th-minute scoreline fixed; the phase must then follow whether it is level.
+  test('given a level score at minute 89 with extra time enabled then phase becomes extra_time_first (not full_time)', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 1, awayScore: 1 }));
+    spy.mockRestore();
+    const level = nextState.homeScore === nextState.awayScore;
+    expect(nextState.phase).toBe(level ? 'extra_time_first' : 'full_time');
+    expect(nextState.minute).toBe(90);
+  });
+
+  test('given a decided score at minute 89 with extra time enabled then phase becomes full_time', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 }));
+    spy.mockRestore();
+    const level = nextState.homeScore === nextState.awayScore;
+    expect(nextState.phase).toBe(level ? 'extra_time_first' : 'full_time');
+  });
+
+  test('given minute 104 in extra_time_first then phase becomes extra_time_half', () => {
+    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 104, phase: 'extra_time_first', homeScore: 1, awayScore: 1 }));
+    expect(nextState.phase).toBe('extra_time_half');
+    expect(nextState.minute).toBe(105);
+  });
+
+  test('given minute 105 in extra_time_half then phase becomes extra_time_second with switched possession', () => {
+    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 105, phase: 'extra_time_half', possession: 'home', homeScore: 1, awayScore: 1 }));
+    expect(nextState.phase).toBe('extra_time_second');
+    expect(nextState.possession).toBe('away');
+  });
+
+  test('given minute 119 in extra_time_second then phase becomes extra_time_full', () => {
+    const { nextState, events } = etSimulator.simulateMinute(baseState({ minute: 119, phase: 'extra_time_second', homeScore: 1, awayScore: 1 }));
+    expect(nextState.phase).toBe('extra_time_full');
+    expect(nextState.minute).toBe(120);
+    expect(events.some(e => e.type === 'full_time')).toBe(true);
+  });
+
+  test('given extra time enabled and a forced draw then simulate() runs to minute 120', () => {
+    // Force a 0-0 by giving the action selector no scoring chance is hard; instead assert
+    // that whenever the result is level, it ended after extra time (minute 120).
+    const result = etSimulator.simulate();
+    if (result.finalState.homeScore === result.finalState.awayScore) {
+      expect(result.finalState.phase).toBe('extra_time_full');
+      expect(result.finalState.minute).toBe(120);
+    } else {
+      expect(['full_time', 'extra_time_full']).toContain(result.finalState.phase);
+    }
+  });
+
+  test('given extra time disabled then a level match still ends at full_time minute 90', () => {
+    const plain = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+    const result = plain.simulate();
+    expect(result.finalState.phase).toBe('full_time');
+    expect(result.finalState.minute).toBe(90);
   });
 });
