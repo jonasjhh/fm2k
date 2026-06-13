@@ -19,7 +19,6 @@ import TransfersTab from '../components/tabs/TransfersTab';
 import FacilitiesTab from '../components/tabs/FacilitiesTab';
 import FinancesTab from '../components/tabs/FinancesTab';
 import StatsBar from '../components/StatsBar';
-import MatchSimOverlay from '../components/MatchSimOverlay';
 import SeasonEndModal from '../components/SeasonEndModal';
 
 const TABS: { id: TabId; label: string }[] = [
@@ -128,7 +127,6 @@ export default function GameInterface() {
         {activeTab === 'finances' && <FinancesTab />}
       </Box>
 
-      <MatchSimOverlay />
       <SeasonEndModal />
       <Snackbar
         open={snackOpen}

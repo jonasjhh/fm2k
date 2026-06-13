@@ -77,6 +77,21 @@ export interface BracketState {
   championTeamId: string | null;
 }
 
+/** A match currently in progress (read model for the live clock). */
+export interface LiveMatch {
+  readonly fixtureId: string;
+  readonly competitionId: string;
+  readonly homeTeamId: string;
+  readonly awayTeamId: string;
+  readonly homeTeamName: string;
+  readonly awayTeamName: string;
+  readonly homeScore: number;
+  readonly awayScore: number;
+  readonly minute: number;
+  /** Match phase: first_half | half_time | second_half | full_time | extra_time_* */
+  readonly phase: string;
+}
+
 /** Unified read-model for any competition. A `LeagueState` is the `kind: 'league'` case. */
 export interface CompetitionState {
   readonly competitionId: string;

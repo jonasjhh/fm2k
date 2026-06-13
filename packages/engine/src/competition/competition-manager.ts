@@ -1,5 +1,5 @@
 import { StateManager } from '@fm2k/state';
-import { TickEngine, EventLog, isAfter } from '@fm2k/timeline';
+import { TickEngine, EventLog } from '@fm2k/timeline';
 import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import type { EventBus } from '@fm2k/state';
 import { MatchOccurrence } from '../match/match-occurrence.ts';
@@ -8,7 +8,7 @@ import type { GameEvents } from '../game-events.ts';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
 } from './competition-format.ts';
-import type { CompetitionState, DecidedBy } from './competition-types.ts';
+import type { CompetitionState, DecidedBy, LiveMatch } from './competition-types.ts';
 
 export interface CompetitionManagerConfig {
   readonly format: CompetitionFormat;
@@ -29,6 +29,8 @@ export interface CompetitionManagerConfig {
 interface CompletedPayload {
   homeTeamId: string;
   awayTeamId: string;
+  homeTeam?: string;
+  awayTeam?: string;
   homeScore: number;
   awayScore: number;
   decidedBy?: DecidedBy;
@@ -93,6 +95,33 @@ export class CompetitionManager {
 
   peekNextTickTime(): GameDateTime | null { return this.engine.peekNextTickTime(); }
 
+  /** Start time of the next not-yet-started match (null if none scheduled). */
+  peekNextKickoff(): GameDateTime | null {
+    return this.engine.getScheduledOccurrences()[0]?.scheduledTime ?? null;
+  }
+
+  /** True while one or more matches are in progress. */
+  hasLive(): boolean { return this.engine.getActiveOccurrences().length > 0; }
+
+  /** Snapshot of the in-progress matches (partial scores/minute/phase). */
+  getLiveMatches(): LiveMatch[] {
+    return this.engine.getActiveOccurrences().map(o => {
+      const s = (o as MatchOccurrence).getMatchState();
+      return {
+        fixtureId: o.id,
+        competitionId: this.ctx.competitionId,
+        homeTeamId: s.homeTeam.id,
+        awayTeamId: s.awayTeam.id,
+        homeTeamName: s.homeTeam.name,
+        awayTeamName: s.awayTeam.name,
+        homeScore: s.homeScore,
+        awayScore: s.awayScore,
+        minute: s.minute,
+        phase: s.phase,
+      };
+    });
+  }
+
   completedRounds(): number { return this.format.completedRounds(this.getState()); }
 
   loadState(state: CompetitionState): void {
@@ -104,20 +133,14 @@ export class CompetitionManager {
   }
 
   /**
-   * Play every occurrence scheduled at or before `target`, running each match to
-   * completion. This is the global-clock "play one block" primitive: with `target`
-   * set to the earliest next kickoff across all competitions, a competition whose
-   * next match is later than `target` plays nothing, while those due at `target`
-   * play their full matchday / cup round.
+   * Advance this competition's clock to `target`, minute by minute. Matches whose
+   * span includes `target` are left **in progress** (active, with partial state) —
+   * this is the pausable global-clock primitive. Advancing to a time beyond a
+   * match's end completes it (and runs any shootout) along the way.
    */
-  async advanceTo(target: GameDateTime): Promise<void> {
-    while (this.engine.hasNext()) {
-      const hasActive = this.engine.getActiveOccurrences().length > 0;
-      const queued = this.engine.getScheduledOccurrences();
-      const nextDue = queued.length > 0 && !isAfter(queued[0].scheduledTime, target);
-      if (!hasActive && !nextDue) { break; }
-      await this.engine.tickToNext();
-    }
+  async tickTo(target: GameDateTime): Promise<readonly OccurrenceEvent[]> {
+    const results = await this.engine.tickTo(target);
+    return results.flatMap(r => [...r.events]);
   }
 
   /** Advance until the next round (matchday / cup round) fully completes. */
@@ -182,6 +205,8 @@ export class CompetitionManager {
         this.eventBus.emit('match.completed', {
           homeTeamId: p.homeTeamId,
           awayTeamId: p.awayTeamId,
+          homeTeamName: p.homeTeam ?? fixture?.homeTeamName,
+          awayTeamName: p.awayTeam ?? fixture?.awayTeamName,
           homeScore: p.homeScore,
           awayScore: p.awayScore,
           timestamp: event.timestamp,

@@ -1,16 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
+import { COUNTRY_FLAG } from '@fm2k/engine';
 import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors, leagueRowBg } from '../../utils/colors';
@@ -18,16 +14,18 @@ import { ScrollableTable } from '@fm2k/design-system';
 import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
 import CupBracket from '../CupBracket';
+import { ButtonSelector } from '../ui/ButtonSelector';
 
 type CompetitionChoice = 'league' | 'cup';
 
 export default function TableTab() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [competition, setCompetition] = useState<CompetitionChoice>('league');
-  const { leagueStates, cupStates, playerTeamId, editableCountries, selectedLeagueIds } =
+  const { leagueStates, cupStates, liveMatches, playerTeamId, editableCountries, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:      s.leagueStates,
       cupStates:         s.cupStates,
+      liveMatches:       s.liveMatches,
       playerTeamId:      s.playerTeamId,
       editableCountries: s.editableCountries,
       selectedLeagueIds: s.selectedLeagueIds,
@@ -76,35 +74,31 @@ export default function TableTab() {
   const n = leagueState?.standings.length ?? 0;
 
   const selectors = (
-    <Stack direction="row" sx={{ gap: 2, mb: 2, flexWrap: 'wrap' }}>
-      <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel>Nation</InputLabel>
-        <Select value={selectedNationId} label="Nation" onChange={e => handleNationChange(e.target.value)}>
-          {availableNations.map(c => (
-            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel>Competition</InputLabel>
-        <Select value={competition} label="Competition" onChange={e => setCompetition(e.target.value as CompetitionChoice)}>
-          <MenuItem value="league">League</MenuItem>
-          <MenuItem value="cup">National Cup</MenuItem>
-        </Select>
-      </FormControl>
-
+    <Box sx={{
+      mb: 2, p: 1.25, borderRadius: 2, border: '1px solid', borderColor: 'divider',
+      bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', gap: 1,
+    }}>
+      <ButtonSelector
+        label="Nation"
+        value={selectedNationId}
+        onChange={handleNationChange}
+        options={availableNations.map(c => ({ value: c.id as string, label: c.name, prefix: COUNTRY_FLAG[c.id] }))}
+      />
+      <ButtonSelector<CompetitionChoice>
+        label="Competition"
+        value={competition}
+        onChange={setCompetition}
+        options={[{ value: 'league', label: 'League' }, { value: 'cup', label: 'National Cup' }]}
+      />
       {competition === 'league' && (
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Division</InputLabel>
-          <Select value={selectedDivisionId} label="Division" onChange={e => setSelectedDivisionId(e.target.value)}>
-            {(selectedNation?.divisions ?? []).map(d => (
-              <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <ButtonSelector
+          label="Division"
+          value={selectedDivisionId}
+          onChange={setSelectedDivisionId}
+          options={(selectedNation?.divisions ?? []).map(d => ({ value: d.id, label: d.name }))}
+        />
       )}
-    </Stack>
+    </Box>
   );
 
   if (competition === 'cup') {
@@ -121,6 +115,29 @@ export default function TableTab() {
 
   if (!leagueState) {return <Box>{availableNations.length > 0 && selectors}</Box>;}
 
+  // Provisional table: fold in-progress scores into the standings for a live picture.
+  const liveForDiv = liveMatches.filter(l => l.competitionId === selectedDivisionId);
+  const playingIds = new Set(liveForDiv.flatMap(l => [l.homeTeamId, l.awayTeamId]));
+  const displayStandings = liveForDiv.length === 0 ? leagueState.standings : (() => {
+    const rows = leagueState.standings.map(x => ({ ...x }));
+    const by = new Map(rows.map(x => [x.teamId, x]));
+    for (const m of liveForDiv) {
+      const h = by.get(m.homeTeamId); const a = by.get(m.awayTeamId);
+      if (!h || !a) { continue; }
+      h.played++; a.played++;
+      h.goalsFor += m.homeScore; h.goalsAgainst += m.awayScore;
+      a.goalsFor += m.awayScore; a.goalsAgainst += m.homeScore;
+      if (m.homeScore > m.awayScore) { h.won++; h.points += 3; a.lost++; }
+      else if (m.homeScore < m.awayScore) { a.won++; a.points += 3; h.lost++; }
+      else { h.drawn++; a.drawn++; h.points++; a.points++; }
+      h.goalDifference = h.goalsFor - h.goalsAgainst;
+      a.goalDifference = a.goalsFor - a.goalsAgainst;
+    }
+    rows.sort((x, y) => y.points - x.points || y.goalDifference - x.goalDifference || y.goalsFor - x.goalsFor);
+    return rows;
+  })();
+  const isLive = liveForDiv.length > 0;
+
   return (
     <Box>
       {availableNations.length > 0 && selectors}
@@ -130,6 +147,7 @@ export default function TableTab() {
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        {isLive && <Chip size="small" color="success" label="● LIVE — provisional" sx={{ fontWeight: 700 }} />}
         {!hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.champion }} label="Champion" />}
         {hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.promotion }} label="Promotion" />}
         {hasDivisionBelow && <Chip size="small" sx={{ bgcolor: statusColors.relegation }} label="Relegation" />}
@@ -152,7 +170,7 @@ export default function TableTab() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {leagueState.standings.map((s, i) => {
+          {displayStandings.map((s, i) => {
             const pos = i + 1;
             const isPlayer = s.teamId === playerTeamId;
             const bg = leagueRowBg(isPlayer, pos, n, statusColors, { hasDivisionAbove, hasDivisionBelow });
@@ -164,6 +182,7 @@ export default function TableTab() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TeamNameButton name={s.teamName} onClick={() => setSelectedTeamId(s.teamId)} />
                     {isPlayer && <Chip label="You" size="small" color="primary" />}
+                    {playingIds.has(s.teamId) && <Box component="span" sx={{ color: 'success.main', fontWeight: 700, fontSize: 12 }}>● live</Box>}
                   </Box>
                 </TableCell>
                 <TableCell align="center">{s.played}</TableCell>

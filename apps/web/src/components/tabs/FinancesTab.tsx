@@ -8,7 +8,7 @@ import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import { useGameStore } from '../../store/game-store';
-import { fmt } from '../../utils/formatting';
+import { fmt, fmtDate } from '../../utils/formatting';
 import { ScrollableTable } from '@fm2k/design-system';
 
 export default function FinancesTab() {
@@ -35,6 +35,7 @@ export default function FinancesTab() {
         <TableHead>
             <TableRow>
               <TableCell>Type</TableCell>
+              <TableCell>Date</TableCell>
               <TableCell>Description</TableCell>
               <TableCell align="right">Amount</TableCell>
             </TableRow>
@@ -53,6 +54,9 @@ export default function FinancesTab() {
                       color={tx.type === 'transfer_in' ? 'success' : tx.type === 'transfer_out' ? 'error' : 'default'}
                     />
                   </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
+                    {tx.timestamp ? fmtDate(tx.timestamp) : '—'}
+                  </TableCell>
                   <TableCell>{tx.description}</TableCell>
                   <TableCell align="right">
                     <Typography
@@ -68,7 +72,7 @@ export default function FinancesTab() {
               );
             }) : (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ color: 'text.secondary' }}>
+                <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary' }}>
                   No transactions yet
                 </TableCell>
               </TableRow>

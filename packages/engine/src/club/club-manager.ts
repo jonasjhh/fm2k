@@ -213,13 +213,13 @@ export class ClubManager {
     return Math.min(attendance, stadiumCapacity) * TICKET_PRICE;
   }
 
-  recordGateReceipt(amount: number, opponentId: string, timestamp: GameDateTime): void {
+  recordGateReceipt(amount: number, opponent: string, timestamp: GameDateTime): void {
     this.stateManager.updateState(state => {
       state.budget += amount;
       state.financialLog.push({
         type: 'gate_receipt',
         amount,
-        description: `Gate receipt vs ${opponentId}`,
+        description: `Gate receipt vs ${opponent}`,
         timestamp,
       });
     });
@@ -268,7 +268,7 @@ export class ClubManager {
 
     if (payload.homeTeamId === clubId) {
       const receipt = this.calculateHomeReceipt(payload.awayStanding);
-      this.recordGateReceipt(receipt, payload.awayTeamId, payload.timestamp);
+      this.recordGateReceipt(receipt, payload.awayTeamName ?? payload.awayTeamId, payload.timestamp);
       this.eventBus?.emit('gate.receipt', { amount: receipt, opponentId: payload.awayTeamId, timestamp: payload.timestamp });
     }
   }

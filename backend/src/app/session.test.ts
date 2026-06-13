@@ -60,8 +60,8 @@ describe('GameSession national cup:', () => {
 
   it('a save mid-season carries the cup bracket and restores it', async () => {
     const { session, country } = newGame();
-    await session.simulateMatchday();
-    await session.simulateMatchday();
+    await session.skipToFullTime();
+    await session.skipToFullTime();
 
     const save = session.buildSaveData('QUICK')!;
     expect(save.cupStates).toBeDefined();

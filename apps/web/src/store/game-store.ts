@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { createBackend, findTeamById, findDivisionForTeam, findCountryForTeam } from '@fm2k/backend';
-import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult } from '@fm2k/backend';
+import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult, AnimEvent } from '@fm2k/backend';
 import type {
-  LeagueState, CompetitionState, ClubState, TransferListing, Formation, Player, StadiumSectorConfig, MatchEvent,
+  LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
+  Formation, Player, StadiumSectorConfig, GameDateTime,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -18,6 +19,28 @@ export interface SimEvent {
   minute: string;
   text: string;
   type: 'goal' | 'card' | 'phase' | 'normal';
+}
+
+export type SimSpeed = 'normal' | 'fast' | 'instant';
+
+const SPEED_DELAY_MS: Record<SimSpeed, number> = { normal: 220, fast: 70, instant: 0 };
+const SIM_SPEED_KEY = 'fm2k-sim-speed';
+
+function loadSimSpeed(): SimSpeed {
+  if (typeof window === 'undefined') { return 'normal'; }
+  const v = window.localStorage.getItem(SIM_SPEED_KEY);
+  return v === 'fast' || v === 'instant' || v === 'normal' ? v : 'normal';
+}
+
+function simEventFromAnim(e: AnimEvent, homeName: string, awayName: string): SimEvent {
+  return {
+    minute: `${e.minute}'`,
+    text: `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
+    type: e.type === 'goal' ? 'goal'
+      : (e.type === 'yellow_card' || e.type === 'red_card') ? 'card'
+      : (e.type === 'half_time' || e.type === 'full_time') ? 'phase'
+      : 'normal',
+  };
 }
 
 // ─── the backend (one instance; runs in-browser) ───────────────────────────────
@@ -37,6 +60,10 @@ interface GameStore {
   leagueState: LeagueState | null;
   leagueStates: Record<string, LeagueState>;
   cupStates: Record<string, CompetitionState>;
+  liveMatches: LiveMatch[];
+  focusFixture: CompetitionFixture | null;
+  focusLive: LiveMatch | null;
+  now: GameDateTime | null;
   clubState: ClubState | null;
   transferListings: TransferListing[];
   playerTeamId: string | null;
@@ -45,14 +72,13 @@ interface GameStore {
   lastMatchResult: LastMatchResult | null;
   seasonComplete: boolean;
 
-  // match animation (pure UI)
-  matchSimOverlayOpen: boolean;
-  matchSimHeader: string;
-  matchSimTime: string;
-  matchSimVisibleEvents: SimEvent[];
-  matchSimAllEvents: SimEvent[];
-  matchSimFinished: boolean;
-  skipAnimation: boolean;
+  // match centre (pure UI)
+  matchEvents: SimEvent[];        // newest-first ticker for the focus match
+  isStreaming: boolean;
+  streamHome: number;
+  streamAway: number;
+  streamMinute: number;
+  simSpeed: SimSpeed;
 
   // navigation
   setScreen: (s: Screen) => void;
@@ -72,18 +98,15 @@ interface GameStore {
   // game lifecycle
   startGame: (teamId: string, leagueIds?: string[]) => void;
   startNewSeason: () => void;
-  simulateMatchday: () => Promise<void>;
   simulateToEnd: () => Promise<void>;
   saveGame: (type: SaveType) => Promise<void>;
   loadGame: (save: SaveData) => void;
 
-  // match animation
-  playMatch: () => Promise<void>;
-  requestSkip: () => void;
-  continueAfterMatch: () => void;
-  appendSimEvent: (event: SimEvent) => void;
-  updateSimHeader: (header: string, time: string) => void;
-  setMatchSimFinished: () => void;
+  // match centre (the game clock)
+  advanceMatch: () => Promise<void>;   // auto-stream to the next intermission
+  skipMatch: () => Promise<void>;      // skip current match to full time
+  goToNextMatch: () => void;           // focus the next fixture
+  setSimSpeed: (s: SimSpeed) => void;
 
   // tactics
   toggleXI: (id: string) => void;
@@ -101,17 +124,6 @@ interface GameStore {
   applyStadiumDesign: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean;
 }
 
-function simEventsFromMatch(events: MatchEvent[], homeName: string, awayName: string): SimEvent[] {
-  return events.map((e) => ({
-    minute: `${e.minute}'`,
-    text: `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
-    type: e.type === 'goal' ? 'goal'
-      : (e.type === 'yellow_card' || e.type === 'red_card') ? 'card'
-      : (e.type === 'half_time' || e.type === 'full_time') ? 'phase'
-      : 'normal',
-  }));
-}
-
 export const useGameStore = create<GameStore>((set, get) => {
   // Copy the backend read-model snapshot into the cached store fields.
   const refresh = () => {
@@ -121,6 +133,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       leagueState: s.leagueState,
       leagueStates: s.leagueStates,
       cupStates: s.cupStates,
+      liveMatches: s.liveMatches,
+      focusFixture: s.focusFixture,
+      focusLive: s.focusLive,
+      now: s.now,
       clubState: s.clubState,
       transferListings: s.transferListings,
       playerTeamId: s.playerTeamId,
@@ -133,6 +149,21 @@ export const useGameStore = create<GameStore>((set, get) => {
   // Any backend state change fans out a cache refresh (eventual consistency).
   backend.events.subscribe(refresh);
 
+  // Reveal one match's animation events newest-first, pacing by sim speed and
+  // updating the live scoreboard as goals land.
+  const animate = async (events: AnimEvent[], homeName: string, awayName: string) => {
+    const delay = SPEED_DELAY_MS[get().simSpeed];
+    for (const e of events) {
+      set(st => ({
+        matchEvents: [simEventFromAnim(e, homeName, awayName), ...st.matchEvents],
+        streamHome: e.homeScore,
+        streamAway: e.awayScore,
+        streamMinute: e.minute,
+      }));
+      if (delay > 0) { await new Promise(r => setTimeout(r, delay)); }
+    }
+  };
+
   return {
     screen: 'main-menu',
     activeTab: 'squad',
@@ -142,6 +173,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     leagueState: null,
     leagueStates: {},
     cupStates: {},
+    liveMatches: [],
+    focusFixture: null,
+    focusLive: null,
+    now: null,
     clubState: null,
     transferListings: [],
     playerTeamId: null,
@@ -150,13 +185,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     lastMatchResult: null,
     seasonComplete: false,
 
-    matchSimOverlayOpen: false,
-    matchSimHeader: '',
-    matchSimTime: '',
-    matchSimVisibleEvents: [],
-    matchSimAllEvents: [],
-    matchSimFinished: false,
-    skipAnimation: false,
+    matchEvents: [],
+    isStreaming: false,
+    streamHome: 0,
+    streamAway: 0,
+    streamMinute: 0,
+    simSpeed: loadSimSpeed(),
 
     // ── navigation ────────────────────────────────────────────────────────────
     setScreen: (screen) => set({ screen }),
@@ -195,59 +229,43 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     },
 
-    simulateMatchday: async () => { await backend.commands.simulateMatchday(); },
-    simulateToEnd: async () => { await backend.commands.simulateToEnd(); },
-
-    // ── match animation ─────────────────────────────────────────────────────────
-    playMatch: async () => {
-      const played = await backend.commands.playMatch();
-      if (!played) { return; }
-      const { homeTeamName, awayTeamName, keyEvents } = played;
-      const allSimEvents = simEventsFromMatch(keyEvents, homeTeamName, awayTeamName);
-
-      set({
-        matchSimOverlayOpen: true,
-        matchSimHeader: `${homeTeamName}  0 – 0  ${awayTeamName}`,
-        matchSimTime: 'Kick off',
-        matchSimVisibleEvents: [],
-        matchSimAllEvents: allSimEvents,
-        matchSimFinished: false,
-        skipAnimation: false,
-      });
-
-      await new Promise<void>((resolve) => {
-        let idx = 0;
-        const step = () => {
-          if (get().skipAnimation || idx >= keyEvents.length) { resolve(); return; }
-          const e = keyEvents[idx++];
-          const rs = e.resultingState;
-          get().appendSimEvent(allSimEvents[idx - 1]);
-          get().updateSimHeader(`${homeTeamName}  ${rs.homeScore} – ${rs.awayScore}  ${awayTeamName}`, `${e.minute}'`);
-          setTimeout(step, 200);
-        };
-        step();
-      });
-
-      const result = get().lastMatchResult;
-      if (result) {
-        get().appendSimEvent({
-          minute: '',
-          text: `FULL TIME — ${homeTeamName} ${result.homeScore}–${result.awayScore} ${awayTeamName}`,
-          type: 'phase',
-        });
-        get().updateSimHeader(
-          `${homeTeamName}  ${result.homeScore} – ${result.awayScore}  ${awayTeamName}`,
-          'Full Time',
-        );
-      }
-      set({ matchSimFinished: true });
+    simulateToEnd: async () => {
+      set({ isStreaming: true });
+      await backend.commands.simulateToEnd();
+      set({ isStreaming: false, matchEvents: [] });
     },
 
-    requestSkip: () => set({ skipAnimation: true }),
-    continueAfterMatch: () => set({ matchSimOverlayOpen: false }),
-    appendSimEvent: (event) => set(s => ({ matchSimVisibleEvents: [...s.matchSimVisibleEvents, event] })),
-    updateSimHeader: (header, time) => set({ matchSimHeader: header, matchSimTime: time }),
-    setMatchSimFinished: () => set({ matchSimFinished: true }),
+    // ── match centre (the game clock) ─────────────────────────────────────────────
+    advanceMatch: async () => {
+      if (get().isStreaming) { return; }
+      // Starting a fresh match clears the previous ticker.
+      if (get().focusLive === null && get().focusFixture?.status !== 'completed') {
+        set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0 });
+      }
+      set({ isStreaming: true });
+      const r = await backend.commands.advanceToNextStop();
+      await animate(r.events, r.homeTeamName, r.awayTeamName);
+      set({ isStreaming: false, streamHome: r.homeScore, streamAway: r.awayScore });
+    },
+
+    skipMatch: async () => {
+      if (get().isStreaming) { return; }
+      set({ isStreaming: true });
+      const r = await backend.commands.skipToFullTime();
+      // Show the resulting events without pacing.
+      const evs = r.events.map(e => simEventFromAnim(e, r.homeTeamName, r.awayTeamName)).reverse();
+      set({ isStreaming: false, matchEvents: evs, streamHome: r.homeScore, streamAway: r.awayScore });
+    },
+
+    goToNextMatch: () => {
+      backend.commands.nextMatch();
+      set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0 });
+    },
+
+    setSimSpeed: (simSpeed) => {
+      if (typeof window !== 'undefined') { window.localStorage.setItem(SIM_SPEED_KEY, simSpeed); }
+      set({ simSpeed });
+    },
 
     // ── tactics ─────────────────────────────────────────────────────────────────
     toggleXI: (id) => { backend.commands.toggleXI(id); },

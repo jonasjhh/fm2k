@@ -1,6 +1,7 @@
 import { isBefore } from '@fm2k/timeline';
-import type { GameDateTime } from '@fm2k/timeline';
+import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import type { CompetitionManager } from './competition-manager.ts';
+import type { LiveMatch } from './competition-types.ts';
 
 export interface SeasonConfig {
   readonly nationId: string;
@@ -33,18 +34,34 @@ export class Season {
 
   hasNext(): boolean { return this.comps.some(c => c.hasNext()); }
 
+  hasLive(): boolean { return this.comps.some(c => c.hasLive()); }
+
   /** Earliest upcoming kickoff across this season's competitions. */
   peekNextTickTime(): GameDateTime | null {
+    return this.minTime(c => c.peekNextTickTime());
+  }
+
+  /** Start time of the next not-yet-started match across this season's competitions. */
+  peekNextKickoff(): GameDateTime | null {
+    return this.minTime(c => c.peekNextKickoff());
+  }
+
+  liveMatches(): LiveMatch[] {
+    return this.comps.flatMap(c => c.getLiveMatches());
+  }
+
+  /** Advance every competition's clock to `target` (matches may be left in progress). */
+  async tickTo(target: GameDateTime): Promise<readonly OccurrenceEvent[]> {
+    const perComp = await Promise.all(this.comps.map(c => c.tickTo(target)));
+    return perComp.flat();
+  }
+
+  private minTime(pick: (c: CompetitionManager) => GameDateTime | null): GameDateTime | null {
     let min: GameDateTime | null = null;
     for (const c of this.comps) {
-      const t = c.peekNextTickTime();
+      const t = pick(c);
       if (t && (min === null || isBefore(t, min))) { min = t; }
     }
     return min;
-  }
-
-  /** Play every competition's block due at or before `target`. */
-  async advanceTo(target: GameDateTime): Promise<void> {
-    await Promise.all(this.comps.map(c => c.advanceTo(target)));
   }
 }

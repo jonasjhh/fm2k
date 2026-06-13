@@ -23,10 +23,11 @@ type CompetitionChoice = 'league' | 'cup';
 export default function FixturesTab() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [competition, setCompetition] = useState<CompetitionChoice>('league');
-  const { leagueStates, cupStates, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =
+  const { leagueStates, cupStates, liveMatches, playerTeamId, clubState, editableCountries, currentMatchday, selectedLeagueIds } =
     useGameStore(useShallow((s) => ({
       leagueStates:       s.leagueStates,
       cupStates:          s.cupStates,
+      liveMatches:        s.liveMatches,
       playerTeamId:       s.playerTeamId,
       clubState:          s.clubState,
       editableCountries:  s.editableCountries,
@@ -181,6 +182,7 @@ export default function FixturesTab() {
             const pens = f.result?.decidedBy === 'penalties' && f.result.shootout
               ? ` (${f.result.shootout.home}–${f.result.shootout.away} pens)` : '';
             const scoreLabel = f.result ? `${f.result.homeScore} – ${f.result.awayScore}${pens}` : '';
+            const live = liveMatches.find(l => l.fixtureId === f.id);
             return (
               <Paper
                 key={f.id}
@@ -205,6 +207,13 @@ export default function FixturesTab() {
                       size="small"
                       sx={{ minWidth: 68, fontWeight: 700 }}
                     />
+                  ) : live ? (
+                    <Box sx={{ minWidth: 110, textAlign: 'center' }}>
+                      <Chip label={`${live.homeScore} – ${live.awayScore}`} color="success" size="small" sx={{ minWidth: 60, fontWeight: 700 }} />
+                      <Typography variant="caption" color="success.main" sx={{ display: 'block', fontWeight: 700 }}>
+                        {live.phase === 'half_time' ? 'HT' : `${live.minute}'`}
+                      </Typography>
+                    </Box>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ minWidth: 110, textAlign: 'center' }}>
                       {fmtDate(f.scheduledTime)}

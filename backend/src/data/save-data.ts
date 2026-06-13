@@ -2,7 +2,7 @@ import localforage from 'localforage';
 import type {
   LeagueState, CompetitionState, ClubState, TransferListing,
   Player, ClubPlayer, PlayerAttributes, Team, Formation, Position, TeamTactics,
-  CountryId,
+  CountryId, GameDateTime,
 } from '@fm2k/engine';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
@@ -13,8 +13,8 @@ export type SaveType = 'QUICK' | 'AUTO';
 
 // Bump SAVE_VERSION whenever the save format changes.
 // Bump MIN_LOADABLE_VERSION only when old saves can no longer be safely migrated.
-// v4 added `cupStates` (national cup per nation).
-export const SAVE_VERSION = 4;
+// v4 added `cupStates` (national cup per nation). v5 added `now` (the game clock).
+export const SAVE_VERSION = 5;
 export const MIN_LOADABLE_VERSION = 1;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
@@ -37,6 +37,8 @@ export interface SaveData {
   editableCountries: EditableCountry[];
   currentMatchday: number;
   seasonComplete: boolean;
+  /** The game clock at save time (snapped to a round boundary). */
+  now?: GameDateTime;
   activeTab: string;
   lastMatchResult: LastMatchResult | null;
   leagueState: LeagueState;

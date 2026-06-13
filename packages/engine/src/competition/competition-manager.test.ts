@@ -2,7 +2,7 @@ import { CompetitionManager } from './competition-manager.ts';
 import { LeagueFormat } from './league-format.ts';
 import { KnockoutFormat } from './knockout-format.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
-import { createGameDateTime, addDays } from '@fm2k/timeline';
+import { createGameDateTime, addDays, addMinutes } from '@fm2k/timeline';
 import type { Team, Formation, Player, Position } from '../shared/types.ts';
 import type { KnockoutFormatConfig } from './competition-types.ts';
 
@@ -84,33 +84,46 @@ describe('CompetitionManager (league format):', () => {
     expect(m.hasNext()).toBe(true);
   });
 
-  test('peekNextTickTime returns the first matchday kickoff', () => {
+  test('peekNextTickTime / peekNextKickoff return the first matchday kickoff', () => {
     const m = makeManager();
     expect(m.peekNextTickTime()).toEqual(START);
+    expect(m.peekNextKickoff()).toEqual(START);
   });
 
-  test('advanceTo the first kickoff plays exactly matchday 1 (8 fixtures)', async () => {
+  test('ticking into the kickoff starts matchday 1 live without completing it', async () => {
     const m = makeManager();
-    await m.advanceTo(START);
+    await m.tickTo(addMinutes(START, 1));
+    expect(m.hasLive()).toBe(true);
+    expect(m.getLiveMatches()).toHaveLength(8);
+    expect(m.getState().fixtures.every(f => f.status === 'scheduled')).toBe(true);
+    expect(m.completedRounds()).toBe(0);
+  });
+
+  test('getLiveMatches reflects the in-progress matchday at half time', async () => {
+    const m = makeManager();
+    await m.tickTo(addMinutes(START, 45)); // ~half time
+    const live = m.getLiveMatches();
+    expect(live).toHaveLength(8);
+    expect(live.every(l => l.minute >= 40 && l.minute <= 50)).toBe(true);
+    expect(live.every(l => l.competitionId === 'test-league')).toBe(true);
+  });
+
+  test('tickTo well past kickoff completes the matchday', async () => {
+    const m = makeManager();
+    await m.tickTo(addMinutes(START, 200));
+    expect(m.hasLive()).toBe(false);
     const completed = m.getState().fixtures.filter(f => f.status === 'completed');
     expect(completed).toHaveLength(8);
     expect(completed.every(f => f.matchday === 1)).toBe(true);
     expect(m.completedRounds()).toBe(1);
   });
 
-  test('advanceTo a target before the next kickoff plays nothing', async () => {
+  test('tickTo before the kickoff plays nothing', async () => {
     const m = makeManager();
-    await m.advanceTo(addDays(START, -1));
+    await m.tickTo(addDays(START, -1));
+    expect(m.hasLive()).toBe(false);
     expect(m.getState().fixtures.every(f => f.status === 'scheduled')).toBe(true);
     expect(m.completedRounds()).toBe(0);
-  });
-
-  test('advanceTo only plays the earliest block, not later matchdays', async () => {
-    const m = makeManager();
-    await m.advanceTo(START);            // matchday 1 only
-    await m.advanceTo(addDays(START, 7)); // matchday 2 only
-    expect(m.completedRounds()).toBe(2);
-    expect(m.getState().fixtures.filter(f => f.status === 'completed')).toHaveLength(16);
   });
 
   test('after the final matchday hasNext is false', async () => {

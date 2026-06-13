@@ -11,12 +11,13 @@ function shortName(name: string): string {
 
 /** Football pitch visual: formation lines back-to-front with player circles per slot. */
 export function FormationGrid({
-  lines, slotAssignments, squad, teamColors,
+  lines, slotAssignments, squad, teamColors, compact = false,
 }: {
   lines: string[][];
   slotAssignments: (string | null)[];
   squad: Player[];
   teamColors: { primary: string; secondary: string };
+  compact?: boolean;
 }) {
   const playerById = useMemo(() => {
     const m = new Map<string, Player>();
@@ -26,17 +27,21 @@ export function FormationGrid({
 
   const reversedLines = [...lines].reverse();
 
+  const sz = compact
+    ? { minHeight: 300, pad: 1.25, circle: 38, slotW: 56, posFont: 11, nameFont: 10 }
+    : { minHeight: 460, pad: 2, circle: 46, slotW: 72, posFont: 13, nameFont: 11 };
+
   return (
     <Box sx={{
       background: 'linear-gradient(180deg, #2d6a2d 0%, #1e4d1e 100%)',
       borderRadius: 2,
-      p: 2,
+      p: sz.pad,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-evenly',
       border: '2px solid',
       borderColor: 'success.dark',
-      minHeight: 460,
+      minHeight: sz.minHeight,
     }}>
       {reversedLines.map((line, li) => {
         const origLineIdx = lines.length - 1 - li;
@@ -48,21 +53,21 @@ export function FormationGrid({
               const playerId = slotAssignments[idx] ?? null;
               const player = playerId ? playerById.get(playerId) ?? null : null;
               return (
-                <Box key={`${pos}-${si}`} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: 72 }}>
+                <Box key={`${pos}-${si}`} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW }}>
                   <Box sx={{
-                    width: 46, height: 46, borderRadius: '50%',
+                    width: sz.circle, height: sz.circle, borderRadius: '50%',
                     bgcolor: player ? teamColors.primary : 'rgba(255,255,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: '2px solid',
                     borderColor: player ? teamColors.secondary : 'rgba(255,255,255,0.3)',
                     flexShrink: 0,
                   }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 800, color: teamColors.secondary, lineHeight: 1, textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: sz.posFont, fontWeight: 800, color: teamColors.secondary, lineHeight: 1, textAlign: 'center' }}>
                       {pos}
                     </Typography>
                   </Box>
                   <Typography sx={{
-                    fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center',
+                    fontSize: sz.nameFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center',
                     lineHeight: 1, fontWeight: 600,
                     width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>

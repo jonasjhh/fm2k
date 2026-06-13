@@ -5,6 +5,8 @@ export type GameEvents = {
   'match.completed': {
     homeTeamId: string
     awayTeamId: string
+    homeTeamName?: string
+    awayTeamName?: string
     homeScore: number
     awayScore: number
     timestamp: GameDateTime

@@ -1,19 +1,18 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
-import FlashOnIcon from '@mui/icons-material/FlashOn';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import FastForwardIcon from '@mui/icons-material/FastForward';
-import { useGameStore, findTeamById, findCountryForTeam } from '../../store/game-store';
+import { useGameStore, findTeamById } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
-import { getTeamOVR, recentForm } from '@fm2k/engine';
-import type { CompetitionFixture } from '@fm2k/engine';
+import { getContrastColor } from '../../utils/colors';
+import {
+  getTeamOVR, recentForm, FORMATION_LINES, buildSlotAssignments, buildXISlotAssignments,
+} from '@fm2k/engine';
+import type { Player, Formation } from '@fm2k/engine';
+import { FormationGrid } from '../ui/FormationGrid';
+import MatchSimPanel from '../MatchSimPanel';
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   const color = result === 'W' ? 'success' : result === 'D' ? 'warning' : 'error';
@@ -21,21 +20,20 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 }
 
 export default function MatchTab() {
-  const { leagueState, cupStates, playerTeamId, editableCountries, seasonComplete, lastMatchResult, simulateMatchday, playMatch, simulateToEnd } = useGameStore(useShallow((s) => ({
-    leagueState: s.leagueState,
-    cupStates: s.cupStates,
-    playerTeamId: s.playerTeamId,
-    editableCountries: s.editableCountries,
-    seasonComplete: s.seasonComplete,
-    lastMatchResult: s.lastMatchResult,
-    simulateMatchday: s.simulateMatchday,
-    playMatch: s.playMatch,
-    simulateToEnd: s.simulateToEnd,
-  })));
+  const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture } =
+    useGameStore(useShallow((s) => ({
+      leagueState: s.leagueState,
+      cupStates: s.cupStates,
+      clubState: s.clubState,
+      playerTeamId: s.playerTeamId,
+      editableCountries: s.editableCountries,
+      seasonComplete: s.seasonComplete,
+      focusFixture: s.focusFixture,
+    })));
 
   if (!leagueState) {return null;}
 
-  if (seasonComplete) {
+  if (seasonComplete && !focusFixture) {
     return (
       <Alert severity="success" sx={{ mt: 2 }}>
         <Typography sx={{ fontWeight: 600 }}>The season is complete!</Typography>
@@ -44,157 +42,103 @@ export default function MatchTab() {
     );
   }
 
-  const playerNation = playerTeamId ? findCountryForTeam(editableCountries, playerTeamId) : null;
-  const cupState = playerNation ? cupStates[`${playerNation.id}-cup`] : null;
+  const fixture = focusFixture;
+  if (!fixture) {return <Alert severity="info">No upcoming fixtures for your club.</Alert>;}
 
-  // The player's genuinely-next fixture across league and cup.
-  const isPlayerFixture = (f: CompetitionFixture) =>
-    f.status === 'scheduled' && (f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId);
-  const candidates: { fixture: CompetitionFixture; isCup: boolean }[] = [
-    ...leagueState.fixtures.filter(isPlayerFixture).map(fixture => ({ fixture, isCup: false })),
-    ...(cupState?.fixtures.filter(isPlayerFixture) ?? []).map(fixture => ({ fixture, isCup: true })),
-  ];
-  if (!candidates.length) {return <Alert severity="info">No upcoming fixtures for your club.</Alert>;}
-
-  const next = candidates.reduce((earliest, c) => {
-    const a = c.fixture.scheduledTime, b = earliest.fixture.scheduledTime;
-    const aT = a.year * 1e8 + a.month * 1e6 + a.day * 1e4 + a.hour * 100 + a.minute;
-    const bT = b.year * 1e8 + b.month * 1e6 + b.day * 1e4 + b.hour * 100 + b.minute;
-    return aT < bT ? c : earliest;
-  });
-  const { fixture, isCup } = next;
-
+  const isCup = fixture.competitionId in cupStates;
   const isHome = fixture.homeTeamId === playerTeamId;
-  const opponentId = isHome ? fixture.awayTeamId : fixture.homeTeamId;
-  const opponentName = isHome ? fixture.awayTeamName : fixture.homeTeamName;
-
-  const competitionLabel = isCup ? `🏆 National Cup — ${fixture.roundLabel}` : leagueState.name;
-
-  const buttons = (
-    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-      <Button variant="contained" startIcon={<FlashOnIcon />} onClick={() => simulateMatchday()}>
-        Simulate
-      </Button>
-      <Button variant="contained" color="secondary" startIcon={<PlayArrowIcon />} onClick={() => playMatch()}>
-        Play Match
-      </Button>
-      <Button
-        variant="outlined"
-        startIcon={<FastForwardIcon />}
-        onClick={() => { if (confirm('Simulate all remaining matches?')) {simulateToEnd();} }}
-      >
-        Sim. Season
-      </Button>
-    </Box>
-  );
-
-  const resultBanner = lastMatchResult && (() => {
-    const { homeScore: hs, awayScore: as, decidedBy, shootout, winnerTeamId } = lastMatchResult;
-    const hName = findTeamById(editableCountries, lastMatchResult.homeTeamId)?.name ?? '';
-    const aName = findTeamById(editableCountries, lastMatchResult.awayTeamId)?.name ?? '';
-    const won = winnerTeamId ? winnerTeamId === playerTeamId : (lastMatchResult.isHome ? hs > as : as > hs);
-    const drew = !winnerTeamId && hs === as;
-    const pens = decidedBy === 'penalties' && shootout ? ` (${shootout.home}–${shootout.away} pens)` : '';
-    return (
-      <Alert severity={won ? 'success' : drew ? 'warning' : 'error'} sx={{ mb: 3 }}>
-        <Typography sx={{ fontWeight: 700 }}>
-          {won ? 'WIN' : drew ? 'DRAW' : 'LOSS'} — {hName} {hs}–{as} {aName}{pens}
-        </Typography>
-      </Alert>
-    );
-  })();
-
-  // Cup matches have no league standings to compare; show a compact card.
-  if (isCup) {
-    return (
-      <Box>
-        <Card variant="outlined" sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="caption" color="text.secondary">
-              {competitionLabel} · {fmtDate(fixture.scheduledTime)} · {isHome ? 'Home' : 'Away'}
-            </Typography>
-            <Typography variant="h5" sx={{ my: 1, fontWeight: 700 }}>
-              {fixture.homeTeamName} vs {fixture.awayTeamName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Single-elimination — extra time and penalties decide a level tie.
-            </Typography>
-            {buttons}
-          </CardContent>
-        </Card>
-        {resultBanner}
-      </Box>
-    );
-  }
-
-  const standings = leagueState.standings;
-  const oppEntry = standings.find((s) => s.teamId === opponentId);
-  const myEntry = standings.find((s) => s.teamId === playerTeamId);
-  const oppPos = standings.findIndex((s) => s.teamId === opponentId) + 1;
-  const myPos = standings.findIndex((s) => s.teamId === playerTeamId) + 1;
-  const oppTeam = findTeamById(editableCountries, opponentId);
-  const oppOvr = oppTeam ? getTeamOVR(oppTeam.starters) : '—';
+  const competitionLabel = isCup ? `National Cup — ${fixture.roundLabel}` : leagueState.name;
 
   const formBadges = (teamId: string) =>
     recentForm(leagueState.fixtures, teamId).map((r, i) => (
       <FormBadge key={`${teamId}-${i}`} result={r} />
     ));
 
+  /** The formation + slot assignments to display: the player's chosen XI, or the
+   *  opponent's auto-selected best XI. */
+  const xiViewFor = (teamId: string) => {
+    const team = findTeamById(editableCountries, teamId);
+    if (teamId === playerTeamId && clubState) {
+      // TODO: an injured player can be selected and is shown here, but MatchSimulator
+      // does not yet model reduced performance for injured players.
+      const formation = clubState.formation;
+      return {
+        team, formation,
+        lines: FORMATION_LINES[formation],
+        slotAssignments: buildSlotAssignments(clubState.startingXI, clubState.benchPlayers, clubState.squad, formation),
+        squad: clubState.squad as Player[],
+      };
+    }
+    const squad: Player[] = team ? [...team.starters, ...team.substitutes] : [];
+    const formation = (team?.formation ?? '4-4-2') as Formation;
+    return { team, formation, lines: FORMATION_LINES[formation], slotAssignments: buildXISlotAssignments(squad, formation), squad };
+  };
+
+  const renderTeam = (teamId: string, showStats: boolean) => {
+    const view = xiViewFor(teamId);
+    if (!view.team) {return null;}
+    const colors = view.team.colors;
+    const headerText = getContrastColor(colors.primary);
+    const xiPlayers = view.slotAssignments.slice(0, 11)
+      .map(id => (id ? view.squad.find(p => p.id === id) : undefined))
+      .filter((p): p is Player => p !== undefined);
+    const ovr = getTeamOVR(xiPlayers);
+    const pos = leagueState.standings.findIndex(s => s.teamId === teamId) + 1;
+    return (
+      <Grid size={{ xs: 12, sm: 6 }} key={teamId}>
+        {/* Standalone team header, styled in the team's colours */}
+        <Box sx={{
+          bgcolor: colors.primary, color: headerText,
+          borderTopLeftRadius: 8, borderTopRightRadius: 8,
+          px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1,
+          border: '1px solid', borderColor: 'divider', borderBottom: 'none',
+        }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, flex: 1, minWidth: 0 }} noWrap>
+            {view.team.name}{teamId === playerTeamId ? ' (You)' : ''}
+          </Typography>
+          <Chip size="small" label={view.formation} sx={{ bgcolor: headerText, color: colors.primary, fontWeight: 700 }} />
+          <Chip size="small" label={`OVR ${ovr}`} sx={{ bgcolor: `${headerText}22`, color: headerText }} />
+        </Box>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderTop: 'none', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, p: 1 }}>
+          <FormationGrid lines={view.lines} slotAssignments={view.slotAssignments} squad={view.squad} teamColors={colors} compact />
+          {showStats && pos > 0 && (
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                {pos}{sfx(pos)} in {leagueState.name}
+              </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              <Box sx={{ display: 'flex', gap: 0.5 }}>{formBadges(teamId)}</Box>
+            </Box>
+          )}
+        </Box>
+      </Grid>
+    );
+  };
+
   return (
     <Box>
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="caption" color="text.secondary">
-            {competitionLabel} · Matchday {fixture.matchday} · {fmtDate(fixture.scheduledTime)} · {isHome ? 'Home' : 'Away'}
+      {/* Styled match header */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+        <Box sx={{
+          px: 2, py: 0.75, borderRadius: 999,
+          bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider',
+          display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'center',
+        }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: 0.3 }}>
+            {isCup && '🏆 '}{competitionLabel}
           </Typography>
-          <Typography variant="h5" sx={{ my: 1, fontWeight: 700 }}>
-            {fixture.homeTeamName} vs {fixture.awayTeamName}
+          <Typography variant="body2" color="text.secondary">
+            · {isCup ? '' : `Matchday ${fixture.matchday} · `}{fmtDate(fixture.scheduledTime)} · {isHome ? 'Home' : 'Away'}
           </Typography>
-          {buttons}
-        </CardContent>
-      </Card>
-
-      {resultBanner}
+        </Box>
+      </Box>
 
       <Grid container spacing={2}>
-        {[
-          {
-            title: opponentName,
-            pos: oppPos, entry: oppEntry, ovr: oppOvr,
-            formation: oppTeam?.formation ?? '—', teamId: opponentId,
-            venue: isHome ? 'Away side' : 'Home side',
-          },
-          {
-            title: myEntry?.teamName ?? '',
-            pos: myPos, entry: myEntry, ovr: null,
-            formation: null, teamId: playerTeamId ?? '',
-            venue: isHome ? 'Home advantage!' : 'Away day',
-          },
-        ].map(({ title, pos, entry, ovr, formation, teamId, venue }) => (
-          <Grid size={{ xs: 12, sm: 6 }} key={teamId}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {pos}{sfx(pos)} place · {entry?.won ?? 0}W {entry?.drawn ?? 0}D {entry?.lost ?? 0}L
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {entry?.goalsFor ?? 0} scored, {entry?.goalsAgainst ?? 0} conceded
-                </Typography>
-                {ovr !== null && (
-                  <Typography variant="body2" color="text.secondary">
-                    {formation} · Avg OVR {ovr}
-                  </Typography>
-                )}
-                <Typography variant="body2" color="text.secondary">{venue}</Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
-                  {formBadges(teamId)}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        {renderTeam(fixture.homeTeamId, !isCup)}
+        {renderTeam(fixture.awayTeamId, !isCup)}
       </Grid>
+
+      <MatchSimPanel />
     </Box>
   );
 }

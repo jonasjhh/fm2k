@@ -1,10 +1,11 @@
 import { GameSession } from '../app/session.ts';
-import type { GameSnapshot, PlayedMatch } from '../app/session.ts';
+import type { GameSnapshot, AdvanceResult } from '../app/session.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
-  ClubState, LeagueState, CompetitionState, TransferListing, Formation, Player, StadiumSectorConfig,
+  ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
+  StadiumSectorConfig, GameDateTime,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -14,10 +15,11 @@ export interface BackendCommands {
   startNewSeason(): boolean;
   saveGame(type: SaveType, activeTab?: string): Promise<void>;
   loadGame(save: SaveData): boolean;
-  // simulation
-  simulateMatchday(): Promise<void>;
+  // simulation (the game clock)
+  advanceToNextStop(): Promise<AdvanceResult>;
+  skipToFullTime(): Promise<AdvanceResult>;
+  nextMatch(): void;
   simulateToEnd(): Promise<void>;
-  playMatch(): Promise<PlayedMatch | null>;
   // tactics
   toggleXI(id: string): ClubState | null;
   setStartingXI(ids: string[]): ClubState | null;
@@ -51,6 +53,8 @@ export interface BackendQueries {
   getLeagueStates(): Record<string, LeagueState>;
   getCupStates(): Record<string, CompetitionState>;
   getCupState(nationId: string): CompetitionState | null;
+  getNow(): GameDateTime;
+  getLiveMatches(): LiveMatch[];
   getTransferListings(): TransferListing[];
   getLastMatchResult(): LastMatchResult | null;
   getCurrentMatchday(): number;
@@ -77,9 +81,10 @@ export function createBackend(): Backend {
     startNewSeason: () => s.startNewSeason(),
     saveGame: (type, activeTab) => s.saveGame(type, activeTab),
     loadGame: (save) => s.loadGame(save),
-    simulateMatchday: () => s.simulateMatchday(),
+    advanceToNextStop: () => s.advanceToNextStop(),
+    skipToFullTime: () => s.skipToFullTime(),
+    nextMatch: () => s.nextMatch(),
     simulateToEnd: () => s.simulateToEnd(),
-    playMatch: () => s.playMatch(),
     toggleXI: (id) => s.toggleXI(id),
     setStartingXI: (ids) => s.setStartingXI(ids),
     setBench: (ids) => s.setBench(ids),
@@ -108,6 +113,8 @@ export function createBackend(): Backend {
     getLeagueStates: () => s.snapshot().leagueStates,
     getCupStates: () => s.snapshot().cupStates,
     getCupState: (nationId) => s.snapshot().cupStates[`${nationId}-cup`] ?? null,
+    getNow: () => s.getNow(),
+    getLiveMatches: () => s.liveMatches(),
     getTransferListings: () => s.snapshot().transferListings,
     getLastMatchResult: () => s.snapshot().lastMatchResult,
     getCurrentMatchday: () => s.snapshot().currentMatchday,

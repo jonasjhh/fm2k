@@ -1,12 +1,12 @@
 import {
   CompetitionManager, LeagueFormat, KnockoutFormat, Season,
-  ClubManager, TransferManager, PlayerGenerator, EventBus, MatchSimulator,
+  ClubManager, TransferManager, PlayerGenerator, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, sellPrice, v4 as uuidv4,
-  isBefore,
+  isBefore, addMinutes, addDays,
 } from '@fm2k/engine';
 import type {
-  LeagueState, CompetitionState, CompetitionFixture, ClubState, TransferListing, TransferState,
-  Position, GameEvents, StadiumSectorConfig, MatchEvent, Player, Formation, Team, GameDateTime,
+  LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
+  Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, GameDateTime, OccurrenceEvent,
 } from '@fm2k/engine';
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
@@ -26,11 +26,31 @@ import { scaleAttributes } from './player-scaling.ts';
 /** Significant match events the UI animates (goals, cards, saves, phase changes). */
 const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'half_time', 'full_time']);
 
-/** Result of playing the player's match: team names + the key events to animate. */
-export interface PlayedMatch {
+/** Minutes added to a kickoff to be sure a match (incl. extra time) has finished. */
+const MATCH_MAX_MINUTES = 130;
+
+/** One animated event from the real match simulation. */
+export interface AnimEvent {
+  minute: number;
+  team: 'home' | 'away';
+  description: string;
+  type: string;
+  homeScore: number;
+  awayScore: number;
+}
+
+/** Result of advancing the player's match to the next stop (intermission / completion). */
+export interface AdvanceResult {
+  fixtureId: string | null;
   homeTeamName: string;
   awayTeamName: string;
-  keyEvents: MatchEvent[];
+  homeScore: number;
+  awayScore: number;
+  /** Match phase reached (half_time | full_time | extra_time_half | …) or 'idle'. */
+  phase: string;
+  atIntermission: boolean;
+  matchOver: boolean;
+  events: AnimEvent[];
 }
 
 /** The read-model the frontend caches: lifecycle flags + engine state snapshots. */
@@ -40,10 +60,14 @@ export interface GameSnapshot {
   editableCountries: EditableCountry[];
   currentMatchday: number;
   seasonComplete: boolean;
+  now: GameDateTime;
   lastMatchResult: LastMatchResult | null;
   leagueState: LeagueState | null;
   leagueStates: Record<string, LeagueState>;
   cupStates: Record<string, CompetitionState>;
+  liveMatches: LiveMatch[];
+  focusFixture: CompetitionFixture | null;
+  focusLive: LiveMatch | null;
   clubState: ClubState | null;
   transferListings: TransferListing[];
 }
@@ -69,6 +93,8 @@ export class GameSession {
   private selectedLeagueIds: string[] = [];
   private currentMatchday = 0;
   private seasonComplete = false;
+  private now: GameDateTime = SEASON_START;
+  private focusFixtureId: string | null = null;
   private lastMatchResult: LastMatchResult | null = null;
   private editableCountries: EditableCountry[] = buildEditableCountries();
   private readonly listeners = new Set<() => void>();
@@ -96,16 +122,25 @@ export class GameSession {
     for (const [id, mgr] of Object.entries(this.cupManagers)) {
       cupStates[id] = mgr.getState();
     }
+    const liveMatches = this.liveMatches();
+    const focusFixture = this.getFocusFixture();
+    const focusLive = focusFixture
+      ? liveMatches.find(l => l.fixtureId === focusFixture.id) ?? null
+      : null;
     return {
       playerTeamId: this.playerTeamId,
       selectedLeagueIds: this.selectedLeagueIds,
       editableCountries: this.editableCountries,
       currentMatchday: this.currentMatchday,
       seasonComplete: this.seasonComplete,
+      now: this.now,
       lastMatchResult: this.lastMatchResult,
       leagueState: this.leagueManager?.getState() ?? null,
       leagueStates,
       cupStates,
+      liveMatches,
+      focusFixture,
+      focusLive,
       clubState: this.clubManager?.getState() ?? null,
       transferListings: this.transferManager?.getActiveListings(this.currentMatchday) ?? [],
     };
@@ -244,6 +279,8 @@ export class GameSession {
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = 0;
     this.seasonComplete = false;
+    this.now = SEASON_START;
+    this.focusFixtureId = null;
     this.lastMatchResult = null;
     return true;
   }
@@ -280,6 +317,7 @@ export class GameSession {
       editableCountries: this.editableCountries.filter(c => keep.has(c.id)),
       currentMatchday: this.currentMatchday,
       seasonComplete: this.seasonComplete,
+      now: this.now,
       activeTab,
       lastMatchResult: this.lastMatchResult,
       leagueState: snap.leagueState,
@@ -291,6 +329,9 @@ export class GameSession {
   }
 
   async saveGame(type: SaveType, activeTab = 'squad'): Promise<void> {
+    // Snap to a clean boundary: finish any in-progress round before serialising,
+    // since live mid-match state isn't persisted (v1).
+    await this.finishLiveRound();
     const data = this.buildSaveData(type, activeTab);
     if (data) { await writeSave(data); }
   }
@@ -334,13 +375,35 @@ export class GameSession {
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = save.currentMatchday;
     this.seasonComplete = save.seasonComplete;
+    // Saves snap to a round boundary, so `now` rests with no matches live; the engines
+    // (rebuilt at SEASON_START with only future fixtures scheduled) lazily catch up to
+    // `now` on the next advance. Legacy saves approximate it from the matchday.
+    this.now = save.now ?? addDays(SEASON_START, save.currentMatchday * 7);
+    this.focusFixtureId = null;
     this.lastMatchResult = save.lastMatchResult;
     return true;
   }
 
-  // ── simulation ──────────────────────────────────────────────────────────────
+  // ── the game clock ──────────────────────────────────────────────────────────
 
-  /** The player's earliest scheduled fixture across their league and cup. */
+  getNow(): GameDateTime { return this.now; }
+
+  private allManagers(): CompetitionManager[] {
+    return [...Object.values(this.leagueManagers), ...Object.values(this.cupManagers)];
+  }
+
+  /** Every in-progress match across all nations/competitions. */
+  liveMatches(): LiveMatch[] {
+    return Object.values(this.seasons).flatMap(s => s.liveMatches());
+  }
+
+  private playerLiveMatch(): LiveMatch | null {
+    return this.liveMatches().find(
+      l => l.homeTeamId === this.playerTeamId || l.awayTeamId === this.playerTeamId,
+    ) ?? null;
+  }
+
+  /** The player's earliest still-scheduled fixture across their league and cup. */
   private playerNextFixture(): CompetitionFixture | null {
     if (!this.playerTeamId) { return null; }
     const managers = [this.leagueManager, this.playerCupManager].filter(Boolean) as CompetitionManager[];
@@ -355,33 +418,40 @@ export class GameSession {
     return next;
   }
 
-  private isFixtureCompleted(fixtureId: string): boolean {
-    for (const mgr of [...Object.values(this.leagueManagers), ...Object.values(this.cupManagers)]) {
+  private findFixture(fixtureId: string): CompetitionFixture | null {
+    for (const mgr of this.allManagers()) {
       const f = mgr.getState().fixtures.find(fx => fx.id === fixtureId);
-      if (f) { return f.status === 'completed'; }
+      if (f) { return f; }
     }
-    return false;
+    return null;
   }
 
-  /**
-   * Advance the global clock by one chronological block: find the earliest upcoming
-   * kickoff across every nation's competitions and play exactly the matches due then
-   * (a league matchday or a cup round). Returns false when nothing remains.
-   */
-  private async advanceBlock(): Promise<boolean> {
-    const active = Object.values(this.seasons).filter(s => s.hasNext());
-    if (!active.length) { this.seasonComplete = true; return false; }
-
-    let target: GameDateTime | null = null;
-    for (const s of active) {
-      const t = s.peekNextTickTime();
-      if (t && (target === null || isBefore(t, target))) { target = t; }
+  /** The player's match currently in focus on the Match tab (live / just-finished / next). */
+  getFocusFixture(): CompetitionFixture | null {
+    if (this.focusFixtureId) {
+      const f = this.findFixture(this.focusFixtureId);
+      if (f) { return f; }
     }
-    if (target === null) { return false; }
+    return this.playerNextFixture();
+  }
 
-    await Promise.all(active.map(s => s.advanceTo(target!)));
+  /** Earliest not-yet-started kickoff across all competitions. */
+  private nextKickoff(): GameDateTime | null {
+    let min: GameDateTime | null = null;
+    for (const s of Object.values(this.seasons)) {
+      const t = s.peekNextKickoff();
+      if (t && (min === null || isBefore(t, min))) { min = t; }
+    }
+    return min;
+  }
 
-    // Club recovery and the transfer market move on league-matchday boundaries only.
+  /** Advance the global clock to `target`, ticking every competition. Returns the
+   *  match events fired across the advance (the caller filters them). */
+  private async advanceClockTo(target: GameDateTime): Promise<OccurrenceEvent[]> {
+    if (!isBefore(this.now, target)) { return []; }
+    const perSeason = await Promise.all(Object.values(this.seasons).map(s => s.tickTo(target)));
+    this.now = target;
+
     const newMatchday = this.leagueManager?.completedRounds() ?? this.currentMatchday;
     if (newMatchday > this.currentMatchday) {
       this.clubManager?.handleMatchdayComplete();
@@ -391,50 +461,123 @@ export class GameSession {
       this.currentMatchday = newMatchday;
     }
     this.seasonComplete = !Object.values(this.seasons).some(s => s.hasNext());
-    return true;
+    return perSeason.flat() as OccurrenceEvent[];
   }
 
-  /** Advance until the player's next match has been played (any competition). */
-  async simulateMatchday(): Promise<void> {
-    this.lastMatchResult = null;
-    const next = this.playerNextFixture();
-    if (!next) { await this.advanceBlock(); this.notify(); return; }
-    while (!this.isFixtureCompleted(next.id)) {
-      if (!await this.advanceBlock()) { break; }
+  private idleResult(): AdvanceResult {
+    return { fixtureId: null, homeTeamName: '', awayTeamName: '', homeScore: 0, awayScore: 0, phase: 'idle', atIntermission: false, matchOver: true, events: [] };
+  }
+
+  /** Map collected occurrence events for one fixture into animation events. */
+  private buildAdvanceResult(fixtureId: string, collected: OccurrenceEvent[]): AdvanceResult {
+    const fixture = this.findFixture(fixtureId);
+    const live = this.liveMatches().find(l => l.fixtureId === fixtureId) ?? null;
+    const matchOver = live === null;
+    const events: AnimEvent[] = collected
+      .filter(e => e.occurrenceId === fixtureId && KEY_EVENT_TYPES.has(e.eventType))
+      .map(e => {
+        const p = e.payload as { minute?: number; team?: 'home' | 'away'; description?: string; homeScore?: number; awayScore?: number };
+        return {
+          minute: p.minute ?? 0,
+          team: p.team ?? 'home',
+          description: p.description ?? '',
+          type: e.eventType,
+          homeScore: p.homeScore ?? 0,
+          awayScore: p.awayScore ?? 0,
+        };
+      });
+    const homeScore = live?.homeScore ?? fixture?.result?.homeScore ?? 0;
+    const awayScore = live?.awayScore ?? fixture?.result?.awayScore ?? 0;
+    return {
+      fixtureId,
+      homeTeamName: fixture?.homeTeamName ?? live?.homeTeamName ?? '',
+      awayTeamName: fixture?.awayTeamName ?? live?.awayTeamName ?? '',
+      homeScore,
+      awayScore,
+      phase: live?.phase ?? 'full_time',
+      atIntermission: !matchOver,
+      matchOver,
+      events,
+    };
+  }
+
+  /** Bring the player's focus match into play, completing intervening non-player rounds. */
+  private async ensurePlayerMatchLive(collected: OccurrenceEvent[]): Promise<string | null> {
+    if (this.playerLiveMatch()) { return this.playerLiveMatch()!.fixtureId; }
+    const nextFix = this.playerNextFixture();
+    if (!nextFix) { return null; }
+    this.focusFixtureId = nextFix.id;
+    if (isBefore(this.now, nextFix.scheduledTime)) {
+      collected.push(...await this.advanceClockTo(nextFix.scheduledTime));
     }
+    return this.playerLiveMatch()?.fixtureId ?? nextFix.id;
+  }
+
+  /** Auto-stream the player's match to the next intermission (half/full time, etc.). */
+  async advanceToNextStop(): Promise<AdvanceResult> {
+    if (!this.playerTeamId) { return this.idleResult(); }
+    this.lastMatchResult = null;
+
+    const collected: OccurrenceEvent[] = [];
+    const focusId = await this.ensurePlayerMatchLive(collected);
+    if (!focusId) { await this.simulateToEnd(); return this.idleResult(); }
+    this.focusFixtureId = focusId;
+
+    let guard = 0;
+    while (guard++ < MATCH_MAX_MINUTES + 10) {
+      collected.push(...await this.advanceClockTo(addMinutes(this.now, 1)));
+      const lm = this.liveMatches().find(l => l.fixtureId === focusId);
+      if (!lm) { break; }                                                  // completed
+      if (lm.phase === 'half_time' || lm.phase === 'extra_time_half') { break; } // intermission
+    }
+    this.notify();
+    return this.buildAdvanceResult(focusId, collected);
+  }
+
+  /** Skip the player's current match to full time with no streaming. */
+  async skipToFullTime(): Promise<AdvanceResult> {
+    if (!this.playerTeamId) { return this.idleResult(); }
+    this.lastMatchResult = null;
+
+    const collected: OccurrenceEvent[] = [];
+    const focusId = await this.ensurePlayerMatchLive(collected);
+    if (!focusId) { await this.simulateToEnd(); return this.idleResult(); }
+    this.focusFixtureId = focusId;
+
+    let guard = 0;
+    while (this.findFixture(focusId)?.status !== 'completed' && guard++ < MATCH_MAX_MINUTES) {
+      collected.push(...await this.advanceClockTo(addMinutes(this.now, 5)));
+    }
+    this.notify();
+    return this.buildAdvanceResult(focusId, collected);
+  }
+
+  /** Move the Match-tab focus to the player's next upcoming fixture. */
+  nextMatch(): void {
+    this.focusFixtureId = this.playerNextFixture()?.id ?? null;
     this.notify();
   }
 
   /** Simulate every remaining match across all competitions to the end of the season. */
   async simulateToEnd(): Promise<void> {
     this.lastMatchResult = null;
-    while (await this.advanceBlock()) { /* play every block */ }
+    let guard = 0;
+    let nk = this.nextKickoff();
+    while (nk && guard++ < 10_000) {
+      await this.advanceClockTo(addMinutes(nk, MATCH_MAX_MINUTES));
+      nk = this.nextKickoff();
+    }
+    this.focusFixtureId = null;
+    this.seasonComplete = true;
     this.notify();
   }
 
-  /**
-   * Play the player's next fixture (league or cup): produce the key events to animate
-   * (from a display sim) and advance the real season through it. `lastMatchResult` is
-   * set from the engine's `match.completed`.
-   */
-  async playMatch(): Promise<PlayedMatch | null> {
-    if (!this.playerTeamId) { return null; }
-    const fixture = this.playerNextFixture();
-    if (!fixture) { return null; }
-
-    const homeTeam = findTeamById(this.editableCountries, fixture.homeTeamId);
-    const awayTeam = findTeamById(this.editableCountries, fixture.awayTeamId);
-    if (!homeTeam || !awayTeam) { return null; }
-
-    const isCup = this.playerCupManager?.getState().competitionId === fixture.competitionId;
-    const displaySim = new MatchSimulator({
-      matchDuration: 90, eventsPerMinute: 4, homeTeam, awayTeam, extraTimeIfDrawn: isCup,
-    });
-    const keyEvents = displaySim.simulate().events.filter((e: MatchEvent) => KEY_EVENT_TYPES.has(e.type));
-
-    await this.simulateMatchday();
-
-    return { homeTeamName: homeTeam.name, awayTeamName: awayTeam.name, keyEvents };
+  /** Finish any in-progress round to full time (used before saving). */
+  private async finishLiveRound(): Promise<void> {
+    let guard = 0;
+    while (this.liveMatches().length && guard++ < MATCH_MAX_MINUTES) {
+      await this.advanceClockTo(addMinutes(this.now, 10));
+    }
   }
 
   // ── tactics ───────────────────────────────────────────────────────────────

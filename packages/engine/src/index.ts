@@ -21,7 +21,7 @@ export type {
 } from './competition/competition-format.ts';
 export type {
   CompetitionState, CompetitionFixture, CompetitionStanding, CompetitionKind,
-  BracketState, BracketSlot, FixtureResult, LeagueFormatConfig, KnockoutFormatConfig,
+  BracketState, BracketSlot, FixtureResult, LeagueFormatConfig, KnockoutFormatConfig, LiveMatch,
 } from './competition/competition-types.ts';
 export { TBD_TEAM_ID, TBD_TEAM_NAME } from './competition/competition-types.ts';
 export { DIVISION_TEAMS, ALL_COUNTRIES, COUNTRY_IDS, COUNTRY_DATA, COUNTRY_FLAG, COUNTRY_COLORS, getAllTeams, getDivisionTeams } from './data/teams-data.ts';
@@ -46,7 +46,7 @@ export type { Formation, Player, PlayerAttributes, Position, Team, TeamTactics }
 export { v4, EventBus, StateManager } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 
-export { EventLog, addDays, createGameDateTime, TickEngine, isBefore, isAfter } from '@fm2k/timeline';
+export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore, isAfter } from '@fm2k/timeline';
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
