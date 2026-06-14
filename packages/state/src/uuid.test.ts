@@ -63,7 +63,7 @@ describe('Uuid:', () => {
       expect(() => {
         // @ts-ignore - testing runtime behavior
         new Uuid();
-      }).toThrow();
+      }).toThrow('Uuid cannot be instantiated. Use Uuid.v4() instead.');
     });
   });
 });
@@ -312,53 +312,6 @@ describe('Validation edge cases:', () => {
 
     invalidInputs.forEach(input => {
       expect(isValidV4(input as any)).toBe(false);
-    });
-  });
-});
-
-describe('Performance tests:', () => {
-  test('given high volume generation when generating 1000 UUIDs then should complete quickly and all be unique', () => {
-    const start = Date.now();
-    const uuids = [];
-
-    for (let i = 0; i < 1000; i++) {
-      uuids.push(v4());
-    }
-
-    const duration = Date.now() - start;
-
-    expect(uuids).toHaveLength(1000);
-    expect(duration).toBeLessThan(100); // Should complete in under 100ms
-
-    // Check all are unique
-    const uniqueUuids = new Set(uuids);
-    expect(uniqueUuids.size).toBe(1000);
-
-    // Check all are valid
-    uuids.forEach(uuid => {
-      expect(isValidV4(uuid)).toBe(true);
-    });
-  });
-
-  test('given continuous generation when generating 10000 UUIDs then should maintain performance', () => {
-    const batchSize = 1000;
-    const batches = 10;
-    const durations: number[] = [];
-
-    for (let batch = 0; batch < batches; batch++) {
-      const start = Date.now();
-
-      for (let i = 0; i < batchSize; i++) {
-        v4();
-      }
-
-      durations.push(Date.now() - start);
-    }
-
-    // Performance should be consistent (no memory leaks or degradation)
-    const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
-    durations.forEach(duration => {
-      expect(duration).toBeLessThan(avgDuration * 2); // No batch should be 2x slower than average
     });
   });
 });

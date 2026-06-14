@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { ClubPlayer, ClubState, LeagueState, Player, PlayerAttributes } from '@fm2k/engine';
+import type { ClubPlayer, ClubState, LeagueState, Player, PlayerAttributes, TeamTactics } from '@fm2k/engine';
 import type { EditableCountry } from '../domain/editable-country.ts';
 
 // In-memory localforage stand-in so the codec can be round-tripped without IndexedDB.
@@ -17,7 +17,7 @@ vi.mock('localforage', () => {
   };
 });
 
-import { writeSave, deleteSave, readAllSaves, SaveData, SAVE_VERSION } from './save-data';
+import { writeSave, deleteSave, readAllSaves, saveKey, checkSaveCompatibility, SaveData, SAVE_VERSION } from './save-data';
 
 function attrs(v: number): PlayerAttributes {
   return {
@@ -142,5 +142,76 @@ describe('readAllSaves:', () => {
     await writeSave(makeSave({ type: 'QUICK', teamName: 'Team One' }));
     await deleteSave('QUICK', 'Team One');
     expect(await readAllSaves()).toHaveLength(0);
+  });
+
+  it('given unrelated keys in storage then only fm2k save keys are returned', async () => {
+    const lf = (await import('localforage')).default as unknown as { __store: Map<string, unknown> };
+    lf.__store.set('some-other-app-key', { not: 'a save' });
+    await writeSave(makeSave({ type: 'QUICK', teamName: 'Real' }));
+
+    const saves = await readAllSaves();
+    expect(saves.map(s => s.teamName)).toEqual(['Real']);
+  });
+});
+
+describe('saveKey:', () => {
+  it('composes a key from type and team name', () => {
+    expect(saveKey('QUICK', 'Team One')).toBe('fm2k-QUICK-Team One');
+    expect(saveKey('AUTO', 'Bergen')).toBe('fm2k-AUTO-Bergen');
+  });
+});
+
+describe('checkSaveCompatibility:', () => {
+  const withVersion = (version: number) => ({ version } as SaveData);
+
+  it('given a version newer than supported then incompatible', () => {
+    expect(checkSaveCompatibility(withVersion(SAVE_VERSION + 1))).toBe('incompatible');
+  });
+
+  it('given a version below the minimum loadable then incompatible', () => {
+    expect(checkSaveCompatibility(withVersion(0))).toBe('incompatible');
+  });
+
+  it('given the oldest still-loadable version then outdated', () => {
+    expect(checkSaveCompatibility(withVersion(1))).toBe('outdated');
+  });
+
+  it('given a version between min and current then outdated', () => {
+    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('outdated');
+  });
+
+  it('given the current version then ok', () => {
+    expect(checkSaveCompatibility(withVersion(SAVE_VERSION))).toBe('ok');
+  });
+});
+
+describe('save-data tactics round-trip:', () => {
+  const tactics: TeamTactics = { attackingMentality: 'attacking', passingStyle: 'short', tempo: 'fast', width: 'wide' };
+
+  function saveWithTeam(extra: { tactics?: TeamTactics }): SaveData {
+    const team = {
+      id: 'tt', name: 'Tactics FC', formation: '4-4-2' as const,
+      starters: [player('s1')], substitutes: [player('b1', { position: 'GK' })],
+      colors: { primary: '#000', secondary: '#fff' },
+      ...extra,
+    };
+    return makeSave({
+      editableCountries: [{
+        id: 'norway' as EditableCountry['id'], name: 'Norway', nationality: 'norwegian',
+        divisions: [{ id: 'd1', name: 'Eliteserien', level: 1, teams: [team] }],
+      } as EditableCountry],
+    });
+  }
+
+  it('given a team with tactics then they survive the round-trip', async () => {
+    await writeSave(saveWithTeam({ tactics }));
+    const [loaded] = await readAllSaves();
+    expect(loaded.editableCountries[0].divisions[0].teams[0].tactics).toEqual(tactics);
+  });
+
+  it('given a team without tactics then none are present after the round-trip', async () => {
+    await writeSave(saveWithTeam({}));
+    const [loaded] = await readAllSaves();
+    expect(loaded.editableCountries[0].divisions[0].teams[0].tactics).toBeUndefined();
   });
 });

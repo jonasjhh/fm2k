@@ -12,12 +12,22 @@ interface CountryNames {
     last: NameEntry[];
 }
 
+export interface NameData {
+    norwegian: CountryNames;
+    english: CountryNames;
+}
+
 export class NameGenerator {
   private readonly availableCountries: CountryNames[];
 
   constructor(
         private readonly gender: Gender,
         private readonly country: Country,
+        private readonly rng: () => number = Math.random,
+        private readonly nameData: NameData = {
+          norwegian: NORWEGIAN_NAMES as CountryNames,
+          english: ENGLISH_NAMES as CountryNames,
+        },
   ) {
     this.availableCountries = this.getAvailableCountries();
     this.validateConfiguration();
@@ -50,8 +60,8 @@ export class NameGenerator {
   }
 
   private getAvailableCountries(): CountryNames[] {
-    const NOR = NORWEGIAN_NAMES as CountryNames;
-    const ENG = ENGLISH_NAMES as CountryNames;
+    const NOR = this.nameData.norwegian;
+    const ENG = this.nameData.english;
     const mapping: Record<Country, CountryNames[]> = {
       // Countries with dedicated name data
       norway:   [NOR],
@@ -109,6 +119,6 @@ export class NameGenerator {
 
   private getRandomElement<T>(array: T[]): T {
     if (!array.length) {throw new Error('Cannot select from empty array');}
-    return array[Math.floor(Math.random() * array.length)];
+    return array[Math.floor(this.rng() * array.length)];
   }
 }

@@ -85,6 +85,16 @@ describe('TickEngine:', () => {
       expect(engine.getScheduledOccurrences()).toHaveLength(2);
     });
 
+    test('given equal scheduled times then insertion order is preserved (stable FIFO)', () => {
+      // The binary-search insertion uses `<= 0` so an equal-time newcomer is placed
+      // after existing equal entries; `< 0` would reverse them.
+      const engine = makeEngine(dt(15, 10));
+      engine.schedule(makeOccurrence('a', dt(15, 14)));
+      engine.schedule(makeOccurrence('b', dt(15, 14)));
+      engine.schedule(makeOccurrence('c', dt(15, 14)));
+      expect(engine.getScheduledOccurrences().map(o => o.id)).toEqual(['a', 'b', 'c']);
+    });
+
     test('given a duplicate occurrence id when scheduled then throws', () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14)));
@@ -168,7 +178,9 @@ describe('TickEngine:', () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 90 }));
       const result = await engine.tickToNext();
-      expect(result!.started).toContain('occ-1');
+      // exact arrays: only occ-1 started, and nothing completed in this tick
+      expect(result!.started).toEqual(['occ-1']);
+      expect(result!.completed).toEqual([]);
     });
 
     test('given a scheduled occurrence when first ticked then fires onStart event', async () => {

@@ -50,8 +50,8 @@ describe('createGameDateTime:', () => {
       expect(() => createGameDateTime(2025, 1, 32)).toThrow();
     });
 
-    test('when day is invalid for month (Feb 30) then throws', () => {
-      expect(() => createGameDateTime(2025, 2, 30)).toThrow();
+    test('when day is invalid for month (Feb 30) then throws with a descriptive message', () => {
+      expect(() => createGameDateTime(2025, 2, 30)).toThrow('Invalid game date');
     });
 
     test('when hour is 24 then throws', () => {

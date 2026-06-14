@@ -61,4 +61,25 @@ describe('applyPromotionRelegation:', () => {
     const [out] = applyPromotionRelegation([c], { d1: ranked.d1 }); // d2/d3 absent
     expect(out).toBe(c);
   });
+
+  it('given divisions out of level order then they are sorted by level before laddering', () => {
+    const reversed: EditableCountry = {
+      ...country(),
+      divisions: [division('d3', 3, 6), division('d1', 1, 6), division('d2', 2, 6)],
+    };
+    const [out] = applyPromotionRelegation([reversed], ranked);
+    // Same outcome as the in-order case: only correct level-adjacency produces this.
+    expect(teamIdsIn(out, 'd1').sort()).toEqual(
+      ['d1-1', 'd1-2', 'd1-3', 'd1-4', 'd2-1', 'd2-2'].sort(),
+    );
+  });
+
+  it('given a single division then there are no movements and teams are unchanged', () => {
+    const single: EditableCountry = {
+      id: 'england', name: 'England', nationality: 'english',
+      divisions: [division('d1', 1, 6)],
+    };
+    const [out] = applyPromotionRelegation([single], { d1: ranked.d1 });
+    expect(teamIdsIn(out, 'd1')).toEqual(['d1-1', 'd1-2', 'd1-3', 'd1-4', 'd1-5', 'd1-6']);
+  });
 });

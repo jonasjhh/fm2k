@@ -18,20 +18,24 @@ export class PlayerGenerator {
   private nameGenerator: NameGenerator;
   private readonly nationality: string;
 
-  constructor(gender: Gender = 'female', country: Country = 'all') {
-    this.nameGenerator = new NameGenerator(gender, country);
+  constructor(
+    gender: Gender = 'female',
+    country: Country = 'all',
+    private readonly rng: () => number = Math.random,
+  ) {
+    this.nameGenerator = new NameGenerator(gender, country, rng);
     this.nationality = country === 'all' ? 'unknown' : COUNTRY_NATIONALITY[country];
   }
 
   generatePlayer(position: Position, minAttribute = 1, maxAttribute = 20): Player {
     const attrs = this.generateAttributes(position, minAttribute, maxAttribute);
     const avgAttr = Math.round(Object.values(attrs).reduce((a, b) => a + b, 0) / Object.values(attrs).length);
-    const potential = Math.min(99, avgAttr + Math.floor(Math.random() * 20));
+    const potential = Math.min(99, avgAttr + Math.floor(this.rng() * 20));
     return {
       id: uuidv4(),
       name: this.nameGenerator.generateName(),
       nationality: this.nationality,
-      age: 17 + Math.floor(Math.random() * 19),
+      age: 17 + Math.floor(this.rng() * 19),
       position,
       potential,
       attributes: attrs,
@@ -44,7 +48,7 @@ export class PlayerGenerator {
   }
 
   private generateRandomAttributes(min: number, max: number): PlayerAttributes {
-    const random = () => Math.floor(Math.random() * (max - min + 1)) + min;
+    const random = () => Math.floor(this.rng() * (max - min + 1)) + min;
 
     return {
       speed: random(),
