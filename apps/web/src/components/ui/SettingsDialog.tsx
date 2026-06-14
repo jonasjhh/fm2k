@@ -15,8 +15,8 @@ import { useGameStore, SIM_DELAY_MIN, SIM_DELAY_MAX } from '../../store/game-sto
 interface Props { open: boolean; onClose: () => void; }
 
 const SPEED_MARKS = [
-  { value: SIM_DELAY_MIN, label: `Fast (${SIM_DELAY_MIN} ms)` },
-  { value: SIM_DELAY_MAX, label: `Slow (${SIM_DELAY_MAX} ms)` },
+  { value: SIM_DELAY_MIN, label: 'Fast' },
+  { value: SIM_DELAY_MAX, label: 'Slow' },
 ];
 
 export default function SettingsDialog({ open, onClose }: Props) {
@@ -28,9 +28,9 @@ export default function SettingsDialog({ open, onClose }: Props) {
   })));
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Settings</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ pb: 3 }}>
         <FormControlLabel
           control={<Switch checked={theme.palette.mode === 'dark'} onChange={toggle} />}
           label="Dark mode"
@@ -38,10 +38,10 @@ export default function SettingsDialog({ open, onClose }: Props) {
 
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>Match speed</Typography>
-            <Typography variant="body2" color="text.secondary">{simDelayMs} ms / event</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Match tick delay</Typography>
+            <Typography variant="body2" color="text.secondary">{simDelayMs} ms</Typography>
           </Box>
-          <Box sx={{ px: 1 }}>
+          <Box sx={{ px: 2 }}>
             <Slider
               value={simDelayMs}
               min={SIM_DELAY_MIN}
