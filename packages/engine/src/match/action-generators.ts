@@ -73,8 +73,8 @@ function getDefenders(state: MatchState): Player[] {
   return defPlayers(state).filter(p => ['CB', 'LB', 'RB', 'CDM'].includes(p.position));
 }
 
-function pickRandom<T>(arr: T[]): T | null {
-  return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+function pickRandom<T>(arr: T[], rng: () => number): T | null {
+  return arr.length > 0 ? arr[Math.floor(rng() * arr.length)] : null;
 }
 
 function makeId(): string {
@@ -84,6 +84,8 @@ function makeId(): string {
 // ── ShortPassGenerator ────────────────────────────────────────────────────────
 
 export class ShortPassGenerator implements ActionGenerator {
+  constructor(private readonly rng: () => number = Math.random) {}
+
   canPerform(player: Player, state: MatchState): boolean {
     return state.phase === 'first_half' || state.phase === 'second_half';
   }
@@ -95,7 +97,7 @@ export class ShortPassGenerator implements ActionGenerator {
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = Math.random() < this.calculateProbability(player, state);
+    const success = this.rng() < this.calculateProbability(player, state);
     const newState = this.createNewState(state, success);
 
     return {
@@ -128,7 +130,7 @@ export class ShortPassGenerator implements ActionGenerator {
   private getNewBallPosition(currentPosition: BallPosition): BallPosition {
     const zones: BallPosition['zone'][] = ['home_box', 'home_third', 'middle_third', 'away_third', 'away_box'];
     const currentIndex = zones.indexOf(currentPosition.zone);
-    const moveForward = Math.random() < 0.3;
+    const moveForward = this.rng() < 0.3;
     let newIndex = currentIndex;
     if (moveForward && currentIndex < zones.length - 1) {
       newIndex = currentIndex + 1;
@@ -140,6 +142,8 @@ export class ShortPassGenerator implements ActionGenerator {
 // ── DribbleGenerator ──────────────────────────────────────────────────────────
 
 export class DribbleGenerator implements ActionGenerator {
+  constructor(private readonly rng: () => number = Math.random) {}
+
   canPerform(player: Player, state: MatchState): boolean {
     return player.position !== 'GK' &&
            (state.phase === 'first_half' || state.phase === 'second_half') &&
@@ -153,7 +157,7 @@ export class DribbleGenerator implements ActionGenerator {
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = Math.random() < this.calculateProbability(player, state);
+    const success = this.rng() < this.calculateProbability(player, state);
     const newState = this.createNewState(state, success);
 
     return {
@@ -193,14 +197,14 @@ export class DribbleGenerator implements ActionGenerator {
   private advanceBallPosition(currentPosition: BallPosition): BallPosition {
     const zones: BallPosition['zone'][] = ['home_box', 'home_third', 'middle_third', 'away_third', 'away_box'];
     const currentIndex = zones.indexOf(currentPosition.zone);
-    const advancement = Math.random() < 0.6 ? 1 : 2;
+    const advancement = this.rng() < 0.6 ? 1 : 2;
     const newIndex = Math.min(currentIndex + advancement, zones.length - 1);
     return {
       zone: zones[newIndex],
-      side: Math.random() < 0.5 ? currentPosition.side :
+      side: this.rng() < 0.5 ? currentPosition.side :
         (currentPosition.side === 'left' ? 'center' :
           currentPosition.side === 'right' ? 'center' :
-            Math.random() < 0.5 ? 'left' : 'right'),
+            this.rng() < 0.5 ? 'left' : 'right'),
     };
   }
 }
@@ -209,6 +213,8 @@ export class DribbleGenerator implements ActionGenerator {
 // Picks a random defender from the non-possessing team to contest the ball.
 
 export class TackleGenerator implements ActionGenerator {
+  constructor(private readonly rng: () => number = Math.random) {}
+
   canPerform(player: Player, state: MatchState): boolean {
     if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
     return getDefenders(state).length > 0;
@@ -221,10 +227,10 @@ export class TackleGenerator implements ActionGenerator {
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const tackler = pickRandom(getDefenders(state));
+    const tackler = pickRandom(getDefenders(state), this.rng);
     if (!tackler) { return null; }
 
-    const success = Math.random() < this.calculateProbability(tackler, state);
+    const success = this.rng() < this.calculateProbability(tackler, state);
     const newState = this.createNewState(state, success, tackler);
     const side = defTeamSide(state);
 
@@ -275,6 +281,8 @@ export class TackleGenerator implements ActionGenerator {
 // Picks a random mid/def player from the non-possessing team.
 
 export class InterceptionGenerator implements ActionGenerator {
+  constructor(private readonly rng: () => number = Math.random) {}
+
   canPerform(player: Player, state: MatchState): boolean {
     if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
     return defPlayers(state).filter(p => p.position !== 'GK').length > 0;
@@ -288,10 +296,10 @@ export class InterceptionGenerator implements ActionGenerator {
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
     const candidates = defPlayers(state).filter(p => p.position !== 'GK');
-    const interceptor = pickRandom(candidates);
+    const interceptor = pickRandom(candidates, this.rng);
     if (!interceptor) { return null; }
 
-    const success = Math.random() < this.calculateProbability(interceptor, state);
+    const success = this.rng() < this.calculateProbability(interceptor, state);
     const side = defTeamSide(state);
 
     return {
@@ -324,6 +332,8 @@ export class InterceptionGenerator implements ActionGenerator {
 // ── ShotGenerator ─────────────────────────────────────────────────────────────
 
 export class ShotGenerator implements ActionGenerator {
+  constructor(private readonly rng: () => number = Math.random) {}
+
   canPerform(player: Player, state: MatchState): boolean {
     return (state.ballPosition.zone === 'away_box' || state.ballPosition.zone === 'away_third') &&
            (state.phase === 'first_half' || state.phase === 'second_half');
@@ -343,7 +353,7 @@ export class ShotGenerator implements ActionGenerator {
 
     // Goal probability: attacker finishing vs GK save quality, clamped to realistic range
     const goalProb = Math.max(0.03, Math.min(0.35, shotQuality * zoneMultiplier * (1 - gkSave)));
-    const isGoal = Math.random() < goalProb;
+    const isGoal = this.rng() < goalProb;
 
     const resetState: MatchState = {
       ...state,

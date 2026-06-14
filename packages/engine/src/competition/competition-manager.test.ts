@@ -3,6 +3,8 @@ import { LeagueFormat } from './league-format.ts';
 import { KnockoutFormat } from './knockout-format.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime, addDays, addMinutes } from '@fm2k/timeline';
+import { EventBus } from '@fm2k/state';
+import type { GameEvents } from '../game-events.ts';
 import type { Team, Formation, Player, Position } from '../shared/types.ts';
 import type { KnockoutFormatConfig } from './competition-types.ts';
 
@@ -146,6 +148,87 @@ describe('CompetitionManager (league format):', () => {
     // Continuing must not re-count the already-played matchday.
     await fresh.simulateNextRound();
     expect(fresh.completedRounds()).toBe(2);
+  });
+});
+
+describe('CompetitionManager (match.completed events):', () => {
+  function makeLeagueWithBus(bus: EventBus<GameEvents>): CompetitionManager {
+    return new CompetitionManager({
+      format: new LeagueFormat(),
+      teams: DIVISION_TEAMS,
+      startDate: START,
+      competitionId: 'test-league',
+      name: 'Test League',
+      eventsPerMinute: 1,
+      eventBus: bus,
+      rng: mulberry32(99),
+    });
+  }
+
+  test('emits one match.completed per fixture with the forwarded payload', async () => {
+    const bus = new EventBus<GameEvents>();
+    const events: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', e => events.push(e));
+
+    const m = makeLeagueWithBus(bus);
+    await m.simulateNextRound();
+
+    const completed = m.getState().fixtures.filter(f => f.status === 'completed');
+    expect(completed).toHaveLength(8);
+    expect(events).toHaveLength(8);
+
+    for (const e of events) {
+      // Match the emitted score to the recorded fixture result (payload is forwarded faithfully).
+      const fx = completed.find(f => f.homeTeamId === e.homeTeamId && f.awayTeamId === e.awayTeamId);
+      expect(fx).toBeDefined();
+      expect(e.homeScore).toBe(fx!.result!.homeScore);
+      expect(e.awayScore).toBe(fx!.result!.awayScore);
+      // Competition context forwarded.
+      expect(e.competitionId).toBe('test-league');
+      expect(e.roundLabel).toBe(fx!.roundLabel);
+      expect(e.homeTeamName).toBe(fx!.homeTeamName);
+      expect(e.awayTeamName).toBe(fx!.awayTeamName);
+      // League matches finish in normal time and attach both standings.
+      expect(e.decidedBy).toBe('normal');
+      expect(e.homeStanding?.teamId).toBe(e.homeTeamId);
+      expect(e.awayStanding?.teamId).toBe(e.awayTeamId);
+      // Knockout-only fields are absent for league matches.
+      expect(e.winnerTeamId).toBeUndefined();
+      expect(e.shootout).toBeUndefined();
+    }
+  });
+
+  test('forwards knockout decidedBy/winnerTeamId on emitted events', async () => {
+    const bus = new EventBus<GameEvents>();
+    const events: GameEvents['match.completed'][] = [];
+    bus.on('match.completed', e => events.push(e));
+
+    const { teams, levelByTeamId } = cupField();
+    const m = new CompetitionManager({
+      format: new KnockoutFormat(CUP_CFG),
+      teams, levelByTeamId,
+      startDate: START, seasonStart: START,
+      competitionId: 'nor-cup', name: 'Norwegian Cup',
+      eventsPerMinute: 1, rng: mulberry32(2025), eventBus: bus,
+    });
+    await m.simulateFullSeason();
+
+    expect(events.length).toBeGreaterThan(0);
+    for (const e of events) {
+      expect(e.competitionId).toBe('nor-cup');
+      // Every knockout tie resolves to a winner that is one of the two sides.
+      expect([e.homeTeamId, e.awayTeamId]).toContain(e.winnerTeamId);
+      expect(['normal', 'extra_time', 'penalties']).toContain(e.decidedBy);
+      // Knockout matches carry no league standings.
+      expect(e.homeStanding).toBeUndefined();
+      expect(e.awayStanding).toBeUndefined();
+    }
+    // At least one tie should have gone to penalties (with a shootout score) across a full cup.
+    const pens = events.filter(e => e.decidedBy === 'penalties');
+    for (const e of pens) {
+      expect(e.shootout).toBeDefined();
+      expect(e.shootout!.home).not.toBe(e.shootout!.away);
+    }
   });
 });
 

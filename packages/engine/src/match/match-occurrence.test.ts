@@ -94,27 +94,58 @@ describe('MatchOccurrence knockout:', () => {
   });
 
   test('given a knockout occurrence that finishes level then it is decided by penalties with a shootout score', () => {
-    // Run several knockout matches; any that reach 120' level must carry a shootout.
+    // Run several knockout matches; any that reach 120' level must carry a shootout,
+    // and any decided in play must NOT (kills the `===` shootout trigger and the
+    // higher-score winner branch).
     for (let s = 0; s < 8; s++) {
       const occ = makeOccurrence({ id: `cup-${s}`, knockout: true, rng: mulberry32(s + 1) });
       tickUntilComplete(occ);
       const [event] = occ.onComplete(CTX);
-      if (event.payload.decidedBy === 'penalties') {
-        const shootout = event.payload.shootout as { home: number; away: number };
-        expect(event.payload.homeScore).toBe(event.payload.awayScore);
+      const { homeScore, awayScore, decidedBy, shootout, winnerTeamId } = event.payload as {
+        homeScore: number; awayScore: number; decidedBy: string;
+        shootout?: { home: number; away: number }; winnerTeamId: string;
+      };
+      if (decidedBy === 'penalties') {
+        expect(homeScore).toBe(awayScore);
         expect(shootout).toBeDefined();
-        expect(shootout.home).not.toBe(shootout.away);
-        const winnerIsHome = shootout.home > shootout.away;
-        expect(event.payload.winnerTeamId).toBe(winnerIsHome ? 'home' : 'away');
+        expect(shootout!.home).not.toBe(shootout!.away);
+        expect(winnerTeamId).toBe(shootout!.home > shootout!.away ? 'home' : 'away');
+      } else {
+        // Decided in normal/extra time → scores differ, no shootout, winner is the higher score.
+        expect(homeScore).not.toBe(awayScore);
+        expect(shootout).toBeUndefined();
+        expect(winnerTeamId).toBe(homeScore > awayScore ? 'home' : 'away');
       }
     }
   });
 
-  test('given a non-knockout occurrence then onComplete carries no winnerTeamId', () => {
-    const occ = makeOccurrence();
-    advanceTicks(occ, 90);
+  test('given a knockout that ends in regulation then decidedBy is normal at minute 90', () => {
+    // Force a decisive 90' result by searching seeds; pins the `minute > 90` boundary.
+    let found = false;
+    for (let s = 0; s < 40 && !found; s++) {
+      const occ = makeOccurrence({ id: `reg-${s}`, knockout: true, rng: mulberry32(s + 100) });
+      tickUntilComplete(occ);
+      const [event] = occ.onComplete(CTX);
+      const p = event.payload as { decidedBy: string; finalMinute: number };
+      if (p.decidedBy === 'normal') {
+        expect(p.finalMinute).toBe(90);
+        found = true;
+      } else {
+        // Anything not finishing in regulation went past 90' (extra time / penalties).
+        expect(p.finalMinute).toBeGreaterThan(90);
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  test('given a non-knockout occurrence then onComplete is a normal-time result with no winner', () => {
+    const occ = makeOccurrence({ rng: mulberry32(3) });
+    tickUntilComplete(occ);
     const [event] = occ.onComplete(CTX);
     expect(event.payload.winnerTeamId).toBeUndefined();
+    expect(event.payload.shootout).toBeUndefined();
+    expect(event.payload.decidedBy).toBe('normal');
+    expect(event.payload.finalMinute).toBe(90);
   });
 });
 

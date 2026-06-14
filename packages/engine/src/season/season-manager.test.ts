@@ -89,6 +89,11 @@ describe('SeasonManager:', () => {
     test('hasMoreMatchdays is true initially', () => {
       expect(makeManager().hasMoreMatchdays()).toBe(true);
     });
+
+    test('hasMoreMatchdays is false when there are no divisions', () => {
+      // `some` over an empty set is false (an `every` would be vacuously true).
+      expect(makeManager({ divisions: [], teamMap: {} }).hasMoreMatchdays()).toBe(false);
+    });
   });
 
   describe('getLeagueManager:', () => {

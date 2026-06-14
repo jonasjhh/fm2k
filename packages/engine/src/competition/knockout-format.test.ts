@@ -162,3 +162,51 @@ describe('KnockoutFormat through CompetitionManager (real simulation):', () => {
     expect(manager.hasNext()).toBe(false);
   });
 });
+
+describe('KnockoutFormat.apply edge cases:', () => {
+  test('ignores an unknown or already-completed fixture', () => {
+    const format = new KnockoutFormat(CFG);
+    const ctx = makeCtx(mulberry32(5));
+    const { state } = format.init(ctx);
+    const before = state.fixtures.filter(f => f.status === 'completed').length;
+
+    expect(format.apply(state, { fixtureId: 'nope', homeTeamId: 'x', awayTeamId: 'y', homeScore: 1, awayScore: 0 }, ctx)).toEqual([]);
+
+    const f = state.fixtures.find(fx => fx.status === 'scheduled')!;
+    format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 2, awayScore: 1, winnerTeamId: f.homeTeamId }, ctx);
+    // re-applying the now-completed fixture is a no-op
+    format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 9, awayScore: 9, winnerTeamId: f.awayTeamId }, ctx);
+    expect(state.fixtures.find(fx => fx.id === f.id)!.result!.homeScore).toBe(2);
+    expect(before).toBe(0);
+  });
+
+  test('infers the winner from the score when no winnerTeamId is supplied', () => {
+    const format = new KnockoutFormat(CFG);
+    const ctx = makeCtx(mulberry32(5));
+    const { state } = format.init(ctx);
+    const r1 = state.fixtures.filter(f => f.matchday === 1);
+    const homeWinners = new Set(r1.map(f => f.homeTeamId));
+
+    for (const f of r1) {
+      // home outscores away, winnerTeamId omitted -> falls back to homeScore >= awayScore
+      format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 2, awayScore: 1 }, ctx);
+    }
+
+    const r2 = state.fixtures.filter(f => f.matchday === 2);
+    expect(r2.length).toBeGreaterThan(0);
+    expect(r2.every(f => homeWinners.has(f.homeTeamId!))).toBe(true);
+  });
+
+  test('rescheduleFromState returns only the still-scheduled fixtures', () => {
+    const format = new KnockoutFormat(CFG);
+    const ctx = makeCtx(mulberry32(1));
+    const { state } = format.init(ctx);
+    for (const f of state.fixtures.filter(fx => fx.matchday === 1)) {
+      format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 2, awayScore: 0, winnerTeamId: f.homeTeamId }, ctx);
+    }
+    const scheduled = state.fixtures.filter(f => f.status === 'scheduled');
+    const out = format.rescheduleFromState(state, ctx);
+    expect(out).toHaveLength(scheduled.length);
+    expect(out.length).toBeLessThan(state.fixtures.length); // round 1 is completed, excluded
+  });
+});

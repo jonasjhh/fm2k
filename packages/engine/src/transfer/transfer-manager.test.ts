@@ -147,6 +147,16 @@ describe('TransferManager:', () => {
     });
   });
 
+  describe('default player factory:', () => {
+    test('picks positions from POSITIONS using the injected rng', () => {
+      // No playerFactory → built-in factory: position = POSITIONS[floor(rng * 13)].
+      // rng 0.5 → floor(6.5) = 6 → 'CAM'.
+      const manager = new TransferManager({ marketSize: 4, rng: () => 0.5 });
+      expect(manager.getListings()).toHaveLength(4);
+      expect(manager.getListings().every(l => l.player.position === 'CAM')).toBe(true);
+    });
+  });
+
   describe('getActiveListings:', () => {
     test('all listings are active at matchday 0', () => {
       const manager = makeManager({ listingDuration: 3 });

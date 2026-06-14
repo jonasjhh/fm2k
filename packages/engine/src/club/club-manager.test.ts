@@ -641,3 +641,196 @@ describe('ClubManager:', () => {
     });
   });
 });
+
+// Returns each value once, then repeats the last — lets a test script successive rng() calls.
+function seq(values: number[]): () => number {
+  let i = 0;
+  return () => values[Math.min(i++, values.length - 1)];
+}
+
+describe('ClubManager (mutation top-up):', () => {
+  describe('getActiveLineup', () => {
+    test('drops starting-XI ids that no longer exist in the squad', () => {
+      const config = makeConfig();
+      const manager = new ClubManager({ ...config, startingXI: [...config.startingXI.slice(0, 10), 'ghost'] });
+      const lineup = manager.getActiveLineup();
+      expect(lineup).toHaveLength(10);
+      expect(lineup.every(p => p !== undefined)).toBe(true);
+    });
+  });
+
+  describe('buyPlayer', () => {
+    test('succeeds when the price exactly equals the budget (boundary)', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1000 }));
+      expect(manager.buyPlayer(makePlayer(), 1000)).toBe(true);
+    });
+
+    test('records a descriptive transfer-in transaction', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1000 }));
+      manager.buyPlayer(makePlayer({ name: 'Zlatan' }), 100);
+      const tx = manager.getState().financialLog.find(t => t.type === 'transfer_in');
+      expect(tx?.description).toBe('Signed Zlatan');
+    });
+  });
+
+  describe('sellPlayer', () => {
+    test('removes the player from squad, starting XI and bench, and logs the sale', () => {
+      const config = makeConfig();
+      const manager = new ClubManager(config);
+      const targetId = config.startingXI[0];
+      const name = manager.getState().squad.find(p => p.id === targetId)!.name;
+
+      expect(manager.sellPlayer(targetId, 5000)).toBe(true);
+      const s = manager.getState();
+      // only the target is removed — the rest of the squad/XI must remain
+      expect(s.squad.some(p => p.id === targetId)).toBe(false);
+      expect(s.squad).toHaveLength(config.squad.length - 1);
+      expect(s.startingXI).not.toContain(targetId);
+      expect(s.startingXI).toHaveLength(10);
+      expect(s.startingXI).toContain(config.startingXI[1]);
+      expect(s.financialLog.find(t => t.type === 'transfer_out')?.description).toBe(`Sold ${name}`);
+    });
+
+    test('removes a sold bench player from the bench list, keeping the others', () => {
+      const config = makeConfig();
+      const manager = new ClubManager(config);
+      const benchId = config.benchPlayers[0];
+      manager.sellPlayer(benchId, 1);
+      const bench = manager.getState().benchPlayers;
+      expect(bench).not.toContain(benchId);
+      expect(bench).toContain(config.benchPlayers[1]); // others stay
+    });
+  });
+
+  describe('upgradeFacility', () => {
+    test('succeeds at the exact cost and records the new level (boundary + description)', () => {
+      const manager = new ClubManager(makeConfig({ budget: 50_000 })); // exactly the level-1 cost
+      expect(manager.upgradeFacility('medical')).toBe(true);
+      expect(manager.getState().facilities.medical).toBe(2);
+      expect(manager.getState().financialLog.find(t => t.type === 'facility_upgrade')?.description)
+        .toBe('Upgraded medical to level 2');
+    });
+  });
+
+  describe('applyStadiumDesign', () => {
+    test('succeeds at the exact cost and logs the renovation (boundary + description)', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1000 }));
+      expect(manager.applyStadiumDesign(DEFAULT_SECTORS, 1000, 12_345)).toBe(true);
+      expect(manager.getState().financialLog.find(t => t.type === 'facility_upgrade')?.description)
+        .toContain('Stadium renovation');
+    });
+  });
+
+  describe('calculateHomeReceipt', () => {
+    test('with no opponent uses a 50% baseline: capacity * 0.6 * ticket price', () => {
+      const manager = new ClubManager(makeConfig({ stadiumCapacity: 10_000 }));
+      // attendance floor(10000 * (0.4 + 0.4*0.5)) = 6000; receipt 6000 * 20
+      expect(manager.calculateHomeReceipt()).toBe(120_000);
+    });
+  });
+
+  describe('recordGateReceipt', () => {
+    test('adds the amount to the budget with a descriptive transaction', () => {
+      const manager = new ClubManager(makeConfig({ budget: 0 }));
+      manager.recordGateReceipt(5000, 'Rivals FC', NOW);
+      const s = manager.getState();
+      expect(s.budget).toBe(5000);
+      expect(s.financialLog.find(t => t.type === 'gate_receipt')?.description).toBe('Gate receipt vs Rivals FC');
+    });
+  });
+
+  describe('processMatchResult', () => {
+    function starterConfig(rng: () => number, bus: EventBus<GameEvents>, stamina = 10) {
+      const p = makePlayer({ attributes: { speed: 10, strength: 10, agility: 10, passing: 10, finishing: 10, technique: 10, defending: 10, stamina, awareness: 10, composure: 10 } });
+      return { p, config: makeConfig({ squad: [p], startingXI: [p.id], benchPlayers: [], eventBus: bus, rng }) };
+    }
+
+    test('drains starter fitness by 25 - floor(stamina/2)', () => {
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus); // 0.99 avoids injury
+      const manager = new ClubManager(config);
+      emitMatch(bus, 'club-1', 'other');
+      // stamina 10 -> drain max(5, 25-5) = 20
+      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBe(80);
+    });
+
+    test('processes a match where the club is the away team', () => {
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus);
+      const manager = new ClubManager(config);
+      emitMatch(bus, 'other', 'club-1'); // we are away
+      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBeLessThan(100);
+    });
+
+    test('clamps fitness at zero, never negative', () => {
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus);
+      const manager = new ClubManager(config);
+      for (let i = 0; i < 6; i++) { emitMatch(bus, 'club-1', 'other'); } // 6 * 20 drain >> 100
+      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBe(0);
+    });
+
+    test('injures a starter using scripted rng: type and duration follow the draws', () => {
+      const bus = new EventBus<GameEvents>();
+      // stamina 10 -> injuryChance 10; rng[0]=0.05 (5 < 10) injures; [1]=0.99 baseDuration ceil(2.97)=3;
+      // [2]=0.99 type index floor(3.96)=3 -> 'hamstring_pull'; matchesRemaining max(1, 3-(1-1))=3
+      const { p, config } = starterConfig(seq([0.05, 0.99, 0.99]), bus);
+      const manager = new ClubManager(config);
+      emitMatch(bus, 'club-1', 'other');
+      const injury = manager.getState().squad.find(s => s.id === p.id)!.injury;
+      expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3 });
+    });
+
+    test('a high injury roll leaves the starter uninjured', () => {
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus); // 99 >= chance -> no injury
+      const manager = new ClubManager(config);
+      emitMatch(bus, 'club-1', 'other');
+      expect(manager.getState().squad.find(s => s.id === p.id)!.injury).toBeUndefined();
+    });
+
+    test('emits a gate receipt only when the club plays at home', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus, budget: 0, rng: () => 0.99 }));
+      emitMatch(bus, 'club-1', 'other');
+      expect(manager.getState().budget).toBeGreaterThan(0); // gate receipt credited
+    });
+  });
+
+  describe('handleMatchdayComplete', () => {
+    test('ticks an injury down and only clears it when it reaches zero', () => {
+      const manager = new ClubManager(makeConfig());
+      const state = manager.getState();
+      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2 };
+      manager.loadState(state);
+
+      manager.handleMatchdayComplete();
+      expect(manager.getState().squad[0].injury).toEqual({ type: 'muscle_strain', matchesRemaining: 1 });
+
+      manager.handleMatchdayComplete();
+      expect(manager.getState().squad[0].injury).toBeUndefined();
+    });
+
+    test('ticks a suspension down and only clears it at zero', () => {
+      const manager = new ClubManager(makeConfig());
+      const state = manager.getState();
+      state.squad[0].suspension = { matchesRemaining: 2 };
+      manager.loadState(state);
+
+      manager.handleMatchdayComplete();
+      expect(manager.getState().squad[0].suspension).toEqual({ matchesRemaining: 1 });
+
+      manager.handleMatchdayComplete();
+      expect(manager.getState().squad[0].suspension).toBeUndefined();
+    });
+
+    test('recovers fitness by 15, capped at 100', () => {
+      const manager = new ClubManager(makeConfig());
+      const state = manager.getState();
+      state.squad[0].fitness = 50;
+      manager.loadState(state);
+      manager.handleMatchdayComplete();
+      expect(manager.getState().squad[0].fitness).toBe(65);
+    });
+  });
+});

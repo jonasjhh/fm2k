@@ -51,6 +51,16 @@ describe('shuffle:', () => {
     shuffle(input, mulberry32(2));
     expect(input).toEqual([1, 2, 3, 4]);
   });
+
+  test('rng=0 swaps every element toward index 0 (exact Fisher–Yates order)', () => {
+    // i=3 swap(3,0); i=2 swap(2,0); i=1 swap(1,0) on [a,b,c,d] → [b,c,d,a]
+    expect(shuffle(['a', 'b', 'c', 'd'], () => 0)).toEqual(['b', 'c', 'd', 'a']);
+  });
+
+  test('rng≈1 keeps every element in place (j === i, no-op swaps)', () => {
+    // floor(0.99*(i+1)) === i for each i → identity
+    expect(shuffle(['a', 'b', 'c', 'd'], () => 0.99)).toEqual(['a', 'b', 'c', 'd']);
+  });
 });
 
 describe('drawBracket:', () => {
@@ -105,6 +115,19 @@ describe('drawBracket:', () => {
     const b = drawBracket(CFG, teamsByLevel(), mulberry32(7));
     expect(a.slots.map(s => [s.homeTeamId, s.awayTeamId])).toEqual(b.slots.map(s => [s.homeTeamId, s.awayTeamId]));
   });
+
+  test('uses configured round names, padding missing ones with "Round N"', () => {
+    const cfg = { ...CFG, roundNames: ['Cup Opener'] }; // fewer names than the 6 rounds
+    const b = drawBracket(cfg, teamsByLevel(), mulberry32(1));
+    expect(b.roundNames[0]).toBe('Cup Opener');
+    expect(b.roundNames[5]).toBe('Round 6');
+  });
+
+  test('truncates extra round names to the actual round count', () => {
+    const cfg = { ...CFG, roundNames: [...CFG.roundNames, 'Extra', 'Bonus'] };
+    const b = drawBracket(cfg, teamsByLevel(), mulberry32(1));
+    expect(b.roundNames).toHaveLength(b.rounds);
+  });
 });
 
 describe('recordWinner:', () => {
@@ -130,5 +153,17 @@ describe('recordWinner:', () => {
       recordWinner(bracket, s.tieId, s.homeTeamId!, s.homeTeamName!);
     }
     expect(roundComplete(bracket, 1)).toBe(true);
+  });
+
+  test('roundComplete stays false when only some ties are decided', () => {
+    const bracket = drawBracket(CFG, teamsByLevel(), mulberry32(3));
+    const r1 = bracket.slots.filter(s => s.round === 1);
+    recordWinner(bracket, r1[0].tieId, r1[0].homeTeamId!, r1[0].homeTeamName!); // one of 16
+    expect(roundComplete(bracket, 1)).toBe(false);
+  });
+
+  test('throws for an unknown tie id', () => {
+    const bracket = drawBracket(CFG, teamsByLevel(), mulberry32(3));
+    expect(() => recordWinner(bracket, 'no-such-tie', 'x', 'x')).toThrow('unknown bracket tie');
   });
 });

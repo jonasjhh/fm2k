@@ -78,7 +78,8 @@ export interface GameSnapshot {
  * managers directly.
  */
 export class GameSession {
-  private readonly playerGenerator = new PlayerGenerator();
+  private readonly rng: () => number;
+  private readonly playerGenerator: PlayerGenerator;
   private seasons: Record<string, Season> = {};
   private leagueManagers: Record<string, CompetitionManager> = {};
   private cupManagers: Record<string, CompetitionManager> = {};
@@ -98,6 +99,12 @@ export class GameSession {
   private lastMatchResult: LastMatchResult | null = null;
   private editableCountries: EditableCountry[] = buildEditableCountries();
   private readonly listeners = new Set<() => void>();
+
+  /** `rng` is injectable so generated players (position + attributes) are deterministic in tests. */
+  constructor(rng: () => number = Math.random) {
+    this.rng = rng;
+    this.playerGenerator = new PlayerGenerator('female', 'all', rng);
+  }
 
   // ── change notifications ────────────────────────────────────────────────────
 
@@ -255,7 +262,7 @@ export class GameSession {
     const transferManager = new TransferManager({
       marketSize: MARKET_SIZE,
       playerFactory: () => {
-        const pos = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)] as Position;
+        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
         const gen = this.playerGenerator.generatePlayer(pos, 1, 20);
         return { ...gen, id: uuidv4(), attributes: scaleAttributes(gen.attributes, 65) };
       },
@@ -717,7 +724,7 @@ export class GameSession {
 
   addGeneratedPlayer(teamId: string): EditableCountry[] {
     const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const pos = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)] as Position;
+    const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
     const newPlayer = this.makePlayer(pos, 70, nationality);
     return this.editTeam(teamId, t => ({ ...t, starters: [...t.starters, newPlayer] }));
   }

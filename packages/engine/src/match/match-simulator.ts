@@ -25,6 +25,8 @@ export interface MatchConfig {
   awayUnavailableIds?: ReadonlySet<string>;
   /** When the scores are level after 90', play two 15-minute halves of extra time. */
   extraTimeIfDrawn?: boolean;
+  /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
+  rng?: () => number;
 }
 
 /** Phases at which a match is over (regulation, or after extra time). */
@@ -35,22 +37,24 @@ export function isTerminalPhase(phase: MatchState['phase']): boolean {
 export class MatchSimulator {
   private readonly actionSelector: ActionSelector;
   private readonly config: MatchConfig;
+  private readonly rng: () => number;
   private events: MatchEvent[] = [];
   private currentState: MatchState;
 
   constructor(config: MatchConfig) {
     this.config = config;
-    this.actionSelector = new ActionSelector();
+    this.rng = config.rng ?? Math.random;
+    this.actionSelector = new ActionSelector(this.rng);
     this.initializeActionGenerators();
     this.currentState = this.createInitialState();
   }
 
   private initializeActionGenerators(): void {
-    this.actionSelector.registerAction('short_pass', new ShortPassGenerator());
-    this.actionSelector.registerAction('dribble', new DribbleGenerator());
-    this.actionSelector.registerAction('tackle', new TackleGenerator());
-    this.actionSelector.registerAction('interception', new InterceptionGenerator());
-    this.actionSelector.registerAction('shot', new ShotGenerator());
+    this.actionSelector.registerAction('short_pass', new ShortPassGenerator(this.rng));
+    this.actionSelector.registerAction('dribble', new DribbleGenerator(this.rng));
+    this.actionSelector.registerAction('tackle', new TackleGenerator(this.rng));
+    this.actionSelector.registerAction('interception', new InterceptionGenerator(this.rng));
+    this.actionSelector.registerAction('shot', new ShotGenerator(this.rng));
   }
 
   private selectXI(team: Team, unavailableIds?: ReadonlySet<string>) {
@@ -62,7 +66,7 @@ export class MatchSimulator {
       minute: 0,
       homeScore: 0,
       awayScore: 0,
-      possession: Math.random() < 0.5 ? 'home' : 'away',
+      possession: this.rng() < 0.5 ? 'home' : 'away',
       ballPosition: { zone: 'middle_third', side: 'center' },
       phase: 'first_half',
       homeTeam: { ...this.config.homeTeam },
@@ -82,7 +86,7 @@ export class MatchSimulator {
     const events: MatchEvent[] = [];
     let currentState = state;
 
-    const count = Math.floor(Math.random() * this.config.eventsPerMinute) + 1;
+    const count = Math.floor(this.rng() * this.config.eventsPerMinute) + 1;
     for (let i = 0; i < count; i++) {
       const event = this.actionSelector.selectPlayerAction(currentState);
       if (event) {

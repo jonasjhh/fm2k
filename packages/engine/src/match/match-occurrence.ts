@@ -44,6 +44,7 @@ export class MatchOccurrence implements Occurrence {
       homeTeam: config.homeTeam,
       awayTeam: config.awayTeam,
       extraTimeIfDrawn: this.knockout,
+      rng: this.rng,
     });
     this.matchState = this.simulator.getCurrentState();
 

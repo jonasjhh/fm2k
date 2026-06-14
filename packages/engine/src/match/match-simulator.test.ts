@@ -470,20 +470,18 @@ describe('MatchSimulator extra time:', () => {
   // The score is read after the minute's action loop, so pin the RNG to keep the
   // 90th-minute scoreline fixed; the phase must then follow whether it is level.
   test('given a level score at minute 89 with extra time enabled then phase becomes extra_time_first (not full_time)', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
-    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 1, awayScore: 1 }));
-    spy.mockRestore();
-    const level = nextState.homeScore === nextState.awayScore;
-    expect(nextState.phase).toBe(level ? 'extra_time_first' : 'full_time');
+    // rng 0.99 keeps the action loop from scoring, so the 1-1 stays level into the 90th.
+    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
+    const { nextState } = sim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 1, awayScore: 1 }));
+    expect(nextState.homeScore).toBe(nextState.awayScore); // still level
+    expect(nextState.phase).toBe('extra_time_first');
     expect(nextState.minute).toBe(90);
   });
 
   test('given a decided score at minute 89 with extra time enabled then phase becomes full_time', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
-    const { nextState } = etSimulator.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 }));
-    spy.mockRestore();
-    const level = nextState.homeScore === nextState.awayScore;
-    expect(nextState.phase).toBe(level ? 'extra_time_first' : 'full_time');
+    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
+    const { nextState } = sim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 }));
+    expect(nextState.phase).toBe('full_time'); // not level → no extra time
   });
 
   test('given minute 104 in extra_time_first then phase becomes extra_time_half', () => {
@@ -522,5 +520,51 @@ describe('MatchSimulator extra time:', () => {
     const result = plain.simulate();
     expect(result.finalState.phase).toBe('full_time');
     expect(result.finalState.minute).toBe(90);
+  });
+});
+
+describe('MatchSimulator statistics:', () => {
+  function mulberry32(seed: number): () => number {
+    let a = seed;
+    return () => {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  test('derives every statistic from the recorded match events', () => {
+    const homeTeam = createTestTeam('home', 'Home Team');
+    const awayTeam = createTestTeam('away', 'Away Team');
+    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(42) });
+
+    const result = sim.simulate();
+    const ev = result.events;
+    const he = ev.filter(e => e.team === 'home');
+    const ae = ev.filter(e => e.team === 'away');
+
+    // Independent recomputation of each formula — any mutated production formula diverges.
+    const homeShots = he.filter(e => e.type === 'shot' || e.type === 'goal').length;
+    const awayShots = ae.filter(e => e.type === 'shot' || e.type === 'goal').length;
+    const homeOnTarget = he.filter(e => e.type === 'goal').length + ae.filter(e => e.type === 'save').length;
+    const awayOnTarget = ae.filter(e => e.type === 'goal').length + he.filter(e => e.type === 'save').length;
+    const homePoss = Math.round((he.length / ev.length) * 100);
+
+    expect(ev.length).toBeGreaterThan(0);
+    expect(result.statistics.shots).toEqual({ home: homeShots, away: awayShots });
+    expect(result.statistics.shotsOnTarget).toEqual({ home: homeOnTarget, away: awayOnTarget });
+    expect(result.statistics.possession).toEqual({ home: homePoss, away: 100 - homePoss });
+    expect(result.statistics.corners).toEqual({ home: 0, away: 0 });
+    expect(result.statistics.fouls).toEqual({ home: 0, away: 0 });
+    expect(result.statistics.cards).toEqual({ yellow: { home: 0, away: 0 }, red: { home: 0, away: 0 } });
+  });
+
+  test('possession percentages always sum to 100', () => {
+    const homeTeam = createTestTeam('home', 'Home Team');
+    const awayTeam = createTestTeam('away', 'Away Team');
+    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(7) });
+    const { possession } = sim.simulate().statistics;
+    expect(possession.home + possession.away).toBe(100);
   });
 });

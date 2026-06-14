@@ -36,6 +36,11 @@ describe('calculateTotalCapacity:', () => {
     // 4 open stands at density 36 (2040 each) + 4 empty corners
     expect(calculateTotalCapacity(DEFAULT_STADIUM_SECTORS)).toBe(8160);
   });
+
+  it('given missing sectors then they default to empty (zero capacity)', () => {
+    expect(calculateTotalCapacity({})).toBe(0);                       // every key missing
+    expect(calculateTotalCapacity({ N: open(36) })).toBe(2040);       // only N present
+  });
 });
 
 describe('calculateSectorChangeCost:', () => {
@@ -52,6 +57,13 @@ describe('calculateSectorChangeCost:', () => {
     // NE loc 0.8: demolition 25000*0.15*0.8 = 3000; +2040 seats * 10 * 0.8 = 16320 => 19320
     expect(calculateSectorChangeCost('NE', open(36), none(36))).toBe(19320);
   });
+
+  it('given an upgrade between two paid tiers then construction is the tier-price difference', () => {
+    // open-bleacher (25k) → double-tier (220k) at sector N (loc 1.8):
+    //   construction (220000 - 25000) * 1.8 = 351000
+    //   seats: 2040 → 4488 (Δ2448) * 80 * 1.8 = 352512  => 703512
+    expect(calculateSectorChangeCost('N', open(36), { type: 'double-tier', densityValue: 36 })).toBe(703512);
+  });
 });
 
 describe('calculateTotalChangeCost:', () => {
@@ -63,6 +75,13 @@ describe('calculateTotalChangeCost:', () => {
     const planned = { ...DEFAULT_STADIUM_SECTORS, NE: open(36) };
     expect(calculateTotalChangeCost(DEFAULT_STADIUM_SECTORS, planned))
       .toBe(calculateSectorChangeCost('NE', none(36), open(36)));
+  });
+
+  it('given missing sectors on either side then they default to empty', () => {
+    expect(calculateTotalChangeCost({}, {})).toBe(0); // all default to none → no change
+    // committed empty, planned builds one open side stand at N (loc 1.8)
+    expect(calculateTotalChangeCost({}, { N: open(36) }))
+      .toBe(calculateSectorChangeCost('N', none(30), open(36)));
   });
 });
 

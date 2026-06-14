@@ -80,9 +80,103 @@ export interface ActionGenerator {
   generateEvent(player: Player, state: MatchState): MatchEvent | null;
 }
 
+// ── action weighting (pure) ─────────────────────────────────────────────────────
+// Pure decision-weighting helpers, exported like activePlayerWeight above so each
+// table/branch is directly testable (decoupled from the argmax in makeDecision).
+
+const POSITION_PREFERENCE: Record<string, Record<string, number>> = {
+  'short_pass': { 'CB': 1.2, 'CM': 1.3, 'CDM': 1.4 },
+  'long_pass': { 'CB': 1.1, 'CM': 1.2 },
+  'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
+  'cross': { 'LW': 1.5, 'RW': 1.5, 'LB': 1.2, 'RB': 1.2 },
+  'dribble': { 'LW': 1.4, 'RW': 1.4, 'CAM': 1.2 },
+  'shot': { 'ST': 1.5, 'CF': 1.4, 'CAM': 1.2 },
+  'tackle': { 'CB': 1.3, 'CDM': 1.2, 'LB': 1.1, 'RB': 1.1 },
+  'clearance': { 'CB': 1.4, 'GK': 1.2 },
+};
+
+const SKILL_REQUIREMENT: Record<string, number> = {
+  'short_pass': 60,
+  'long_pass': 75,
+  'through_ball': 80,
+  'cross': 70,
+  'dribble': 75,
+  'shot': 65,
+  'tackle': 70,
+  'clearance': 50,
+};
+
+const RISK_LEVEL: Record<string, 'low' | 'medium' | 'high'> = {
+  'short_pass': 'low',
+  'long_pass': 'medium',
+  'through_ball': 'high',
+  'cross': 'medium',
+  'dribble': 'medium',
+  'shot': 'medium',
+  'tackle': 'high',
+  'clearance': 'low',
+};
+
+export function getPositionPreference(actionType: string, position: string): number {
+  return POSITION_PREFERENCE[actionType]?.[position] ?? 1.0;
+}
+
+export function getSkillRequired(actionType: string): number {
+  return SKILL_REQUIREMENT[actionType] ?? 60;
+}
+
+export function getRiskLevel(actionType: string): 'low' | 'medium' | 'high' {
+  return RISK_LEVEL[actionType] ?? 'medium';
+}
+
+export function getSituationalModifier(action: PlayerAction, state: MatchState): number {
+  const zone = state.ballPosition.zone;
+
+  if (action.type === 'shot' && (zone === 'away_box' || zone === 'away_third')) {
+    return 1.3;
+  }
+  if (action.type === 'clearance' && (zone === 'home_box' || zone === 'home_third')) {
+    return 1.4;
+  }
+  if (action.type === 'cross' && zone === 'away_third') {
+    return 1.2;
+  }
+  return 1.0;
+}
+
+export function getRiskTolerance(riskLevel: string, state: MatchState): number {
+  // Losing teams take more risks, winning teams play safer.
+  const scoreDiff = state.homeScore - state.awayScore;
+  const isLosing = (state.possession === 'home' && scoreDiff < 0) ||
+                   (state.possession === 'away' && scoreDiff > 0);
+
+  if (riskLevel === 'high') {
+    return isLosing ? 1.3 : 0.8;
+  } else if (riskLevel === 'low') {
+    return isLosing ? 0.8 : 1.2;
+  }
+  return 1.0;
+}
+
+export function calculateActionWeight(
+  action: PlayerAction,
+  player: Player,
+  state: MatchState,
+  decisionQuality: number,
+): number {
+  let weight = action.probability;
+  weight *= getPositionPreference(action.type, player.position);
+  weight *= getSituationalModifier(action, state);
+  weight *= getRiskTolerance(action.riskLevel, state);
+  weight *= (0.5 + decisionQuality * 0.5);
+  return weight;
+}
+
 export class ActionSelector {
   private actionGenerators: Map<string, ActionGenerator> = new Map();
   private eventIdCounter = 0;
+
+  constructor(private readonly rng: () => number = Math.random) {}
 
   registerAction(actionType: string, generator: ActionGenerator): void {
     this.actionGenerators.set(actionType, generator);
@@ -110,7 +204,7 @@ export class ActionSelector {
     const team = state.possession === 'home'
       ? state.currentPlayers.home
       : state.currentPlayers.away;
-    return selectActivePlayer(team, state.ballPosition);
+    return selectActivePlayer(team, state.ballPosition, this.rng);
   }
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {
@@ -123,8 +217,8 @@ export class ActionSelector {
           type: actionType,
           player,
           probability,
-          skillRequired: this.calculateSkillRequired(actionType, player, state),
-          riskLevel: this.getRiskLevel(actionType, state),
+          skillRequired: getSkillRequired(actionType),
+          riskLevel: getRiskLevel(actionType),
         });
       }
     }
@@ -142,7 +236,7 @@ export class ActionSelector {
     // Weight actions by position preferences and situation
     const weightedActions = actions.map(action => ({
       ...action,
-      weight: this.calculateActionWeight(action, player, state, decisionQuality),
+      weight: calculateActionWeight(action, player, state, decisionQuality),
     }));
 
     // Sort by weight and add some randomness
@@ -150,113 +244,15 @@ export class ActionSelector {
 
     // High awareness players almost always pick the best option
     // Low awareness players might pick suboptimal actions
-    const randomFactor = Math.random();
+    const randomFactor = this.rng();
     if (randomFactor < decisionQuality) {
       return weightedActions[0]; // Best option
     } else if (weightedActions.length > 1 && randomFactor < decisionQuality + 0.3) {
       return weightedActions[1]; // Second best
     } else {
       // Random choice (poor decision)
-      return weightedActions[Math.floor(Math.random() * weightedActions.length)];
+      return weightedActions[Math.floor(this.rng() * weightedActions.length)];
     }
-  }
-
-  private calculateActionWeight(action: PlayerAction, player: Player, state: MatchState, decisionQuality: number): number {
-    let weight = action.probability;
-
-    // Position-based preferences
-    weight *= this.getPositionPreference(action.type, player.position);
-
-    // Situational modifiers
-    weight *= this.getSituationalModifier(action, state);
-
-    // Risk tolerance based on game state
-    weight *= this.getRiskTolerance(action.riskLevel, state);
-
-    // Decision quality affects weight calculation
-    weight *= (0.5 + decisionQuality * 0.5);
-
-    return weight;
-  }
-
-  private getPositionPreference(actionType: string, position: string): number {
-    const preferences: Record<string, Record<string, number>> = {
-      'short_pass': { 'CB': 1.2, 'CM': 1.3, 'CDM': 1.4 },
-      'long_pass': { 'CB': 1.1, 'CM': 1.2 },
-      'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
-      'cross': { 'LW': 1.5, 'RW': 1.5, 'LB': 1.2, 'RB': 1.2 },
-      'dribble': { 'LW': 1.4, 'RW': 1.4, 'CAM': 1.2 },
-      'shot': { 'ST': 1.5, 'CF': 1.4, 'CAM': 1.2 },
-      'tackle': { 'CB': 1.3, 'CDM': 1.2, 'LB': 1.1, 'RB': 1.1 },
-      'clearance': { 'CB': 1.4, 'GK': 1.2 },
-    };
-
-    return preferences[actionType]?.[position] || 1.0;
-  }
-
-  private getSituationalModifier(action: PlayerAction, state: MatchState): number {
-    // Zone-based modifiers
-    const zone = state.ballPosition.zone;
-
-    if (action.type === 'shot' && (zone === 'away_box' || zone === 'away_third')) {
-      return 1.3;
-    }
-
-    if (action.type === 'clearance' && (zone === 'home_box' || zone === 'home_third')) {
-      return 1.4;
-    }
-
-    if (action.type === 'cross' && zone === 'away_third') {
-      return 1.2;
-    }
-
-    return 1.0;
-  }
-
-  private getRiskTolerance(riskLevel: string, state: MatchState): number {
-    // Losing teams take more risks, winning teams play safer
-    const scoreDiff = state.homeScore - state.awayScore;
-    const isLosing = (state.possession === 'home' && scoreDiff < 0) ||
-                     (state.possession === 'away' && scoreDiff > 0);
-
-    if (riskLevel === 'high') {
-      return isLosing ? 1.3 : 0.8;
-    } else if (riskLevel === 'low') {
-      return isLosing ? 0.8 : 1.2;
-    }
-
-    return 1.0;
-  }
-
-  private calculateSkillRequired(actionType: string, player: Player, state: MatchState): number {
-    // Base skill requirement for different actions
-    const baseRequirements: Record<string, number> = {
-      'short_pass': 60,
-      'long_pass': 75,
-      'through_ball': 80,
-      'cross': 70,
-      'dribble': 75,
-      'shot': 65,
-      'tackle': 70,
-      'clearance': 50,
-    };
-
-    return baseRequirements[actionType] || 60;
-  }
-
-  private getRiskLevel(actionType: string, state: MatchState): 'low' | 'medium' | 'high' {
-    const riskLevels: Record<string, 'low' | 'medium' | 'high'> = {
-      'short_pass': 'low',
-      'long_pass': 'medium',
-      'through_ball': 'high',
-      'cross': 'medium',
-      'dribble': 'medium',
-      'shot': 'medium',
-      'tackle': 'high',
-      'clearance': 'low',
-    };
-
-    return riskLevels[actionType] || 'medium';
   }
 
   generateId(): string {

@@ -76,6 +76,8 @@ function makeState(overrides: Partial<MatchState> = {}): MatchState {
 describe('SkillCalculator:', () => {
   // For a player at their natural position the effective attributes equal the
   // raw attributes (modifier 1.0), so we can assert the exact weighted sum.
+  // Distinct non-zero values per term so every coefficient *and* the additions
+  // between terms are exercised (a zero term would hide its operator mutant).
   const cases: Array<{
     name: string;
     calc: (p: Player) => number;
@@ -85,37 +87,34 @@ describe('SkillCalculator:', () => {
   }> = [
     { name: 'dribbling = speed*0.3 + technique*0.4 + agility*0.3',
       calc: p => SkillCalculator.dribbling(p), pos: 'ST',
-      a: { speed: 100, technique: 100, agility: 100 }, expected: 100 },
-    { name: 'dribbling isolates the technique coefficient',
-      calc: p => SkillCalculator.dribbling(p), pos: 'ST',
-      a: { technique: 100 }, expected: 40 },
+      a: { speed: 10, technique: 20, agility: 30 }, expected: 20 }, // 3 + 8 + 9
     { name: 'finishing = finishing*0.7 + composure*0.2 + technique*0.1',
       calc: p => SkillCalculator.finishing(p), pos: 'ST',
-      a: { finishing: 100 }, expected: 70 },
+      a: { finishing: 10, composure: 20, technique: 30 }, expected: 14 }, // 7 + 4 + 3
     { name: 'heading = finishing*0.4 + agility*0.3 + strength*0.3',
       calc: p => SkillCalculator.heading(p), pos: 'ST',
-      a: { strength: 100 }, expected: 30 },
+      a: { finishing: 10, agility: 20, strength: 30 }, expected: 19 }, // 4 + 6 + 9
     { name: 'penalties = finishing*0.6 + composure*0.3 + technique*0.1',
       calc: p => SkillCalculator.penalties(p), pos: 'ST',
-      a: { composure: 100 }, expected: 30 },
+      a: { finishing: 10, composure: 20, technique: 30 }, expected: 15 }, // 6 + 6 + 3
     { name: 'throughBall = awareness*0.4 + passing*0.5 + technique*0.1',
       calc: p => SkillCalculator.throughBall(p), pos: 'CM',
-      a: { passing: 100 }, expected: 50 },
+      a: { awareness: 10, passing: 20, technique: 30 }, expected: 17 }, // 4 + 10 + 3
     { name: 'longShot = finishing*0.5 + technique*0.3 + composure*0.2',
       calc: p => SkillCalculator.longShot(p), pos: 'ST',
-      a: { finishing: 100 }, expected: 50 },
+      a: { finishing: 10, technique: 20, composure: 30 }, expected: 17 }, // 5 + 6 + 6
     { name: 'crossing = passing*0.6 + technique*0.3 + awareness*0.1',
       calc: p => SkillCalculator.crossing(p), pos: 'LM',
-      a: { passing: 100 }, expected: 60 },
+      a: { passing: 10, technique: 20, awareness: 30 }, expected: 15 }, // 6 + 6 + 3
     { name: 'tackling = defending*0.6 + awareness*0.2 + strength*0.2',
       calc: p => SkillCalculator.tackling(p), pos: 'CB',
-      a: { defending: 100 }, expected: 60 },
+      a: { defending: 10, awareness: 20, strength: 30 }, expected: 16 }, // 6 + 4 + 6
     { name: 'interception = awareness*0.5 + defending*0.3 + agility*0.2',
       calc: p => SkillCalculator.interception(p), pos: 'CB',
-      a: { awareness: 100 }, expected: 50 },
+      a: { awareness: 10, defending: 20, agility: 30 }, expected: 17 }, // 5 + 6 + 6
     { name: 'gkSaving = agility*0.5 + composure*0.3 + awareness*0.2',
       calc: p => SkillCalculator.gkSaving(p), pos: 'GK',
-      a: { agility: 100 }, expected: 50 },
+      a: { agility: 10, composure: 20, awareness: 30 }, expected: 17 }, // 5 + 6 + 6
   ];
 
   for (const c of cases) {
@@ -134,169 +133,476 @@ describe('SkillCalculator:', () => {
   });
 });
 
+// Returns each value once then repeats the last — scripts successive rng() calls.
+function seq(values: number[]): () => number {
+  let i = 0;
+  return () => values[Math.min(i++, values.length - 1)];
+}
+
 // ── ShortPassGenerator ────────────────────────────────────────────────────────
 
 describe('ShortPassGenerator:', () => {
-  const gen = new ShortPassGenerator();
   const passer = () => player('p', 'CM', { passing: 80, technique: 60 });
 
   it('given an active half when checking canPerform then it is allowed', () => {
+    const gen = new ShortPassGenerator();
     expect(gen.canPerform(passer(), makeState({ phase: 'first_half' }))).toBe(true);
     expect(gen.canPerform(passer(), makeState({ phase: 'second_half' }))).toBe(true);
   });
 
   it('given a non-play phase when checking canPerform then it is disallowed', () => {
-    expect(gen.canPerform(passer(), makeState({ phase: 'half_time' }))).toBe(false);
+    expect(new ShortPassGenerator().canPerform(passer(), makeState({ phase: 'half_time' }))).toBe(false);
   });
 
-  it('given a successful roll when generating then possession is kept', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0);
-    const state = makeState({ possession: 'home' });
-    const event = gen.generateEvent(passer(), state)!;
+  describe('calculateProbability', () => {
+    it('combines passing skill with the zone modifier, clamped at 0.95', () => {
+      const gen = new ShortPassGenerator();
+      // passingSkill = (80 + 60*0.5)/150 = 0.7333; middle_third modifier 0.9
+      expect(gen.calculateProbability(passer(), makeState({ ballPosition: { zone: 'middle_third', side: 'center' } })))
+        .toBeCloseTo(0.66, 5);
+      // home_third modifier 1.1
+      expect(gen.calculateProbability(passer(), makeState({ ballPosition: { zone: 'home_third', side: 'center' } })))
+        .toBeCloseTo(0.8067, 3);
+    });
+
+    it('clamps very high skill to 0.95', () => {
+      const elite = player('p', 'CM', { passing: 100, technique: 100 });
+      expect(new ShortPassGenerator().calculateProbability(elite, makeState({ ballPosition: { zone: 'home_third', side: 'center' } })))
+        .toBe(0.95);
+    });
+  });
+
+  it('on a successful low roll keeps possession and advances the ball one zone', () => {
+    // rng[0]=0 success; rng[1]=0 → moveForward (0 < 0.3) advances middle_third → away_third
+    const gen = new ShortPassGenerator(seq([0, 0]));
+    const event = gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
     expect(event.type).toBe('short_pass');
     expect(event.team).toBe('home');
     expect(event.description).toContain('completes a short pass');
     expect(event.resultingState.possession).toBe('home');
-    spy.mockRestore();
+    expect(event.resultingState.ballPosition.zone).toBe('away_third');
   });
 
-  it('given a failed roll when generating then possession turns over', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999);
-    const state = makeState({ possession: 'home' });
-    const event = gen.generateEvent(passer(), state)!;
+  it('on a success without forward movement keeps the ball in the same zone', () => {
+    // rng[0]=0 success; rng[1]=0.5 → moveForward false (0.5 ≥ 0.3) → zone unchanged
+    const gen = new ShortPassGenerator(seq([0, 0.5]));
+    const event = gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    expect(event.resultingState.ballPosition.zone).toBe('middle_third');
+  });
+
+  it('on a failed roll turns possession over', () => {
+    const gen = new ShortPassGenerator(() => 0.999);
+    const event = gen.generateEvent(passer(), makeState({ possession: 'home' }))!;
     expect(event.description).toContain('intercepted');
     expect(event.resultingState.possession).toBe('away');
-    spy.mockRestore();
   });
 });
 
 // ── DribbleGenerator ──────────────────────────────────────────────────────────
 
 describe('DribbleGenerator:', () => {
-  const gen = new DribbleGenerator();
   const dribbler = () => player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
 
   it('given a skilful outfielder when checking canPerform then it is allowed', () => {
-    expect(gen.canPerform(dribbler(), makeState())).toBe(true);
+    expect(new DribbleGenerator().canPerform(dribbler(), makeState())).toBe(true);
   });
 
   it('given a goalkeeper when checking canPerform then it is never allowed', () => {
     const gk = player('gk', 'GK', { speed: 90, technique: 90, agility: 90 });
-    expect(gen.canPerform(gk, makeState())).toBe(false);
+    expect(new DribbleGenerator().canPerform(gk, makeState())).toBe(false);
   });
 
   it('given low dribbling skill when checking canPerform then it is disallowed', () => {
     const clumsy = player('p', 'CB', { speed: 10, technique: 10, agility: 10 });
-    expect(gen.canPerform(clumsy, makeState())).toBe(false);
+    expect(new DribbleGenerator().canPerform(clumsy, makeState())).toBe(false);
   });
 
-  it('given a failed roll when generating then the ball is lost', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999);
+  it('scales dribbling skill by the zone modifier, clamped at 0.8', () => {
+    const gen = new DribbleGenerator();
+    // dribbling = (90*0.3 + 90*0.4 + 90*0.3)/100 = 0.9; away_third modifier 1.2 → clamp 0.8
+    expect(gen.calculateProbability(dribbler(), makeState({ ballPosition: { zone: 'away_third', side: 'center' } }))).toBe(0.8);
+    // home_box modifier 0.6 → 0.9*0.6 = 0.54
+    expect(gen.calculateProbability(dribbler(), makeState({ ballPosition: { zone: 'home_box', side: 'center' } }))).toBeCloseTo(0.54, 5);
+  });
+
+  it('on success advances the ball by one zone when the advancement roll is low', () => {
+    // rng[0]=0 success; rng[1]=0 advancement (0<0.6 → +1); rng[2]=0 keep side
+    const gen = new DribbleGenerator(seq([0, 0, 0]));
+    const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    expect(event.description).toContain('skillful dribbling');
+    expect(event.resultingState.ballPosition.zone).toBe('away_third');
+  });
+
+  it('on success advances by two zones when the advancement roll is high', () => {
+    // rng[0]=0.1 success; rng[1]=0.9 advancement (≥0.6 → +2); rng[2]=0 keep side
+    const gen = new DribbleGenerator(seq([0.1, 0.9, 0]));
+    const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    expect(event.resultingState.ballPosition.zone).toBe('away_box'); // middle_third + 2
+  });
+
+  it('on a failed roll loses the ball', () => {
+    const gen = new DribbleGenerator(() => 0.999);
     const event = gen.generateEvent(dribbler(), makeState({ possession: 'home' }))!;
     expect(event.type).toBe('dribble');
     expect(event.description).toContain('loses the ball');
     expect(event.resultingState.possession).toBe('away');
-    spy.mockRestore();
   });
 });
 
 // ── TackleGenerator ───────────────────────────────────────────────────────────
 
 describe('TackleGenerator:', () => {
-  const gen = new TackleGenerator();
-
   it('given no defenders when checking canPerform then it is disallowed', () => {
     const state = makeState();
     state.currentPlayers.away = state.currentPlayers.away.filter(
       p => !['CB', 'LB', 'RB', 'CDM'].includes(p.position),
     );
-    expect(gen.canPerform(state.currentPlayers.home[0], state)).toBe(false);
+    expect(new TackleGenerator().canPerform(state.currentPlayers.home[0], state)).toBe(false);
   });
 
   it('given a successful tackle when generating then possession flips to the defenders', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const gen = new TackleGenerator(() => 0);
     const state = makeState({ possession: 'home' });
     const event = gen.generateEvent(state.currentPlayers.home[9], state)!;
     expect(event.type).toBe('tackle');
     expect(event.team).toBe('away');
     expect(event.description).toContain('clean tackle');
     expect(event.resultingState.possession).toBe('away');
-    spy.mockRestore();
   });
 
   it('given a failed tackle when generating then possession is retained', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999);
+    const gen = new TackleGenerator(() => 0.999);
     const state = makeState({ possession: 'home' });
     const event = gen.generateEvent(state.currentPlayers.home[9], state)!;
     expect(event.description).toContain('keeps possession');
     expect(event.resultingState.possession).toBe('home');
-    spy.mockRestore();
+  });
+
+  it('returns null when there is no defender to contest', () => {
+    const state = makeState({ possession: 'home' });
+    state.currentPlayers.away = state.currentPlayers.away.filter(p => p.position === 'GK' || p.position === 'ST');
+    expect(new TackleGenerator(() => 0).generateEvent(state.currentPlayers.home[9], state)).toBeNull();
   });
 });
 
 // ── InterceptionGenerator ─────────────────────────────────────────────────────
 
 describe('InterceptionGenerator:', () => {
-  const gen = new InterceptionGenerator();
-
   it('given outfield defenders when checking canPerform then it is allowed', () => {
-    expect(gen.canPerform(makeState().currentPlayers.home[9], makeState())).toBe(true);
+    expect(new InterceptionGenerator().canPerform(makeState().currentPlayers.home[9], makeState())).toBe(true);
   });
 
   it('given a successful interception when generating then possession flips', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const gen = new InterceptionGenerator(() => 0);
     const state = makeState({ possession: 'home' });
     const event = gen.generateEvent(state.currentPlayers.home[9], state)!;
     expect(event.type).toBe('interception');
     expect(event.team).toBe('away');
     expect(event.resultingState.possession).toBe('away');
-    spy.mockRestore();
+  });
+
+  it('given a failed interception when generating then possession is unchanged', () => {
+    const gen = new InterceptionGenerator(() => 0.999);
+    const state = makeState({ possession: 'home' });
+    const event = gen.generateEvent(state.currentPlayers.home[9], state)!;
+    expect(event.description).toContain('fails to intercept');
+    expect(event.resultingState.possession).toBe('home');
   });
 });
 
 // ── ShotGenerator ─────────────────────────────────────────────────────────────
 
 describe('ShotGenerator:', () => {
-  const gen = new ShotGenerator();
   const striker = () => player('p', 'ST', { finishing: 90, composure: 80, technique: 70 });
 
   it('given the ball in the attacking box when checking canPerform then it is allowed', () => {
     const state = makeState({ ballPosition: { zone: 'away_box', side: 'center' } });
-    expect(gen.canPerform(striker(), state)).toBe(true);
+    expect(new ShotGenerator().canPerform(striker(), state)).toBe(true);
   });
 
   it('given the ball in midfield when checking canPerform then it is disallowed', () => {
     const state = makeState({ ballPosition: { zone: 'middle_third', side: 'center' } });
-    expect(gen.canPerform(striker(), state)).toBe(false);
+    expect(new ShotGenerator().canPerform(striker(), state)).toBe(false);
   });
 
   it('given a converted shot when generating then a goal chains and the score increments', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0);
-    const state = makeState({
-      possession: 'home',
-      ballPosition: { zone: 'away_box', side: 'center' },
-    });
+    const gen = new ShotGenerator(() => 0);
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
     const event = gen.generateEvent(striker(), state)!;
     expect(event.type).toBe('shot');
     expect(event.description).toContain('shoots');
     const goal = event.chainedEvent!;
     expect(goal.type).toBe('goal');
+    expect(goal.description).toContain('GOAL');
     expect(goal.resultingState.homeScore).toBe(1);
     expect(goal.resultingState.awayScore).toBe(0);
-    spy.mockRestore();
+    // possession resets to the other team at the centre
+    expect(goal.resultingState.possession).toBe('away');
+    expect(goal.resultingState.ballPosition).toEqual({ zone: 'middle_third', side: 'center' });
   });
 
   it('given a saved shot when generating then a save chains and the score is unchanged', () => {
-    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999);
-    const state = makeState({
-      possession: 'home',
-      ballPosition: { zone: 'away_box', side: 'center' },
-    });
+    const gen = new ShotGenerator(() => 0.999);
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
     const event = gen.generateEvent(striker(), state)!;
     const outcome = event.chainedEvent!;
     expect(outcome.type).toBe('save');
     expect(outcome.team).toBe('away');
+    expect(outcome.description).toContain('save');
     expect(outcome.resultingState.homeScore).toBe(0);
-    spy.mockRestore();
+  });
+
+  it('scores the away team when they are in possession', () => {
+    const gen = new ShotGenerator(() => 0);
+    const state = makeState({ possession: 'away', ballPosition: { zone: 'away_box', side: 'center' } });
+    const goal = gen.generateEvent(striker(), state)!.chainedEvent!;
+    expect(goal.resultingState.awayScore).toBe(1);
+    expect(goal.resultingState.homeScore).toBe(0);
+  });
+});
+
+// ── calculateProbability formulas & zone modifiers ─────────────────────────────
+// calculateProbability is public, so we assert exact values across zones/positions
+// to pin the per-zone modifiers, coefficients and clamps.
+
+describe('calculateProbability — zone & position modifiers:', () => {
+  it('DribbleGenerator scales by zone (skill 0.5)', () => {
+    const gen = new DribbleGenerator();
+    const p = player('p', 'LW', { speed: 50, technique: 50, agility: 50 }); // dribbling 50 → 0.5
+    const prob = (zone: BallPosition['zone']) =>
+      gen.calculateProbability(p, makeState({ ballPosition: { zone, side: 'center' } }));
+    expect(prob('home_box')).toBeCloseTo(0.30, 5);
+    expect(prob('home_third')).toBeCloseTo(0.40, 5);
+    expect(prob('middle_third')).toBeCloseTo(0.50, 5);
+    expect(prob('away_third')).toBeCloseTo(0.60, 5);
+    expect(prob('away_box')).toBeCloseTo(0.55, 5);
+  });
+
+  it('TackleGenerator scales by zone for the defending side (skill 0.5)', () => {
+    const gen = new TackleGenerator();
+    const p = player('d', 'CB', { defending: 50, awareness: 50, strength: 50 }); // tackling 50 → 0.5
+    const prob = (zone: BallPosition['zone'], possession: 'home' | 'away') =>
+      gen.calculateProbability(p, makeState({ possession, ballPosition: { zone, side: 'center' } }));
+    // possession home → defenders are 'away' → away-side modifiers
+    expect(prob('away_box', 'home')).toBeCloseTo(0.70, 5);
+    expect(prob('away_third', 'home')).toBeCloseTo(0.60, 5);
+    expect(prob('middle_third', 'home')).toBeCloseTo(0.50, 5);
+    expect(prob('home_third', 'home')).toBeCloseTo(0.40, 5);
+    expect(prob('home_box', 'home')).toBeCloseTo(0.30, 5);
+    // possession away → defenders are 'home' → mirrored modifiers
+    expect(prob('home_box', 'away')).toBeCloseTo(0.70, 5);
+    expect(prob('away_box', 'away')).toBeCloseTo(0.30, 5);
+  });
+
+  it('InterceptionGenerator scales by position and clamps at 0.4', () => {
+    const gen = new InterceptionGenerator();
+    const at = (pos: Position, awareness: number) =>
+      gen.calculateProbability(player('p', pos, { awareness }), makeState());
+    // skill = awareness*0.5/100; calcProb = min(skill * posMod * 0.6, 0.4)
+    expect(at('CB', 100)).toBeCloseTo(0.39, 5);  // 0.5 * 1.3 * 0.6
+    expect(at('CM', 100)).toBeCloseTo(0.30, 5);  // 0.5 * 1.0 * 0.6
+    expect(at('ST', 100)).toBeCloseTo(0.18, 5);  // 0.5 * 0.6 * 0.6
+    // high skill clamps to 0.4
+    expect(at('CB', 160)).toBe(0.4);
+  });
+
+  it('ShotGenerator scales finishing by zone and clamps at 0.9', () => {
+    const gen = new ShotGenerator();
+    const striker = player('p', 'ST', { finishing: 100 }); // finishing skill 70 → 0.7
+    expect(gen.calculateProbability(striker, makeState({ ballPosition: { zone: 'away_box', side: 'center' } })))
+      .toBeCloseTo(0.84, 5); // 0.7 * 1.2
+    expect(gen.calculateProbability(striker, makeState({ ballPosition: { zone: 'away_third', side: 'center' } })))
+      .toBeCloseTo(0.56, 5); // 0.7 * 0.8
+    const elite = player('p', 'ST', { finishing: 100, composure: 100, technique: 100 }); // skill 1.0
+    expect(gen.calculateProbability(elite, makeState({ ballPosition: { zone: 'away_box', side: 'center' } })))
+      .toBe(0.9); // clamp
+  });
+
+  it('ShortPassGenerator clamps and applies the attacking-zone bonus', () => {
+    const gen = new ShortPassGenerator();
+    const p = player('p', 'CM', { passing: 60, technique: 0 }); // passingSkill 0.4
+    // home_box / home_third get the 1.1 bonus, others 0.9
+    expect(gen.calculateProbability(p, makeState({ ballPosition: { zone: 'home_box', side: 'center' } })))
+      .toBeCloseTo(0.44, 5); // 0.4 * 1.1
+    expect(gen.calculateProbability(p, makeState({ ballPosition: { zone: 'away_box', side: 'center' } })))
+      .toBeCloseTo(0.36, 5); // 0.4 * 0.9
+  });
+});
+
+// ── boundary & branch top-up ───────────────────────────────────────────────────
+
+describe('generator boundaries & branches:', () => {
+  it('ShortPass treats rng exactly equal to the probability as a failure (strict <)', () => {
+    const passer = player('p', 'CM', { passing: 80, technique: 60 });
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
+    const prob = new ShortPassGenerator().calculateProbability(passer, state); // exact float
+    const event = new ShortPassGenerator(() => prob).generateEvent(passer, state)!; // rng === prob
+    expect(event.description).toContain('intercepted');
+    expect(event.resultingState.possession).toBe('away');
+  });
+
+  it('ShortPass success with the forward roll exactly at 0.3 does not advance (strict <)', () => {
+    const passer = player('p', 'CM', { passing: 80, technique: 60 });
+    const gen = new ShortPassGenerator(seq([0, 0.3])); // success, then moveForward roll === 0.3
+    const event = gen.generateEvent(passer, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    expect(event.resultingState.ballPosition.zone).toBe('middle_third');
+  });
+
+  it('ShortPass cannot advance past the final zone', () => {
+    const passer = player('p', 'CM', { passing: 80, technique: 60 });
+    const gen = new ShortPassGenerator(seq([0, 0])); // success + forward roll
+    const event = gen.generateEvent(passer, makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } }))!;
+    expect(event.resultingState.ballPosition.zone).toBe('away_box'); // clamped at the last zone
+  });
+
+  it('Dribble treats rng exactly equal to the probability as a failure', () => {
+    const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
+    const prob = new DribbleGenerator().calculateProbability(dribbler, state); // exact float
+    const event = new DribbleGenerator(() => prob).generateEvent(dribbler, state)!; // rng === prob
+    expect(event.description).toContain('loses the ball');
+  });
+
+  it('Dribble advancement roll exactly at 0.6 advances two zones (strict <)', () => {
+    const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
+    // success roll, then advancement roll === 0.6 (0.6 < 0.6 is false → +2), then keep side
+    const gen = new DribbleGenerator(seq([0, 0.6, 0]));
+    const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    expect(event.resultingState.ballPosition.zone).toBe('away_box'); // middle_third + 2
+  });
+
+  it('Dribble keeps the side when the side roll is below 0.5', () => {
+    const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
+    // success, advancement +1, side roll 0 (< 0.5 → keep current side)
+    const gen = new DribbleGenerator(seq([0, 0, 0]));
+    const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
+    expect(event.resultingState.ballPosition.side).toBe('left');
+  });
+
+  it('Dribble moves a flank dribbler infield when the side roll is at least 0.5', () => {
+    const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
+    // success, advancement +1, side roll 0.5 (≥ 0.5 → leaves the wing); left wing → center
+    const gen = new DribbleGenerator(seq([0, 0, 0.5]));
+    const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
+    expect(event.resultingState.ballPosition.side).toBe('center');
+  });
+
+  it('Dribble is disallowed outside the playing halves', () => {
+    const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
+    expect(new DribbleGenerator().canPerform(dribbler, makeState({ phase: 'half_time' }))).toBe(false);
+  });
+
+  it('Dribble requires dribbling strictly greater than 60', () => {
+    const exactly60 = player('p', 'LW', { speed: 60, technique: 60, agility: 60 }); // dribbling === 60
+    expect(new DribbleGenerator().canPerform(exactly60, makeState())).toBe(false);
+  });
+
+  it('Tackle uses the home-side zone modifiers when the home team defends', () => {
+    const gen = new TackleGenerator();
+    const d = player('d', 'CB', { defending: 50, awareness: 50, strength: 50 }); // tackling 0.5
+    const prob = (zone: BallPosition['zone']) =>
+      gen.calculateProbability(d, makeState({ possession: 'away', ballPosition: { zone, side: 'center' } }));
+    expect(prob('home_third')).toBeCloseTo(0.60, 5);   // 0.5 * 1.2
+    expect(prob('middle_third')).toBeCloseTo(0.50, 5);  // 0.5 * 1.0
+    expect(prob('away_third')).toBeCloseTo(0.40, 5);    // 0.5 * 0.8
+  });
+
+  it('Shot save names the defending goalkeeper', () => {
+    const gen = new ShotGenerator(() => 0.999); // forced save
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
+    const gk = state.currentPlayers.away.find(p => p.position === 'GK')!;
+    const save = gen.generateEvent(player('p', 'ST', { finishing: 90 }), state)!.chainedEvent!;
+    expect(save.type).toBe('save');
+    expect(save.playerId).toBe(gk.id);
+  });
+
+  it('Tackle, Interception and Shot are all disallowed outside the playing halves', () => {
+    const defender = makeState().currentPlayers.home[1];
+    const striker = player('p', 'ST', { finishing: 90 });
+    const tackleState = makeState({ phase: 'half_time' });
+    const shotState = makeState({ phase: 'half_time', ballPosition: { zone: 'away_box', side: 'center' } });
+    expect(new TackleGenerator().canPerform(defender, tackleState)).toBe(false);
+    expect(new InterceptionGenerator().canPerform(defender, tackleState)).toBe(false);
+    expect(new ShotGenerator().canPerform(striker, shotState)).toBe(false);
+  });
+
+  it('Tackle treats the success roll exactly equal to the probability as a failure (strict <)', () => {
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
+    const tackler = state.currentPlayers.away[1]; // first defender pickRandom returns at rng 0 (cb1)
+    const prob = new TackleGenerator().calculateProbability(tackler, state);
+    // seq[0] feeds pickRandom (→ index 0 = cb1); seq[1] is the success roll.
+    const fail = new TackleGenerator(seq([0, prob])).generateEvent(state.currentPlayers.home[9], state)!;
+    expect(fail.resultingState.possession).toBe('home'); // prob < prob is false → not won
+    const win = new TackleGenerator(seq([0, prob - 1e-9])).generateEvent(state.currentPlayers.home[9], state)!;
+    expect(win.resultingState.possession).toBe('away');
+  });
+
+  it('Interception treats the success roll exactly equal to the probability as a failure (strict <)', () => {
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
+    const interceptor = state.currentPlayers.away[1]; // index 0 of the non-GK candidates (cb1)
+    const prob = new InterceptionGenerator().calculateProbability(interceptor, state);
+    const fail = new InterceptionGenerator(seq([0, prob])).generateEvent(state.currentPlayers.home[9], state)!;
+    expect(fail.resultingState.possession).toBe('home');
+    const win = new InterceptionGenerator(seq([0, prob - 1e-9])).generateEvent(state.currentPlayers.home[9], state)!;
+    expect(win.resultingState.possession).toBe('away');
+  });
+});
+
+// ── Shot goal probability (formula + clamps) ───────────────────────────────────
+// goalProb = clamp(shotQuality · zoneMultiplier · (1 − gkSave), 0.03, 0.35).
+// We recompute the true probability from SkillCalculator and probe just either side
+// of it, so any coefficient/operator/clamp mutation shifts goalProb and flips the
+// goal/save outcome at our fixed rng.
+
+describe('ShotGenerator goal probability:', () => {
+  const EPS = 1e-6;
+  const gkOf = (state: MatchState) => state.currentPlayers.away.find(p => p.position === 'GK')!;
+
+  function goalProb(striker: Player, state: MatchState): number {
+    const shotQuality = SkillCalculator.finishing(striker) / 100;
+    const gkSave = SkillCalculator.gkSaving(gkOf(state)) / 100;
+    const zoneMult = state.ballPosition.zone === 'away_box' ? 1.0 : 0.4;
+    return Math.max(0.03, Math.min(0.35, shotQuality * zoneMult * (1 - gkSave)));
+  }
+
+  function outcome(striker: Player, state: MatchState, rng: number): string {
+    return new ShotGenerator(() => rng).generateEvent(striker, state)!.chainedEvent!.type;
+  }
+
+  it('converts a shot when rng is just below the computed probability, saves just above', () => {
+    // mid-range: finishing 50 → shotQuality 0.5; away_box ×1.0; gkSave 0.61 → goalProb 0.195
+    const striker = player('p', 'ST', { finishing: 50, composure: 50, technique: 50 });
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
+    const g = goalProb(striker, state);
+    expect(g).toBeGreaterThan(0.03);
+    expect(g).toBeLessThan(0.35); // formula is live, not clamped
+    expect(outcome(striker, state, g - EPS)).toBe('goal');
+    expect(outcome(striker, state, g + EPS)).toBe('save');
+    expect(outcome(striker, state, g)).toBe('save'); // strict <
+  });
+
+  it('applies the lower away_third zone multiplier (0.4 not 1.0)', () => {
+    const striker = player('p', 'ST', { finishing: 50, composure: 50, technique: 50 });
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_third', side: 'center' } });
+    const g = goalProb(striker, state);
+    expect(g).toBeLessThan(0.195); // strictly below the away_box value → 0.4 multiplier is in effect
+    expect(outcome(striker, state, g - EPS)).toBe('goal');
+    expect(outcome(striker, state, g + EPS)).toBe('save');
+  });
+
+  it('clamps the goal probability up to the 0.03 floor for a poor chance', () => {
+    const striker = player('p', 'ST', { finishing: 5 }); // shotQuality 0.035 → raw ≈ 0.0137 < 0.03
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
+    expect(goalProb(striker, state)).toBe(0.03);
+    expect(outcome(striker, state, 0.029)).toBe('goal');
+    expect(outcome(striker, state, 0.031)).toBe('save');
+  });
+
+  it('clamps the goal probability down to the 0.35 ceiling for an elite chance', () => {
+    const striker = player('p', 'ST', { finishing: 100, composure: 100, technique: 100 }); // raw 0.39
+    const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
+    expect(goalProb(striker, state)).toBe(0.35);
+    expect(outcome(striker, state, 0.34)).toBe('goal');
+    expect(outcome(striker, state, 0.36)).toBe('save');
   });
 });

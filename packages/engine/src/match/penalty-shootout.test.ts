@@ -77,4 +77,13 @@ describe('simulateShootout:', () => {
     expect(result.home).toBe(6);
     expect(result.away).toBe(5);
   });
+
+  test('sudden death won by the away team (home misses, away scores)', () => {
+    // 5-5 after regulation, then the deciding pair: home misses (0.99), away scores (0.0).
+    const rng = seqRng([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.99, 0.0]);
+    const result = simulateShootout(home, away, rng);
+    expect(result.winner).toBe('away');
+    expect(result.home).toBe(5);
+    expect(result.away).toBe(6);
+  });
 });

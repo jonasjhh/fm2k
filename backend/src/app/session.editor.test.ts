@@ -124,6 +124,21 @@ describe('GameSession pre-game editor:', () => {
       s.addGeneratedPlayer(team.id);
       expect(teamOf(s, team.id).starters).toHaveLength(before + 1);
     });
+
+    test('picks the position from the injected rng (index into ALL_POSITIONS)', () => {
+      // rng 0 → ALL_POSITIONS[floor(0 * 13)] = 'GK'; rng 0.99 → ALL_POSITIONS[12] = 'CF'.
+      const low = new GameSession(() => 0);
+      const lowTeam = firstTeam(low);
+      low.addGeneratedPlayer(lowTeam.id);
+      const lowAdded = teamOf(low, lowTeam.id).starters.at(-1)!;
+      expect(lowAdded.position).toBe('GK');
+
+      const high = new GameSession(() => 0.99);
+      const highTeam = firstTeam(high);
+      high.addGeneratedPlayer(highTeam.id);
+      const highAdded = teamOf(high, highTeam.id).starters.at(-1)!;
+      expect(highAdded.position).toBe('CF');
+    });
   });
 
   describe('addPlayer', () => {

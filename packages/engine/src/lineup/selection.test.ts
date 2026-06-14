@@ -88,6 +88,11 @@ describe('selectStartingXI:', () => {
     // 4-4-2 has two ST slots; with only two strikers both start, but the strong one is picked first
     expect(xi.find(p => p.position === 'ST' && p.id === 'strong-st')).toBeDefined();
   });
+
+  it('never assigns the same player to more than one slot', () => {
+    const xi = selectStartingXI(balancedSquad(), '4-4-2');
+    expect(new Set(xi.map(p => p.id)).size).toBe(xi.length);
+  });
 });
 
 describe('calculateBestFormation:', () => {
@@ -113,6 +118,11 @@ describe('calculateBestFormation:', () => {
 
   it('given any squad then the chosen formation is a known formation', () => {
     expect(Object.keys(FORMATION_LINES)).toContain(calculateBestFormation(balancedSquad()));
+  });
+
+  it('given an empty squad then it falls back to the first formation (strict > tiebreak)', () => {
+    // Every formation scores 0, so the first one encountered must win, not the last.
+    expect(calculateBestFormation([])).toBe('4-4-2');
   });
 });
 
