@@ -2,6 +2,7 @@ import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, Position } from '../shared/types.ts';
 import { ActionGenerator } from './action-selector.ts';
 import { getEffectiveAttributes } from '../shared/position-rules.ts';
+import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 
 export class SkillCalculator {
   static dribbling(player: Player, fieldedPosition: Position = player.position): number {
@@ -55,10 +56,95 @@ export class SkillCalculator {
   }
 }
 
+// ── balance tuning ──────────────────────────────────────────────────────────
+// Scoring is flattened across tiers by making ball retention & progression depend
+// on the attacker-vs-defender *differential* (so even matches at any tier produce
+// similar volume), while player quality is expressed mainly through conversion.
+// Target: most games ~1–2 goals/side, occasional 4–5, rare blowouts on a big gap.
+// Every per-action rate is centred at a "parity" value (attacker skill ≈ defender
+// skill) and shifted by the differential / SPREAD. At parity — i.e. an even match
+// at ANY tier — all rates are identical, so scoring is tier-flat; a quality gap
+// shifts the rates and produces dominance (and, at the extreme, blowouts).
+const PASS_RETAIN_PARITY = 0.74;   // pass-completion at parity
+const PASS_RETAIN_SPREAD = 320;
+const PASS_FORWARD_BASE = 0.24;    // base chance a completed pass advances a zone
+const SHOT_TAKE_PARITY = 0.42;     // chance of shooting when in the final third (skill-light)
+const TACKLE_PARITY = 0.30;        // tackle success at parity
+const TACKLE_SPREAD = 300;
+const INTERCEPT_PARITY = 0.16;     // interception success at parity
+const INTERCEPT_SPREAD = 320;
+const CONV_PARITY = 0.11;          // shot→goal conversion at parity (before zone/params)
+const CONV_SPREAD = 220;
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function defTeamSide(state: MatchState): 'home' | 'away' {
   return state.possession === 'home' ? 'away' : 'home';
+}
+
+function avgAttrOf(players: Player[], key: keyof Player['attributes']): number {
+  if (players.length === 0) { return 50; }
+  return players.reduce((s, p) => s + p.attributes[key], 0) / players.length;
+}
+
+/** Defensive resistance of the team not in possession (defending + reading). */
+function defLineStrength(state: MatchState): number {
+  const def = state.currentPlayers[defTeamSide(state)];
+  return avgAttrOf(def, 'defending') * 0.6 + avgAttrOf(def, 'awareness') * 0.4;
+}
+
+/** Ball-retention quality of the team in possession (control under pressure). */
+function atkBallControl(state: MatchState): number {
+  const atk = state.currentPlayers[state.possession];
+  return avgAttrOf(atk, 'technique') * 0.6 + avgAttrOf(atk, 'composure') * 0.4;
+}
+
+function clamp(lo: number, hi: number, n: number): number {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+/** Tactical parameters of the team in possession (attacking). */
+function atkParams(state: MatchState): MatchParameters {
+  return state.params?.[state.possession] ?? NEUTRAL_PARAMS;
+}
+
+/** Tactical parameters of the defending team. */
+function defParams(state: MatchState): MatchParameters {
+  return state.params?.[defTeamSide(state)] ?? NEUTRAL_PARAMS;
+}
+
+/**
+ * Probability that a successful ball action advances toward goal. Driven by the
+ * attacker's transition speed and the space the defender leaves behind; equals
+ * the baseline factor 1 (and so the original constants) at neutral params.
+ */
+function advanceFactor(state: MatchState): number {
+  const atk = atkParams(state);
+  const def = defParams(state);
+  // Attacker transition speed and the space the defender leaves behind help
+  // progression; a compact defensive block resists it (keeps play out of the
+  // box). Equals 1 at neutral params so the original constants are reproduced.
+  return 0.4 + 0.7 * (atk.transitionSpeed / 100)
+    + 0.5 * (def.spaceLeftBehind / 100)
+    - 0.5 * ((def.defensiveCompactness - 50) / 100);
+}
+
+/**
+ * Bias the flank the ball moves to by build-up width. At the neutral value (50)
+ * the side is unchanged and no randomness is consumed (baseline behaviour).
+ */
+function pickAdvanceSide(
+  side: BallPosition['side'],
+  buildUpWidth: number,
+  rng: () => number,
+): BallPosition['side'] {
+  const wide = (buildUpWidth - 50) / 100; // -0.5 .. 0.5
+  if (wide > 0 && side === 'center') {
+    if (rng() < wide) { return rng() < 0.5 ? 'left' : 'right'; }
+  } else if (wide < 0 && (side === 'left' || side === 'right')) {
+    if (rng() < -wide) { return 'center'; }
+  }
+  return side;
 }
 
 function defPlayers(state: MatchState): Player[] {
@@ -91,9 +177,12 @@ export class ShortPassGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    const passingSkill = (player.attributes.passing + player.attributes.technique * 0.5) / 150;
-    const positionModifier = this.getPositionModifier(state.ballPosition);
-    return Math.min(passingSkill * positionModifier, 0.95);
+    // Retention depends on the passer vs the opposing defence, centred at parity,
+    // so even matches at any tier retain similarly; a quality gap shifts it.
+    const atk = player.attributes.passing * 0.6 + player.attributes.technique * 0.4;
+    const diff = atk - defLineStrength(state);
+    const success = clamp(0.4, 0.94, PASS_RETAIN_PARITY + diff / PASS_RETAIN_SPREAD);
+    return Math.min(success * this.getPositionModifier(state.ballPosition), 0.95);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
@@ -122,20 +211,22 @@ export class ShortPassGenerator implements ActionGenerator {
     if (!success) {
       newState.possession = state.possession === 'home' ? 'away' : 'home';
     } else {
-      newState.ballPosition = this.getNewBallPosition(state.ballPosition);
+      newState.ballPosition = this.getNewBallPosition(state);
     }
     return newState;
   }
 
-  private getNewBallPosition(currentPosition: BallPosition): BallPosition {
+  private getNewBallPosition(state: MatchState): BallPosition {
+    const current = state.ballPosition;
     const zones: BallPosition['zone'][] = ['home_box', 'home_third', 'middle_third', 'away_third', 'away_box'];
-    const currentIndex = zones.indexOf(currentPosition.zone);
-    const moveForward = this.rng() < 0.3;
+    const currentIndex = zones.indexOf(current.zone);
+    const pForward = Math.min(0.9, PASS_FORWARD_BASE * advanceFactor(state));
+    const moveForward = this.rng() < pForward;
     let newIndex = currentIndex;
     if (moveForward && currentIndex < zones.length - 1) {
       newIndex = currentIndex + 1;
     }
-    return { zone: zones[newIndex], side: currentPosition.side };
+    return { zone: zones[newIndex], side: pickAdvanceSide(current.side, atkParams(state).buildUpWidth, this.rng) };
   }
 }
 
@@ -145,15 +236,19 @@ export class DribbleGenerator implements ActionGenerator {
   constructor(private readonly rng: () => number = Math.random) {}
 
   canPerform(player: Player, state: MatchState): boolean {
+    // Any outfielder may attempt to dribble; weak dribblers vs strong defenders
+    // simply lose it more often (no absolute skill gate — that created a volume
+    // cliff at the threshold and broke tier-flatness).
     return player.position !== 'GK' &&
-           (state.phase === 'first_half' || state.phase === 'second_half') &&
-           SkillCalculator.dribbling(player) > 60;
+           (state.phase === 'first_half' || state.phase === 'second_half');
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    const dribblingSkill = SkillCalculator.dribbling(player) / 100;
-    const zoneModifier = this.getZoneModifier(state.ballPosition);
-    return Math.min(dribblingSkill * zoneModifier, 0.8);
+    // Differential (dribbler vs defence), centred at parity so even matches at
+    // any tier dribble through at a similar rate.
+    const diff = SkillCalculator.dribbling(player) - defLineStrength(state);
+    const base = clamp(0.2, 0.85, 0.5 + diff / 300);
+    return Math.min(base * this.getZoneModifier(state.ballPosition), 0.85);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
@@ -189,15 +284,18 @@ export class DribbleGenerator implements ActionGenerator {
     if (!success) {
       newState.possession = state.possession === 'home' ? 'away' : 'home';
     } else {
-      newState.ballPosition = this.advanceBallPosition(state.ballPosition);
+      newState.ballPosition = this.advanceBallPosition(state);
     }
     return newState;
   }
 
-  private advanceBallPosition(currentPosition: BallPosition): BallPosition {
+  private advanceBallPosition(state: MatchState): BallPosition {
+    const currentPosition = state.ballPosition;
     const zones: BallPosition['zone'][] = ['home_box', 'home_third', 'middle_third', 'away_third', 'away_box'];
     const currentIndex = zones.indexOf(currentPosition.zone);
-    const advancement = this.rng() < 0.6 ? 1 : 2;
+    // Faster transitions advance two zones more often; neutral keeps the 0.6 split.
+    const pSingle = Math.max(0.1, Math.min(0.9, 0.6 / advanceFactor(state)));
+    const advancement = this.rng() < pSingle ? 1 : 2;
     const newIndex = Math.min(currentIndex + advancement, zones.length - 1);
     return {
       zone: zones[newIndex],
@@ -221,9 +319,15 @@ export class TackleGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    const tacklingSkill = SkillCalculator.tackling(player) / 100;
+    // Tackler vs the carrier's ball control, parity-centred so turnover rates are
+    // tier-flat in even matches.
+    const diff = SkillCalculator.tackling(player) - atkBallControl(state);
+    const base = clamp(0.08, 0.6, TACKLE_PARITY + diff / TACKLE_SPREAD);
     const zoneModifier = this.getZoneModifier(state.ballPosition, defTeamSide(state));
-    return Math.min(tacklingSkill * zoneModifier, 0.8);
+    const d = defParams(state);
+    const pressFactor = 0.8 + d.pressIntensity / 250;        // neutral 1.0
+    const compactFactor = 0.9 + d.defensiveCompactness / 500; // neutral 1.0
+    return Math.min(base * zoneModifier * pressFactor * compactFactor, 0.8);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
@@ -289,9 +393,12 @@ export class InterceptionGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    const skill = SkillCalculator.interception(player) / 100;
+    // Interceptor's reading vs the carrier's control, parity-centred.
+    const diff = SkillCalculator.interception(player) - atkBallControl(state);
+    const base = clamp(0.04, 0.4, INTERCEPT_PARITY + diff / INTERCEPT_SPREAD);
     const positionModifier = this.getPositionModifier(player.position);
-    return Math.min(skill * positionModifier * 0.6, 0.4);
+    const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
+    return Math.min(base * positionModifier * pressFactor, 0.4);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
@@ -340,19 +447,25 @@ export class ShotGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    const finishingSkill = SkillCalculator.finishing(player) / 100;
+    // How often a shot is taken when in the final third — kept skill-light so
+    // shot *volume* is similar across tiers; quality shows up in conversion.
     const zoneModifier = state.ballPosition.zone === 'away_box' ? 1.2 : 0.8;
-    return Math.min(finishingSkill * zoneModifier, 0.9);
+    const skillNudge = 0.15 * (SkillCalculator.finishing(player) / 100);
+    return Math.min((SHOT_TAKE_PARITY + skillNudge) * zoneModifier, 0.9);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const shotQuality = SkillCalculator.finishing(player) / 100;
     const gk = getGK(state);
-    const gkSave = gk ? SkillCalculator.gkSaving(gk) / 100 : 0.5;
+    const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
     const zoneMultiplier = state.ballPosition.zone === 'away_box' ? 1.0 : 0.4;
 
-    // Goal probability: attacker finishing vs GK save quality, clamped to realistic range
-    const goalProb = Math.max(0.03, Math.min(0.35, shotQuality * zoneMultiplier * (1 - gkSave)));
+    // Conversion is the finisher vs the keeper, parity-centred (so even matches at
+    // any tier convert similarly) then scaled by zone and the tactical chance
+    // quality (attacker) vs defensive compactness (defender).
+    const conv = clamp(0.02, 0.6, CONV_PARITY + (SkillCalculator.finishing(player) - gkSkill) / CONV_SPREAD);
+    const qFactor = 0.7 + 0.6 * (atkParams(state).chanceQuality / 100);
+    const cFactor = 0.5 + 1.0 * (defParams(state).defensiveCompactness / 100);
+    const goalProb = Math.max(0.01, Math.min(0.6, conv * zoneMultiplier * qFactor / cFactor));
     const isGoal = this.rng() < goalProb;
 
     const resetState: MatchState = {

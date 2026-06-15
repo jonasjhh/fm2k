@@ -3,10 +3,12 @@ import {
   ClubManager, TransferManager, PlayerGenerator, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, sellPrice, v4 as uuidv4,
   isBefore, addMinutes, addDays,
+  defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
+  TeamTacticsIntent, MatchInsight,
 } from '@fm2k/engine';
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
@@ -70,6 +72,8 @@ export interface GameSnapshot {
   focusLive: LiveMatch | null;
   clubState: ClubState | null;
   transferListings: TransferListing[];
+  /** Single post-match insight for the player's team (null until the detector logic ships). */
+  lastMatchInsight: MatchInsight | null;
 }
 
 /**
@@ -97,6 +101,9 @@ export class GameSession {
   private now: GameDateTime = SEASON_START;
   private focusFixtureId: string | null = null;
   private lastMatchResult: LastMatchResult | null = null;
+  private lastMatchInsight: MatchInsight | null = null;
+  /** The player's live Team object inside the divisions (same reference the sim uses). */
+  private playerTeam: Team | null = null;
   private editableCountries: EditableCountry[] = buildEditableCountries();
   private readonly listeners = new Set<() => void>();
 
@@ -150,19 +157,51 @@ export class GameSession {
       focusLive,
       clubState: this.clubManager?.getState() ?? null,
       transferListings: this.transferManager?.getActiveListings(this.currentMatchday) ?? [],
+      lastMatchInsight: this.lastMatchInsight,
     };
   }
 
   // ── manager construction ────────────────────────────────────────────────────
 
+  /**
+   * Resolve and stamp tactical parameters onto every team's live object. The
+   * player uses `playerIntent`; AI teams get a formation-derived style. Mutates
+   * the team references in place so the competition managers (and thus the
+   * simulator) pick them up when they schedule the season.
+   */
+  private stampTeamTactics(
+    countries: EditableCountry[],
+    playerTeamId: string,
+    playerIntent: TeamTacticsIntent,
+  ): void {
+    for (const c of countries) {
+      for (const d of c.divisions) {
+        for (const t of d.teams) {
+          const teamIntent = t.id === playerTeamId ? playerIntent : aiIntent(t.formation);
+          t.tacticsIntent = teamIntent;
+          t.tacticsParams = resolveMatchParameters(teamIntent, t.starters);
+        }
+      }
+    }
+  }
+
   private buildManagers(
     editableCountries: EditableCountry[],
     teamId: string,
     leagueIds: string[],
+    playerIntent?: TeamTacticsIntent,
   ): boolean {
     const team = findTeamById(editableCountries, teamId);
     const division = findDivisionForTeam(editableCountries, teamId);
     if (!team || !division) { return false; }
+
+    // Resolve tactical parameters onto every team's live object BEFORE the
+    // competition managers (which capture these references when scheduling the
+    // season). The player uses their chosen intent; AI teams get a style derived
+    // from their formation so opponents vary.
+    const intent = playerIntent ?? defaultIntent(team.formation);
+    this.stampTeamTactics(editableCountries, teamId, intent);
+    this.playerTeam = team;
 
     // Ensure the player's nation is always included even if not in leagueIds.
     const playerCountry = findCountryForTeam(editableCountries, teamId);
@@ -187,6 +226,18 @@ export class GameSession {
         shootout: payload.shootout,
         winnerTeamId: payload.winnerTeamId,
       };
+
+      // Feedback hook (logic deferred — buildMatchInsight currently returns null).
+      // Wired now so the insight feature drops in with no plumbing changes.
+      const homeParams = findTeamById(editableCountries, payload.homeTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
+      const awayParams = findTeamById(editableCountries, payload.awayTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
+      this.lastMatchInsight = buildMatchInsight({
+        playerSide: isHome ? 'home' : 'away',
+        homeScore: payload.homeScore,
+        awayScore: payload.awayScore,
+        params: { home: homeParams, away: awayParams },
+        playerXi: this.clubManager?.getActiveLineup() ?? [],
+      });
     });
 
     // Build a per-nation Season: its league divisions plus its national cup. The
@@ -252,6 +303,7 @@ export class GameSession {
       squad: [...team.starters, ...team.substitutes],
       budget: BUDGET_START,
       formation: team.formation,
+      tactics: intent,
       startingXI: team.starters.slice(0, 11).map(p => p.id),
       benchPlayers: team.substitutes.map(p => p.id),
       stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
@@ -280,8 +332,8 @@ export class GameSession {
 
   // ── lifecycle ───────────────────────────────────────────────────────────────
 
-  startGame(teamId: string, leagueIds: string[]): boolean {
-    if (!this.buildManagers(this.editableCountries, teamId, leagueIds)) { return false; }
+  startGame(teamId: string, leagueIds: string[], playerIntent?: TeamTacticsIntent): boolean {
+    if (!this.buildManagers(this.editableCountries, teamId, leagueIds, playerIntent)) { return false; }
     this.playerTeamId = teamId;
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = 0;
@@ -289,6 +341,7 @@ export class GameSession {
     this.now = SEASON_START;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
+    this.lastMatchInsight = null;
     return true;
   }
 
@@ -304,7 +357,9 @@ export class GameSession {
       ranked[divId] = lm.getState().standings.map(s => s.teamId);
     }
     this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked);
-    return this.startGame(this.playerTeamId, this.selectedLeagueIds);
+    // Carry the player's tactical intent across seasons.
+    const prevTactics = this.clubManager?.getState().tactics;
+    return this.startGame(this.playerTeamId, this.selectedLeagueIds, prevTactics);
   }
 
   buildSaveData(type: SaveType, activeTab = 'squad'): SaveData | null {
@@ -350,7 +405,8 @@ export class GameSession {
     const leagueIds = save.selectedLeagueIds
       ?? [findCountryForTeam(mergedCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
 
-    if (!this.buildManagers(mergedCountries, save.playerTeamId, leagueIds)) { return false; }
+    const savedTactics = save.clubState.tactics ?? defaultIntent(save.clubState.formation);
+    if (!this.buildManagers(mergedCountries, save.playerTeamId, leagueIds, savedTactics)) { return false; }
 
     this.leagueManager!.loadState(save.leagueState);
     if (save.leagueStates) {
@@ -370,6 +426,9 @@ export class GameSession {
     if (!savedClubState.stadiumSectors) {
       savedClubState.stadiumSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
     }
+    if (!savedClubState.tactics) {
+      savedClubState.tactics = defaultIntent(savedClubState.formation);
+    }
     this.clubManager!.loadState(savedClubState);
     const transferState: TransferState = {
       listings: save.transferListings,
@@ -388,6 +447,7 @@ export class GameSession {
     this.now = save.now ?? addDays(SEASON_START, save.currentMatchday * 7);
     this.focusFixtureId = null;
     this.lastMatchResult = save.lastMatchResult;
+    this.lastMatchInsight = null;
     return true;
   }
 
@@ -590,8 +650,29 @@ export class GameSession {
   // ── tactics ───────────────────────────────────────────────────────────────
 
   private clubChanged(): ClubState | null {
+    this.syncPlayerTeam();
     this.notify();
     return this.clubManager?.getState() ?? null;
+  }
+
+  /**
+   * Mirror the player's current clubState (XI, formation, tactics) onto their
+   * live Team object. Because the simulator now builds lazily at kickoff, the
+   * player's chosen squad/formation/tactics are used on a per-match basis — the
+   * next match to start picks up whatever is set here. AI teams are never synced,
+   * so their season-start tactics stay fixed.
+   */
+  private syncPlayerTeam(): void {
+    const cs = this.clubManager?.getState();
+    if (!this.playerTeam || !cs) { return; }
+    const byId = new Map(cs.squad.map(p => [p.id, p]));
+    const pick = (ids: string[]): Player[] =>
+      ids.map(id => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
+    this.playerTeam.starters = pick(cs.startingXI);
+    this.playerTeam.substitutes = pick(cs.benchPlayers);
+    this.playerTeam.formation = cs.formation;
+    this.playerTeam.tacticsIntent = cs.tactics;
+    this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.playerTeam.starters);
   }
 
   toggleXI(id: string): ClubState | null {
@@ -624,12 +705,18 @@ export class GameSession {
     return this.clubChanged();
   }
 
+  setTactics(intent: TeamTacticsIntent): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setTactics(intent);
+    return this.clubChanged();
+  }
+
   // ── transfers ─────────────────────────────────────────────────────────────
 
   buyPlayer(listingId: string): boolean {
     if (!this.transferManager || !this.clubManager) { return false; }
     const ok = this.transferManager.purchase(listingId, this.clubManager);
-    if (ok) { this.notify(); }
+    if (ok) { this.syncPlayerTeam(); this.notify(); }
     return ok;
   }
 
@@ -638,7 +725,7 @@ export class GameSession {
     const player = this.clubManager.getState().squad.find(p => p.id === playerId);
     if (!player) { return false; }
     const ok = this.clubManager.sellPlayer(playerId, sellPrice(player.attributes));
-    if (ok) { this.notify(); }
+    if (ok) { this.syncPlayerTeam(); this.notify(); }
     return ok;
   }
 

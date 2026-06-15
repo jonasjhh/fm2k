@@ -43,6 +43,20 @@ export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
 
 export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from './shared/types.ts';
+
+export type {
+  TacticalStyleId, TacticalSliders, TeamTacticsIntent,
+  MatchParameters, MatchParameterSet, ParamModifiers, StyleTendency,
+  MatchInsight, InsightCategory, MatchInsightInput,
+} from './tactics/index.ts';
+export {
+  TACTICAL_STYLE_IDS, DEFAULT_SLIDERS, defaultIntent,
+  NEUTRAL_PARAMS, NEUTRAL_VALUE, PARAM_KEYS, clampParam, clampParams, applyDelta,
+  FORMATION_TENDENCIES, STYLE_TENDENCIES, formationToStyle, aiIntent,
+  combine, applySquadDistortion,
+  squadSuitability, defensiveSuitability, attackEffectiveness,
+  resolveMatchParameters, buildMatchInsight,
+} from './tactics/index.ts';
 export { v4, EventBus, StateManager } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 

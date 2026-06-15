@@ -5,6 +5,7 @@ export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
   return [event, ...flattenMatchEventChain(event.chainedEvent)];
 }
 import { Team } from '../shared/types.ts';
+import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { selectStartingXI } from '../lineup/selection.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
@@ -25,6 +26,10 @@ export interface MatchConfig {
   awayUnavailableIds?: ReadonlySet<string>;
   /** When the scores are level after 90', play two 15-minute halves of extra time. */
   extraTimeIfDrawn?: boolean;
+  /** Resolved tactical parameters. Override the values carried on the Team objects;
+   *  default neutral (all 50), which reproduces the tactics-agnostic baseline. */
+  homeParams?: MatchParameters;
+  awayParams?: MatchParameters;
   /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
   rng?: () => number;
 }
@@ -75,6 +80,10 @@ export class MatchSimulator {
         home: this.selectXI(this.config.homeTeam, this.config.homeUnavailableIds),
         away: this.selectXI(this.config.awayTeam, this.config.awayUnavailableIds),
       },
+      params: {
+        home: this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS,
+        away: this.config.awayParams ?? this.config.awayTeam.tacticsParams ?? NEUTRAL_PARAMS,
+      },
       bookings: {
         yellow: [],
         red: [],
@@ -86,7 +95,11 @@ export class MatchSimulator {
     const events: MatchEvent[] = [];
     let currentState = state;
 
-    const count = Math.floor(this.rng() * this.config.eventsPerMinute) + 1;
+    // Tempo of the possessing team scales how many actions happen this minute.
+    // At the neutral value (50) the multiplier is exactly 1 (baseline behaviour).
+    const tempo = currentState.params?.[currentState.possession]?.tempo ?? 50;
+    const tempoMult = 0.7 + (tempo / 100) * 0.6;
+    const count = Math.floor(this.rng() * this.config.eventsPerMinute * tempoMult) + 1;
     for (let i = 0; i < count; i++) {
       const event = this.actionSelector.selectPlayerAction(currentState);
       if (event) {

@@ -1,4 +1,5 @@
 import type { Player, Formation } from '../shared/types.ts';
+import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
 import type { GameDateTime } from '@fm2k/timeline';
 
 export interface ClubPlayer extends Player {
@@ -39,6 +40,7 @@ export interface ClubState {
   budget: number
   squad: ClubPlayer[]
   formation: Formation
+  tactics: TeamTacticsIntent   // formation (mirrored) + style + sliders
   startingXI: string[]         // player IDs, exactly 11
   benchPlayers: string[]       // player IDs, 4–7
   pendingSubstitutions: SubstitutionRequest[]

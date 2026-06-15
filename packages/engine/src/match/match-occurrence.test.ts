@@ -337,6 +337,18 @@ describe('MatchOccurrence:', () => {
     });
   });
 
+  describe('lazy kickoff build (per-match settings):', () => {
+    test('given the team is mutated before kickoff then onStart uses the updated lineup', () => {
+      const home = createTestTeam('home', 'Home FC');
+      const occ = makeOccurrence({ homeTeam: home });
+      // Manager swaps the XI before kickoff (e.g. picks a new striker).
+      home.starters = [...home.starters.slice(0, 10), createTestPlayer('home-new', 'NEW', 'ST')];
+      occ.onStart(CTX);
+      const ids = occ.getMatchState().currentPlayers.home.map(p => p.id);
+      expect(ids).toContain('home-new');
+    });
+  });
+
   describe('getMatchState:', () => {
     test('given a new occurrence then initial phase is first_half', () => {
       expect(makeOccurrence().getMatchState().phase).toBe('first_half');

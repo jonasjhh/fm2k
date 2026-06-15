@@ -1,5 +1,6 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, Position } from '../shared/types.ts';
+import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 
 // ── active-player weighting ─────────────────────────────────────────────────────
 // Picks who is "on the ball" based on where the ball is. Follows the engine
@@ -158,6 +159,34 @@ export function getRiskTolerance(riskLevel: string, state: MatchState): number {
   return 1.0;
 }
 
+function attackingParams(state: MatchState): MatchParameters {
+  return state.params?.[state.possession] ?? NEUTRAL_PARAMS;
+}
+
+function defendingParams(state: MatchState): MatchParameters {
+  const def = state.possession === 'home' ? 'away' : 'home';
+  return state.params?.[def] ?? NEUTRAL_PARAMS;
+}
+
+/**
+ * Tactical multiplier on an action's selection weight. Returns exactly 1 when
+ * every parameter is at the neutral value (50), so a tactics-agnostic match is
+ * unchanged. Offensive actions read the possessing team's params; turnover
+ * actions (tackle/interception) read the defending team's pressing.
+ */
+export function getParamWeight(actionType: string, atk: MatchParameters, def: MatchParameters): number {
+  switch (actionType) {
+  case 'short_pass':   return 1 + (50 - atk.passingRisk) / 100;
+  case 'dribble':      return 1 + (atk.passingRisk - 50) / 120;
+  case 'through_ball': return 1 + (atk.passingRisk - 50) / 60;
+  case 'cross':        return 1 + (atk.buildUpWidth - 50) / 100;
+  case 'shot':         return 1 + (atk.shotFrequency - 50) / 80;
+  case 'tackle':       return 1 + (def.pressIntensity - 50) / 60;
+  case 'interception': return 1 + (def.pressIntensity - 50) / 80;
+  default:             return 1;
+  }
+}
+
 export function calculateActionWeight(
   action: PlayerAction,
   player: Player,
@@ -168,6 +197,7 @@ export function calculateActionWeight(
   weight *= getPositionPreference(action.type, player.position);
   weight *= getSituationalModifier(action, state);
   weight *= getRiskTolerance(action.riskLevel, state);
+  weight *= getParamWeight(action.type, attackingParams(state), defendingParams(state));
   weight *= (0.5 + decisionQuality * 0.5);
   return weight;
 }

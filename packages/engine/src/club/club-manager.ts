@@ -1,5 +1,7 @@
 import { StateManager } from '@fm2k/state';
 import type { Player, Formation } from '../shared/types.ts';
+import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '../tactics/intent-types.ts';
+import { defaultIntent } from '../tactics/intent-types.ts';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueStanding } from '../league/league-types.ts';
 import type {
@@ -29,6 +31,7 @@ export interface ClubManagerConfig {
   readonly squad: Player[]
   readonly budget: number
   readonly formation: Formation
+  readonly tactics?: TeamTacticsIntent
   readonly startingXI: string[]
   readonly benchPlayers: string[]
   readonly stadiumCapacity: number
@@ -55,6 +58,7 @@ export class ClubManager {
       budget: config.budget,
       squad,
       formation: config.formation,
+      tactics: config.tactics ?? defaultIntent(config.formation),
       startingXI: config.startingXI,
       benchPlayers: config.benchPlayers,
       pendingSubstitutions: [],
@@ -78,7 +82,29 @@ export class ClubManager {
   }
 
   setFormation(formation: Formation): void {
-    this.stateManager.updateState(state => { state.formation = formation; });
+    this.stateManager.updateState(state => {
+      state.formation = formation;
+      state.tactics = { ...state.tactics, formation };
+    });
+  }
+
+  setTactics(tactics: TeamTacticsIntent): void {
+    this.stateManager.updateState(state => {
+      state.tactics = tactics;
+      state.formation = tactics.formation;
+    });
+  }
+
+  setStyle(style: TacticalStyleId): void {
+    this.stateManager.updateState(state => {
+      state.tactics = { ...state.tactics, style };
+    });
+  }
+
+  setSliders(sliders: Partial<TacticalSliders>): void {
+    this.stateManager.updateState(state => {
+      state.tactics = { ...state.tactics, sliders: { ...state.tactics.sliders, ...sliders } };
+    });
   }
 
   setStartingXI(playerIds: string[]): void {

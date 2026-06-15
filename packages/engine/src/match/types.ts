@@ -1,4 +1,5 @@
 import { Player, Team } from '../shared/types';
+import type { MatchParameterSet } from '../tactics/match-parameters.ts';
 
 export type EventType =
   | 'kickoff'
@@ -46,6 +47,8 @@ export interface MatchState {
     home: Player[];
     away: Player[];
   };
+  /** Resolved tactical parameters per side (undefined = neutral baseline). */
+  params?: MatchParameterSet;
   bookings: {
     yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;
     red: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;

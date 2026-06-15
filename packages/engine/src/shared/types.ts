@@ -1,3 +1,6 @@
+import type { MatchParameters } from '../tactics/match-parameters.ts';
+import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
+
 export type Formation =
   | '4-4-2' | '4-3-3' | '4-5-1' | '4-2-3-1' | '4-1-4-1' | '4-4-1-1' | '4-2-4'
   | '3-5-2' | '3-4-3' | '3-4-2-1'
@@ -46,8 +49,13 @@ export interface Team {
   substitutes: Player[];
   colors: TeamColors;
   tactics?: TeamTactics;
+  /** Manager intent (formation + style + sliders); resolved into tacticsParams. */
+  tacticsIntent?: TeamTacticsIntent;
+  /** Resolved tactical parameters consumed by the pure simulator (see tactics layer). */
+  tacticsParams?: MatchParameters;
 }
 
+/** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */
 export interface TeamTactics {
   attackingMentality: 'defensive' | 'balanced' | 'attacking';
   passingStyle: 'short' | 'mixed' | 'long';

@@ -25,12 +25,15 @@ export class MatchOccurrence implements Occurrence {
   readonly scheduledTime: GameDateTime;
   readonly tickResolution = 'minute' as const;
 
-  private readonly simulator: MatchSimulator;
-  private matchState: MatchState;
+  private simulator: MatchSimulator | null = null;
+  private matchState!: MatchState;
   private readonly playerTeamSide: 'home' | 'away' | null;
   private readonly getPlayerTeamLineup?: () => Player[];
   private readonly knockout: boolean;
   private readonly rng: () => number;
+  private readonly homeTeam: Team;
+  private readonly awayTeam: Team;
+  private readonly eventsPerMinute: number;
 
   constructor(config: MatchOccurrenceConfig) {
     this.id = config.id;
@@ -38,15 +41,9 @@ export class MatchOccurrence implements Occurrence {
     this.getPlayerTeamLineup = config.getPlayerTeamLineup;
     this.knockout = config.knockout ?? false;
     this.rng = config.rng ?? Math.random;
-    this.simulator = new MatchSimulator({
-      matchDuration: 90,
-      eventsPerMinute: config.eventsPerMinute ?? 3,
-      homeTeam: config.homeTeam,
-      awayTeam: config.awayTeam,
-      extraTimeIfDrawn: this.knockout,
-      rng: this.rng,
-    });
-    this.matchState = this.simulator.getCurrentState();
+    this.homeTeam = config.homeTeam;
+    this.awayTeam = config.awayTeam;
+    this.eventsPerMinute = config.eventsPerMinute ?? 3;
 
     if (config.playerTeamId) {
       this.playerTeamSide =
@@ -58,7 +55,28 @@ export class MatchOccurrence implements Occurrence {
     }
   }
 
+  /**
+   * Build the simulator lazily, at the moment the match first needs it (kickoff).
+   * This reads the home/away Team objects *as they are then*, so a manager's
+   * pre-match changes to lineup/formation/tactics take effect for that match.
+   */
+  private ensureStarted(): MatchSimulator {
+    if (!this.simulator) {
+      this.simulator = new MatchSimulator({
+        matchDuration: 90,
+        eventsPerMinute: this.eventsPerMinute,
+        homeTeam: this.homeTeam,
+        awayTeam: this.awayTeam,
+        extraTimeIfDrawn: this.knockout,
+        rng: this.rng,
+      });
+      this.matchState = this.simulator.getCurrentState();
+    }
+    return this.simulator;
+  }
+
   onStart(_context: OccurrenceContext): OccurrenceEvent[] {
+    this.ensureStarted();
     return [{
       id: `${this.id}-started`,
       eventType: 'match.started',
@@ -75,17 +93,20 @@ export class MatchOccurrence implements Occurrence {
   }
 
   onTick(now: GameDateTime, _context: OccurrenceContext): OccurrenceEvent[] {
+    const simulator = this.ensureStarted();
     const subEvents = this.applyPendingSubstitutions(now);
-    const { events, nextState } = this.simulator.simulateMinute(this.matchState);
+    const { events, nextState } = simulator.simulateMinute(this.matchState);
     this.matchState = nextState;
     return [...subEvents, ...events.map(e => this.toOccurrenceEvent(e, now))];
   }
 
   isComplete(_now: GameDateTime): boolean {
+    this.ensureStarted();
     return isTerminalPhase(this.matchState.phase);
   }
 
   onComplete(_context: OccurrenceContext): OccurrenceEvent[] {
+    this.ensureStarted();
     const { homeScore, awayScore, homeTeam, awayTeam, minute } = this.matchState;
 
     let decidedBy: 'normal' | 'extra_time' | 'penalties' = minute > 90 ? 'extra_time' : 'normal';
@@ -125,6 +146,7 @@ export class MatchOccurrence implements Occurrence {
   }
 
   getMatchState(): MatchState {
+    this.ensureStarted();
     return this.matchState;
   }
 

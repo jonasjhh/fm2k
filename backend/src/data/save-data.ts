@@ -14,7 +14,8 @@ export type SaveType = 'QUICK' | 'AUTO';
 // Bump SAVE_VERSION whenever the save format changes.
 // Bump MIN_LOADABLE_VERSION only when old saves can no longer be safely migrated.
 // v4 added `cupStates` (national cup per nation). v5 added `now` (the game clock).
-export const SAVE_VERSION = 5;
+// v6 added `clubState.tactics` (manager intent: style + sliders).
+export const SAVE_VERSION = 6;
 export const MIN_LOADABLE_VERSION = 1;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
