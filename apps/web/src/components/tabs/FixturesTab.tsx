@@ -5,18 +5,17 @@ import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { COUNTRY_FLAG } from '@fm2k/engine';
 import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtDate } from '../../utils/formatting';
 import { SectionHeader } from '@fm2k/design-system';
 import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
+import { ButtonSelector } from '../ui/ButtonSelector';
+import { SelectorPanel } from '../ui/SelectorPanel';
 
 type CompetitionChoice = 'league' | 'cup';
 
@@ -106,39 +105,28 @@ export default function FixturesTab() {
       <SectionHeader title="Fixtures" />
 
       {/* Nation + Competition (+ Division) selectors */}
-      <Stack direction="row" sx={{ gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Nation</InputLabel>
-          <Select value={selectedNationId} label="Nation" onChange={e => handleNationChange(e.target.value)}>
-            {availableNations.map(c => (
-              <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Competition</InputLabel>
-          <Select value={competition} label="Competition" onChange={e => setCompetition(e.target.value as CompetitionChoice)}>
-            <MenuItem value="league">League</MenuItem>
-            <MenuItem value="cup">National Cup</MenuItem>
-          </Select>
-        </FormControl>
-
+      <SelectorPanel>
+        <ButtonSelector
+          label="Nation"
+          value={selectedNationId}
+          onChange={handleNationChange}
+          options={availableNations.map(c => ({ value: c.id as string, label: c.name, prefix: COUNTRY_FLAG[c.id] }))}
+        />
+        <ButtonSelector<CompetitionChoice>
+          label="Competition"
+          value={competition}
+          onChange={setCompetition}
+          options={[{ value: 'league', label: 'League' }, { value: 'cup', label: 'National Cup' }]}
+        />
         {!isCup && (
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Division</InputLabel>
-            <Select
-              value={selectedDivisionId}
-              label="Division"
-              onChange={e => { setSelectedDivisionId(e.target.value); setSelectedRound(1); }}
-            >
-              {(selectedNation?.divisions ?? []).map(d => (
-                <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <ButtonSelector
+            label="Division"
+            value={selectedDivisionId}
+            onChange={(id) => { setSelectedDivisionId(id); setSelectedRound(1); }}
+            options={(selectedNation?.divisions ?? []).map(d => ({ value: d.id, label: d.name }))}
+          />
         )}
-      </Stack>
+      </SelectorPanel>
 
       {/* Round navigator */}
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'center', my: 2 }}>

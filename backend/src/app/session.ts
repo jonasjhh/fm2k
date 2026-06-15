@@ -6,7 +6,7 @@ import {
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
-  Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, GameDateTime, OccurrenceEvent,
+  Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
 } from '@fm2k/engine';
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
@@ -689,6 +689,10 @@ export class GameSession {
 
   updateTeamName(teamId: string, name: string): EditableCountry[] {
     return this.editTeam(teamId, t => ({ ...t, name: name.trim() || t.name }));
+  }
+
+  updateTeamColors(teamId: string, colors: TeamColors): EditableCountry[] {
+    return this.editTeam(teamId, t => ({ ...t, colors }));
   }
 
   updateTeamFormation(teamId: string, formation: Formation): EditableCountry[] {

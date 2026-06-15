@@ -42,7 +42,7 @@ export { PlayerGenerator } from './player/player-generator.ts';
 export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
 
-export type { Formation, Player, PlayerAttributes, Position, Team, TeamTactics } from './shared/types.ts';
+export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from './shared/types.ts';
 export { v4, EventBus, StateManager } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 

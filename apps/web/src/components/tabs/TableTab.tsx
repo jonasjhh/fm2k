@@ -15,6 +15,7 @@ import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
 import CupBracket from '../CupBracket';
 import { ButtonSelector } from '../ui/ButtonSelector';
+import { SelectorPanel } from '../ui/SelectorPanel';
 
 type CompetitionChoice = 'league' | 'cup';
 
@@ -74,10 +75,7 @@ export default function TableTab() {
   const n = leagueState?.standings.length ?? 0;
 
   const selectors = (
-    <Box sx={{
-      mb: 2, p: 1.25, borderRadius: 2, border: '1px solid', borderColor: 'divider',
-      bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', gap: 1,
-    }}>
+    <SelectorPanel>
       <ButtonSelector
         label="Nation"
         value={selectedNationId}
@@ -98,7 +96,7 @@ export default function TableTab() {
           options={(selectedNation?.divisions ?? []).map(d => ({ value: d.id, label: d.name }))}
         />
       )}
-    </Box>
+    </SelectorPanel>
   );
 
   if (competition === 'cup') {

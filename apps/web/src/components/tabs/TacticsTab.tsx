@@ -9,7 +9,8 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { useGameStore, findTeamById } from '../../store/game-store';
+import { useGameStore } from '../../store/game-store';
+import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
 import { sellPrice } from '@fm2k/engine';
@@ -95,10 +96,8 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, editableCountries, playerTeamId, setFormation } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
-    editableCountries: s.editableCountries,
-    playerTeamId: s.playerTeamId,
     setFormation: s.setFormation,
   })));
 
@@ -112,8 +111,7 @@ export default function TacticsTab() {
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
-  const teamColors = (playerTeamId ? findTeamById(editableCountries, playerTeamId)?.colors : null)
-    ?? { primary: '#1565c0', secondary: '#ffffff' };
+  const teamColors = useClubColors();
 
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
 

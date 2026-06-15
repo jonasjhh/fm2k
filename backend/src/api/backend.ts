@@ -5,7 +5,7 @@ import type { LastMatchResult } from '../domain/match-result.ts';
 import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
-  StadiumSectorConfig, GameDateTime,
+  StadiumSectorConfig, GameDateTime, TeamColors,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -35,6 +35,7 @@ export interface BackendCommands {
   // pre-game editor
   setEditableCountries(countries: EditableCountry[]): void;
   updateTeamName(teamId: string, name: string): EditableCountry[];
+  updateTeamColors(teamId: string, colors: TeamColors): EditableCountry[];
   updateTeamFormation(teamId: string, formation: Formation): EditableCountry[];
   updatePlayerData(teamId: string, playerId: string, data: Partial<Player>): EditableCountry[];
   regeneratePlayer(teamId: string, playerId: string): EditableCountry[];
@@ -96,6 +97,7 @@ export function createBackend(): Backend {
     applyStadiumDesign: (sectors, cost, cap) => s.applyStadiumDesign(sectors, cost, cap),
     setEditableCountries: (c) => s.setEditableCountries(c),
     updateTeamName: (t, n) => s.updateTeamName(t, n),
+    updateTeamColors: (t, c) => s.updateTeamColors(t, c),
     updateTeamFormation: (t, f) => s.updateTeamFormation(t, f),
     updatePlayerData: (t, p, d) => s.updatePlayerData(t, p, d),
     regeneratePlayer: (t, p) => s.regeneratePlayer(t, p),

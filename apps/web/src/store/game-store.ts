@@ -3,7 +3,7 @@ import { createBackend, findTeamById, findDivisionForTeam, findCountryForTeam } 
 import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult, AnimEvent } from '@fm2k/backend';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
-  Formation, Player, StadiumSectorConfig, GameDateTime,
+  Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -13,7 +13,10 @@ export type { EditableCountry, EditableDivision, LastMatchResult };
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export type Screen = 'main-menu' | 'team-selection' | 'editor' | 'game';
-export type TabId = 'squad' | 'tactics' | 'match' | 'table' | 'fixtures' | 'transfers' | 'facilities' | 'finances';
+export type TabId = 'squad' | 'tactics' | 'match' | 'table' | 'fixtures' | 'transfers' | 'club' | 'finances';
+
+const TAB_IDS: readonly TabId[] = ['squad', 'tactics', 'match', 'table', 'fixtures', 'transfers', 'club', 'finances'];
+const toTabId = (s: string): TabId => (TAB_IDS as readonly string[]).includes(s) ? s as TabId : 'squad';
 
 export interface SimEvent {
   minute: string;
@@ -91,6 +94,7 @@ interface GameStore {
   // editor
   setEditingTeamId: (id: string | null) => void;
   updateTeamName: (teamId: string, name: string) => void;
+  updateTeamColors: (teamId: string, colors: TeamColors) => void;
   updateTeamFormation: (teamId: string, formation: Formation) => void;
   updatePlayerData: (teamId: string, playerId: string, data: Omit<Player, 'id'>) => void;
   regeneratePlayer: (teamId: string, playerId: string) => void;
@@ -203,6 +207,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     // ── editor ──────────────────────────────────────────────────────────────────
     setEditingTeamId: (id) => set({ editingTeamId: id }),
     updateTeamName: (teamId, name) => { backend.commands.updateTeamName(teamId, name); },
+    updateTeamColors: (teamId, colors) => { backend.commands.updateTeamColors(teamId, colors); },
     updateTeamFormation: (teamId, formation) => { backend.commands.updateTeamFormation(teamId, formation); },
     updatePlayerData: (teamId, playerId, data) => { backend.commands.updatePlayerData(teamId, playerId, data); },
     regeneratePlayer: (teamId, playerId) => { backend.commands.regeneratePlayer(teamId, playerId); },
@@ -228,7 +233,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     loadGame: (save) => {
       if (backend.commands.loadGame(save)) {
-        set({ screen: 'game', activeTab: save.activeTab as TabId });
+        set({ screen: 'game', activeTab: toTabId(save.activeTab) });
         refresh();
       }
     },

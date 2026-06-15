@@ -1,6 +1,8 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
+import { darken } from '@mui/material/styles';
+import { useClubColors } from '../../hooks/useClubColors';
 
 export interface SelectorOption<T extends string> {
   value: T;
@@ -10,25 +12,29 @@ export interface SelectorOption<T extends string> {
 }
 
 /**
- * A compact, single-select control rendered as a labelled row of toggle buttons
- * (radio behaviour). Buttons wrap, so it stays tidy with many options.
+ * A compact, single-select control rendered as a (optionally labelled) row of
+ * toggle buttons (radio behaviour). The active button is filled with the
+ * managing club's colours. Buttons wrap, so it stays tidy with many options.
  */
 export function ButtonSelector<T extends string>({
   label, options, value, onChange,
 }: {
-  label: string;
+  label?: string;
   options: SelectorOption<T>[];
   value: T;
   onChange: (v: T) => void;
 }) {
+  const { primary, contrast } = useClubColors();
   return (
     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-      <Typography
-        variant="caption"
-        sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, minWidth: 70, flexShrink: 0 }}
-      >
-        {label}
-      </Typography>
+      {label && (
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, minWidth: 70, flexShrink: 0 }}
+        >
+          {label}
+        </Typography>
+      )}
       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', flex: 1 }}>
         {options.map(o => (
           <ToggleButton
@@ -41,8 +47,8 @@ export function ButtonSelector<T extends string>({
               textTransform: 'none', px: 1.25, py: 0.3, borderRadius: 2, lineHeight: 1.3,
               border: '1px solid', borderColor: 'divider',
               '&.Mui-selected': {
-                bgcolor: 'primary.main', color: 'primary.contrastText', borderColor: 'primary.main',
-                '&:hover': { bgcolor: 'primary.dark' },
+                bgcolor: primary, color: contrast, borderColor: primary,
+                '&:hover': { bgcolor: darken(primary, 0.15) },
               },
             }}
           >

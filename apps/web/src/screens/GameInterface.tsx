@@ -18,7 +18,7 @@ import MatchTab from '../components/tabs/MatchTab';
 import TableTab from '../components/tabs/TableTab';
 import FixturesTab from '../components/tabs/FixturesTab';
 import TransfersTab from '../components/tabs/TransfersTab';
-import FacilitiesTab from '../components/tabs/FacilitiesTab';
+import ClubTab from '../components/tabs/ClubTab';
 import FinancesTab from '../components/tabs/FinancesTab';
 import StatsBar from '../components/StatsBar';
 import SeasonEndModal from '../components/SeasonEndModal';
@@ -31,33 +31,26 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'table', label: 'Competitions' },
   { id: 'fixtures', label: 'Fixtures' },
   { id: 'transfers', label: 'Transfers' },
-  { id: 'facilities', label: 'Facilities' },
+  { id: 'club', label: 'Club' },
   { id: 'finances', label: 'Finances' },
 ];
 
-import { useMemo } from 'react';
-import { getContrastColor } from '../utils/colors';
-import { findTeamById } from '../store/game-store';
+import { useClubColors } from '../hooks/useClubColors';
 
 export default function GameInterface() {
-  const { activeTab, setActiveTab, setScreen, saveGame, clubState, playerTeamId, editableCountries } = useGameStore(useShallow((s) => ({
+  const { activeTab, setActiveTab, setScreen, saveGame, clubState } = useGameStore(useShallow((s) => ({
     activeTab: s.activeTab,
     setActiveTab: s.setActiveTab,
     setScreen: s.setScreen,
     saveGame: s.saveGame,
     clubState: s.clubState,
-    playerTeamId: s.playerTeamId,
-    editableCountries: s.editableCountries,
   })));
 
   const [snackOpen, setSnackOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const clubColors = useMemo(() => {
-    if (!playerTeamId) {return { primary: '#1B5E20', secondary: '#FFFFFF' };}
-    return findTeamById(editableCountries, playerTeamId)?.colors ?? { primary: '#1B5E20', secondary: '#FFFFFF' };
-  }, [editableCountries, playerTeamId]);
-  const textColor = getContrastColor(clubColors.primary);
+  const clubColors = useClubColors();
+  const textColor = clubColors.contrast;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -142,7 +135,7 @@ export default function GameInterface() {
         {activeTab === 'table' && <TableTab />}
         {activeTab === 'fixtures' && <FixturesTab />}
         {activeTab === 'transfers' && <TransfersTab />}
-        {activeTab === 'facilities' && <FacilitiesTab />}
+        {activeTab === 'club' && <ClubTab />}
         {activeTab === 'finances' && <FinancesTab />}
       </Box>
 
