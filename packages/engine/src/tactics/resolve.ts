@@ -5,6 +5,14 @@ import { combine } from './translate.ts';
 import { applySquadDistortion } from './squad-influence.ts';
 import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 
+/** Attack effectiveness of an even, league-average matchup — the no-edge baseline. */
+const TYPICAL_EFF = 0.46;
+
+/** Keep a suitability multiplier in a sane band so no single match explodes. */
+function clampMult(m: number): number {
+  return Math.max(0.7, Math.min(1.3, m));
+}
+
 /**
  * The single composition seam used by the session. Runs the full pipeline:
  *   intent  → translate (formation + style + sliders)
@@ -25,11 +33,13 @@ export function resolveMatchParameters(
 
   if (oppXi && oppXi.length > 0) {
     const eff = attackEffectiveness(squadSuitability(intent, ownXi), defensiveSuitability(oppXi));
-    // Map effectiveness (0..1) onto a multiplier centred near 1: a well-suited
-    // side gains an edge (>1), a poorly-suited one is suppressed (<1). Kept
-    // conservative so two suitable sides don't produce a goal fest.
-    const qualityMult = 0.75 + 0.45 * eff;     // ~0.75 .. 1.2
-    const freqMult = 0.85 + 0.2 * eff;         // ~0.85 .. 1.05
+    // Centre the multiplier on a *typical* matchup (eff ≈ TYPICAL_EFF) so an even
+    // contest is unchanged, then swing around it: a good style→squad→opponent
+    // match raises chance quality, a poor one suppresses it. The spread is sized
+    // so the expert's matchup read is worth ~±12% on conversion — meaningful, but
+    // still well below the player-attribute lever. Frequency moves more gently.
+    const qualityMult = clampMult(1 + (eff - TYPICAL_EFF) * 1.4);  // ~0.73 .. 1.24
+    const freqMult = clampMult(1 + (eff - TYPICAL_EFF) * 0.6);     // gentler on volume
     params = {
       ...params,
       chanceQuality: clampParam(params.chanceQuality * qualityMult),

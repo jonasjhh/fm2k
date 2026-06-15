@@ -18,6 +18,16 @@ this doc.
 > ~1–2 goals a side); a quality gap shifts the rates and produces dominance, up to
 > blowouts on a big gap. See `../match/action-generators.ts` (tuning constants at
 > the top) and `../match/scale-calibration.test.ts`.
+>
+> **Defenders gate chance *creation*, not just conversion.** A stronger defence
+> (a) compresses space — the ball reaches dangerous zones less often (`progressionEdge`
+> folds defender quality into `advanceFactor`) — and (b) denies clean looks — fewer
+> shots are *worked* (shot-taking is parity-centred on finisher vs defence). So a
+> poor attacker facing a good defence is **shut down before it shoots**, rather than
+> taking the same volume of shots and missing them. Both terms are 1.0 at parity, so
+> even matches are unchanged. On a turnover the ball is **mirrored** into the new
+> possessor's frame (winning it deep leaves you defending, not instantly attacking),
+> which removed an artificial end-to-end shot inflation.
 
 ---
 
@@ -175,8 +185,14 @@ The `(1 − ownSuit)` term means:
 - A **poorly-suited** attack (`ownSuit → 0`) gets **shut down much harder** by a
   defensively well-suited opponent.
 
-`resolveMatchParameters()` maps this onto `chanceQuality` and `shotFrequency`
-(conservatively, to avoid goal inflation when both sides are well-suited).
+`resolveMatchParameters()` maps this onto `chanceQuality` and `shotFrequency`,
+**centred on a typical matchup** (`TYPICAL_EFF ≈ 0.46`) so an even contest is
+unchanged and only a genuine fit/mismatch moves the dials. The swing is sized so
+the effect is **subtle for a balanced squad (~±8% on goals) but pronounced for a
+strongly specialised one (~±15–18%)** — picking the style your squad is built for,
+against an opponent ill-suited to stop it, is a real edge; picking the wrong one is
+punished. It stays well below the player-attribute lever (a one-tier gap is worth
+~150%+ on conversion), so tactics shade results without making or breaking them.
 
 **Net design intent:** *squad quality and fit decide viability.* You can pick any
 philosophy, but it only pays off if your players can execute it; against a side

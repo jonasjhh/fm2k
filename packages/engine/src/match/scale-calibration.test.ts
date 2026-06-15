@@ -33,7 +33,7 @@ function team(id: string, value: number): Team {
 }
 
 function series(n: number, homeVal: number, awayVal: number) {
-  let homeWins = 0, awayWins = 0, homeGoals = 0, awayGoals = 0, completed = 0;
+  let homeWins = 0, awayWins = 0, homeGoals = 0, awayGoals = 0, completed = 0, homeShots = 0, awayShots = 0;
   for (let s = 0; s < n; s++) {
     const sim = new MatchSimulator({
       matchDuration: 90, eventsPerMinute: 3,
@@ -43,10 +43,12 @@ function series(n: number, homeVal: number, awayVal: number) {
     if (r.finalState.phase === 'full_time') { completed++; }
     homeGoals += r.finalState.homeScore;
     awayGoals += r.finalState.awayScore;
+    homeShots += r.statistics.shots.home;
+    awayShots += r.statistics.shots.away;
     if (r.finalState.homeScore > r.finalState.awayScore) { homeWins++; }
     else if (r.finalState.awayScore > r.finalState.homeScore) { awayWins++; }
   }
-  return { homeWins, awayWins, homeGoals, awayGoals, completed };
+  return { homeWins, awayWins, homeGoals, awayGoals, completed, homeShots, awayShots };
 }
 
 /**
@@ -79,5 +81,21 @@ describe('attribute-scale calibration (quality gradient):', () => {
     const r = series(N, 55, 55);
     const ratio = Math.max(r.homeWins, r.awayWins) / Math.max(1, Math.min(r.homeWins, r.awayWins));
     expect(ratio).toBeLessThan(3);
+  });
+
+  it('given an even contest then total goals sit in a realistic football band', () => {
+    // Uniform-attribute even matches run lean (real squads with specialist
+    // strikers score a bit more); lock a sane band so a retune can't inflate it.
+    const perMatch = (r: ReturnType<typeof series>) => (r.homeGoals + r.awayGoals) / N;
+    expect(perMatch(series(N, 55, 55))).toBeGreaterThan(0.8);
+    expect(perMatch(series(N, 55, 55))).toBeLessThan(3.2);
+    expect(perMatch(series(N, 30, 30))).toBeLessThan(3.2);
+    expect(perMatch(series(N, 75, 75))).toBeLessThan(3.2);
+  });
+
+  it('given a quality gap then the stronger side out-shoots the weaker (defenders deny chances, not just convert)', () => {
+    // The weak side should be starved of shots, not merely miss the ones it gets.
+    const r = series(N, 75, 25);
+    expect(r.homeShots).toBeGreaterThan(r.awayShots * 2.5);
   });
 });

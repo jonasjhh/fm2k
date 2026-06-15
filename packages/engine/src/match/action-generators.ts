@@ -75,6 +75,13 @@ const INTERCEPT_PARITY = 0.16;     // interception success at parity
 const INTERCEPT_SPREAD = 320;
 const CONV_PARITY = 0.11;          // shot→goal conversion at parity (before zone/params)
 const CONV_SPREAD = 220;
+// Defenders gate chance *creation*, not just conversion: a stronger defence
+// physically compresses space (the ball reaches dangerous zones less often) and
+// denies clean looks (fewer shots are worked). Both are parity-centred — equal
+// to 1.0 / SHOT_TAKE_PARITY when attack ≈ defence — so even matches at any tier
+// are unchanged, while a quality gap shuts a weak attack down before it shoots.
+const PROGRESS_SPREAD = 160;       // attacker ball-control vs defence resistance → progression
+const SHOT_TAKE_SPREAD = 300;      // attacker (finisher) vs defence → how often a shot is worked
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -103,6 +110,22 @@ function clamp(lo: number, hi: number, n: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
+const MIRROR_ZONE: Record<BallPosition['zone'], BallPosition['zone']> = {
+  home_box: 'away_box', home_third: 'away_third', middle_third: 'middle_third',
+  away_third: 'home_third', away_box: 'home_box',
+};
+
+/**
+ * Flip the ball to the new possessor's frame of reference. By convention the
+ * possessing team always attacks toward `away_box`, so when a turnover changes
+ * who has the ball the pitch direction flips too: winning it deep in your own
+ * box (a clearance/tackle) leaves you defending, not instantly attacking.
+ */
+function mirrorBall(ball: BallPosition): BallPosition {
+  const side = ball.side === 'left' ? 'right' : ball.side === 'right' ? 'left' : ball.side;
+  return { zone: MIRROR_ZONE[ball.zone], side };
+}
+
 /** Tactical parameters of the team in possession (attacking). */
 function atkParams(state: MatchState): MatchParameters {
   return state.params?.[state.possession] ?? NEUTRAL_PARAMS;
@@ -121,12 +144,22 @@ function defParams(state: MatchState): MatchParameters {
 function advanceFactor(state: MatchState): number {
   const atk = atkParams(state);
   const def = defParams(state);
-  // Attacker transition speed and the space the defender leaves behind help
-  // progression; a compact defensive block resists it (keeps play out of the
-  // box). Equals 1 at neutral params so the original constants are reproduced.
-  return 0.4 + 0.7 * (atk.transitionSpeed / 100)
+  // Tactical contribution: attacker transition speed and the space the defender
+  // leaves behind help progression; a compact block resists it. Equals 1 at
+  // neutral params so the original constants are reproduced there.
+  const tactical = 0.4 + 0.7 * (atk.transitionSpeed / 100)
     + 0.5 * (def.spaceLeftBehind / 100)
     - 0.5 * ((def.defensiveCompactness - 50) / 100);
+  // Attribute contribution: a side that controls the ball well advances against a
+  // weak defence and is stifled by a strong one. 1.0 at parity, so even matches
+  // are unchanged; a quality gap is what moves play (or fails to) toward goal.
+  return tactical * progressionEdge(state);
+}
+
+/** How well the possessing team carries play forward vs the defence — 1.0 at parity. */
+function progressionEdge(state: MatchState): number {
+  const diff = atkBallControl(state) - defLineStrength(state);
+  return clamp(0.5, 1.5, 1 + diff / PROGRESS_SPREAD);
 }
 
 /**
@@ -210,6 +243,7 @@ export class ShortPassGenerator implements ActionGenerator {
     const newState = { ...state };
     if (!success) {
       newState.possession = state.possession === 'home' ? 'away' : 'home';
+      newState.ballPosition = mirrorBall(state.ballPosition);
     } else {
       newState.ballPosition = this.getNewBallPosition(state);
     }
@@ -283,6 +317,7 @@ export class DribbleGenerator implements ActionGenerator {
     const newState = { ...state };
     if (!success) {
       newState.possession = state.possession === 'home' ? 'away' : 'home';
+      newState.ballPosition = mirrorBall(state.ballPosition);
     } else {
       newState.ballPosition = this.advanceBallPosition(state);
     }
@@ -377,6 +412,7 @@ export class TackleGenerator implements ActionGenerator {
     return {
       ...state,
       possession: defTeamSide(state),
+      ballPosition: mirrorBall(state.ballPosition),
     };
   }
 }
@@ -419,7 +455,7 @@ export class InterceptionGenerator implements ActionGenerator {
         `${interceptor.name} intercepts the pass` :
         `${interceptor.name} fails to intercept the ball`,
       resultingState: success
-        ? { ...state, possession: side }
+        ? { ...state, possession: side, ballPosition: mirrorBall(state.ballPosition) }
         : state,
     };
   }
@@ -447,11 +483,14 @@ export class ShotGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    // How often a shot is taken when in the final third — kept skill-light so
-    // shot *volume* is similar across tiers; quality shows up in conversion.
+    // How often a shot is worked when in the final third. Parity-centred on the
+    // attacker (finisher) vs the defence: even matches shoot at the baseline rate
+    // (tier-flat), but a defence that outclasses the attack denies clean looks, so
+    // a poor attacker is shut down rather than merely missing the chances it gets.
     const zoneModifier = state.ballPosition.zone === 'away_box' ? 1.2 : 0.8;
-    const skillNudge = 0.15 * (SkillCalculator.finishing(player) / 100);
-    return Math.min((SHOT_TAKE_PARITY + skillNudge) * zoneModifier, 0.9);
+    const diff = SkillCalculator.finishing(player) - defLineStrength(state);
+    const take = clamp(0.12, 0.6, SHOT_TAKE_PARITY + diff / SHOT_TAKE_SPREAD);
+    return Math.min(take * zoneModifier, 0.9);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
