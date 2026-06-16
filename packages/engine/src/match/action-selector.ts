@@ -8,9 +8,9 @@ import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameter
 // home_box = own/defensive end and away_box = attacking end regardless of which
 // team is in possession (do NOT flip by state.possession).
 
-type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
+export type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
 
-const FIELD_LINE: Record<Position, FieldLine> = {
+export const FIELD_LINE: Record<Position, FieldLine> = {
   GK: 'GK',
   CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF',
   CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
@@ -177,6 +177,9 @@ function defendingParams(state: MatchState): MatchParameters {
 export function getParamWeight(actionType: string, atk: MatchParameters, def: MatchParameters): number {
   switch (actionType) {
   case 'short_pass':   return 1 + (50 - atk.passingRisk) / 100;
+  // Long balls are a deliberate, direct-play choice — a minority of passing by
+  // default (≈0.7) and ramped up by passing risk + transition speed.
+  case 'long_pass':    return 0.7 + (atk.passingRisk - 50) / 110 + (atk.transitionSpeed - 50) / 200;
   case 'dribble':      return 1 + (atk.passingRisk - 50) / 120;
   case 'through_ball': return 1 + (atk.passingRisk - 50) / 60;
   case 'cross':        return 1 + (atk.buildUpWidth - 50) / 100;

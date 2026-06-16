@@ -4,8 +4,13 @@ export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
   if (!event.chainedEvent) {return [event];}
   return [event, ...flattenMatchEventChain(event.chainedEvent)];
 }
-import { Team } from '../shared/types.ts';
+import { Player, Team } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { perMinuteDrain, applyFatigue } from './fatigue.ts';
+
+// Momentum: a goal gives the scorers a short-lived attacking lift that decays each minute.
+const MOMENTUM_ON_GOAL = 35;
+const MOMENTUM_DECAY = 0.72;
 import { selectStartingXI } from '../lineup/selection.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
@@ -14,6 +19,10 @@ import {
   TackleGenerator,
   InterceptionGenerator,
   ShotGenerator,
+  LongPassGenerator,
+  ThroughBallGenerator,
+  CrossGenerator,
+  ClearanceGenerator,
 } from './action-generators.ts';
 
 export interface MatchConfig {
@@ -30,6 +39,10 @@ export interface MatchConfig {
    *  default neutral (all 50), which reproduces the tactics-agnostic baseline. */
   homeParams?: MatchParameters;
   awayParams?: MatchParameters;
+  /** Starting energy 0..100 per player id (e.g. seeded from ClubPlayer.fitness so a
+   *  tired squad starts flatter). Missing players default to 100 (fresh). */
+  homeFitness?: Record<string, number>;
+  awayFitness?: Record<string, number>;
   /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
   rng?: () => number;
 }
@@ -37,6 +50,18 @@ export interface MatchConfig {
 /** Phases at which a match is over (regulation, or after extra time). */
 export function isTerminalPhase(phase: MatchState['phase']): boolean {
   return phase === 'full_time' || phase === 'extra_time_full';
+}
+
+/** Initial energy per player id; seeded from a fitness map where present, else fresh (100). */
+function seedEnergy(players: Player[], fitness?: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of players) { out[p.id] = fitness?.[p.id] ?? 100; }
+  return out;
+}
+
+/** A copy of the roster whose attributes are scaled for each player's current energy. */
+function fatiguedView(players: Player[], energy: Record<string, number>): Player[] {
+  return players.map(p => ({ ...p, attributes: applyFatigue(p.attributes, energy[p.id] ?? 100) }));
 }
 
 export class MatchSimulator {
@@ -56,9 +81,13 @@ export class MatchSimulator {
 
   private initializeActionGenerators(): void {
     this.actionSelector.registerAction('short_pass', new ShortPassGenerator(this.rng));
+    this.actionSelector.registerAction('long_pass', new LongPassGenerator(this.rng));
+    this.actionSelector.registerAction('through_ball', new ThroughBallGenerator(this.rng));
+    this.actionSelector.registerAction('cross', new CrossGenerator(this.rng));
     this.actionSelector.registerAction('dribble', new DribbleGenerator(this.rng));
     this.actionSelector.registerAction('tackle', new TackleGenerator(this.rng));
     this.actionSelector.registerAction('interception', new InterceptionGenerator(this.rng));
+    this.actionSelector.registerAction('clearance', new ClearanceGenerator(this.rng));
     this.actionSelector.registerAction('shot', new ShotGenerator(this.rng));
   }
 
@@ -67,6 +96,8 @@ export class MatchSimulator {
   }
 
   private createInitialState(): MatchState {
+    const homePlayers = this.selectXI(this.config.homeTeam, this.config.homeUnavailableIds);
+    const awayPlayers = this.selectXI(this.config.awayTeam, this.config.awayUnavailableIds);
     return {
       minute: 0,
       homeScore: 0,
@@ -77,13 +108,18 @@ export class MatchSimulator {
       homeTeam: { ...this.config.homeTeam },
       awayTeam: { ...this.config.awayTeam },
       currentPlayers: {
-        home: this.selectXI(this.config.homeTeam, this.config.homeUnavailableIds),
-        away: this.selectXI(this.config.awayTeam, this.config.awayUnavailableIds),
+        home: homePlayers,
+        away: awayPlayers,
       },
       params: {
         home: this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS,
         away: this.config.awayParams ?? this.config.awayTeam.tacticsParams ?? NEUTRAL_PARAMS,
       },
+      energy: {
+        home: seedEnergy(homePlayers, this.config.homeFitness),
+        away: seedEnergy(awayPlayers, this.config.awayFitness),
+      },
+      momentum: { home: 0, away: 0 },
       bookings: {
         yellow: [],
         red: [],
@@ -91,9 +127,44 @@ export class MatchSimulator {
     };
   }
 
+  /** Energy after one minute's drain for everyone currently on the pitch. */
+  private decayEnergy(state: MatchState): { home: Record<string, number>; away: Record<string, number> } {
+    const out = {
+      home: { ...(state.energy?.home ?? {}) },
+      away: { ...(state.energy?.away ?? {}) },
+    };
+    (['home', 'away'] as const).forEach(side => {
+      const team = side === 'home' ? state.homeTeam : state.awayTeam;
+      const params = state.params?.[side] ?? NEUTRAL_PARAMS;
+      for (const p of state.currentPlayers[side]) {
+        const cur = out[side][p.id] ?? 100;
+        out[side][p.id] = Math.max(0, cur - perMinuteDrain(p, team.formation, params));
+      }
+    });
+    return out;
+  }
+
   simulateMinute(state: MatchState): { events: MatchEvent[]; nextState: MatchState } {
     const events: MatchEvent[] = [];
-    let currentState = state;
+
+    // Drain energy for everyone on the pitch, then run this minute's actions against
+    // a *fatigued view* of the rosters (attributes scaled by energy). The canonical
+    // roster is restored afterwards — only the energy carries forward.
+    const energy = this.decayEnergy(state);
+    // Momentum from earlier goals decays each minute (set again below if a goal lands).
+    const momentum = {
+      home: (state.momentum?.home ?? 0) * MOMENTUM_DECAY,
+      away: (state.momentum?.away ?? 0) * MOMENTUM_DECAY,
+    };
+    let currentState: MatchState = {
+      ...state,
+      energy,
+      momentum,
+      currentPlayers: {
+        home: fatiguedView(state.currentPlayers.home, energy.home),
+        away: fatiguedView(state.currentPlayers.away, energy.away),
+      },
+    };
 
     // Tempo of the possessing team scales how many actions happen this minute.
     // At the neutral value (50) the multiplier is exactly 1 (baseline behaviour).
@@ -106,6 +177,28 @@ export class MatchSimulator {
         const chain = flattenMatchEventChain(event);
         events.push(...chain);
         currentState = { ...chain[chain.length - 1].resultingState };
+      }
+    }
+
+    // Restore the real (un-fatigued) attributes, but keep any membership change from
+    // this minute (e.g. a sending-off): map each player still on the pitch back to their
+    // real object by id. Energy is the lasting state.
+    const realById = new Map(
+      [...state.currentPlayers.home, ...state.currentPlayers.away].map(p => [p.id, p] as const),
+    );
+    const restore = (players: Player[]): Player[] => players.map(p => realById.get(p.id) ?? p);
+    currentState = {
+      ...currentState,
+      currentPlayers: {
+        home: restore(currentState.currentPlayers.home),
+        away: restore(currentState.currentPlayers.away),
+      },
+    };
+
+    // A goal this minute gives the scorers a momentum lift (decays over the next minutes).
+    for (const e of events) {
+      if (e.type === 'goal') {
+        currentState = { ...currentState, momentum: { ...currentState.momentum!, [e.team]: MOMENTUM_ON_GOAL } };
       }
     }
 
@@ -212,15 +305,17 @@ export class MatchSimulator {
     const homePossession = Math.round((homeEvents.length / this.events.length) * 100);
     const awayPossession = 100 - homePossession;
 
+    const countType = (evs: MatchEvent[], type: EventType): number => evs.filter(e => e.type === type).length;
+
     return {
       possession: { home: homePossession, away: awayPossession },
       shots: { home: homeShots, away: awayShots },
       shotsOnTarget: { home: homeShotsOnTarget, away: awayShotsOnTarget },
-      corners: { home: 0, away: 0 },
-      fouls: { home: 0, away: 0 },
+      corners: { home: countType(homeEvents, 'corner'), away: countType(awayEvents, 'corner') },
+      fouls: { home: countType(homeEvents, 'foul'), away: countType(awayEvents, 'foul') },
       cards: {
-        yellow: { home: 0, away: 0 },
-        red: { home: 0, away: 0 },
+        yellow: { home: countType(homeEvents, 'yellow_card'), away: countType(awayEvents, 'yellow_card') },
+        red: { home: countType(homeEvents, 'red_card'), away: countType(awayEvents, 'red_card') },
       },
     };
   }

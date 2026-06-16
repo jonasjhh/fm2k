@@ -20,9 +20,10 @@ const PHASE_LABEL: Record<string, string> = {
 function EventItem({ event }: { event: SimEvent }) {
   const statusColors = useStatusColors();
   const color =
-    event.type === 'goal'  ? statusColors.promotion  :
-    event.type === 'card'  ? statusColors.caution    :
-    event.type === 'phase' ? statusColors.playerTeam :
+    event.type === 'goal'    ? statusColors.promotion  :
+    event.type === 'penalty' ? statusColors.caution    :
+    event.type === 'card'    ? statusColors.caution    :
+    event.type === 'phase'   ? statusColors.playerTeam :
     undefined;
   return (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, px: 1, bgcolor: color, borderRadius: 1 }}>

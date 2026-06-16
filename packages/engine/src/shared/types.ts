@@ -53,6 +53,8 @@ export interface Team {
   tacticsIntent?: TeamTacticsIntent;
   /** Resolved tactical parameters consumed by the pure simulator (see tactics layer). */
   tacticsParams?: MatchParameters;
+  /** Per-player starting energy 0..100 (seeded from ClubPlayer.fitness) for this match. */
+  fitness?: Record<string, number>;
 }
 
 /** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */

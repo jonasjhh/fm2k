@@ -67,6 +67,8 @@ export class MatchOccurrence implements Occurrence {
         eventsPerMinute: this.eventsPerMinute,
         homeTeam: this.homeTeam,
         awayTeam: this.awayTeam,
+        homeFitness: this.homeTeam.fitness,
+        awayFitness: this.awayTeam.fitness,
         extraTimeIfDrawn: this.knockout,
         rng: this.rng,
       });
@@ -141,6 +143,10 @@ export class MatchOccurrence implements Occurrence {
         decidedBy,
         ...(shootout && { shootout }),
         ...(winnerTeamId && { winnerTeamId }),
+        ...(this.matchState.energy && {
+          homeEnergy: this.matchState.energy.home,
+          awayEnergy: this.matchState.energy.away,
+        }),
       },
     }];
   }

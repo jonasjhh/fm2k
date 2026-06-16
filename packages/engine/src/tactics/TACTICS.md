@@ -200,6 +200,57 @@ built to stop it, a mismatched plan is punished, while a well-built one carries.
 
 ---
 
+## The match itself (what the dials drive)
+
+The simulator plays out an action loop. Beyond the tactical dials above, these
+attribute-driven systems now run inside it:
+
+### Action vocabulary
+Possession plays out through real actions, each a skill composite vs the defence
+(all skills live in `SkillCalculator` in `../match/action-generators.ts`, with the
+component attributes + weights documented at each definition):
+
+- **Short pass** (safe, passing/technique) ↔ **Long pass** (direct, skips a zone;
+  a minority choice ramped up by passing risk + transition speed).
+- **Through ball** — vision/passing; splits the line or is intercepted. Ramped by
+  passing risk.
+- **Dribble** — technique/pace vs the defender (and the main source of fouls).
+- **Cross** (passing, from wide) → **header** (a contested aerial: strength +
+  jumping vs the defenders' aerial and the keeper). Ramped by build-up width.
+- **Shot** (finishing vs keeper) and **clearance** (defending/strength, relieves
+  box pressure).
+
+So `passingRisk` and `buildUpWidth` are now *visible*: more through-balls and long
+balls under risk, more crosses → headers under width.
+
+### In-match fatigue (the tempo trade-off)
+Every player has **energy** (0..100, seeded from fitness) that drains each minute
+(`../match/fatigue.ts`). Drain scales with the team's **tempo** and **press**
+(running harder costs energy — finally consuming `fatigueRate`), the role's
+running load **by position *and* formation** (wing-backs in a back five, a lone
+striker, etc.), and is resisted by the player's **stamina**. Low energy scales
+effective attributes down — **legs before touch** (physical falls faster than
+technical/mental). This makes a high tempo/press fade late unless the squad is fit,
+so neither extreme is universally correct. Final energy drains post-match fitness,
+which recovers between matchdays.
+
+### Discipline & set pieces
+- **Fouls** come from the attacker-vs-defender *challenge* (the dribble is the
+  canonical source), more likely under a heavy **press** and from low-**composure**/
+  -**defending** defenders. A foul concedes a **penalty** (in the box), a **direct
+  free kick** (in range) or a restart, and may bring a **yellow** → second-yellow/
+  straight **red** (→ the side plays a man down). Discipline is the real cost of a
+  reckless press.
+- **Set pieces:** penalties (penalties skill vs keeper), free kicks (long shot),
+  and **corners** (from saved shots / cleared crosses → an aerial chance).
+- **Momentum:** a goal gives the scorers a short-lived, decaying lift to chance
+  quality.
+
+All of the above are kept deliberately **moderate** so they add texture without
+dominating (final rates are tuned in the rebalance pass).
+
+---
+
 ## AI opponents
 
 Each AI team is assigned a style **derived from its formation**
@@ -213,10 +264,12 @@ well the squad executes those fixed tactics.
 
 ## Not yet modelled (deferred)
 
-- **In-match fatigue** — `fatigueRate` is wired through but inert. Until it ships,
-  the "high press fades late in the game" effect is represented only by the
-  immediate `spaceLeftBehind` cost, not by a second-half drop-off.
+- **Substitutions** — neither player-initiated nor AI subs are wired yet, so a
+  tired or sent-off side plays on as-is. (The `applyPendingSubstitutions` hook
+  exists for when they ship.)
 - **Post-match insight text** — the hooks exist (`feedback.ts`,
   `getLastMatchInsight()`); the detector logic and UI surface are deferred.
 - **Mid-match (half-time) tactical changes** — tactics apply per match, not live
   within a match in progress.
+- **Per-match stats surface** — corners/fouls/cards are now computed in
+  `MatchStatistics` but are not yet plumbed through to the web UI.

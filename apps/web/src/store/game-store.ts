@@ -22,7 +22,7 @@ const toTabId = (s: string): TabId => (TAB_IDS as readonly string[]).includes(s)
 export interface SimEvent {
   minute: string;
   text: string;
-  type: 'goal' | 'card' | 'phase' | 'normal';
+  type: 'goal' | 'card' | 'penalty' | 'phase' | 'normal';
 }
 
 export const SIM_DELAY_MIN = 0;
@@ -46,6 +46,7 @@ function simEventFromAnim(e: AnimEvent, homeName: string, awayName: string): Sim
     text: `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
     type: e.type === 'goal' ? 'goal'
       : (e.type === 'yellow_card' || e.type === 'red_card') ? 'card'
+      : e.type === 'penalty' ? 'penalty'
       : (e.type === 'half_time' || e.type === 'full_time') ? 'phase'
       : 'normal',
   };

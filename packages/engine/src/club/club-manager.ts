@@ -258,13 +258,22 @@ export class ClubManager {
 
     const newInjuries: GameEvents['player.injured'][] = [];
 
+    // Energy our players ended the match on (in-match fatigue), if reported. Drain
+    // fitness by the energy actually spent; fall back to a stamina-based estimate.
+    const ourEnergy = payload.homeTeamId === clubId ? payload.homeEnergy
+      : payload.awayTeamId === clubId ? payload.awayEnergy
+        : undefined;
+
     this.stateManager.updateState(s => {
       const medicalLevel = s.facilities.medical;
 
       for (const player of s.squad) {
         if (!s.startingXI.includes(player.id)) {continue;}
 
-        const drain = Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
+        const energySpent = ourEnergy?.[player.id] !== undefined
+          ? 100 - ourEnergy[player.id]
+          : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
+        const drain = Math.max(0, energySpent);
         player.fitness = Math.max(0, player.fitness - drain);
 
         if (!player.injury) {

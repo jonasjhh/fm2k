@@ -673,6 +673,9 @@ export class GameSession {
     this.playerTeam.formation = cs.formation;
     this.playerTeam.tacticsIntent = cs.tactics;
     this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.playerTeam.starters);
+    // Seed in-match starting energy from each player's current fitness, so a tired
+    // squad (fixture congestion) starts and tires flatter.
+    this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness]));
   }
 
   toggleXI(id: string): ClubState | null {

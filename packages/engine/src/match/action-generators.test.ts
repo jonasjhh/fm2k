@@ -86,36 +86,39 @@ describe('SkillCalculator:', () => {
     a: Partial<PlayerAttributes>;
     expected: number;
   }> = [
-    { name: 'dribbling = speed*0.3 + technique*0.4 + agility*0.3',
+    { name: 'dribbling = technique*0.4 + speed*0.3 + agility*0.3',
       calc: p => SkillCalculator.dribbling(p), pos: 'ST',
-      a: { speed: 10, technique: 20, agility: 30 }, expected: 20 }, // 3 + 8 + 9
+      a: { speed: 10, technique: 20, agility: 30 }, expected: 20 }, // 8 + 3 + 9
     { name: 'finishing = finishing*0.7 + composure*0.2 + technique*0.1',
       calc: p => SkillCalculator.finishing(p), pos: 'ST',
       a: { finishing: 10, composure: 20, technique: 30 }, expected: 14 }, // 7 + 4 + 3
-    { name: 'heading = finishing*0.4 + agility*0.3 + strength*0.3',
+    { name: 'heading = strength*0.4 + agility*0.35 + finishing*0.25',
       calc: p => SkillCalculator.heading(p), pos: 'ST',
-      a: { finishing: 10, agility: 20, strength: 30 }, expected: 19 }, // 4 + 6 + 9
-    { name: 'penalties = finishing*0.6 + composure*0.3 + technique*0.1',
+      a: { finishing: 10, agility: 20, strength: 30 }, expected: 21.5 }, // 12 + 7 + 2.5
+    { name: 'penalties = finishing*0.55 + composure*0.35 + technique*0.1',
       calc: p => SkillCalculator.penalties(p), pos: 'ST',
-      a: { finishing: 10, composure: 20, technique: 30 }, expected: 15 }, // 6 + 6 + 3
-    { name: 'throughBall = awareness*0.4 + passing*0.5 + technique*0.1',
+      a: { finishing: 10, composure: 20, technique: 30 }, expected: 15.5 }, // 5.5 + 7 + 3
+    { name: 'throughBall = awareness*0.5 + passing*0.4 + technique*0.1',
       calc: p => SkillCalculator.throughBall(p), pos: 'CM',
-      a: { awareness: 10, passing: 20, technique: 30 }, expected: 17 }, // 4 + 10 + 3
+      a: { awareness: 10, passing: 20, technique: 30 }, expected: 16 }, // 5 + 8 + 3
     { name: 'longShot = finishing*0.5 + technique*0.3 + composure*0.2',
       calc: p => SkillCalculator.longShot(p), pos: 'ST',
       a: { finishing: 10, technique: 20, composure: 30 }, expected: 17 }, // 5 + 6 + 6
     { name: 'crossing = passing*0.6 + technique*0.3 + awareness*0.1',
       calc: p => SkillCalculator.crossing(p), pos: 'LM',
       a: { passing: 10, technique: 20, awareness: 30 }, expected: 15 }, // 6 + 6 + 3
+    { name: 'clearing = defending*0.5 + strength*0.4 + awareness*0.1',
+      calc: p => SkillCalculator.clearing(p), pos: 'CB',
+      a: { defending: 10, strength: 20, awareness: 30 }, expected: 16 }, // 5 + 8 + 3
     { name: 'tackling = defending*0.6 + awareness*0.2 + strength*0.2',
       calc: p => SkillCalculator.tackling(p), pos: 'CB',
       a: { defending: 10, awareness: 20, strength: 30 }, expected: 16 }, // 6 + 4 + 6
     { name: 'interception = awareness*0.5 + defending*0.3 + agility*0.2',
       calc: p => SkillCalculator.interception(p), pos: 'CB',
       a: { awareness: 10, defending: 20, agility: 30 }, expected: 17 }, // 5 + 6 + 6
-    { name: 'gkSaving = agility*0.5 + composure*0.3 + awareness*0.2',
+    { name: 'gkSaving = agility*0.55 + awareness*0.25 + composure*0.2',
       calc: p => SkillCalculator.gkSaving(p), pos: 'GK',
-      a: { agility: 10, composure: 20, awareness: 30 }, expected: 17 }, // 5 + 6 + 6
+      a: { agility: 10, composure: 20, awareness: 30 }, expected: 17 }, // 5.5 + 7.5 + 4
   ];
 
   for (const c of cases) {
@@ -237,16 +240,16 @@ describe('DribbleGenerator:', () => {
   });
 
   it('on success advances the ball by one zone when the advancement roll is low', () => {
-    // rng[0]=0 success; rng[1]=0 advancement (0<0.6 → +1); rng[2]=0 keep side
-    const gen = new DribbleGenerator(seq([0, 0, 0]));
+    // rng[0]=pick defender, rng[1]=0.999 (no foul); then rng=0 success; rng=0 advancement (<0.6 → +1); rng=0 keep side
+    const gen = new DribbleGenerator(seq([0, 0.999, 0, 0, 0]));
     const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
     expect(event.description).toContain('skillful dribbling');
     expect(event.resultingState.ballPosition.zone).toBe('away_third');
   });
 
   it('on success advances by two zones when the advancement roll is high', () => {
-    // rng[0]=0.1 success; rng[1]=0.9 advancement (≥0.6 → +2); rng[2]=0 keep side
-    const gen = new DribbleGenerator(seq([0.1, 0.9, 0]));
+    // rng[0,1]=pick+no-foul; then 0.1 success; 0.9 advancement (≥0.6 → +2); 0 keep side
+    const gen = new DribbleGenerator(seq([0, 0.999, 0.1, 0.9, 0]));
     const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
     expect(event.resultingState.ballPosition.zone).toBe('away_box'); // middle_third + 2
   });
@@ -480,24 +483,24 @@ describe('generator boundaries & branches:', () => {
 
   it('Dribble advancement roll exactly at 0.6 advances two zones (strict <)', () => {
     const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
-    // success roll, then advancement roll === 0.6 (0.6 < 0.6 is false → +2), then keep side
-    const gen = new DribbleGenerator(seq([0, 0.6, 0]));
+    // pick+no-foul, then success roll, then advancement roll === 0.6 (0.6 < 0.6 is false → +2), then keep side
+    const gen = new DribbleGenerator(seq([0, 0.999, 0, 0.6, 0]));
     const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
     expect(event.resultingState.ballPosition.zone).toBe('away_box'); // middle_third + 2
   });
 
   it('Dribble keeps the side when the side roll is below 0.5', () => {
     const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
-    // success, advancement +1, side roll 0 (< 0.5 → keep current side)
-    const gen = new DribbleGenerator(seq([0, 0, 0]));
+    // pick+no-foul, success, advancement +1, side roll 0 (< 0.5 → keep current side)
+    const gen = new DribbleGenerator(seq([0, 0.999, 0, 0, 0]));
     const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
     expect(event.resultingState.ballPosition.side).toBe('left');
   });
 
   it('Dribble moves a flank dribbler infield when the side roll is at least 0.5', () => {
     const dribbler = player('p', 'LW', { speed: 90, technique: 90, agility: 90 });
-    // success, advancement +1, side roll 0.5 (≥ 0.5 → leaves the wing); left wing → center
-    const gen = new DribbleGenerator(seq([0, 0, 0.5]));
+    // pick+no-foul, success, advancement +1, side roll 0.5 (≥ 0.5 → leaves the wing); left wing → center
+    const gen = new DribbleGenerator(seq([0, 0.999, 0, 0, 0.5]));
     const event = gen.generateEvent(dribbler, makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
     expect(event.resultingState.ballPosition.side).toBe('center');
   });
@@ -595,8 +598,10 @@ describe('ShotGenerator goal probability:', () => {
     expect(g).toBeGreaterThan(0.01);
     expect(g).toBeLessThan(0.6);
     expect(outcome(striker, state, g - EPS)).toBe('goal');
-    expect(outcome(striker, state, g + EPS)).toBe('save');
-    expect(outcome(striker, state, g)).toBe('save'); // strict <
+    // Just above the conversion threshold it is not a goal (a non-goal may be a save
+    // or, sometimes, deflected behind for a corner — both are "not scored").
+    expect(outcome(striker, state, g + EPS)).not.toBe('goal');
+    expect(outcome(striker, state, g)).not.toBe('goal'); // strict <
   });
 
   it('applies the lower away_third zone multiplier (0.4 not 1.0)', () => {

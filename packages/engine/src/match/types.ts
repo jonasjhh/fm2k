@@ -49,6 +49,16 @@ export interface MatchState {
   };
   /** Resolved tactical parameters per side (undefined = neutral baseline). */
   params?: MatchParameterSet;
+  /** Per-player energy 0..100 (100 = fresh). Ephemeral; not persisted. */
+  energy?: {
+    home: Record<string, number>;
+    away: Record<string, number>;
+  };
+  /** Short-lived attacking momentum per side (0 = none); set on a goal, decays each minute. */
+  momentum?: {
+    home: number;
+    away: number;
+  };
   bookings: {
     yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;
     red: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;

@@ -550,14 +550,18 @@ describe('MatchSimulator statistics:', () => {
     const homeOnTarget = he.filter(e => e.type === 'goal').length + ae.filter(e => e.type === 'save').length;
     const awayOnTarget = ae.filter(e => e.type === 'goal').length + he.filter(e => e.type === 'save').length;
     const homePoss = Math.round((he.length / ev.length) * 100);
+    const count = (evs: typeof ev, type: string) => evs.filter(e => e.type === type).length;
 
     expect(ev.length).toBeGreaterThan(0);
     expect(result.statistics.shots).toEqual({ home: homeShots, away: awayShots });
     expect(result.statistics.shotsOnTarget).toEqual({ home: homeOnTarget, away: awayOnTarget });
     expect(result.statistics.possession).toEqual({ home: homePoss, away: 100 - homePoss });
-    expect(result.statistics.corners).toEqual({ home: 0, away: 0 });
-    expect(result.statistics.fouls).toEqual({ home: 0, away: 0 });
-    expect(result.statistics.cards).toEqual({ yellow: { home: 0, away: 0 }, red: { home: 0, away: 0 } });
+    expect(result.statistics.corners).toEqual({ home: count(he, 'corner'), away: count(ae, 'corner') });
+    expect(result.statistics.fouls).toEqual({ home: count(he, 'foul'), away: count(ae, 'foul') });
+    expect(result.statistics.cards).toEqual({
+      yellow: { home: count(he, 'yellow_card'), away: count(ae, 'yellow_card') },
+      red: { home: count(he, 'red_card'), away: count(ae, 'red_card') },
+    });
   });
 
   test('possession percentages always sum to 100', () => {

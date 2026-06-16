@@ -19,6 +19,9 @@ export type GameEvents = {
     winnerTeamId?: string
     decidedBy?: 'normal' | 'extra_time' | 'penalties'
     shootout?: { home: number; away: number }
+    // Final per-player energy 0..100 (in-match fatigue); used to drain post-match fitness.
+    homeEnergy?: Record<string, number>
+    awayEnergy?: Record<string, number>
   }
   'player.injured': {
     playerId: string
