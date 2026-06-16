@@ -1,4 +1,4 @@
-import { calculateOverall } from '../transfer/transfer-manager.ts';
+import { calculateOverall } from '../ratings.ts';
 import { FORMATION_LINES } from './lineup.ts';
 import type { Formation, Player, Position } from '../shared/types.ts';
 

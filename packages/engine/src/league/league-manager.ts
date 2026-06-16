@@ -1,6 +1,6 @@
 import { CompetitionManager } from '../competition/competition-manager.ts';
 import { LeagueFormat } from '../competition/league-format.ts';
-import type { Team } from '../shared/types.ts';
+import type { Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueState, LeagueStanding } from './league-types.ts';
 import type { EventBus } from '@fm2k/state';

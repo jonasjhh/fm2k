@@ -1,5 +1,5 @@
 {
-  "name": "@fm2k/engine",
+  "name": "@fm2k/match",
   "version": "1.0.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -9,18 +9,14 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:calibration": "vitest run --config vitest.calibration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:mutation": "stryker run",
     "lint": "eslint src/**/*.ts",
-    "generate-players": "tsx scripts/generate-players.ts",
-    "populate-teams": "tsx scripts/populate-teams.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fm2k/match": "workspace:*",
-    "@fm2k/names": "workspace:*",
-    "@fm2k/state": "workspace:*",
     "@fm2k/timeline": "workspace:*"
   },
   "devDependencies": {
@@ -33,7 +29,6 @@
     "@typescript-eslint/parser": "^8.61.0",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
-    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }

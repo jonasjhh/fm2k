@@ -1,7 +1,7 @@
 import { LeagueFormat } from './league-format.ts';
 import type { FormatContext } from './competition-format.ts';
 import type { CompetitionState } from './competition-types.ts';
-import type { Team, Formation, Player, Position } from '../shared/types.ts';
+import type { Team, Formation, Player, Position } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 
 const SEASON_START = createGameDateTime(2025, 8, 16, 15, 0);

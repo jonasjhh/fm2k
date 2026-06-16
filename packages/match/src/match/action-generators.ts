@@ -118,8 +118,10 @@ const FOUL_ON_DRIBBLE = 0.11;        // base chance a dribble is brought down (c
 const FOUL_ON_FAILED_TACKLE = 0.18;  // a mistimed tackle; secondary, same duel from the other side
 const YELLOW_ON_FOUL = 0.14;         // a foul cynical/late enough to be booked
 const STRAIGHT_RED_ON_FOUL = 0.012;  // a foul bad enough to be a straight red
-const CORNER_ON_SAVE = 0.28;         // a saved shot deflected behind
-const CORNER_ON_CLEARED_CROSS = 0.22;
+const CORNER_ON_SAVE = 0.45;         // a saved shot deflected behind
+const CORNER_ON_CLEARED_CROSS = 0.40;
+// Defenders are more careful in their own box, so fouls there (→ penalties) are rarer.
+const BOX_FOUL_FACTOR = 0.55;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -814,22 +816,30 @@ function momentumQuality(state: MatchState): number {
   return (qFactor / cFactor) * (1 + 0.3 * mom);
 }
 
-/** A defender's discipline: clean, composed defenders foul less. Centred ~1.0. */
+/**
+ * A defender's discipline: clean, composed defenders foul a little less. Kept *gently*
+ * tier-sensitive (centred ~1.0, narrow band) so whole lower divisions aren't foul-fests.
+ */
 function foulProneness(player: Player): number {
   const d = (player.attributes.composure + player.attributes.defending) / 2;
-  return clamp(0.5, 1.6, 1 + (50 - d) / 80);
+  return clamp(0.7, 1.3, 1 + (50 - d) / 200);
+}
+
+/** Fouls are rarer in the box (defenders are careful) — keeps penalties realistic. */
+function zoneFoulFactor(state: MatchState): number {
+  return state.ballPosition.zone === 'away_box' ? BOX_FOUL_FACTOR : 1;
 }
 
 /** Did a beaten tackle become a foul? More likely under a heavy press / from a rash defender. */
 function isFoul(state: MatchState, tackler: Player, rng: () => number): boolean {
   const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-  return rng() < FOUL_ON_FAILED_TACKLE * pressFactor * foulProneness(tackler);
+  return rng() < FOUL_ON_FAILED_TACKLE * pressFactor * foulProneness(tackler) * zoneFoulFactor(state);
 }
 
 /** Chance a dribble is fouled by the given defender (press- and discipline-sensitive). */
 function dribbleFoulChance(state: MatchState, fouler: Player): number {
   const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-  return clamp(0, 0.4, FOUL_ON_DRIBBLE * pressFactor * foulProneness(fouler));
+  return clamp(0, 0.4, FOUL_ON_DRIBBLE * pressFactor * foulProneness(fouler) * zoneFoulFactor(state));
 }
 
 function bestBy(players: Player[], skill: (p: Player) => number): Player | null {

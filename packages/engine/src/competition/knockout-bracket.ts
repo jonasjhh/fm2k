@@ -1,4 +1,4 @@
-import type { Team } from '../shared/types.ts';
+import type { Team } from '@fm2k/match';
 import type { BracketSlot, BracketState, KnockoutFormatConfig } from './competition-types.ts';
 
 /** In-place Fisher–Yates shuffle using the injected rng (deterministic in tests). */

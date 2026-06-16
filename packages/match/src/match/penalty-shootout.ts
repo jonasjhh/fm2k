@@ -1,5 +1,5 @@
 import type { Team } from '../shared/types.ts';
-import { getTeamOVR } from '../valuation/valuation.ts';
+import { getTeamOVR } from '../ratings.ts';
 
 export interface ShootoutResult {
   readonly home: number;

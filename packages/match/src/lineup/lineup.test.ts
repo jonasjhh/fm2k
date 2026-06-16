@@ -1,19 +1,17 @@
 import { FORMATION_LINES, buildSlotAssignments } from './lineup.ts';
-import type { Position } from '../shared/types.ts';
-import type { ClubPlayer } from '../club/club-types.ts';
+import type { Position, Player } from '../shared/types.ts';
 
-function player(id: string, position: Position): ClubPlayer {
+function player(id: string, position: Position): Player {
   return {
     id, name: id, nationality: 'n', age: 25, position, potential: 70,
     attributes: {
       speed: 60, strength: 60, agility: 60, passing: 60, finishing: 60,
       technique: 60, defending: 60, stamina: 60, awareness: 60, composure: 60,
     },
-    fitness: 100,
-  } as ClubPlayer;
+  };
 }
 
-const XI: ClubPlayer[] = [
+const XI: Player[] = [
   player('gk', 'GK'),
   player('lb', 'LB'), player('cb1', 'CB'), player('cb2', 'CB'), player('rb', 'RB'),
   player('lm', 'LM'), player('cm1', 'CM'), player('cm2', 'CM'), player('rm', 'RM'),

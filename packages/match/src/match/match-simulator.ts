@@ -5,12 +5,19 @@ export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
   return [event, ...flattenMatchEventChain(event.chainedEvent)];
 }
 import { Player, Team } from '../shared/types.ts';
-import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { type MatchParameters, NEUTRAL_PARAMS, clampParam } from '../tactics/match-parameters.ts';
 import { perMinuteDrain, applyFatigue } from './fatigue.ts';
+import { generateInjuries, type InjuryReport } from './injury.ts';
 
 // Momentum: a goal gives the scorers a short-lived attacking lift that decays each minute.
 const MOMENTUM_ON_GOAL = 35;
 const MOMENTUM_DECAY = 0.72;
+
+// Home advantage as a chance-quality bump (~+10% conversion at neutral via qFactor).
+const HOME_ADVANTAGE_CQ = 16;
+function withHomeAdvantage(p: MatchParameters): MatchParameters {
+  return { ...p, chanceQuality: clampParam(p.chanceQuality + HOME_ADVANTAGE_CQ) };
+}
 import { selectStartingXI } from '../lineup/selection.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
@@ -112,7 +119,10 @@ export class MatchSimulator {
         away: awayPlayers,
       },
       params: {
-        home: this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS,
+        // Home advantage: a modest, realistic edge applied as a chance-quality bump on the
+        // home side (crowd/familiarity) — lifts home win rate and trims draws. Kept on the
+        // params (not in the generators) so the low-level maths stay pure/unit-testable.
+        home: withHomeAdvantage(this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS),
         away: this.config.awayParams ?? this.config.awayTeam.tacticsParams ?? NEUTRAL_PARAMS,
       },
       energy: {
@@ -267,6 +277,16 @@ export class MatchSimulator {
       events: [...this.events],
       finalState: { ...this.currentState },
       statistics: this.calculateStatistics(),
+      injuries: this.generateInjuries(),
+    };
+  }
+
+  /** Injuries picked up over the match, from each side's players and their end energy. */
+  private generateInjuries(): { home: InjuryReport[]; away: InjuryReport[] } {
+    const energy = this.currentState.energy ?? { home: {}, away: {} };
+    return {
+      home: generateInjuries(this.currentState.currentPlayers.home, energy.home, this.rng),
+      away: generateInjuries(this.currentState.currentPlayers.away, energy.away, this.rng),
     };
   }
 

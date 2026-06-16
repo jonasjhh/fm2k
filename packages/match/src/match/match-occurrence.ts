@@ -2,6 +2,7 @@ import type { Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timel
 import type { GameDateTime } from '@fm2k/timeline';
 import { MatchSimulator, isTerminalPhase } from './match-simulator.ts';
 import { simulateShootout } from './penalty-shootout.ts';
+import { generateInjuries } from './injury.ts';
 import type { MatchState, MatchEvent } from './types.ts';
 import type { Team, Player } from '../shared/types.ts';
 
@@ -126,6 +127,10 @@ export class MatchOccurrence implements Occurrence {
       }
     }
 
+    const energy = this.matchState.energy;
+    const homeInjuries = generateInjuries(this.matchState.currentPlayers.home, energy?.home ?? {}, this.rng);
+    const awayInjuries = generateInjuries(this.matchState.currentPlayers.away, energy?.away ?? {}, this.rng);
+
     return [{
       id: `${this.id}-completed`,
       eventType: 'match.completed',
@@ -147,6 +152,8 @@ export class MatchOccurrence implements Occurrence {
           homeEnergy: this.matchState.energy.home,
           awayEnergy: this.matchState.energy.away,
         }),
+        ...(homeInjuries.length > 0 && { homeInjuries }),
+        ...(awayInjuries.length > 0 && { awayInjuries }),
       },
     }];
   }

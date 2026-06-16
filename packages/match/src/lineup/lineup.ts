@@ -1,5 +1,4 @@
-import type { Formation } from '../shared/types.ts';
-import type { ClubPlayer } from '../club/club-types.ts';
+import type { Formation, Player } from '../shared/types.ts';
 
 /** Pitch slots (by position) for each formation, ordered back-to-front. */
 export const FORMATION_LINES: Record<Formation, string[][]> = {
@@ -28,11 +27,11 @@ export const FORMATION_LINES: Record<Formation, string[][]> = {
 export function buildSlotAssignments(
   xiIds: string[],
   benchIds: string[],
-  squad: ClubPlayer[],
+  squad: readonly Player[],
   formation: Formation,
 ): (string | null)[] {
   const slots = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat();
-  const players = xiIds.map(id => squad.find(p => p.id === id)).filter(Boolean) as ClubPlayer[];
+  const players = xiIds.map(id => squad.find(p => p.id === id)).filter(Boolean) as Player[];
   const result: (string | null)[] = Array(slots.length).fill(null);
   const used = new Set<string>();
 

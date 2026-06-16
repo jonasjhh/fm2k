@@ -29,11 +29,15 @@ export type { CountryId } from './data/teams-data.ts';
 export type { CountryData, CountryDivisionData, CountryTeamData, CountryPlayerData, StructuredDivision } from './data/country-data.ts';
 export { getAllDivisions } from './data/country-data.ts';
 
-export { MatchOccurrence } from './match/match-occurrence.ts';
-export { MatchSimulator, isTerminalPhase } from './match/match-simulator.ts';
-export { simulateShootout } from './match/penalty-shootout.ts';
-export type { ShootoutResult } from './match/penalty-shootout.ts';
-export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState } from './match/types.ts';
+export { MatchOccurrence } from '@fm2k/match';
+export { MatchSimulator, isTerminalPhase } from '@fm2k/match';
+export { simulateShootout } from '@fm2k/match';
+export type { ShootoutResult } from '@fm2k/match';
+export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState } from '@fm2k/match';
+export { simulateMatch, generateInjuries, INJURY_TYPES } from '@fm2k/match';
+export type {
+  SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate, InjuryReport,
+} from '@fm2k/match';
 
 export { NameGenerator } from '@fm2k/names';
 export type { Gender, Country, NameCountry } from '@fm2k/names';
@@ -42,13 +46,13 @@ export { PlayerGenerator } from './player/player-generator.ts';
 export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
 
-export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from './shared/types.ts';
+export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from '@fm2k/match';
 
 export type {
   TacticalStyleId, TacticalSliders, TeamTacticsIntent,
   MatchParameters, MatchParameterSet, ParamModifiers, StyleTendency,
   MatchInsight, InsightCategory, MatchInsightInput,
-} from './tactics/index.ts';
+} from '@fm2k/match';
 export {
   TACTICAL_STYLE_IDS, DEFAULT_SLIDERS, defaultIntent,
   NEUTRAL_PARAMS, NEUTRAL_VALUE, PARAM_KEYS, clampParam, clampParams, applyDelta,
@@ -56,7 +60,7 @@ export {
   combine, applySquadDistortion,
   squadSuitability, defensiveSuitability, attackEffectiveness,
   resolveMatchParameters, buildMatchInsight,
-} from './tactics/index.ts';
+} from '@fm2k/match';
 export { v4, EventBus, StateManager } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 
@@ -72,11 +76,11 @@ export {
   calculateTotalChangeCost, hasSectorChanged,
 } from './stadium/stadium.ts';
 export type { SectorKey } from './stadium/stadium.ts';
-export { FORMATION_LINES, buildSlotAssignments } from './lineup/lineup.ts';
+export { FORMATION_LINES, buildSlotAssignments } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, calculateBestFormation, buildXISlotAssignments,
-} from './lineup/selection.ts';
-export type { SelectionOptions } from './lineup/selection.ts';
+} from '@fm2k/match';
+export type { SelectionOptions } from '@fm2k/match';
 export { recentForm, leagueZone } from './league/form.ts';
 export { computeLadderMovements } from './season/promotion.ts';
 export type { LadderDivision } from './season/promotion.ts';

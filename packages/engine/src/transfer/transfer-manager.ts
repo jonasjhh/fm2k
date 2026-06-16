@@ -1,35 +1,18 @@
 import { StateManager } from '@fm2k/state';
 import { PlayerGenerator } from '../player/player-generator.ts';
 import { v4 as uuidv4 } from '@fm2k/state';
-import type { Player, PlayerAttributes, Position } from '../shared/types.ts';
+import type { Player, PlayerAttributes, Position } from '@fm2k/match';
+import { calculateOverall, OVERALL_WEIGHTS } from '@fm2k/match';
 import type { ClubPlayer } from '../club/club-types.ts';
 import type { ClubManager } from '../club/club-manager.ts';
 import type { TransferState, TransferListing } from './transfer-types.ts';
 
+// Re-exported for back-compat: ratings now live in @fm2k/match.
+export { calculateOverall, OVERALL_WEIGHTS };
+
 const POSITIONS: Position[] = [
   'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF',
 ];
-
-// Weights from the plan: finishing + technique dominate, rest equal
-export const OVERALL_WEIGHTS: Record<keyof PlayerAttributes, number> = {
-  finishing:  0.15,
-  technique:  0.15,
-  passing:    0.1,
-  speed:      0.1,
-  strength:   0.1,
-  defending:  0.1,
-  stamina:    0.1,
-  agility:    0.1,
-  awareness:  0.1,
-  composure:  0.1,
-};
-
-export function calculateOverall(attrs: PlayerAttributes): number {
-  return (Object.keys(OVERALL_WEIGHTS) as Array<keyof PlayerAttributes>).reduce(
-    (sum, key) => sum + attrs[key] * OVERALL_WEIGHTS[key],
-    0,
-  );
-}
 
 function calculateAskingPrice(attrs: PlayerAttributes): number {
   const overall = calculateOverall(attrs);

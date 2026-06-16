@@ -1,4 +1,4 @@
-import type { Team } from '../shared/types.ts';
+import type { Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import { addDays } from '@fm2k/timeline';
 import type { Fixture } from './league-types.ts';

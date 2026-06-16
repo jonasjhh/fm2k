@@ -1,7 +1,7 @@
 import { SeasonManager } from './season-manager.ts';
 import type { SeasonManagerConfig } from './season-manager.ts';
 import type { DivisionConfig } from './season-types.ts';
-import type { Team, Player, Formation } from '../shared/types.ts';
+import type { Team, Player, Formation } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);

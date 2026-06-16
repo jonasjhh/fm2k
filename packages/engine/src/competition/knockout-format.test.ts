@@ -3,7 +3,7 @@ import { CompetitionManager } from './competition-manager.ts';
 import { cupRoundDate } from './cup-scheduling.ts';
 import type { FormatContext, MatchOutcome } from './competition-format.ts';
 import type { CompetitionState, KnockoutFormatConfig } from './competition-types.ts';
-import type { Team, Formation, Player, Position } from '../shared/types.ts';
+import type { Team, Formation, Player, Position } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 
 const SEASON_START = createGameDateTime(2025, 8, 16, 15, 0);

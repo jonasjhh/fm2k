@@ -2,8 +2,8 @@ import { StateManager } from '@fm2k/state';
 import { TickEngine, EventLog } from '@fm2k/timeline';
 import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import type { EventBus } from '@fm2k/state';
-import { MatchOccurrence } from '../match/match-occurrence.ts';
-import type { Team } from '../shared/types.ts';
+import { MatchOccurrence } from '@fm2k/match';
+import type { Team } from '@fm2k/match';
 import type { GameEvents } from '../game-events.ts';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,

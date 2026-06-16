@@ -1,5 +1,5 @@
-import type { Player, Formation } from '../shared/types.ts';
-import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
+import type { Player, Formation } from '@fm2k/match';
+import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 
 export interface ClubPlayer extends Player {

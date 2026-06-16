@@ -1,5 +1,5 @@
 import { PlayerGenerator } from './player-generator';
-import type { Position, PlayerAttributes } from '../shared/types.ts';
+import type { Position, PlayerAttributes } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
   'speed', 'strength', 'agility', 'passing', 'finishing',

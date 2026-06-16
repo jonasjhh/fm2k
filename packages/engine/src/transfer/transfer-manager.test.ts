@@ -1,7 +1,7 @@
 import { TransferManager, calculateOverall, OVERALL_WEIGHTS } from './transfer-manager.ts';
 import type { TransferManagerConfig } from './transfer-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
-import type { Player, PlayerAttributes, Formation } from '../shared/types.ts';
+import type { Player, PlayerAttributes, Formation } from '@fm2k/match';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

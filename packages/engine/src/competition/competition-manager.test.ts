@@ -5,7 +5,7 @@ import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime, addDays, addMinutes } from '@fm2k/timeline';
 import { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
-import type { Team, Formation, Player, Position } from '../shared/types.ts';
+import type { Team, Formation, Player, Position } from '@fm2k/match';
 import type { KnockoutFormatConfig } from './competition-types.ts';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);

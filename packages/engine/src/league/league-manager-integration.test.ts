@@ -4,7 +4,7 @@ import type { ClubManagerConfig } from '../club/club-manager.ts';
 import { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import { createGameDateTime } from '@fm2k/timeline';
-import type { Team, Player, Formation } from '../shared/types.ts';
+import type { Team, Player, Formation } from '@fm2k/match';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);
 

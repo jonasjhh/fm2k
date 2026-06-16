@@ -1,10 +1,7 @@
-import { calculateOverall } from '../transfer/transfer-manager.ts';
-import type { Player } from '../shared/types.ts';
+import { calculateOverall, getTeamOVR } from '@fm2k/match';
 
-export function getTeamOVR(starters: Player[]): number {
-  if (starters.length === 0) {return 0;}
-  return Math.round(starters.reduce((s, p) => s + calculateOverall(p.attributes), 0) / starters.length);
-}
+// getTeamOVR now lives in @fm2k/match; re-exported here for back-compat.
+export { getTeamOVR };
 
 export function sellPrice(attrs: Parameters<typeof calculateOverall>[0]): number {
   return Math.max(1_000, Math.round(calculateOverall(attrs)) * 5_000);

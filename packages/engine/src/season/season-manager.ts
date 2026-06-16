@@ -1,6 +1,6 @@
 import { StateManager } from '@fm2k/state';
 import { LeagueManager } from '../league/league-manager.ts';
-import type { Team } from '../shared/types.ts';
+import type { Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueState } from '../league/league-types.ts';
 import type { SeasonState, DivisionConfig, SeasonHistoryEntry } from './season-types.ts';

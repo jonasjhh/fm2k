@@ -1,5 +1,5 @@
 import { drawBracket, recordWinner, roundComplete, roundTieCounts, shuffle } from './knockout-bracket.ts';
-import type { Team, Formation } from '../shared/types.ts';
+import type { Team, Formation } from '@fm2k/match';
 import type { KnockoutFormatConfig } from './competition-types.ts';
 
 function mulberry32(seed: number): () => number {

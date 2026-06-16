@@ -1,5 +1,5 @@
-import { calculateBestFormation } from '../lineup/selection.ts';
-import type { Team, Player, Position } from '../shared/types.ts';
+import { calculateBestFormation } from '@fm2k/match';
+import type { Team, Player, Position } from '@fm2k/match';
 
 export interface CountryPlayerData {
   id: string;

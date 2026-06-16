@@ -1,4 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
+import type { InjuryReport } from '@fm2k/match';
 import type { LeagueStanding } from './league/league-types.ts';
 
 export type GameEvents = {
@@ -22,6 +23,9 @@ export type GameEvents = {
     // Final per-player energy 0..100 (in-match fatigue); used to drain post-match fitness.
     homeEnergy?: Record<string, number>
     awayEnergy?: Record<string, number>
+    // Injuries picked up in the match (pre-mitigation); the club applies medical mitigation.
+    homeInjuries?: InjuryReport[]
+    awayInjuries?: InjuryReport[]
   }
   'player.injured': {
     playerId: string

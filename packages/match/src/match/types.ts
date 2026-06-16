@@ -1,5 +1,6 @@
 import { Player, Team } from '../shared/types';
 import type { MatchParameterSet } from '../tactics/match-parameters.ts';
+import type { InjuryReport } from './injury.ts';
 
 export type EventType =
   | 'kickoff'
@@ -92,6 +93,8 @@ export interface MatchResult {
   events: MatchEvent[];
   finalState: MatchState;
   statistics: MatchStatistics;
+  /** Injuries picked up during the match (pre-mitigation), per side. */
+  injuries: { home: InjuryReport[]; away: InjuryReport[] };
 }
 
 export interface MatchStatistics {

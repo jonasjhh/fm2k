@@ -1,5 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
-import type { Team } from '../shared/types.ts';
+import type { Team } from '@fm2k/match';
 import type { CompetitionKind, CompetitionState, DecidedBy } from './competition-types.ts';
 
 /** A completed match handed to a format for it to record. */
