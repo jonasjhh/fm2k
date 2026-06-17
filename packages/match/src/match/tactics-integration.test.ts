@@ -1,7 +1,5 @@
 import { MatchSimulator } from './match-simulator.ts';
 import { NEUTRAL_PARAMS, type MatchParameters } from '../tactics/match-parameters.ts';
-import { combine } from '../tactics/translate.ts';
-import { DEFAULT_SLIDERS } from '../tactics/intent-types.ts';
 import type { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
 
 function mulberry32(seed: number): () => number {

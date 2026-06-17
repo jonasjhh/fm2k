@@ -239,7 +239,7 @@ export class ActionSelector {
     }
 
     const generator = this.actionGenerators.get(chosenAction.type);
-    return generator?.generateEvent(activePlayer, state) || null;
+    return generator?.generateEvent(activePlayer, state) ?? null;
   }
 
   private getActivePlayer(state: MatchState): Player | null {

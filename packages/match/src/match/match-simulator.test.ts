@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 import { MatchSimulator, flattenMatchEventChain } from './match-simulator.ts';
 import { Team, Player, Formation } from '../shared/types.ts';
 

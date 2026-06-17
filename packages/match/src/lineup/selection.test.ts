@@ -84,7 +84,6 @@ describe('selectStartingXI:', () => {
       makePlayer('strong-st', 'ST', 90),
     ];
     const xi = selectStartingXI(squad, '4-4-2');
-    const strikers = xi.filter(p => p.position === 'ST');
     // 4-4-2 has two ST slots; with only two strikers both start, but the strong one is picked first
     expect(xi.find(p => p.position === 'ST' && p.id === 'strong-st')).toBeDefined();
   });

@@ -129,7 +129,7 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
         ))}
       </Grid>
 
-      {(player.injury || player.suspension) && (
+      {(player.injury ?? player.suspension) && (
         <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="caption" color="text.secondary">Status</Typography>
           <PlayerStatusChip player={player} />

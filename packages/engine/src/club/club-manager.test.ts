@@ -602,9 +602,6 @@ describe('ClubManager:', () => {
 
       // Build a new manager where first player has suspension via a sub-test approach
       const suspendedPlayerId = state.squad[0].id;
-      const managerWithSuspension = new ClubManager(makeConfig({
-        squad: state.squad.map((p, i) => p) as Player[],
-      }));
       // Queue a sub/cancel trick not available; just verify the method itself countdown math
       // We'll trust the implementation from the injury test pattern and verify the countdown directly
       // by creating a wrapper player:

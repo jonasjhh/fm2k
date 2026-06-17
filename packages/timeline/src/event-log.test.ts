@@ -1,5 +1,4 @@
 import { EventLog } from './event-log.ts';
-import type { EventLogQuery } from './event-log.ts';
 import type { OccurrenceEvent } from './occurrence.ts';
 import { createGameDateTime } from './game-date-time.ts';
 
