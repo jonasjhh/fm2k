@@ -1,33 +1,47 @@
-# Tactics system — levers & conditions
+# Tactics system — levers, conditions & attributes
 
 This document describes the tactical system the manager interacts with: the
-**levers** the player sets, how they turn into match behaviour, and the
-**conditions under which each strategy thrives or struggles**.
+**levers** the player sets (formation, style, sliders), how they turn into match
+behaviour, **how player attributes feed in**, and the **conditions under which each
+strategy thrives or struggles**.
 
 It is meant as a design/balance reference. The numbers quoted here are the
 source-of-truth values in this folder (`style-tendencies.ts`,
 `formation-tendencies.ts`, `suitability.ts`, `squad-influence.ts`,
 `resolve.ts`) and in the simulator (`../match/`). If you change those, update
-this doc.
+this doc. Measured outcome distributions live in [../../BALANCE.md](../../BALANCE.md).
+
+## Overview (the one-paragraph version)
+
+You set three levers — a **formation** (shape), a **style** (behaviour), and three
+**sliders** (fine-tuning) — and you pick the **XI**. These combine into 10 universal
+match parameters; your squad's average attributes then *distort* those parameters,
+and a fit/mismatch against the opponent nudges your attacking output. The simulator
+plays out a minute-by-minute action loop driven by **those parameters plus each
+player's attributes**. The guiding principle: **tactics shade results; squad quality
+and fit decide them.** A good plan your players can execute, against an opponent
+ill-built to stop it, is a real edge — but it never overrides a clear quality gap.
 
 > **Scale note:** player attributes run **1–99** (tier-3 ~10–40, tier-2 ~30–60,
 > tier-1 ~40–70, world class 80+, the very best 90+). The simulator is calibrated
-> for this: every per-action rate (pass retention, dribble, tackle, interception,
-> shot conversion) is a **parity-centred differential** — at parity (an even match
-> at *any* tier) all rates are identical, so scoring is tier-flat (most games end
-> ~1–2 goals a side); a quality gap shifts the rates and produces dominance, up to
-> blowouts on a big gap. See `../match/action-generators.ts` (tuning constants at
-> the top) and `../match/scale-calibration.test.ts`.
+> for this: the **contest** that resolves every action (a defender winning the ball)
+> and **shot conversion** (finisher vs keeper) are **parity-centred differentials** —
+> at parity (an even match at *any* tier) the rates are identical, so scoring is
+> tier-flat (even matches total ~2.7 goals); a quality gap shifts the rates and
+> produces dominance, up to blowouts on a big gap. See
+> `../match/action-generators.ts` (tuning constants at the top),
+> `../match/scale-calibration.test.ts` and [../../BALANCE.md](../../BALANCE.md).
 >
 > **Defenders gate chance *creation*, not just conversion.** A stronger defence
 > (a) compresses space — the ball reaches dangerous zones less often (`progressionEdge`
 > folds defender quality into `advanceFactor`) — and (b) denies clean looks — fewer
-> shots are *worked* (shot-taking is parity-centred on finisher vs defence). So a
-> poor attacker facing a good defence is **shut down before it shoots**, rather than
-> taking the same volume of shots and missing them. Both terms are 1.0 at parity, so
-> even matches are unchanged. On a turnover the ball is **mirrored** into the new
-> possessor's frame (winning it deep leaves you defending, not instantly attacking),
-> which removed an artificial end-to-end shot inflation.
+> shots are *worked* (shot-taking is parity-centred on finisher vs defence) — and
+> (c) **wins more contests** outright, since a better defender beats the attacker's
+> action more often. So a poor attacker facing a good defence is **shut down before it
+> shoots**, rather than taking the same volume of shots and missing them. The parity
+> terms are 1.0 at parity, so even matches are unchanged. On a turnover the ball is
+> **mirrored** into the new possessor's frame (winning it deep leaves you defending,
+> not instantly attacking).
 
 ---
 
@@ -95,13 +109,56 @@ for nuance, dangerous if you fight your own style.
 | `transitionSpeed` | how fast you advance on the ball (counters) | — |
 | `shotFrequency` | how often shots are taken in the final third | — |
 | `chanceQuality` | conversion of the chances you do work | — |
-| `fatigueRate` | *(reserved — no effect until in-match fatigue ships)* | — |
+| `fatigueRate` | how fast energy drains in-match (now live — see *In-match fatigue*) | — |
 | `spaceLeftBehind` | how easily the **opponent** advances/gets shots (the cost of a high line) | — |
 | `buildUpWidth` | bias toward the flanks vs the centre | — |
 
 The dominant defensive lever is **`defensiveCompactness`**: it both resists ball
 progression into the box *and* divides shot conversion. The dominant attacking
 levers are **`chanceQuality`** and **`shotFrequency`**.
+
+---
+
+## How player attributes matter
+
+Attributes are the **strongest** lever — well above tactics (a one-tier quality gap
+is worth ~150%+ on conversion; the tactical fit swing is ~±8–18%). They feed the
+match in **three** ways:
+
+1. **Per-action skill** — every action in the match is a *skill composite* of the 10
+   base attributes vs the contesting defender (or keeper). The composites are the
+   single source of truth in `SkillCalculator` (`../match/action-generators.ts`),
+   with the component weights documented at each definition.
+2. **Squad distortion** — the XI's *average* attributes nudge the 10 parameters
+   (`squad-influence.ts`): e.g. low stamina weakens a press, low composure/awareness
+   leaks possession, high speed sharpens counters.
+3. **Suitability / fit** — how well the XI's attributes match the chosen style drives
+   attacking effectiveness (`suitability.ts`; see the asymmetric rule below).
+
+There are **10 attributes** (1–99). Where each one bites:
+
+| Attribute | Drives… |
+|---|---|
+| **Passing** | short & long passing, through-balls (vision pass), crossing |
+| **Technique** | dribbling, ball retention under pressure, passing & finishing touch |
+| **Speed** | dribbling, **transition/counters** (squad lever), pressing effectiveness |
+| **Agility** | dribbling, aerial/heading, interception reach, **GK shot-stopping** |
+| **Strength** | aerial duels & headers, long-ball hold-up, tackling, clearances |
+| **Finishing** | shot conversion, headers, penalties, free kicks |
+| **Defending** | tackling, interception, clearing, the team's defensive-line strength |
+| **Awareness** | through-ball vision, reading/interception, tackling, GK positioning, def line |
+| **Composure** | finishing & penalties, retaining the ball, GK nerve, **fewer fouls** (discipline) |
+| **Stamina** | resists in-match **energy drain**; underpins a sustainable press/high tempo |
+
+Notes:
+- A **goalkeeper** saves on `agility` (reflexes) + `awareness` (positioning) +
+  `composure` (nerve) — so a keeper's outfield-flavoured attributes are what matter.
+- The **contest** (turnover) pits the attacker's relevant skill against the *specific*
+  contesting defender's `tackling` (vs a dribble) or `interception` (vs a pass) — so
+  an individual defender's quality matters per event, not just a team average.
+- **Out-of-position** players are penalised: a player fielded away from their natural
+  role has their effective attributes reduced (`getEffectiveAttributes` in
+  `../shared/position-rules.ts`), so squad *balance* and correct selection matter.
 
 ---
 
@@ -205,23 +262,32 @@ built to stop it, a mismatched plan is punished, while a well-built one carries.
 The simulator plays out an action loop. Beyond the tactical dials above, these
 attribute-driven systems now run inside it:
 
-### Action vocabulary
-Possession plays out through real actions, each a skill composite vs the defence
-(all skills live in `SkillCalculator` in `../match/action-generators.ts`, with the
-component attributes + weights documented at each definition):
+### Action vocabulary (possessor acts → a defender contests)
+Each minute the **possessor's** active player picks an *offensive* action, then a
+**selected defender** contests it (`resolveContest`). The contest is the single
+turnover source — winning it produces a **tackle** (beating a dribble), an
+**interception** (cutting out a pass) or a **clearance** (won deep in the box,
+hoofed to midfield); losing it lets the action's success path run. `shot` is the
+exception — resolved by the keeper, not an outfield contest. So a specific
+defender's tackling/reading contests each action (individual attributes matter per
+event, not just a team average). All skills live in `SkillCalculator` in
+`../match/action-generators.ts`, with the component attributes + weights documented
+at each definition:
 
 - **Short pass** (safe, passing/technique) ↔ **Long pass** (direct, skips a zone;
   a minority choice ramped up by passing risk + transition speed).
-- **Through ball** — vision/passing; splits the line or is intercepted. Ramped by
-  passing risk.
-- **Dribble** — technique/pace vs the defender (and the main source of fouls).
+- **Through ball** — vision/passing; splits the line (high contest exposure: cut out
+  more often). Ramped by passing risk.
+- **Dribble** — technique/pace vs the contesting defender's tackling (and the main
+  source of fouls).
 - **Cross** (passing, from wide) → **header** (a contested aerial: strength +
   jumping vs the defenders' aerial and the keeper). Ramped by build-up width.
-- **Shot** (finishing vs keeper) and **clearance** (defending/strength, relieves
-  box pressure).
+- **Shot** (finishing vs keeper).
 
 So `passingRisk` and `buildUpWidth` are now *visible*: more through-balls and long
-balls under risk, more crosses → headers under width.
+balls under risk, more crosses → headers under width. Per-action **contest exposure**
+(`CONTEST_PARITY`) makes a through-ball/cross turn over far more than a safe short
+pass.
 
 ### In-match fatigue (the tempo trade-off)
 Every player has **energy** (0..100, seeded from fitness) that drains each minute
@@ -235,9 +301,9 @@ so neither extreme is universally correct. Final energy drains post-match fitnes
 which recovers between matchdays.
 
 ### Discipline & set pieces
-- **Fouls** come from the attacker-vs-defender *challenge* (the dribble is the
-  canonical source), more likely under a heavy **press** and from low-**composure**/
-  -**defending** defenders. A foul concedes a **penalty** (in the box), a **direct
+- **Fouls** come from the *contest* (the defender's challenge), heavily weighted to
+  carries (the dribble is the canonical source via `FOUL_EXPOSURE`), more likely under
+  a heavy **press** and from low-**composure**/-**defending** defenders. A foul concedes a **penalty** (in the box), a **direct
   free kick** (in range) or a restart, and may bring a **yellow** → second-yellow/
   straight **red** (→ the side plays a man down). Discipline is the real cost of a
   reckless press.
@@ -247,7 +313,8 @@ which recovers between matchdays.
   quality.
 
 All of the above are kept deliberately **moderate** so they add texture without
-dominating (final rates are tuned in the rebalance pass).
+dominating; the calibrated per-match rates (fouls, cards, penalties, corners,
+injuries) are documented in [../../BALANCE.md](../../BALANCE.md).
 
 ---
 

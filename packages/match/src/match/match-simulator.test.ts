@@ -131,8 +131,9 @@ describe('MatchSimulator:', () => {
     });
 
     test('given simulated match when getting final state then should track player lineups', () => {
-      // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      // Arrange — a constant rng never trips a foul (foul chance < 0.4), so no sending-off
+      // perturbs the count; this isolates "lineups are tracked" from discipline.
+      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: () => 0.5 });
 
       // Act
       const result = simulator.simulate();

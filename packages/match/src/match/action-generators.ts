@@ -1,6 +1,6 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, Position } from '../shared/types.ts';
-import { ActionGenerator } from './action-selector.ts';
+import type { ActionGenerator } from './action-selector.ts';
 import { getEffectiveAttributes } from '../shared/position-rules.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 
@@ -88,16 +88,31 @@ export class SkillCalculator {
 // skill) and shifted by the differential / SPREAD. At parity — i.e. an even match
 // at ANY tier — all rates are identical, so scoring is tier-flat; a quality gap
 // shifts the rates and produces dominance (and, at the extreme, blowouts).
-const PASS_RETAIN_PARITY = 0.74;   // pass-completion at parity
+const PASS_RETAIN_PARITY = 0.74;   // pass propensity weight at parity (selection, not outcome)
 const PASS_RETAIN_SPREAD = 320;
 const PASS_FORWARD_BASE = 0.24;    // base chance a completed pass advances a zone
 const SHOT_TAKE_PARITY = 0.42;     // chance of shooting when in the final third (skill-light)
-const TACKLE_PARITY = 0.30;        // tackle success at parity
-const TACKLE_SPREAD = 300;
-const INTERCEPT_PARITY = 0.16;     // interception success at parity
-const INTERCEPT_SPREAD = 320;
 const CONV_PARITY = 0.11;          // shot→goal conversion at parity (before zone/params)
 const CONV_SPREAD = 220;
+
+// ── the contest (defender resolves the attacker's action) ─────────────────────
+// Each non-shot offensive action is contested by a single selected defender. The
+// defender-win chance (= the turnover chance) is parity-centred on the *defender's*
+// relevant skill vs the *attacker's* relevant skill, so even matches at any tier turn
+// the ball over at the same rate while a quality gap shifts it. The per-action parity
+// IS the action's "exposure": a sideways short pass is rarely lost, a through-ball or a
+// dribble often is. (Replaces the old embedded per-generator success rolls and the
+// standalone tackle/interception/clearance actions — turnovers now flow through here.)
+const CONTEST_SPREAD = 300;        // (defenderSkill − attackerSkill) → win-chance shift
+const CONTEST_PARITY: Record<string, number> = {
+  short_pass:   0.32,   // safe ball, seldom intercepted
+  long_pass:    0.46,   // direct ball cut out more often
+  through_ball: 0.54,   // high-risk killer pass
+  cross:        0.54,   // often cleared
+  dribble:      0.50,   // beaten/tackled frequently
+};
+const CONTEST_LO = 0.05;
+const CONTEST_HI = 0.85;
 // Defenders gate chance *creation*, not just conversion: a stronger defence
 // physically compresses space (the ball reaches dangerous zones less often) and
 // denies clean looks (fewer shots are worked). Both are parity-centred — equal
@@ -114,14 +129,23 @@ const SHOT_TAKE_SPREAD = 300;      // attacker (finisher) vs defence → how oft
 // foul source and the tackle adds only a little on top — we don't double-count it. Rates
 // are kept deliberately moderate: enough that fouls/cards matter, not so many that the
 // match is all free kicks. (Aerial duels at crosses/corners are a natural future source.)
-const FOUL_ON_DRIBBLE = 0.11;        // base chance a dribble is brought down (canonical duel foul)
-const FOUL_ON_FAILED_TACKLE = 0.18;  // a mistimed tackle; secondary, same duel from the other side
+// A challenge can become a foul rather than a clean win/loss. Fouls come overwhelmingly
+// from challenges on the ball *carrier* (dribbles), much less from contesting a pass — so
+// the base is scaled by a per-action foul exposure.
+const FOUL_ON_CHALLENGE = 0.07;      // base chance a contest is a foul (before exposure/press/discipline)
+const FOUL_EXPOSURE: Record<string, number> = {
+  dribble:      1.0,   // the carrier is challenged directly — the canonical foul source
+  cross:        0.4,
+  through_ball: 0.4,
+  long_pass:    0.25,
+  short_pass:   0.2,
+};
 const YELLOW_ON_FOUL = 0.14;         // a foul cynical/late enough to be booked
 const STRAIGHT_RED_ON_FOUL = 0.012;  // a foul bad enough to be a straight red
 const CORNER_ON_SAVE = 0.45;         // a saved shot deflected behind
 const CORNER_ON_CLEARED_CROSS = 0.40;
 // Defenders are more careful in their own box, so fouls there (→ penalties) are rarer.
-const BOX_FOUL_FACTOR = 0.55;
+const BOX_FOUL_FACTOR = 0.35;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -161,7 +185,7 @@ const MIRROR_ZONE: Record<BallPosition['zone'], BallPosition['zone']> = {
  * who has the ball the pitch direction flips too: winning it deep in your own
  * box (a clearance/tackle) leaves you defending, not instantly attacking.
  */
-function mirrorBall(ball: BallPosition): BallPosition {
+export function mirrorBall(ball: BallPosition): BallPosition {
   const side = ball.side === 'left' ? 'right' : ball.side === 'right' ? 'left' : ball.side;
   return { zone: MIRROR_ZONE[ball.zone], side };
 }
@@ -250,44 +274,29 @@ export class ShortPassGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    // Retention depends on the passer vs the opposing defence, centred at parity,
-    // so even matches at any tier retain similarly; a quality gap shifts it.
+    // Selection weight (a propensity, not the outcome — turnovers are resolved by the
+    // contest). Centred so a stronger passer vs a weaker defence is favoured.
     const atk = player.attributes.passing * 0.6 + player.attributes.technique * 0.4;
     const diff = atk - defLineStrength(state);
-    const success = clamp(0.4, 0.94, PASS_RETAIN_PARITY + diff / PASS_RETAIN_SPREAD);
-    return Math.min(success * this.getPositionModifier(state.ballPosition), 0.95);
+    const w = clamp(0.4, 0.94, PASS_RETAIN_PARITY + diff / PASS_RETAIN_SPREAD);
+    return Math.min(w * this.getPositionModifier(state.ballPosition), 0.95);
   }
 
+  // Success-only: this runs when the contest did not win the ball back (see resolveContest).
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = this.rng() < this.calculateProbability(player, state);
-    const newState = this.createNewState(state, success);
-
     return {
       id: makeId(),
       type: 'short_pass',
       minute: state.minute,
       team: state.possession,
       playerId: player.id,
-      description: success ?
-        `${player.name} completes a short pass` :
-        `${player.name}'s pass is intercepted`,
-      resultingState: newState,
+      description: `${player.name} completes a short pass`,
+      resultingState: { ...state, ballPosition: this.getNewBallPosition(state) },
     };
   }
 
   private getPositionModifier(ballPosition: BallPosition): number {
     return ballPosition.zone === 'home_box' || ballPosition.zone === 'home_third' ? 1.1 : 0.9;
-  }
-
-  private createNewState(state: MatchState, success: boolean): MatchState {
-    const newState = { ...state };
-    if (!success) {
-      newState.possession = state.possession === 'home' ? 'away' : 'home';
-      newState.ballPosition = mirrorBall(state.ballPosition);
-    } else {
-      newState.ballPosition = this.getNewBallPosition(state);
-    }
-    return newState;
   }
 
   private getNewBallPosition(state: MatchState): BallPosition {
@@ -318,35 +327,23 @@ export class DribbleGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    // Differential (dribbler vs defence), centred at parity so even matches at
-    // any tier dribble through at a similar rate.
+    // Selection weight (a propensity, not the outcome — being tackled is resolved by
+    // the contest). A better dribbler vs a weaker defence is more likely to try it on.
     const diff = SkillCalculator.dribbling(player) - defLineStrength(state);
     const base = clamp(0.2, 0.85, 0.5 + diff / 300);
     return Math.min(base * this.getZoneModifier(state.ballPosition), 0.85);
   }
 
+  // Success-only: runs when the contest did not stop the dribble (see resolveContest).
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    // A dribble is the most common attacker-vs-defender duel, so it is the main
-    // source of fouls: a defender may bring the dribbler down → free kick (and
-    // maybe a card) to the attacking side.
-    const fouler = pickRandom(getDefenders(state), this.rng);
-    if (fouler && this.rng() < dribbleFoulChance(state, fouler)) {
-      return resolveFoul(state, fouler, this.rng);
-    }
-
-    const success = this.rng() < this.calculateProbability(player, state);
-    const newState = this.createNewState(state, success);
-
     return {
       id: makeId(),
       type: 'dribble',
       minute: state.minute,
       team: state.possession,
       playerId: player.id,
-      description: success ?
-        `${player.name} beats the defender with skillful dribbling` :
-        `${player.name} loses the ball while dribbling`,
-      resultingState: newState,
+      description: `${player.name} beats the defender with skillful dribbling`,
+      resultingState: { ...state, ballPosition: this.advanceBallPosition(state) },
     };
   }
 
@@ -359,17 +356,6 @@ export class DribbleGenerator implements ActionGenerator {
     case 'away_box':    return 1.1;
     default:            return 1.0;
     }
-  }
-
-  private createNewState(state: MatchState, success: boolean): MatchState {
-    const newState = { ...state };
-    if (!success) {
-      newState.possession = state.possession === 'home' ? 'away' : 'home';
-      newState.ballPosition = mirrorBall(state.ballPosition);
-    } else {
-      newState.ballPosition = this.advanceBallPosition(state);
-    }
-    return newState;
   }
 
   private advanceBallPosition(state: MatchState): BallPosition {
@@ -387,142 +373,6 @@ export class DribbleGenerator implements ActionGenerator {
           currentPosition.side === 'right' ? 'center' :
             this.rng() < 0.5 ? 'left' : 'right'),
     };
-  }
-}
-
-// ── TackleGenerator ───────────────────────────────────────────────────────────
-// Picks a random defender from the non-possessing team to contest the ball.
-
-export class TackleGenerator implements ActionGenerator {
-  constructor(private readonly rng: () => number = Math.random) {}
-
-  canPerform(player: Player, state: MatchState): boolean {
-    if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
-    return getDefenders(state).length > 0;
-  }
-
-  calculateProbability(player: Player, state: MatchState): number {
-    // Tackler vs the carrier's ball control, parity-centred so turnover rates are
-    // tier-flat in even matches.
-    const diff = SkillCalculator.tackling(player) - atkBallControl(state);
-    const base = clamp(0.08, 0.6, TACKLE_PARITY + diff / TACKLE_SPREAD);
-    const zoneModifier = this.getZoneModifier(state.ballPosition, defTeamSide(state));
-    const d = defParams(state);
-    const pressFactor = 0.8 + d.pressIntensity / 250;        // neutral 1.0
-    const compactFactor = 0.9 + d.defensiveCompactness / 500; // neutral 1.0
-    return Math.min(base * zoneModifier * pressFactor * compactFactor, 0.8);
-  }
-
-  generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const tackler = pickRandom(getDefenders(state), this.rng);
-    if (!tackler) { return null; }
-
-    const success = this.rng() < this.calculateProbability(tackler, state);
-
-    // A beaten tackle can be a foul → card and/or a set piece for the attackers.
-    if (!success && isFoul(state, tackler, this.rng)) {
-      return resolveFoul(state, tackler, this.rng);
-    }
-
-    const newState = this.createNewState(state, success, tackler);
-    const side = defTeamSide(state);
-
-    return {
-      id: makeId(),
-      type: 'tackle',
-      minute: state.minute,
-      team: side,
-      playerId: tackler.id,
-      description: success ?
-        `${tackler.name} wins the ball with a clean tackle` :
-        `${tackler.name} attempts a tackle but ${player.name} keeps possession`,
-      resultingState: newState,
-    };
-  }
-
-  private getZoneModifier(ballPosition: BallPosition, defSide: 'home' | 'away'): number {
-    if (defSide === 'home') {
-      switch (ballPosition.zone) {
-      case 'home_box':    return 1.4;
-      case 'home_third':  return 1.2;
-      case 'middle_third': return 1.0;
-      case 'away_third':  return 0.8;
-      case 'away_box':    return 0.6;
-      }
-    } else {
-      switch (ballPosition.zone) {
-      case 'away_box':    return 1.4;
-      case 'away_third':  return 1.2;
-      case 'middle_third': return 1.0;
-      case 'home_third':  return 0.8;
-      case 'home_box':    return 0.6;
-      }
-    }
-    return 1.0;
-  }
-
-  private createNewState(state: MatchState, success: boolean, tackler: Player): MatchState {
-    if (!success) { return state; }
-    return {
-      ...state,
-      possession: defTeamSide(state),
-      ballPosition: mirrorBall(state.ballPosition),
-    };
-  }
-}
-
-// ── InterceptionGenerator ─────────────────────────────────────────────────────
-// Picks a random mid/def player from the non-possessing team.
-
-export class InterceptionGenerator implements ActionGenerator {
-  constructor(private readonly rng: () => number = Math.random) {}
-
-  canPerform(player: Player, state: MatchState): boolean {
-    if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
-    return defPlayers(state).filter(p => p.position !== 'GK').length > 0;
-  }
-
-  calculateProbability(player: Player, state: MatchState): number {
-    // Interceptor's reading vs the carrier's control, parity-centred.
-    const diff = SkillCalculator.interception(player) - atkBallControl(state);
-    const base = clamp(0.04, 0.4, INTERCEPT_PARITY + diff / INTERCEPT_SPREAD);
-    const positionModifier = this.getPositionModifier(player.position);
-    const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-    return Math.min(base * positionModifier * pressFactor, 0.4);
-  }
-
-  generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const candidates = defPlayers(state).filter(p => p.position !== 'GK');
-    const interceptor = pickRandom(candidates, this.rng);
-    if (!interceptor) { return null; }
-
-    const success = this.rng() < this.calculateProbability(interceptor, state);
-    const side = defTeamSide(state);
-
-    return {
-      id: makeId(),
-      type: 'interception',
-      minute: state.minute,
-      team: side,
-      playerId: interceptor.id,
-      description: success ?
-        `${interceptor.name} intercepts the pass` :
-        `${interceptor.name} fails to intercept the ball`,
-      resultingState: success
-        ? { ...state, possession: side, ballPosition: mirrorBall(state.ballPosition) }
-        : state,
-    };
-  }
-
-  private getPositionModifier(position: string): number {
-    const modifiers: Record<string, number> = {
-      'CB':  1.3, 'CDM': 1.2,
-      'LB':  1.1, 'RB':  1.1,
-      'CM':  1.0, 'CAM': 0.8,
-      'LW':  0.7, 'RW':  0.7,
-      'ST':  0.6,
-    };
-    return modifiers[position] ?? 1.0;
   }
 }
 
@@ -665,30 +515,26 @@ export class LongPassGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    // A direct ball completes less than a short one; passing range + power, vs the defence.
+    // Selection weight (propensity) — being cut out is resolved by the contest.
     const atk = player.attributes.passing * 0.7 + player.attributes.strength * 0.3;
     const diff = atk - defLineStrength(state);
     return clamp(0.3, 0.85, 0.58 + diff / PASS_RETAIN_SPREAD);
   }
 
+  // Success-only: runs when the contest did not cut the ball out.
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = this.rng() < this.calculateProbability(player, state);
-    const newState = { ...state };
-    if (!success) {
-      newState.possession = defTeamSide(state);
-      newState.ballPosition = mirrorBall(state.ballPosition);
-    } else {
-      const idx = zoneIndex(state.ballPosition.zone);
-      const jump = this.rng() < Math.min(0.9, 0.5 * advanceFactor(state)) ? 2 : 1;
-      newState.ballPosition = {
-        zone: ZONES[Math.min(idx + jump, ZONES.length - 1)],
-        side: pickAdvanceSide(state.ballPosition.side, atkParams(state).buildUpWidth, this.rng),
-      };
-    }
+    const idx = zoneIndex(state.ballPosition.zone);
+    const jump = this.rng() < Math.min(0.9, 0.5 * advanceFactor(state)) ? 2 : 1;
     return {
       id: makeId(), type: 'long_pass', minute: state.minute, team: state.possession, playerId: player.id,
-      description: success ? `${player.name} hits a long ball forward` : `${player.name}'s long ball is cut out`,
-      resultingState: newState,
+      description: `${player.name} hits a long ball forward`,
+      resultingState: {
+        ...state,
+        ballPosition: {
+          zone: ZONES[Math.min(idx + jump, ZONES.length - 1)],
+          side: pickAdvanceSide(state.ballPosition.side, atkParams(state).buildUpWidth, this.rng),
+        },
+      },
     };
   }
 }
@@ -707,29 +553,21 @@ export class ThroughBallGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
-    // Vision/passing vs the defensive line; riskier than a short pass.
+    // Selection weight (propensity) — being intercepted is resolved by the contest.
     const diff = SkillCalculator.throughBall(player) - defLineStrength(state);
     return clamp(0.18, 0.7, 0.45 + diff / 280);
   }
 
+  // Success-only: runs when the contest did not intercept. Splits the line — jumps 2 zones.
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = this.rng() < this.calculateProbability(player, state);
-    const newState = { ...state };
-    if (!success) {
-      newState.possession = defTeamSide(state);
-      newState.ballPosition = mirrorBall(state.ballPosition);
-    } else {
-      // Splits the line: jump toward / into the box.
-      const idx = zoneIndex(state.ballPosition.zone);
-      newState.ballPosition = {
-        zone: ZONES[Math.min(idx + 2, ZONES.length - 1)],
-        side: state.ballPosition.side,
-      };
-    }
+    const idx = zoneIndex(state.ballPosition.zone);
     return {
       id: makeId(), type: 'through_ball', minute: state.minute, team: state.possession, playerId: player.id,
-      description: success ? `${player.name} threads a defence-splitting pass` : `${player.name}'s through ball is intercepted`,
-      resultingState: newState,
+      description: `${player.name} threads a defence-splitting pass`,
+      resultingState: {
+        ...state,
+        ballPosition: { zone: ZONES[Math.min(idx + 2, ZONES.length - 1)], side: state.ballPosition.side },
+      },
     };
   }
 }
@@ -749,28 +587,14 @@ export class CrossGenerator implements ActionGenerator {
   }
 
   calculateProbability(player: Player, state: MatchState): number {
+    // Selection weight (propensity) — a cleared cross is resolved by the contest
+    // (which also handles the cross-cleared-behind-for-a-corner outcome).
     const diff = SkillCalculator.crossing(player) - defLineStrength(state);
     return clamp(0.2, 0.8, 0.5 + diff / 300);
   }
 
+  // Success-only: the cross beats the first defender → contested header in the box.
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const success = this.rng() < this.calculateProbability(player, state);
-    if (!success) {
-      // Cleared by the defence — sometimes only as far as a corner.
-      if (this.rng() < CORNER_ON_CLEARED_CROSS) {
-        return {
-          id: makeId(), type: 'cross', minute: state.minute, team: state.possession, playerId: player.id,
-          description: `${player.name}'s cross is cleared behind`,
-          resultingState: { ...state, ballPosition: { zone: 'away_box', side: 'center' } },
-          chainedEvent: cornerEvent(state, this.rng),
-        };
-      }
-      return {
-        id: makeId(), type: 'cross', minute: state.minute, team: state.possession, playerId: player.id,
-        description: `${player.name}'s cross is cleared`,
-        resultingState: { ...state, possession: defTeamSide(state), ballPosition: mirrorBall(state.ballPosition) },
-      };
-    }
     return {
       id: makeId(), type: 'cross', minute: state.minute, team: state.possession, playerId: player.id,
       description: `${player.name} swings in a cross`,
@@ -828,18 +652,6 @@ function foulProneness(player: Player): number {
 /** Fouls are rarer in the box (defenders are careful) — keeps penalties realistic. */
 function zoneFoulFactor(state: MatchState): number {
   return state.ballPosition.zone === 'away_box' ? BOX_FOUL_FACTOR : 1;
-}
-
-/** Did a beaten tackle become a foul? More likely under a heavy press / from a rash defender. */
-function isFoul(state: MatchState, tackler: Player, rng: () => number): boolean {
-  const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-  return rng() < FOUL_ON_FAILED_TACKLE * pressFactor * foulProneness(tackler) * zoneFoulFactor(state);
-}
-
-/** Chance a dribble is fouled by the given defender (press- and discipline-sensitive). */
-function dribbleFoulChance(state: MatchState, fouler: Player): number {
-  const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-  return clamp(0, 0.4, FOUL_ON_DRIBBLE * pressFactor * foulProneness(fouler) * zoneFoulFactor(state));
 }
 
 function bestBy(players: Player[], skill: (p: Player) => number): Player | null {
@@ -945,39 +757,98 @@ function cornerEvent(state: MatchState, rng: () => number): MatchEvent {
   };
 }
 
-// ── ClearanceGenerator ──────────────────────────────────────────────────────
-// A defending side under pressure deep in its box hoofs the ball clear, relieving
-// sustained pressure (otherwise attacks camp in the box). Defending/strength led.
+// ── the contest ───────────────────────────────────────────────────────────────
+// A selected defender contests the possessor's chosen action. This is the single
+// turnover source (the old standalone tackle/interception/clearance actions and the
+// generators' embedded success rolls are gone): the offensive generator's success path
+// only runs when the defender fails to win it here. `shot` is NOT routed through this —
+// it is resolved by the keeper in ShotGenerator.
 
-export class ClearanceGenerator implements ActionGenerator {
-  constructor(private readonly rng: () => number = Math.random) {}
-
-  canPerform(player: Player, state: MatchState): boolean {
-    if (state.phase !== 'first_half' && state.phase !== 'second_half') { return false; }
-    const deep = state.ballPosition.zone === 'away_box' || state.ballPosition.zone === 'away_third';
-    return deep && getDefenders(state).length > 0;
+/** The attacker's relevant skill for the action being contested. */
+function attackerSkillForAction(actionType: string, player: Player): number {
+  switch (actionType) {
+  case 'dribble':      return SkillCalculator.dribbling(player);
+  case 'through_ball': return SkillCalculator.throughBall(player);
+  case 'cross':        return SkillCalculator.crossing(player);
+  case 'long_pass':    return player.attributes.passing * 0.7 + player.attributes.strength * 0.3;
+  default:             return player.attributes.passing * 0.6 + player.attributes.technique * 0.4; // short_pass
   }
+}
 
-  calculateProbability(player: Player, state: MatchState): number {
-    const defender = pickRandom(getDefenders(state), this.rng);
-    const skill = defender ? SkillCalculator.clearing(defender) : 50;
-    const diff = skill - atkBallControl(state);
-    const base = clamp(0.08, 0.5, 0.25 + diff / 320);
-    const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-    return Math.min(base * pressFactor, 0.6);
-  }
+/** The defender's relevant skill: tackling against a carry, reading against a pass. */
+function defenderSkillForAction(actionType: string, defender: Player): number {
+  return actionType === 'dribble'
+    ? SkillCalculator.tackling(defender)
+    : SkillCalculator.interception(defender);
+}
 
-  generateEvent(player: Player, state: MatchState): MatchEvent | null {
-    const defender = pickRandom(getDefenders(state), this.rng);
-    if (!defender) { return null; }
-    const success = this.rng() < this.calculateProbability(defender, state);
-    const side = defTeamSide(state);
+/** Chance the defender wins the ball (= the turnover chance) — parity-centred, press-scaled. */
+export function contestWinChance(actionType: string, attacker: Player, defender: Player, state: MatchState): number {
+  const parity = CONTEST_PARITY[actionType] ?? CONTEST_PARITY.short_pass;
+  const diff = defenderSkillForAction(actionType, defender) - attackerSkillForAction(actionType, attacker);
+  const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
+  const base = clamp(CONTEST_LO, CONTEST_HI, parity + diff / CONTEST_SPREAD);
+  return Math.min(base * pressFactor, 0.9);
+}
+
+/** Chance the challenge is a foul rather than a clean win/loss (carry-heavy, press-scaled). */
+function contestFoulChance(actionType: string, state: MatchState, defender: Player): number {
+  const exposure = FOUL_EXPOSURE[actionType] ?? FOUL_EXPOSURE.short_pass;
+  const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
+  return clamp(0, 0.4, FOUL_ON_CHALLENGE * exposure * pressFactor * foulProneness(defender) * zoneFoulFactor(state));
+}
+
+/** The turnover event when the defender wins: clearance deep, else tackle (carry) / interception (pass). */
+function buildWinEvent(actionType: string, defender: Player, state: MatchState, rng: () => number): MatchEvent {
+  const defSide = defTeamSide(state);
+
+  // A cleared cross sometimes only goes as far as a corner (keeps that texture).
+  if (actionType === 'cross' && rng() < CORNER_ON_CLEARED_CROSS) {
     return {
-      id: makeId(), type: 'clearance', minute: state.minute, team: side, playerId: defender.id,
-      description: success ? `${defender.name} clears the danger` : `${defender.name} fails to clear`,
-      resultingState: success
-        ? { ...state, possession: side, ballPosition: { zone: 'middle_third', side: 'center' } }
-        : state,
+      id: makeId(), type: 'cross', minute: state.minute, team: state.possession, playerId: defender.id,
+      description: `${defender.name}'s clearance only reaches a corner`,
+      resultingState: { ...state, ballPosition: { zone: 'away_box', side: 'center' } },
+      chainedEvent: cornerEvent(state, rng),
     };
   }
+
+  // Won deep in the box → hoof it clear (relieve pressure to midfield) rather than mirror.
+  if (state.ballPosition.zone === 'away_box') {
+    return {
+      id: makeId(), type: 'clearance', minute: state.minute, team: defSide, playerId: defender.id,
+      description: `${defender.name} clears the danger`,
+      resultingState: { ...state, possession: defSide, ballPosition: { zone: 'middle_third', side: 'center' } },
+    };
+  }
+
+  const type = actionType === 'dribble' ? 'tackle' : 'interception';
+  const description = type === 'tackle'
+    ? `${defender.name} wins the ball with a clean tackle`
+    : `${defender.name} intercepts`;
+  return {
+    id: makeId(), type, minute: state.minute, team: defSide, playerId: defender.id,
+    description,
+    resultingState: { ...state, possession: defSide, ballPosition: mirrorBall(state.ballPosition) },
+  };
+}
+
+/**
+ * Resolve the contesting defender's challenge of the possessor's action.
+ * Returns a defensive event (foul/set-piece, or a turnover) if the defender intervenes,
+ * or `null` to let the offensive generator's success path run.
+ */
+export function resolveContest(
+  actionType: string,
+  attacker: Player,
+  defender: Player,
+  state: MatchState,
+  rng: () => number,
+): MatchEvent | null {
+  if (rng() < contestFoulChance(actionType, state, defender)) {
+    return resolveFoul(state, defender, rng);
+  }
+  if (rng() < contestWinChance(actionType, attacker, defender, state)) {
+    return buildWinEvent(actionType, defender, state, rng);
+  }
+  return null;
 }

@@ -23,13 +23,10 @@ import { ActionSelector } from './action-selector.ts';
 import {
   ShortPassGenerator,
   DribbleGenerator,
-  TackleGenerator,
-  InterceptionGenerator,
   ShotGenerator,
   LongPassGenerator,
   ThroughBallGenerator,
   CrossGenerator,
-  ClearanceGenerator,
 } from './action-generators.ts';
 
 export interface MatchConfig {
@@ -86,15 +83,14 @@ export class MatchSimulator {
     this.currentState = this.createInitialState();
   }
 
+  // Only offensive actions are registered. Defensive outcomes (tackle/interception/
+  // clearance) are produced by the contest in ActionSelector, not selected as actions.
   private initializeActionGenerators(): void {
     this.actionSelector.registerAction('short_pass', new ShortPassGenerator(this.rng));
     this.actionSelector.registerAction('long_pass', new LongPassGenerator(this.rng));
     this.actionSelector.registerAction('through_ball', new ThroughBallGenerator(this.rng));
     this.actionSelector.registerAction('cross', new CrossGenerator(this.rng));
     this.actionSelector.registerAction('dribble', new DribbleGenerator(this.rng));
-    this.actionSelector.registerAction('tackle', new TackleGenerator(this.rng));
-    this.actionSelector.registerAction('interception', new InterceptionGenerator(this.rng));
-    this.actionSelector.registerAction('clearance', new ClearanceGenerator(this.rng));
     this.actionSelector.registerAction('shot', new ShotGenerator(this.rng));
   }
 

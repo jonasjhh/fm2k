@@ -1,6 +1,7 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, Position } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { resolveContest, mirrorBall } from './action-generators.ts';
 
 // ── active-player weighting ─────────────────────────────────────────────────────
 // Picks who is "on the ball" based on where the ball is. Follows the engine
@@ -215,20 +216,28 @@ export class ActionSelector {
     this.actionGenerators.set(actionType, generator);
   }
 
+  // Two-step model: the possessor's active player chooses an offensive action, then a
+  // selected defender contests it. The defender resolving it (a turnover or a foul) ends
+  // the move; otherwise the offensive action's success path runs. `shot` is the exception —
+  // it is resolved by the keeper inside ShotGenerator, not by an outfield contest.
   selectPlayerAction(state: MatchState): MatchEvent | null {
-    // Get the active player (who currently has the ball)
     const activePlayer = this.getActivePlayer(state);
     if (!activePlayer) {return null;}
 
-    // Get all possible actions for this player
     const possibleActions = this.getPossibleActions(activePlayer, state);
     if (possibleActions.length === 0) {return null;}
 
-    // Player makes decision based on awareness
     const chosenAction = this.makeDecision(activePlayer, possibleActions, state);
     if (!chosenAction) {return null;}
 
-    // Generate the event
+    if (chosenAction.type !== 'shot') {
+      const defender = this.selectContestingDefender(state);
+      if (defender) {
+        const defensiveEvent = resolveContest(chosenAction.type, activePlayer, defender, state, this.rng);
+        if (defensiveEvent) {return defensiveEvent;}
+      }
+    }
+
     const generator = this.actionGenerators.get(chosenAction.type);
     return generator?.generateEvent(activePlayer, state) || null;
   }
@@ -238,6 +247,15 @@ export class ActionSelector {
       ? state.currentPlayers.home
       : state.currentPlayers.away;
     return selectActivePlayer(team, state.ballPosition, this.rng);
+  }
+
+  // The defender who contests the action: nearest defending outfielder to the ball. The
+  // ball is mirrored into the defending team's frame so DEF-line players are favoured when
+  // the ball is in the attacking third (their defensive end).
+  private selectContestingDefender(state: MatchState): Player | null {
+    const defSide = state.possession === 'home' ? 'away' : 'home';
+    const defRoster = state.currentPlayers[defSide].filter(p => p.position !== 'GK');
+    return selectActivePlayer(defRoster, mirrorBall(state.ballPosition), this.rng);
   }
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {

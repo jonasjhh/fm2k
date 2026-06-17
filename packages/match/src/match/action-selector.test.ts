@@ -240,6 +240,57 @@ describe('ActionSelector class:', () => {
   });
 });
 
+// ── two-step model: the possessor acts, a defender contests ────────────────────
+
+describe('ActionSelector contest (two-step):', () => {
+  const DEFENSIVE = new Set(['tackle', 'interception', 'clearance', 'foul', 'yellow_card', 'red_card']);
+
+  // A possessor with one outfielder vs a full defending XI (so a defender is selected).
+  function contestState(attacker: Player): MatchState {
+    return {
+      minute: 10, homeScore: 0, awayScore: 0, possession: 'home',
+      ballPosition: { zone: 'middle_third', side: 'center' }, phase: 'first_half',
+      homeTeam: {} as any, awayTeam: {} as any,
+      currentPlayers: { home: [attacker], away: createTestXI() },
+      bookings: { yellow: [], red: [] },
+    };
+  }
+
+  it('routes a non-shot action through the contest — a defender can win the ball', () => {
+    const sel = new ActionSelector(Math.random);
+    sel.registerAction('dribble', stubGen('dribble', 0.9)); // the only offensive option
+    const attacker = createTestPlayer('a', 'CM');
+    const state = contestState(attacker);
+
+    const types = new Set<string>();
+    for (let i = 0; i < 400; i++) { types.add(sel.selectPlayerAction(state)!.type); }
+    // Both outcomes occur: the attacker sometimes dribbles, the defender sometimes wins it.
+    expect(types.has('dribble')).toBe(true);
+    expect([...types].some(t => DEFENSIVE.has(t))).toBe(true);
+  });
+
+  it('a shot bypasses the contest entirely (resolved by the keeper)', () => {
+    const sel = new ActionSelector(Math.random);
+    sel.registerAction('shot', stubGen('shot', 0.9));
+    const state = { ...contestState(createTestPlayer('a', 'ST')), ballPosition: { zone: 'away_box', side: 'center' } as BallPosition };
+
+    for (let i = 0; i < 400; i++) {
+      // Never replaced by a defensive event — the stub shot always comes through.
+      expect(sel.selectPlayerAction(state)!.type).toBe('shot');
+    }
+  });
+
+  it('skips the contest when the defending side has no outfielders', () => {
+    const sel = new ActionSelector(Math.random);
+    sel.registerAction('dribble', stubGen('dribble', 0.9));
+    const state: MatchState = {
+      ...contestState(createTestPlayer('a', 'CM')),
+      currentPlayers: { home: [createTestPlayer('a', 'CM')], away: [createTestPlayer('gk', 'GK')] },
+    };
+    for (let i = 0; i < 100; i++) { expect(sel.selectPlayerAction(state)!.type).toBe('dribble'); }
+  });
+});
+
 // ── pure weighting helpers ─────────────────────────────────────────────────────
 
 import {
