@@ -1,303 +1,187 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Typography from '@mui/material/Typography';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Grid from '@mui/material/Grid';
-import Chip from '@mui/material/Chip';
-import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Alert from '@mui/material/Alert';
+import Slider from '@mui/material/Slider';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Divider from '@mui/material/Divider';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import {
-  PlayerGenerator, MatchOccurrence, TickEngine, EventLog,
-  createGameDateTime, calculateOverall,
-} from '@fm2k/engine';
-import type { Team, MatchState, OccurrenceEvent } from '@fm2k/engine';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createAppTheme } from '@fm2k/design-system';
+import {
+  simulateMatch, runDistribution, mulberry32,
+  STYLE_TENDENCIES, TACTICAL_STYLE_IDS,
+} from '@fm2k/engine';
+import type {
+  Team, Player, Position, Formation, TacticalStyleId, TeamTacticsIntent,
+  SimulateMatchResult, DistributionResult,
+} from '@fm2k/engine';
 
 const theme = createAppTheme('light');
 
-const KICK_OFF = createGameDateTime(2025, 8, 15, 15, 0);
+const FORMATIONS: Formation[] = [
+  '4-4-2', '4-3-3', '4-5-1', '4-2-3-1', '4-1-4-1', '4-4-1-1', '4-2-4',
+  '3-5-2', '3-4-3', '3-4-2-1', '5-3-2', '5-4-1',
+];
 
-function makeTeam(id: string, name: string, formation: string, positions: string[]): Team {
-  const gen = new PlayerGenerator();
-  return {
-    id,
-    name,
-    formation: formation as Team['formation'],
-    colors: { primary: '#FFFFFF', secondary: '#000000' },
-    starters: positions.map((pos) => gen.generatePlayer(pos as Parameters<typeof gen.generatePlayer>[0])),
-    substitutes: ['GK', 'CB', 'CM', 'ST'].map(
-      (pos) => gen.generatePlayer(pos as Parameters<typeof gen.generatePlayer>[0]),
-    ),
+// A generous squad at a uniform strength; simulateMatch picks the XI for the formation.
+const SQUAD_POSITIONS: Position[] = [
+  'GK', 'GK', 'LB', 'RB', 'CB', 'CB', 'CB', 'CDM', 'CM', 'CM', 'CM',
+  'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST', 'CF',
+];
+
+function makeTeam(id: string, strength: number): Team {
+  const starters: Player[] = SQUAD_POSITIONS.map((position, i) => ({
+    id: `${id}-${i}`, name: `${id} ${i}`, nationality: 'n', age: 25, position, potential: 80,
+    attributes: {
+      speed: strength, strength, agility: strength, passing: strength, finishing: strength,
+      technique: strength, defending: strength, stamina: strength, awareness: strength, composure: strength,
+    },
+  }));
+  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+}
+
+interface SideState {
+  strength: number;
+  formation: Formation;
+  style: TacticalStyleId;
+  tempo: number;
+  risk: number;
+  defensiveLine: number;
+}
+
+const defaultSide = (strength: number, formation: Formation): SideState =>
+  ({ strength, formation, style: 'balanced', tempo: 50, risk: 50, defensiveLine: 50 });
+
+const intentOf = (s: SideState): TeamTacticsIntent =>
+  ({ formation: s.formation, style: s.style, sliders: { tempo: s.tempo, risk: s.risk, defensiveLine: s.defensiveLine } });
+
+function SidePanel({ label, side, onChange }: { label: string; side: SideState; onChange: (s: SideState) => void }) {
+  const set = <K extends keyof SideState>(k: K, v: SideState[K]) => onChange({ ...side, [k]: v });
+  return (
+    <Paper variant="outlined" sx={{ p: 2, flex: 1, minWidth: 260 }}>
+      <Typography variant="h6" gutterBottom>{label}</Typography>
+      <Typography variant="caption" color="text.secondary">Squad strength: {side.strength}</Typography>
+      <Slider size="small" min={1} max={99} value={side.strength} onChange={(_, v) => set('strength', v as number)} />
+      <Box sx={{ display: 'flex', gap: 1, my: 1 }}>
+        <Select size="small" fullWidth value={side.formation} onChange={e => set('formation', e.target.value as Formation)}>
+          {FORMATIONS.map(f => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+        </Select>
+        <Select size="small" fullWidth value={side.style} onChange={e => set('style', e.target.value as TacticalStyleId)}>
+          {TACTICAL_STYLE_IDS.map(s => <MenuItem key={s} value={s}>{STYLE_TENDENCIES[s].label}</MenuItem>)}
+        </Select>
+      </Box>
+      {(['tempo', 'risk', 'defensiveLine'] as const).map(k => (
+        <Box key={k}>
+          <Typography variant="caption" color="text.secondary">{k}: {side[k]}</Typography>
+          <Slider size="small" min={0} max={100} value={side[k]} onChange={(_, v) => set(k, v as number)} />
+        </Box>
+      ))}
+    </Paper>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <Box sx={{ minWidth: 90 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{label}</Typography>
+      <Typography variant="body1" sx={{ fontWeight: 600 }}>{value}</Typography>
+    </Box>
+  );
+}
+
+export default function MatchSandboxPage() {
+  const [home, setHome] = useState<SideState>(defaultSide(60, '4-4-2'));
+  const [away, setAway] = useState<SideState>(defaultSide(55, '4-3-3'));
+  const [single, setSingle] = useState<SimulateMatchResult | null>(null);
+  const [dist, setDist] = useState<DistributionResult | null>(null);
+  const [seed, setSeed] = useState(1);
+
+  const homeTeam = useMemo(() => makeTeam('Home', home.strength), [home.strength]);
+  const awayTeam = useMemo(() => makeTeam('Away', away.strength), [away.strength]);
+
+  const runOne = () => {
+    const s = seed + 1; setSeed(s);
+    setSingle(simulateMatch({
+      home: { team: homeTeam, intent: intentOf(home) },
+      away: { team: awayTeam, intent: intentOf(away) },
+      rng: mulberry32(s),
+    }));
   };
-}
 
-type Phase = 'idle' | 'ready' | 'running' | 'done';
+  const runMany = (n: number) => {
+    setDist(runDistribution({
+      home: { team: homeTeam, intent: intentOf(home) },
+      away: { team: awayTeam, intent: intentOf(away) },
+    }, n));
+  };
 
-interface DisplayState {
-  score: { home: number; away: number };
-  minute: number;
-  phase: string;
-  homeTeam: string;
-  awayTeam: string;
-}
-
-function eventColor(type: string) {
-  if (type === 'goal') {return '#C8E6C9';}
-  if (type === 'yellow_card') {return '#FFF9C4';}
-  if (type === 'red_card') {return '#FFCDD2';}
-  if (type === 'half_time' || type === 'full_time') {return '#BBDEFB';}
-  return undefined;
-}
-
-export default function MatchTestPage() {
-  const tickEngineRef = useRef<InstanceType<typeof TickEngine> | null>(null);
-  const matchRef = useRef<InstanceType<typeof MatchOccurrence> | null>(null);
-  const homeTeamRef = useRef<Team | null>(null);
-  const awayTeamRef = useRef<Team | null>(null);
-
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [display, setDisplay] = useState<DisplayState | null>(null);
-  const [events, setEvents] = useState<OccurrenceEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const refreshDisplay = useCallback(() => {
-    const match = matchRef.current;
-    if (!match) {return;}
-    const state: MatchState = match.getMatchState();
-    setDisplay({
-      score: { home: state.homeScore, away: state.awayScore },
-      minute: state.minute,
-      phase: state.phase.replace('_', ' '),
-      homeTeam: state.homeTeam.name,
-      awayTeam: state.awayTeam.name,
-    });
-  }, []);
-
-  const generateTeams = useCallback(() => {
-    setError(null);
-    homeTeamRef.current = makeTeam('home', 'FC Home United', '4-4-2',
-      ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST']);
-    awayTeamRef.current = makeTeam('away', 'AC Away City', '4-3-3',
-      ['GK', 'LB', 'CB', 'CB', 'RB', 'CDM', 'CM', 'CM', 'LW', 'ST', 'RW']);
-    setPhase('ready');
-    setDisplay(null);
-    setEvents([]);
-  }, []);
-
-  const startMatch = useCallback(() => {
-    if (!homeTeamRef.current || !awayTeamRef.current) {return;}
-    setError(null);
-    try {
-      const eventLog = new EventLog();
-      const engine = new TickEngine({ startTime: KICK_OFF, eventLog });
-      const match = new MatchOccurrence({
-        id: 'test-match',
-        scheduledTime: KICK_OFF,
-        homeTeam: homeTeamRef.current,
-        awayTeam: awayTeamRef.current,
-        eventsPerMinute: 3,
-      });
-      engine.schedule(match);
-      tickEngineRef.current = engine;
-      matchRef.current = match;
-      setEvents([]);
-      setPhase('running');
-      refreshDisplay();
-    } catch (e) {
-      setError(String(e));
-    }
-  }, [refreshDisplay]);
-
-  const step = useCallback(async (until?: 'half_time' | 'full_time') => {
-    const engine = tickEngineRef.current;
-    if (!engine) {return;}
-    setError(null);
-    try {
-      const newEvents: OccurrenceEvent[] = [];
-      while (engine.hasNext()) {
-        const result = await engine.tickToNext();
-        if (!result) {break;}
-        newEvents.push(...result.events);
-        // No target phase: advance a single tick. Otherwise loop until reached.
-        if (!until) {break;}
-        if (newEvents.some((e) => e.eventType === until)) {break;}
-      }
-
-      setEvents((prev) => [...prev, ...newEvents]);
-      refreshDisplay();
-
-      if (!engine.hasNext()) {setPhase('done');}
-    } catch (e) {
-      setError(String(e));
-    }
-  }, [refreshDisplay]);
-
-  const reset = useCallback(() => {
-    tickEngineRef.current = null;
-    matchRef.current = null;
-    homeTeamRef.current = null;
-    awayTeamRef.current = null;
-    setPhase('idle');
-    setDisplay(null);
-    setEvents([]);
-    setError(null);
-  }, []);
-
-  const homeOvr = homeTeamRef.current
-    ? Math.round(homeTeamRef.current.starters.reduce((s, p) => s + calculateOverall(p.attributes), 0) / 11)
-    : null;
-  const awayOvr = awayTeamRef.current
-    ? Math.round(awayTeamRef.current.starters.reduce((s, p) => s + calculateOverall(p.attributes), 0) / 11)
-    : null;
+  const interesting = new Set(['goal', 'penalty', 'yellow_card', 'red_card', 'half_time', 'full_time']);
+  const ticker = single?.events.filter(e => interesting.has(e.type)) ?? [];
+  const injuries = single ? [...single.playerUpdates.home, ...single.playerUpdates.away].filter(u => u.injury) : [];
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ maxWidth: 1100, mx: 'auto', p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', color: 'inherit' }}>
-            <ArrowBackIcon fontSize="small" />
-          </Link>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Match Simulator Test</Typography>
+      <Box sx={{ p: 3, maxWidth: 1000, mx: 'auto' }}>
+        <Button component={Link} href="/" startIcon={<ArrowBackIcon />} size="small" sx={{ mb: 2 }}>Back</Button>
+        <Typography variant="h4" gutterBottom>Match simulator sandbox</Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Pick each side&apos;s strength, formation, style and sliders, then simulate one match or run a 1000-match distribution.
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', my: 2 }}>
+          <SidePanel label="Home" side={home} onChange={setHome} />
+          <SidePanel label="Away" side={away} onChange={setAway} />
         </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+          <Button variant="contained" onClick={runOne}>Simulate one match</Button>
+          <Button variant="outlined" onClick={() => runMany(1000)}>Run 1000 (distribution)</Button>
+        </Box>
 
-        {/* Controls */}
-        <Card variant="outlined" sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Button variant="contained" onClick={generateTeams}>
-                Generate Teams
-              </Button>
-              <Button variant="contained" color="success" disabled={phase !== 'ready'} onClick={startMatch}>
-                Start Match
-              </Button>
-              <ButtonGroup disabled={phase !== 'running'} variant="outlined">
-                <Button onClick={() => step()}>Step</Button>
-                <Button onClick={() => step('half_time')}>→ Half Time</Button>
-                <Button onClick={() => step('full_time')}>→ Full Time</Button>
-              </ButtonGroup>
-              <Button variant="outlined" color="error" onClick={reset}>
-                Reset
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Teams */}
-        {homeTeamRef.current && awayTeamRef.current && (
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            {[
-              { team: homeTeamRef.current, ovr: homeOvr, side: 'Home' },
-              { team: awayTeamRef.current, ovr: awayOvr, side: 'Away' },
-            ].map(({ team, ovr, side }) => (
-              <Grid size={{ xs: 12, sm: 6 }} key={side}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{team.name}</Typography>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Chip label={side} size="small" color={side === 'Home' ? 'primary' : 'secondary'} />
-                        <Chip label={team.formation} size="small" variant="outlined" />
-                        <Chip label={`OVR ${ovr}`} size="small" variant="outlined" />
-                      </Box>
-                    </Box>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Name</TableCell>
-                          <TableCell align="center">Pos</TableCell>
-                          <TableCell align="center">OVR</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {team.starters.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell>{p.name}</TableCell>
-                            <TableCell align="center"><Chip label={p.position} size="small" variant="outlined" /></TableCell>
-                            <TableCell align="center">{Math.round(calculateOverall(p.attributes))}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-
-        {/* Scoreboard */}
-        {display && (
-          <Card variant="outlined" sx={{ mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {display.homeTeam} {display.score.home} – {display.score.away} {display.awayTeam}
+        {single && (
+          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h5" gutterBottom>
+              Home {single.score.home} – {single.score.away} Away
+            </Typography>
+            {injuries.length > 0 && (
+              <Typography variant="body2" color="error">
+                Injuries: {injuries.map(u => `${u.playerId} (${u.injury!.type}, ${u.injury!.baseDuration})`).join(', ')}
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
-                <Chip label={`${display.minute}'`} sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
-                <Chip label={display.phase} sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
-                {phase === 'done' && <Chip label="Full Time" color="warning" />}
-              </Box>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Event Log */}
-        {events.length > 0 && (
-          <Paper variant="outlined">
-            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Event Log ({events.length} events)
-              </Typography>
-            </Box>
-            <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
-              {events.map((e, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    display: 'flex',
-                    gap: 1.5,
-                    px: 2,
-                    py: 0.75,
-                    bgcolor: eventColor(e.eventType),
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary" sx={{ minWidth: 36, pt: 0.25 }}>
-                    {e.timestamp ? `${e.timestamp.hour}:${String(e.timestamp.minute).padStart(2, '0')}` : ''}
-                  </Typography>
-                  <Chip label={e.eventType.replace(/_/g, ' ')} size="small" variant="outlined" sx={{ flexShrink: 0 }} />
-                  <Typography variant="body2">{String(e.payload.description ?? '')}</Typography>
-                </Box>
+            )}
+            <Divider sx={{ my: 1 }} />
+            <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
+              {ticker.map((e, i) => (
+                <Typography key={i} variant="body2" sx={{ py: 0.2 }}>
+                  <b>{e.minute}&apos;</b> [{e.team}] {e.description}
+                </Typography>
               ))}
             </Box>
-            <Divider />
-            <Box sx={{ p: 1.5, display: 'flex', gap: 1 }}>
-              {['goal', 'yellow_card', 'red_card', 'half_time'].map((t) => (
-                <Box key={t} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: eventColor(t) ?? '#eee' }} />
-                  <Typography variant="caption">{t.replace(/_/g, ' ')}</Typography>
-                </Box>
-              ))}
+          </Paper>
+        )}
+
+        {dist && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>Distribution over {dist.n} matches</Typography>
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              <Stat label="Goals (mean)" value={dist.goals.totalMean.toFixed(2)} />
+              <Stat label="Goals (med/max)" value={`${dist.goals.totalMedian}/${dist.goals.totalMax}`} />
+              <Stat label="Home / Draw / Away" value={`${(dist.homeWinPct * 100).toFixed(0)}/${(dist.drawPct * 100).toFixed(0)}/${(dist.awayWinPct * 100).toFixed(0)}%`} />
+              <Stat label="Shots H–A" value={`${dist.shotsHome.toFixed(1)}–${dist.shotsAway.toFixed(1)}`} />
+              <Stat label="Possession H" value={`${dist.possessionHome.toFixed(0)}%`} />
+              <Stat label="Fouls" value={dist.foulsPerMatch.toFixed(1)} />
+              <Stat label="Yellow / Red" value={`${dist.yellowsPerMatch.toFixed(2)} / ${dist.redsPerMatch.toFixed(3)}`} />
+              <Stat label="Penalties" value={dist.penaltiesPerMatch.toFixed(2)} />
+              <Stat label="Corners" value={dist.cornersPerMatch.toFixed(1)} />
+              <Stat label="Injuries" value={dist.injuriesPerMatch.toFixed(2)} />
+              <Stat label="End energy H–A" value={`${dist.endEnergyHome.toFixed(0)}–${dist.endEnergyAway.toFixed(0)}`} />
             </Box>
           </Paper>
         )}

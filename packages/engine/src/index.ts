@@ -34,9 +34,10 @@ export { MatchSimulator, isTerminalPhase } from '@fm2k/match';
 export { simulateShootout } from '@fm2k/match';
 export type { ShootoutResult } from '@fm2k/match';
 export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState } from '@fm2k/match';
-export { simulateMatch, generateInjuries, INJURY_TYPES } from '@fm2k/match';
+export { simulateMatch, generateInjuries, INJURY_TYPES, runDistribution, mulberry32 } from '@fm2k/match';
 export type {
   SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate, InjuryReport,
+  DistributionInput, DistributionResult,
 } from '@fm2k/match';
 
 export { NameGenerator } from '@fm2k/names';
