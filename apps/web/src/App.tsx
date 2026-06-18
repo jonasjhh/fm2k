@@ -4,6 +4,7 @@ import { createContext, useEffect, useMemo, useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createAppTheme } from '@fm2k/design-system';
+import { ToastHost } from '@fm2k/toast';
 import { useGameStore } from './store/game-store';
 import MainMenu from './screens/MainMenu';
 import TeamSelection from './screens/TeamSelection';
@@ -41,6 +42,7 @@ export default function App() {
         {screen === 'team-selection' && <TeamSelection />}
         {screen === 'editor' && <TeamEditor />}
         {screen === 'game' && <GameInterface />}
+        <ToastHost />
       </ThemeProvider>
     </ColorModeContext.Provider>
   );

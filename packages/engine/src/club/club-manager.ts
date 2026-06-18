@@ -1,5 +1,5 @@
 import { StateManager } from '@fm2k/state';
-import type { Player, Formation } from '@fm2k/match';
+import type { Player, Formation, Position } from '@fm2k/match';
 import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/match';
 import { defaultIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
@@ -15,9 +15,9 @@ import type {
 import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import {
-  trainOnMatch, developOverSeason, DEFAULT_REGIMENT, type RegimentId,
+  trainOnMatch, DEFAULT_REGIMENT, type RegimentId,
 } from '../player/progression.ts';
-import type { PlayerAttributes } from '@fm2k/match';
+import { churnSquad, generatorYouthFactory, type YouthFactory } from '../world/world-churn.ts';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {
   1: 50_000,
@@ -41,16 +41,24 @@ export interface ClubManagerConfig {
   readonly stadiumSectors: Record<string, StadiumSectorConfig>
   readonly rng?: () => number
   readonly eventBus?: EventBus<GameEvents>
+  /** Club nationality, used when generating academy youth at season end. */
+  readonly nationality?: string
+  /** Injected youth factory; falls back to a default `PlayerGenerator`-backed one. */
+  readonly youthFactory?: YouthFactory
 }
 
 export class ClubManager {
   private readonly stateManager: StateManager<ClubState>;
   private readonly rng: () => number;
   private readonly eventBus?: EventBus<GameEvents>;
+  private readonly nationality: string;
+  private readonly youthFactory: YouthFactory;
 
   constructor(config: ClubManagerConfig) {
     this.rng = config.rng ?? Math.random.bind(Math);
     this.eventBus = config.eventBus;
+    this.nationality = config.nationality ?? 'unknown';
+    this.youthFactory = config.youthFactory ?? generatorYouthFactory(this.rng);
     config.eventBus?.on('match.completed', payload => this.processMatchResult(payload));
     const squad: ClubPlayer[] = config.squad.map(p => ({ ...p, fitness: 100 }));
 
@@ -74,6 +82,21 @@ export class ClubManager {
 
   loadState(state: ClubState): void {
     this.stateManager.setState(state);
+  }
+
+  /** Carry finances, facilities, and stadium across a season rollover (squad comes from the Team). */
+  applySeasonCarryover(c: {
+    budget: number;
+    facilities: FacilityLevels;
+    stadiumSectors: Record<string, StadiumSectorConfig>;
+    stadiumCapacity: number;
+  }): void {
+    this.stateManager.updateState(s => {
+      s.budget = c.budget;
+      s.facilities = c.facilities;
+      s.stadiumSectors = c.stadiumSectors;
+      s.stadiumCapacity = c.stadiumCapacity;
+    });
   }
 
   getState(): ClubState {
@@ -171,10 +194,11 @@ export class ClubManager {
     return true;
   }
 
-  sellPlayer(playerId: string, salePrice: number): boolean {
+  /** Sell a player: removes them, credits the fee, and returns the removed player (or null). */
+  sellPlayer(playerId: string, salePrice: number): ClubPlayer | null {
     const state = this.stateManager.getState();
     const player = state.squad.find(p => p.id === playerId);
-    if (!player) {return false;}
+    if (!player) {return null;}
 
     const tx: FinancialTransaction = {
       type: 'transfer_out',
@@ -190,7 +214,7 @@ export class ClubManager {
       s.financialLog.push(tx);
     });
 
-    return true;
+    return player;
   }
 
   upgradeFacility(facility: keyof FacilityLevels): boolean {
@@ -349,35 +373,40 @@ export class ClubManager {
     });
   }
 
-  // Call once when a season ends: the whole squad develops (a bigger step than per-match),
-  // ages a year, and older players may decline. Emits player.developed for each net change.
-  handleSeasonComplete(): void {
-    const developed: GameEvents['player.developed'][] = [];
-
-    this.stateManager.updateState(state => {
-      const trainingLevel = state.facilities.training;
-
-      for (const player of state.squad) {
-        const before = player.attributes;
-        const { attributes, age } = developOverSeason(
-          player, player.training ?? DEFAULT_REGIMENT, trainingLevel, this.rng,
-        );
-        player.attributes = attributes;
-        player.age = age;
-
-        const deltas: Partial<Record<keyof PlayerAttributes, number>> = {};
-        for (const key of Object.keys(attributes) as (keyof PlayerAttributes)[]) {
-          const d = attributes[key] - before[key];
-          if (d !== 0) { deltas[key] = d; }
-        }
-        if (Object.keys(deltas).length > 0) {
-          developed.push({ playerId: player.id, playerName: player.name, age, deltas });
-        }
-      }
+  // Call once when a season ends: the whole squad develops (a bigger step than per-match) and ages,
+  // veterans may retire, and a *small* academy intake (1–2) joins directly. Emits player.developed
+  // for each net change and player.retired (ownClub) for each departure. Returns the retiree
+  // positions NOT backfilled in-club (overflow) so the caller can mint them into the free-agent pool.
+  handleSeasonComplete(): Position[] {
+    const state = this.stateManager.getState();
+    const result = churnSquad(state.squad, {
+      rng: this.rng,
+      youthFactory: this.youthFactory,
+      nationality: this.nationality,
+      trainingLevel: state.facilities.training,
+      academyLevel: state.facilities.academy,
+      regimentOf: p => (p as ClubPlayer).training ?? DEFAULT_REGIMENT,
     });
 
-    for (const ev of developed) {
+    const retiredIds = new Set(result.retired.map(p => p.id));
+    // Youth join as fresh ClubPlayers; carry survivors' club-specific fields as-is.
+    const newSquad: ClubPlayer[] = result.squad.map(p => {
+      const existing = state.squad.find(s => s.id === p.id);
+      return existing ? { ...existing, attributes: p.attributes, age: p.age } : { ...p, fitness: 100 };
+    });
+
+    this.stateManager.updateState(s => {
+      s.squad = newSquad;
+      s.startingXI = s.startingXI.filter(id => !retiredIds.has(id));
+      s.benchPlayers = s.benchPlayers.filter(id => !retiredIds.has(id));
+    });
+
+    for (const ev of result.developed) {
       this.eventBus?.emit('player.developed', ev);
     }
+    for (const r of result.retired) {
+      this.eventBus?.emit('player.retired', { playerId: r.id, playerName: r.name, age: r.age, ownClub: true });
+    }
+    return result.overflow;
   }
 }

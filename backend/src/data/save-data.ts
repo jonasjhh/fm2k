@@ -16,7 +16,8 @@ export type SaveType = 'QUICK' | 'AUTO';
 // v4 added `cupStates` (national cup per nation). v5 added `now` (the game clock).
 // v6 added `clubState.tactics` (manager intent: style + sliders).
 // v7 added `clubPlayer.training` (per-player training regiment).
-export const SAVE_VERSION = 7;
+// v8 added `transferFreeAgents` (the shared free-agent pool behind the transfer market).
+export const SAVE_VERSION = 8;
 export const MIN_LOADABLE_VERSION = 1;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
@@ -48,6 +49,8 @@ export interface SaveData {
   cupStates?: Record<string, CompetitionState>;
   clubState: ClubState;
   transferListings: TransferListing[];
+  /** The shared free-agent pool behind the market (sold/released players + churn youth). */
+  transferFreeAgents?: Player[];
 }
 
 export function saveKey(type: SaveType, teamName: string): string {
@@ -78,10 +81,11 @@ interface PackedTeam {
 interface PackedDivision { id: string; name: string; level: number; teams: PackedTeam[]; }
 interface PackedCountry { id: string; name: string; nationality: string; divisions: PackedDivision[]; }
 
-interface StoredSave extends Omit<SaveData, 'editableCountries' | 'clubState' | 'transferListings'> {
+interface StoredSave extends Omit<SaveData, 'editableCountries' | 'clubState' | 'transferListings' | 'transferFreeAgents'> {
   editableCountries: PackedCountry[];
   clubState: Omit<ClubState, 'squad'> & { squad: ClubPlayerPack[] };
   transferListings: (Omit<TransferListing, 'player'> & { player: ClubPlayerPack })[];
+  transferFreeAgents?: PlayerPack[];
 }
 
 function packAttrs(a: PlayerAttributes): AttrPack {
@@ -164,6 +168,7 @@ function packSave(data: SaveData): StoredSave {
     editableCountries: data.editableCountries.map(packCountry),
     clubState: { ...data.clubState, squad: data.clubState.squad.map(packClubPlayer) },
     transferListings: data.transferListings.map(l => ({ ...l, player: packClubPlayer(l.player) })),
+    transferFreeAgents: data.transferFreeAgents?.map(packPlayer),
   };
 }
 
@@ -173,6 +178,7 @@ function unpackSave(stored: StoredSave): SaveData {
     editableCountries: stored.editableCountries.map(unpackCountry),
     clubState: { ...stored.clubState, squad: stored.clubState.squad.map(unpackClubPlayer) },
     transferListings: stored.transferListings.map(l => ({ ...l, player: unpackClubPlayer(l.player) })),
+    transferFreeAgents: stored.transferFreeAgents?.map(unpackPlayer),
   };
 }
 

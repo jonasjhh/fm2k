@@ -1,37 +1,32 @@
 {
-  "name": "@fm2k/web",
+  "name": "@fm2k/toast",
   "version": "1.0.0",
-  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint src/**/*.{ts,tsx}",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.{ts,tsx}",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@emotion/cache": "^11.14.0",
+  "peerDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@fm2k/backend": "workspace:*",
-    "@fm2k/design-system": "workspace:*",
-    "@fm2k/engine": "workspace:*",
-    "@fm2k/toast": "workspace:*",
-    "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.1.1",
-    "@mui/material-nextjs": "^9.1.1",
-    "flag-icons": "^7.5.0",
-    "localforage": "^1.10.0",
-    "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^9.1.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -46,7 +41,10 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^29.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "zustand": "^5.0.0"
   }
 }

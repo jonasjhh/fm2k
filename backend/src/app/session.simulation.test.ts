@@ -78,4 +78,36 @@ describe('GameSession clock:', () => {
     await session.simulateToEnd();
     expect(session.snapshot().seasonComplete).toBe(true);
   });
+
+  it('rolls the world over: squad ages and is preserved, finances carry, AI squads churn', async () => {
+    const { session } = newGame();
+    session.upgradeFacility('training');
+    const before = session.snapshot().clubState!;
+    const someSquadId = before.squad[0].id;
+    const ageBefore = before.squad[0].age;
+
+    // An AI team's squad ages too.
+    const aiTeam = session.getEditableCountries()[0].divisions[0].teams.find(t => t.id !== before.clubId)!;
+    const aiAgeBefore = aiTeam.starters[0].age;
+    const aiId = aiTeam.starters[0].id;
+
+    await session.simulateToEnd();
+    // Capture finances at season end (gate receipts have accrued); they should survive the rollover.
+    const endOfSeason = session.snapshot().clubState!;
+    const budgetAtRollover = endOfSeason.budget;
+    const trainingAtRollover = endOfSeason.facilities.training;
+    session.startNewSeason();
+
+    const after = session.snapshot().clubState!;
+    // Finances + facilities carried across the rollover.
+    expect(after.facilities.training).toBe(trainingAtRollover);
+    expect(after.budget).toBe(budgetAtRollover);
+    // The player's developed squad survived (a surviving player aged by a year).
+    const survivor = after.squad.find(p => p.id === someSquadId);
+    if (survivor) { expect(survivor.age).toBe(ageBefore + 1); }
+    // An AI player who didn't retire aged too (proving AI squads churn now).
+    const aiAfter = session.getEditableCountries()[0].divisions
+      .flatMap(d => d.teams).flatMap(t => [...t.starters, ...t.substitutes]).find(p => p.id === aiId);
+    if (aiAfter) { expect(aiAfter.age).toBe(aiAgeBefore + 1); }
+  });
 });

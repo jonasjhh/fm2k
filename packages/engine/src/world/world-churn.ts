@@ -1,0 +1,307 @@
+import type { Player, PlayerAttributes, Position } from '@fm2k/match';
+import { calculateOverall } from '@fm2k/match';
+import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
+import { PlayerGenerator } from '../player/player-generator.ts';
+import { playerValue } from '../valuation/valuation.ts';
+
+/**
+ * World churn — the season-boundary lifecycle for the **shared player pool**: every squad develops
+ * and ages, veterans retire, and youth arrive to backfill, so the world keeps circulating instead of
+ * freezing. Pure and **rng-injected** (the youth generator is injected too), so it is deterministic
+ * and unit/mutation testable. Used by both the player's club (`ClubManager.handleSeasonComplete`) and
+ * the AI world + free-agent pool (orchestrated by the session).
+ *
+ * Retirement reaches an *equilibrium*: high current skill resists retirement, so elite players last
+ * longer — but ageing keeps eroding their attributes (`developOverSeason` decline), and once a
+ * veteran's skill has fallen far enough the rising age chance is no longer held back and they retire.
+ * Youth backfill is **position-preserving**: a retired player is replaced by a prospect in the same
+ * position, so squads (and the world) keep their positional variety.
+ */
+
+type AttrKey = keyof PlayerAttributes;
+
+function clamp(lo: number, hi: number, n: number): number {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+// ── retirement curve ────────────────────────────────────────────────────────────
+const RETIRE_AGE_MIN = 31;       // below this age: never retires
+const RETIRE_AGE_CERTAIN = 40;   // at/above this age: effectively certain to retire
+const RETIRE_AGE_SLOPE = 0.09;   // chance gained per year past 30
+const RETIRE_SKILL_PIVOT = 60;   // overall at/below which skill offers no resistance
+const RETIRE_SKILL_SPAN = 40;    // overall above the pivot for full resistance
+const RETIRE_SKILL_RESIST = 0.6; // maximum resistance an elite player gets
+
+/** Chance a player retires this season — rises with age, resisted by current skill. */
+export function retirementChance(age: number, overall: number): number {
+  if (age < RETIRE_AGE_MIN) { return 0; }
+  if (age >= RETIRE_AGE_CERTAIN) { return 0.98; }
+  const base = (age - (RETIRE_AGE_MIN - 1)) * RETIRE_AGE_SLOPE;
+  const resist = clamp(0, RETIRE_SKILL_RESIST, ((overall - RETIRE_SKILL_PIVOT) / RETIRE_SKILL_SPAN) * RETIRE_SKILL_RESIST);
+  return clamp(0, 0.98, base - resist);
+}
+
+// ── youth quality by academy level (1–4) ─────────────────────────────────────────
+// Prospects start low (they develop via progression) but their *potential* band — the real measure
+// of an academy — widens and lifts with the facility level, so good academies can produce stars.
+const YOUTH_START_OVERALL: Record<number, number> = { 1: 44, 2: 48, 3: 52, 4: 56 };
+const YOUTH_POTENTIAL_RANGE: Record<number, [number, number]> = {
+  1: [54, 72], 2: [60, 80], 3: [66, 88], 4: [72, 96],
+};
+const YOUTH_AGE_MIN = 16;
+const YOUTH_AGE_MAX = 19;
+
+/** A factory that mints a youth player to the requested spec (injected; impure part lives here). */
+export type YouthFactory = (
+  position: Position,
+  spec: { overall: number; age: number; potential: number; nationality: string },
+) => Player;
+
+/** The default youth factory: a `PlayerGenerator` shaped to the requested overall/age/potential. */
+export function generatorYouthFactory(rng: () => number = Math.random): YouthFactory {
+  const generator = new PlayerGenerator('female', 'all', rng);
+  return (position, spec) => ({
+    ...generator.generatePlayer(position, { overall: spec.overall, age: spec.age, potential: spec.potential }),
+    nationality: spec.nationality,
+  });
+}
+
+/** Build a youth spec for the given academy level, then mint via the factory. */
+export function makeYouth(
+  position: Position, academyLevel: number, nationality: string, factory: YouthFactory, rng: () => number,
+): Player {
+  const level = clamp(1, 4, Math.round(academyLevel));
+  const overall = YOUTH_START_OVERALL[level] + Math.round((rng() - 0.5) * 8);
+  const [pLo, pHi] = YOUTH_POTENTIAL_RANGE[level];
+  const potential = Math.round(pLo + rng() * (pHi - pLo));
+  const age = YOUTH_AGE_MIN + Math.floor(rng() * (YOUTH_AGE_MAX - YOUTH_AGE_MIN + 1));
+  return factory(position, { overall: clamp(20, 99, overall), age, potential: clamp(overall, 99, potential), nationality });
+}
+
+// ── squad churn ───────────────────────────────────────────────────────────────────
+export interface PlayerDelta {
+  playerId: string;
+  playerName: string;
+  age: number;
+  /** Net per-attribute change this season (only non-zero deltas). */
+  deltas: Partial<Record<AttrKey, number>>;
+}
+
+/** Default per-season direct youth intake a club receives: a random 1 or 2. */
+export function randomIntakeCap(rng: () => number): number {
+  return 1 + Math.floor(rng() * 2);
+}
+
+export interface SquadChurnOptions {
+  rng: () => number;
+  youthFactory: YouthFactory;
+  nationality: string;
+  /** Training-facility level driving development (1–4). */
+  trainingLevel: number;
+  /** Academy-facility level driving youth quality (1–4). */
+  academyLevel: number;
+  /** The training regiment for a given player (defaults to balanced). */
+  regimentOf?: (player: Player) => RegimentId;
+  /** Max academy youth that join the club directly this season (default: random 1–2). */
+  maxIntake?: number;
+}
+
+export interface SquadChurnResult {
+  /** Surviving players (developed + aged) plus up to `maxIntake` youth — may be below the prior size. */
+  squad: Player[];
+  /** Players who developed then retired this season (post-development state), for messaging. */
+  retired: Player[];
+  /** Net deltas for survivors whose attributes changed this season. */
+  developed: PlayerDelta[];
+  /** Academy youth that actually joined the club this season (≤ maxIntake). */
+  youth: Player[];
+  /** Retiree positions left unfilled — overflow to be minted into the free-agent pool. */
+  overflow: Position[];
+}
+
+function deltaOf(before: PlayerAttributes, after: PlayerAttributes): Partial<Record<AttrKey, number>> {
+  const deltas: Partial<Record<AttrKey, number>> = {};
+  for (const key of Object.keys(after) as AttrKey[]) {
+    const d = after[key] - before[key];
+    if (d !== 0) { deltas[key] = d; }
+  }
+  return deltas;
+}
+
+/**
+ * Run one season-boundary step for a single squad: develop+age everyone, retire by the equilibrium
+ * curve, then take a *small* direct academy intake (≤ maxIntake). Retiree positions beyond the cap
+ * are returned as `overflow` for the caller to mint into the free-agent pool — the club rebuilds the
+ * rest from the market. World population is conserved: every retiree maps to one same-position youth
+ * (some in the club, the rest in the pool).
+ */
+export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurnResult {
+  const regimentOf = opts.regimentOf ?? (() => DEFAULT_REGIMENT);
+  const maxIntake = opts.maxIntake ?? randomIntakeCap(opts.rng);
+  const survivors: Player[] = [];
+  const retired: Player[] = [];
+  const developed: PlayerDelta[] = [];
+
+  for (const player of squad) {
+    const dev = developOverSeason(player, regimentOf(player), opts.trainingLevel, opts.rng);
+    const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
+    const deltas = deltaOf(player.attributes, dev.attributes);
+    if (Object.keys(deltas).length > 0) {
+      developed.push({ playerId: grown.id, playerName: grown.name, age: grown.age, deltas });
+    }
+    if (opts.rng() < retirementChance(grown.age, calculateOverall(grown.attributes))) {
+      retired.push(grown);
+    } else {
+      survivors.push(grown);
+    }
+  }
+
+  // Only a small intake joins directly; the rest of the retiree positions overflow to the pool.
+  const intake = retired.slice(0, maxIntake);
+  const youth = intake.map(r => makeYouth(r.position, opts.academyLevel, opts.nationality, opts.youthFactory, opts.rng));
+  const overflow = retired.slice(maxIntake).map(r => r.position);
+
+  return { squad: [...survivors, ...youth], retired, developed, youth, overflow };
+}
+
+// ── free-agent pool churn ───────────────────────────────────────────────────────────
+/** A youth to mint into the pool: overflow from clubs (a retiree position they didn't backfill). */
+export interface OverflowSpec { position: Position; nationality: string }
+
+export interface PoolChurnOptions {
+  rng: () => number;
+  youthFactory: YouthFactory;
+  /** Club overflow (retiree positions not backfilled in-club) to mint into the pool. */
+  overflow: OverflowSpec[];
+  /** Academy band used for pool youth (unattached prospects); defaults to 2. */
+  youthLevel?: number;
+  /** Training level used to develop unattached players; defaults to 2. */
+  trainingLevel?: number;
+}
+
+/**
+ * Age/develop the free-agent pool and retire its veterans, then conserve population: replace each
+ * pool retiree 1:1 with a fresh youth (same position), and mint the supplied club `overflow`.
+ */
+export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[] {
+  const trainingLevel = opts.trainingLevel ?? 2;
+  const youthLevel = opts.youthLevel ?? 2;
+  const next: Player[] = [];
+  const retiredSpecs: OverflowSpec[] = [];
+
+  for (const player of pool) {
+    const dev = developOverSeason(player, DEFAULT_REGIMENT, trainingLevel, opts.rng);
+    const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
+    if (opts.rng() >= retirementChance(grown.age, calculateOverall(grown.attributes))) {
+      next.push(grown);
+    } else {
+      retiredSpecs.push({ position: grown.position, nationality: grown.nationality }); // replace 1:1
+    }
+  }
+
+  for (const spec of [...retiredSpecs, ...opts.overflow]) {
+    next.push(makeYouth(spec.position, youthLevel, spec.nationality, opts.youthFactory, opts.rng));
+  }
+
+  return next;
+}
+
+// ── AI market activity ───────────────────────────────────────────────────────────
+// During a transfer window AI clubs try to improve: each (with some probability) upgrades its weakest
+// position from the free-agent pool, releasing the player it displaces back into the pool. They act on
+// even a *marginal* improvement (a small threshold rather than demanding a bargain) — the "bounded
+// overspend" that keeps clubs active and stops the market stagnating into a race to the bottom.
+
+export interface AiMarketTeam { id: string; squad: Player[] }
+
+export interface AiMarketOptions {
+  rng: () => number;
+  /** Probability each club attempts activity this window. */
+  activity?: number;
+  /** Minimum overall improvement (in points) that justifies an upgrade swap. */
+  improveThreshold?: number;
+  /** Per-club squad size to refill toward (clamped to MAX_SQUAD_SIZE). */
+  targetSizes?: Record<string, number>;
+}
+
+export interface AiMarketResult {
+  teams: AiMarketTeam[];
+  freeAgents: Player[];
+  /** How many transfers happened (for calibration/inspection). */
+  moves: number;
+}
+
+/** Hard cap on an AI squad: above this, the club releases its lowest-value players. */
+export const MAX_SQUAD_SIZE = 25;
+
+const ovr = (p: Player) => calculateOverall(p.attributes);
+const weakestIndex = (squad: Player[]) =>
+  squad.reduce((lo, p, i) => (ovr(p) < ovr(squad[lo]) ? i : lo), 0);
+
+/**
+ * One window of AI-to-pool trading. Per active club: trim above the 25 cap, optionally consolidate
+ * (release the two weakest to sign one stronger of comparable combined value), upgrade the weakest
+ * slot, then refill open slots from the pool toward the club's target size. Only *moves* players
+ * between clubs and the pool, so it never changes world population.
+ */
+export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: AiMarketOptions): AiMarketResult {
+  const activity = opts.activity ?? 0.5;
+  const threshold = opts.improveThreshold ?? 2;
+  const pool = [...freeAgents];
+  let moves = 0;
+
+  const takeBest = (predicate: (p: Player) => boolean): Player | null => {
+    let best = -1;
+    for (let i = 0; i < pool.length; i++) {
+      if (!predicate(pool[i])) { continue; }
+      if (best === -1 || ovr(pool[i]) > ovr(pool[best])) { best = i; }
+    }
+    return best === -1 ? null : pool.splice(best, 1)[0];
+  };
+
+  const result = teams.map(team => {
+    if (opts.rng() >= activity || team.squad.length === 0) { return team; }
+    const squad = [...team.squad];
+    const target = Math.min(MAX_SQUAD_SIZE, opts.targetSizes?.[team.id] ?? squad.length);
+
+    // 1. Trim above the cap: release lowest-value players to the pool.
+    while (squad.length > MAX_SQUAD_SIZE) {
+      const idx = squad.reduce((lo, p, i) => (playerValue(p) < playerValue(squad[lo]) ? i : lo), 0);
+      pool.push(squad.splice(idx, 1)[0]);
+      moves++;
+    }
+
+    // 2. Consolidate: swap the two weakest for one clearly better player (net −1, quality up).
+    if (squad.length >= 2) {
+      const sorted = [...squad].sort((a, b) => playerValue(a) - playerValue(b));
+      const [w1, w2] = sorted;
+      const combined = playerValue(w1) + playerValue(w2);
+      const star = takeBest(p => playerValue(p) >= combined && ovr(p) > ovr(w1));
+      if (star) {
+        for (const w of [w1, w2]) { pool.push(squad.splice(squad.findIndex(p => p.id === w.id), 1)[0]); }
+        squad.push(star);
+        moves++;
+      }
+    }
+
+    // 3. Upgrade the weakest slot with a clearly better same-position free agent.
+    if (squad.length > 0) {
+      const wi = weakestIndex(squad);
+      const bar = ovr(squad[wi]) + threshold;
+      const better = takeBest(p => p.position === squad[wi].position && ovr(p) >= bar);
+      if (better) { pool.push(squad[wi]); squad[wi] = better; moves++; }
+    }
+
+    // 4. Refill open slots toward the target with the best players the pool offers.
+    while (squad.length < target) {
+      const signing = takeBest(() => true);
+      if (!signing) { break; }
+      squad.push(signing);
+      moves++;
+    }
+
+    return { ...team, squad };
+  });
+
+  return { teams: result, freeAgents: pool, moves };
+}

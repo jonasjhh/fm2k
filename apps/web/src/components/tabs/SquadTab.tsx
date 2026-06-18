@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import Button from '@mui/material/Button';
 import { useGameStore } from '../../store/game-store';
 import type { ClubPlayer, RegimentId } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
@@ -104,6 +105,13 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
   const value = sellPrice(player.attributes);
   const setTraining = useGameStore((s) => s.setTraining);
+  const sellPlayer = useGameStore((s) => s.sellPlayer);
+  const windowOpen = useGameStore((s) => s.transferWindow.open);
+
+  const handleSell = () => {
+    if (!confirm(`Sell ${player.name} for £${fmt(value)}?`)) {return;}
+    sellPlayer(player.id);
+  };
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -166,6 +174,19 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
             {gi < ATTR_GROUPS.length - 1 && <Divider sx={{ mt: 1 }} />}
           </Box>
         ))}
+      </Box>
+
+      <Box sx={{ px: 2, py: 1.5, borderTop: 1, borderColor: 'divider' }}>
+        <Button
+          fullWidth
+          size="small"
+          variant="outlined"
+          color="error"
+          disabled={!windowOpen}
+          onClick={handleSell}
+        >
+          {windowOpen ? `Sell · £${fmt(value)}` : 'Sell (window closed)'}
+        </Button>
       </Box>
     </Paper>
   );

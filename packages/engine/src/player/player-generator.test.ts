@@ -1,36 +1,10 @@
 import { PlayerGenerator } from './player-generator';
-import type { Position, PlayerAttributes } from '@fm2k/match';
+import { calculateOverall, type Position, type PlayerAttributes } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
   'speed', 'strength', 'agility', 'passing', 'finishing',
   'technique', 'defending', 'stamina', 'awareness', 'composure',
 ];
-
-// Per-position attribute boosts (mirrors player-generator's table).
-const BOOSTS: Record<string, Partial<Record<keyof PlayerAttributes, number>>> = {
-  GK:  { agility: 3, composure: 2, awareness: 2 },
-  CB:  { defending: 4, strength: 2, awareness: 2 },
-  LB:  { defending: 2, speed: 2, stamina: 2 },
-  RB:  { defending: 2, speed: 2, stamina: 2 },
-  CDM: { defending: 3, passing: 2, awareness: 2 },
-  CM:  { passing: 3, stamina: 3, technique: 2 },
-  CAM: { passing: 3, technique: 3, composure: 2 },
-  LM:  { speed: 3, passing: 2, stamina: 3 },
-  RM:  { speed: 3, passing: 2, stamina: 3 },
-  LW:  { speed: 4, technique: 2, agility: 2 },
-  RW:  { speed: 4, technique: 2, agility: 2 },
-  ST:  { finishing: 4, speed: 2, composure: 2 },
-  CF:  { finishing: 3, technique: 3, composure: 2 },
-};
-
-/** Expected attributes when every base value is `base` and position boosts apply (clamped at 20). */
-function expectedAttrs(position: string, base: number): PlayerAttributes {
-  const attrs = Object.fromEntries(ATTR_KEYS.map(k => [k, base])) as unknown as PlayerAttributes;
-  for (const [k, boost] of Object.entries(BOOSTS[position] ?? {})) {
-    attrs[k as keyof PlayerAttributes] = Math.min(20, base + (boost ?? 0));
-  }
-  return attrs;
-}
 
 describe('PlayerGenerator:', () => {
   describe('.generatePlayer()', () => {
@@ -40,99 +14,77 @@ describe('PlayerGenerator:', () => {
       playerGenerator = new PlayerGenerator();
     });
 
-    test('given default configuration when generating a single player then should have correct properties', () => {
+    test('produces the core player properties', () => {
       const player = playerGenerator.generatePlayer('ST');
-
-      expect(player).toHaveProperty('id');
-      expect(player).toHaveProperty('name');
-      expect(player).toHaveProperty('position', 'ST');
-      expect(player).toHaveProperty('attributes');
       expect(typeof player.id).toBe('string');
-      expect(typeof player.name).toBe('string');
       expect(player.id.length).toBeGreaterThan(0);
       expect(player.name.length).toBeGreaterThan(0);
+      expect(player.position).toBe('ST');
+      expect(player.attributes).toBeDefined();
     });
 
-    test('given default configuration when generating a player then should have attributes within valid range', () => {
-      const player = playerGenerator.generatePlayer('CM');
-
-      const attributeKeys = ['speed', 'strength', 'agility', 'passing', 'finishing', 'technique', 'defending', 'stamina', 'awareness', 'composure'] as const;
-
-      attributeKeys.forEach(key => {
-        const value = player.attributes[key];
-        expect(typeof value).toBe('number');
-        expect(value).toBeGreaterThanOrEqual(1);
-        expect(value).toBeLessThanOrEqual(20);
-      });
+    test('all attributes stay within the 1–99 scale', () => {
+      const player = playerGenerator.generatePlayer('CM', { overall: 70 });
+      for (const key of ATTR_KEYS) {
+        const v = player.attributes[key];
+        expect(v).toBeGreaterThanOrEqual(1);
+        expect(v).toBeLessThanOrEqual(99);
+      }
     });
 
-    test('given custom attribute range when generating a player then should respect the configured range', () => {
-      const player = playerGenerator.generatePlayer('CM', 15, 18);
-
-      const attributeKeys = ['speed', 'strength', 'agility', 'passing', 'finishing', 'technique', 'defending', 'stamina', 'awareness', 'composure'] as const;
-
-      attributeKeys.forEach(key => {
-        const value = player.attributes[key];
-        expect(value).toBeGreaterThanOrEqual(15);
-        expect(value).toBeLessThanOrEqual(20); // Position boosts can push over maxAttribute
-      });
+    test.each([30, 50, 70, 85])('overall lands near the requested target %d', target => {
+      // Average across several samples to wash out per-attribute variance.
+      const gen = new PlayerGenerator('female', 'all');
+      const overalls = Array.from({ length: 30 }, () => calculateOverall(gen.generatePlayer('CM', { overall: target }).attributes));
+      const mean = overalls.reduce((a, b) => a + b, 0) / overalls.length;
+      expect(Math.abs(mean - target)).toBeLessThan(4);
     });
 
-    test('given default configuration when generating players for different positions then should adjust attributes based on position', () => {
-      const goalkeeper = playerGenerator.generatePlayer('GK');
-      const striker = playerGenerator.generatePlayer('ST');
-
-      expect(goalkeeper.attributes.agility).toBeGreaterThanOrEqual(1);
-      expect(striker.attributes.finishing).toBeGreaterThanOrEqual(1);
+    test('shapes attributes for the position (a striker finishes better than a centre-back)', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const sample = (pos: Position, key: keyof PlayerAttributes) => {
+        const vals = Array.from({ length: 40 }, () => gen.generatePlayer(pos, { overall: 65 }).attributes[key]);
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      };
+      expect(sample('ST', 'finishing')).toBeGreaterThan(sample('CB', 'finishing'));
+      expect(sample('CB', 'defending')).toBeGreaterThan(sample('ST', 'defending'));
     });
 
-    test('given gender and country when constructing player generator then should generate names accordingly', () => {
-      const maleNorwayGenerator = new PlayerGenerator('male', 'norway');
-      const player = maleNorwayGenerator.generatePlayer('ST');
+    test('respects an explicit age and potential', () => {
+      const player = playerGenerator.generatePlayer('CM', { overall: 50, age: 18, potential: 92 });
+      expect(player.age).toBe(18);
+      expect(player.potential).toBe(92);
+    });
 
-      expect(player.name).toBeTruthy();
-      expect(typeof player.name).toBe('string');
-      expect(player.name.length).toBeGreaterThan(0);
+    test('derives age within 17–35 and potential at least the overall', () => {
+      for (let i = 0; i < 50; i++) {
+        const p = playerGenerator.generatePlayer('CM', { overall: 60 });
+        expect(p.age).toBeGreaterThanOrEqual(17);
+        expect(p.age).toBeLessThanOrEqual(35);
+        expect(p.potential).toBeGreaterThanOrEqual(Math.round(calculateOverall(p.attributes)) - 1);
+        expect(p.potential).toBeLessThanOrEqual(99);
+      }
     });
   });
 
   describe('deterministic generation (injected rng):', () => {
-    const positions = Object.keys(BOOSTS) as Position[];
-
-    test.each(positions)('position %s applies exactly its attribute boosts (base 1)', position => {
-      // rng=0 → every base attribute is the minimum (1), so boosts are exactly observable.
-      const gen = new PlayerGenerator('female', 'all', () => 0);
-      const player = gen.generatePlayer(position);
-      expect(player.attributes).toEqual(expectedAttrs(position, 1));
-    });
-
-    test('clamps boosted attributes at 20 when the base is already maxed', () => {
-      const gen = new PlayerGenerator('female', 'all', () => 0.999); // base 20
-      const player = gen.generatePlayer('ST');
-      expect(player.attributes.finishing).toBe(20); // min(20, 20 + 4)
-      expect(player.attributes.speed).toBe(20);     // min(20, 20 + 2)
-      expect(player.attributes.composure).toBe(20);
+    test('a fixed rng yields identical players', () => {
+      const a = new PlayerGenerator('female', 'all', () => 0.4).generatePlayer('ST', { overall: 70 });
+      const b = new PlayerGenerator('female', 'all', () => 0.4).generatePlayer('ST', { overall: 70 });
+      expect(a.attributes).toEqual(b.attributes);
+      expect(a.age).toBe(b.age);
+      expect(a.potential).toBe(b.potential);
     });
 
     test('age and potential derive from the rng (rng=0)', () => {
-      const gen = new PlayerGenerator('female', 'all', () => 0);
-      const player = gen.generatePlayer('CM');
-      const sum = ATTR_KEYS.reduce((acc, k) => acc + player.attributes[k], 0);
-      expect(player.age).toBe(17);                         // 17 + floor(0 * 19)
-      expect(player.potential).toBe(Math.round(sum / 10)); // avg + floor(0 * 20)
+      const player = new PlayerGenerator('female', 'all', () => 0).generatePlayer('CM', { overall: 60 });
+      expect(player.age).toBe(17);                                  // 17 + floor(0 * 19)
+      expect(player.potential).toBe(Math.round(calculateOverall(player.attributes))); // overall + floor(0 * 20)
     });
 
-    test('age and potential scale with a higher rng (base 20)', () => {
-      const gen = new PlayerGenerator('female', 'all', () => 0.999);
-      const player = gen.generatePlayer('CM');
-      expect(player.age).toBe(35);       // 17 + floor(0.999 * 19) = 17 + 18
-      expect(player.potential).toBe(39); // min(99, 20 + floor(0.999 * 20)) = 20 + 19
-    });
-
-    test('respects a custom attribute range', () => {
-      const gen = new PlayerGenerator('female', 'all', () => 0.999);
-      const player = gen.generatePlayer('GK', 5, 8); // base = floor(0.999 * (8-5+1)) + 5 = 8
-      expect(player.attributes.strength).toBe(8);     // non-boosted attribute = top of range
+    test('age scales to the top of the range with a high rng', () => {
+      const player = new PlayerGenerator('female', 'all', () => 0.999).generatePlayer('CM', { overall: 60 });
+      expect(player.age).toBe(35); // 17 + floor(0.999 * 19)
     });
   });
 

@@ -260,7 +260,7 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(config);
       const playerId = config.squad[0].id;
       const result = manager.sellPlayer(playerId, 200_000);
-      expect(result).toBe(true);
+      expect(result?.id).toBe(playerId);
       expect(manager.getState().budget).toBe(700_000);
     });
 
@@ -302,7 +302,7 @@ describe('ClubManager:', () => {
     test('returns false when player does not exist', () => {
       const manager = new ClubManager(makeConfig());
       const result = manager.sellPlayer('nonexistent-id', 100_000);
-      expect(result).toBe(false);
+      expect(result).toBeNull();
     });
   });
 
@@ -667,7 +667,7 @@ describe('ClubManager (mutation top-up):', () => {
       const targetId = config.startingXI[0];
       const name = manager.getState().squad.find(p => p.id === targetId)!.name;
 
-      expect(manager.sellPlayer(targetId, 5000)).toBe(true);
+      expect(manager.sellPlayer(targetId, 5000)?.id).toBe(targetId);
       const s = manager.getState();
       // only the target is removed — the rest of the squad/XI must remain
       expect(s.squad.some(p => p.id === targetId)).toBe(false);

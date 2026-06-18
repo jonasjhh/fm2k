@@ -118,6 +118,13 @@ describe('save-data codec round-trip:', () => {
     expect(byId.tr2.training).toBeUndefined();
   });
 
+  it('given a free-agent pool then it survives the round-trip', async () => {
+    const freeAgents = [player('fa1', { position: 'GK' }), player('fa2', { position: 'ST', age: 18 })];
+    await writeSave(makeSave({ transferFreeAgents: freeAgents }));
+    const [loaded] = await readAllSaves();
+    expect(loaded.transferFreeAgents).toEqual(freeAgents);
+  });
+
   it('given pass-through metadata then scalar fields are preserved', async () => {
     const original = makeSave({ matchday: 9, currentMatchday: 9, activeTab: 'tactics' });
     await writeSave(original);

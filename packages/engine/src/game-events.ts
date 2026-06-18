@@ -45,6 +45,27 @@ export type GameEvents = {
     // Net per-attribute change this season (only non-zero deltas).
     deltas: Partial<Record<keyof import('@fm2k/match').PlayerAttributes, number>>
   }
+  // Emitted at season end when a player retires (for the manager's own club → a user message).
+  'player.retired': {
+    playerId: string
+    playerName: string
+    age: number
+    ownClub: boolean
+  }
+  // Emitted when a player changes club (direct bid or AI market activity).
+  'player.transferred': {
+    playerId: string
+    playerName: string
+    fromTeamId: string
+    toTeamId: string
+    fee: number
+  }
+  // Emitted when a transfer window opens or closes (→ a user notification).
+  'transfer.window': {
+    open: boolean
+    kind: 'pre_season' | 'mid_season'
+    timestamp: GameDateTime
+  }
   'gate.receipt': {
     amount: number
     opponentId: string

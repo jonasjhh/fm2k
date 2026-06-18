@@ -1,11 +1,12 @@
 import { GameSession } from '../app/session.ts';
-import type { GameSnapshot, AdvanceResult } from '../app/session.ts';
+import type { GameSnapshot, AdvanceResult, GameNotification } from '../app/session.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
   StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
+  TransferWindow,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -30,6 +31,9 @@ export interface BackendCommands {
   // transfers
   buyPlayer(listingId: string): boolean;
   sellPlayer(playerId: string): boolean;
+  bidForPlayer(teamId: string, playerId: string, amount: number): boolean;
+  /** One-click signing of any player in the world (free agent or club player) at the asking price. */
+  signPlayer(playerId: string): boolean;
   refreshTransfers(): TransferListing[];
   // facilities
   upgradeFacility(key: 'medical' | 'training' | 'academy'): boolean;
@@ -59,10 +63,16 @@ export interface BackendQueries {
   getNow(): GameDateTime;
   getLiveMatches(): LiveMatch[];
   getTransferListings(): TransferListing[];
+  /** The free-agent pool (browsable as part of the whole playerbase). */
+  getFreeAgents(): Player[];
   getLastMatchResult(): LastMatchResult | null;
   getLastMatchInsight(): MatchInsight | null;
   getCurrentMatchday(): number;
   isSeasonComplete(): boolean;
+  getNotifications(): GameNotification[];
+  /** Fee another club would demand for a player (null if not found). */
+  getAskingPrice(teamId: string, playerId: string): number | null;
+  getTransferWindow(): TransferWindow;
 }
 
 /** Domain event stream — subscribe to refresh read-models after any change. */
@@ -97,6 +107,8 @@ export function createBackend(): Backend {
     setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),
+    bidForPlayer: (teamId, playerId, amount) => s.bidForPlayer(teamId, playerId, amount),
+    signPlayer: (playerId) => s.signPlayer(playerId),
     refreshTransfers: () => s.refreshTransfers(),
     upgradeFacility: (key) => s.upgradeFacility(key),
     applyStadiumDesign: (sectors, cost, cap) => s.applyStadiumDesign(sectors, cost, cap),
@@ -123,10 +135,14 @@ export function createBackend(): Backend {
     getNow: () => s.getNow(),
     getLiveMatches: () => s.liveMatches(),
     getTransferListings: () => s.snapshot().transferListings,
+    getFreeAgents: () => s.getFreeAgents(),
     getLastMatchResult: () => s.snapshot().lastMatchResult,
     getLastMatchInsight: () => s.snapshot().lastMatchInsight,
     getCurrentMatchday: () => s.snapshot().currentMatchday,
     isSeasonComplete: () => s.snapshot().seasonComplete,
+    getNotifications: () => s.snapshot().notifications,
+    getAskingPrice: (teamId, playerId) => s.askingPriceFor(teamId, playerId),
+    getTransferWindow: () => s.getTransferWindow(),
   };
 
   const events: BackendEvents = {

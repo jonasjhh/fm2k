@@ -61,6 +61,7 @@ describe('createBackend delegation:', () => {
     ['setFormation', ['4-3-3']],
     ['buyPlayer', ['listing-9']],
     ['sellPlayer', ['player-9']],
+    ['signPlayer', ['player-7']],
     ['refreshTransfers', []],
     ['upgradeFacility', ['medical']],
     ['applyStadiumDesign', [{ s: 1 }, 100, 200]],
@@ -91,6 +92,7 @@ describe('createBackend delegation:', () => {
     ['getEditableCountries', 'getEditableCountries'],
     ['getNow', 'getNow'],
     ['getLiveMatches', 'liveMatches'],
+    ['getFreeAgents', 'getFreeAgents'],
   ];
 
   for (const [query, method] of directQueryCases) {

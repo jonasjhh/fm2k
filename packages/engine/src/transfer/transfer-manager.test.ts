@@ -291,6 +291,38 @@ describe('TransferManager:', () => {
     });
   });
 
+  describe('free-agent pool:', () => {
+    test('starts empty', () => {
+      expect(makeManager().getFreeAgents()).toHaveLength(0);
+    });
+
+    test('addFreeAgents adds players to the pool', () => {
+      const manager = makeManager();
+      manager.addFreeAgents([makePlayer(), makePlayer()]);
+      expect(manager.getFreeAgents()).toHaveLength(2);
+    });
+
+    test('refresh lists free agents (e.g. sold players) before generating fresh ones', () => {
+      const manager = makeManager({ marketSize: 5, listingDuration: 3 });
+      const sold = makePlayer({ finishing: 18, technique: 18 });
+      manager.addFreeAgents([sold]);
+      manager.refreshMarket(3); // all initial listings expired (dur 3) → refill 5 from pool then factory
+      expect(manager.getListings().some(l => l.player.id === sold.id)).toBe(true);
+      expect(manager.getFreeAgents()).toHaveLength(0); // drawn out of the pool
+    });
+
+    test('a listed free agent can be purchased and leaves the market', () => {
+      const manager = makeManager({ marketSize: 5, listingDuration: 3 });
+      const sold = makePlayer();
+      manager.addFreeAgents([sold]);
+      manager.refreshMarket(3);
+      const listing = manager.getListings().find(l => l.player.id === sold.id)!;
+      const club = makeClubManager(listing.askingPrice * 2);
+      expect(manager.purchase(listing.id, club)).toBe(true);
+      expect(manager.getListings().some(l => l.id === listing.id)).toBe(false);
+    });
+  });
+
   describe('subscribe:', () => {
     test('notifies listener when market is refreshed', () => {
       const manager = makeManager();

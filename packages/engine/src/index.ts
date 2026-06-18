@@ -47,6 +47,14 @@ export {
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
 } from './player/progression.ts';
 export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
+export {
+  retirementChance, makeYouth, generatorYouthFactory, churnSquad, churnFreeAgents, runAiMarket,
+  randomIntakeCap, MAX_SQUAD_SIZE,
+} from './world/world-churn.ts';
+export type {
+  YouthFactory, PlayerDelta, SquadChurnOptions, SquadChurnResult, PoolChurnOptions, OverflowSpec,
+  AiMarketTeam, AiMarketOptions, AiMarketResult,
+} from './world/world-churn.ts';
 
 export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
@@ -73,7 +81,13 @@ export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
-export { sellPrice, getTeamOVR } from './valuation/valuation.ts';
+export { sellPrice, getTeamOVR, playerValue, directTransferPrice } from './valuation/valuation.ts';
+export type { LineupRole } from './valuation/valuation.ts';
+export { acceptBid } from './transfer/bid.ts';
+export {
+  transferWindow, PRE_SEASON_WINDOW_LENGTH, MID_SEASON_WINDOW_LENGTH,
+} from './transfer/transfer-window.ts';
+export type { TransferWindow, TransferWindowKind } from './transfer/transfer-window.ts';
 export {
   SECTOR_KEYS, STAND_TYPES, STAND_CONSTRUCTION_COSTS, LOCATION_MULT,
   COST_PER_SEAT_ADDED, COST_PER_SEAT_REMOVED, DEFAULT_STADIUM_SECTORS,

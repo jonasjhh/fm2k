@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import { showToast } from '@fm2k/toast';
 import { createBackend, findTeamById, findDivisionForTeam, findCountryForTeam } from '@fm2k/backend';
 import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult, AnimEvent } from '@fm2k/backend';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
-  TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId,
+  TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -75,6 +76,8 @@ interface GameStore {
   now: GameDateTime | null;
   clubState: ClubState | null;
   transferListings: TransferListing[];
+  freeAgents: Player[];
+  transferWindow: TransferWindow;
   playerTeamId: string | null;
   selectedLeagueIds: string[];
   currentMatchday: number;
@@ -131,6 +134,9 @@ interface GameStore {
   // transfers
   buyPlayer: (listingId: string) => boolean;
   sellPlayer: (playerId: string) => boolean;
+  bidForPlayer: (teamId: string, playerId: string, amount: number) => boolean;
+  signPlayer: (playerId: string) => boolean;
+  getAskingPrice: (teamId: string, playerId: string) => number | null;
   refreshTransfers: () => void;
 
   // facilities
@@ -138,10 +144,19 @@ interface GameStore {
   applyStadiumDesign: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean;
 }
 
+// Track which backend notifications have already been shown as toasts.
+let lastSeenNotificationId = 0;
+
 export const useGameStore = create<GameStore>((set, get) => {
   // Copy the backend read-model snapshot into the cached store fields.
   const refresh = () => {
     const s = backend.queries.getSnapshot();
+    for (const n of s.notifications) {
+      if (n.id > lastSeenNotificationId) {
+        lastSeenNotificationId = n.id;
+        showToast(n.message, n.type);
+      }
+    }
     set({
       editableCountries: s.editableCountries,
       leagueState: s.leagueState,
@@ -153,6 +168,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       now: s.now,
       clubState: s.clubState,
       transferListings: s.transferListings,
+      freeAgents: s.freeAgents,
+      transferWindow: backend.queries.getTransferWindow(),
       playerTeamId: s.playerTeamId,
       selectedLeagueIds: s.selectedLeagueIds,
       currentMatchday: s.currentMatchday,
@@ -193,6 +210,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     now: null,
     clubState: null,
     transferListings: [],
+    freeAgents: [],
+    transferWindow: { open: false, kind: null, closesOnMatchday: null },
     playerTeamId: null,
     selectedLeagueIds: [],
     currentMatchday: 0,
@@ -302,6 +321,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     // ── transfers ───────────────────────────────────────────────────────────────
     buyPlayer: (listingId) => backend.commands.buyPlayer(listingId),
     sellPlayer: (playerId) => backend.commands.sellPlayer(playerId),
+    bidForPlayer: (teamId, playerId, amount) => backend.commands.bidForPlayer(teamId, playerId, amount),
+    signPlayer: (playerId) => backend.commands.signPlayer(playerId),
+    getAskingPrice: (teamId, playerId) => backend.queries.getAskingPrice(teamId, playerId),
     refreshTransfers: () => { backend.commands.refreshTransfers(); },
 
     // ── facilities ────────────────────────────────────────────────────────────��

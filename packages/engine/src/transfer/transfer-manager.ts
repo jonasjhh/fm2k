@@ -44,18 +44,34 @@ export class TransferManager {
       const generator = new PlayerGenerator();
       this.playerFactory = () => {
         const position = POSITIONS[Math.floor(rng() * POSITIONS.length)];
-        return generator.generatePlayer(position);
+        return generator.generatePlayer(position, { overall: 60 });
       };
     }
 
     this.stateManager = new StateManager<TransferState>({
       listings: this.generateListings(this.marketSize, 0),
       refreshedOnMatchday: 0,
+      freeAgents: [],
     });
   }
 
   loadState(state: TransferState): void {
-    this.stateManager.setState(state);
+    this.stateManager.setState({ ...state, freeAgents: state.freeAgents ?? [] });
+  }
+
+  getFreeAgents(): Player[] {
+    return this.stateManager.getState().freeAgents;
+  }
+
+  /** Add players to the free-agent pool (sold players, released players, churn youth). */
+  addFreeAgents(players: Player[]): void {
+    if (players.length === 0) { return; }
+    this.stateManager.updateState(s => { s.freeAgents.push(...players); });
+  }
+
+  /** Replace the whole free-agent pool (used after world churn / AI market re-shuffles it). */
+  setFreeAgents(players: Player[]): void {
+    this.stateManager.updateState(s => { s.freeAgents = players; });
   }
 
   getState(): TransferState {
@@ -77,11 +93,17 @@ export class TransferManager {
     );
   }
 
-  // Removes expired listings then fills back up to marketSize with fresh ones
+  // Removes expired listings then fills back up to marketSize — drawing from the free-agent pool
+  // first (sold/released/youth players), falling back to freshly generated players if it runs dry.
   refreshMarket(currentMatchday: number): void {
     this.stateManager.updateState(state => {
       state.listings = state.listings.filter(l => l.expiresOnMatchday > currentMatchday);
-      const needed = this.marketSize - state.listings.length;
+      let needed = this.marketSize - state.listings.length;
+      while (needed > 0 && state.freeAgents.length > 0) {
+        const player = state.freeAgents.shift() as Player;
+        state.listings.push(this.listingFor(player, currentMatchday));
+        needed--;
+      }
       if (needed > 0) {
         state.listings.push(...this.generateListings(needed, currentMatchday));
       }
@@ -104,15 +126,17 @@ export class TransferManager {
   }
 
   private generateListings(count: number, currentMatchday: number): TransferListing[] {
-    return Array.from({ length: count }, () => {
-      const player = this.playerFactory();
-      const clubPlayer: ClubPlayer = { ...player, fitness: 100 };
-      return {
-        id: uuidv4(),
-        player: clubPlayer,
-        askingPrice: calculateAskingPrice(player.attributes),
-        expiresOnMatchday: currentMatchday + this.listingDuration,
-      };
-    });
+    return Array.from({ length: count }, () => this.listingFor(this.playerFactory(), currentMatchday));
+  }
+
+  /** Wrap a (free-agent or freshly generated) player into a priced, time-limited listing. */
+  private listingFor(player: Player, currentMatchday: number): TransferListing {
+    const clubPlayer: ClubPlayer = { ...player, fitness: 100 };
+    return {
+      id: uuidv4(),
+      player: clubPlayer,
+      askingPrice: calculateAskingPrice(player.attributes),
+      expiresOnMatchday: currentMatchday + this.listingDuration,
+    };
   }
 }
