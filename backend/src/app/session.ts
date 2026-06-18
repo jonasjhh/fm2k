@@ -32,6 +32,9 @@ const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'hal
 /** Minutes added to a kickoff to be sure a match (incl. extra time) has finished. */
 const MATCH_MAX_MINUTES = 130;
 
+/** Free agents seeded per included nation at the start of a new game (scales the pool with size). */
+const INITIAL_FREE_AGENTS_PER_NATION = 40;
+
 /** One animated event from the real match simulation. */
 export interface AnimEvent {
   minute: number;
@@ -372,6 +375,19 @@ export class GameSession {
         return this.playerGenerator.generatePlayer(pos, { overall: 65 });
       },
     });
+
+    // Seed a starting free-agent pool so a new game's market isn't empty: a batch per included
+    // nation (so the pool scales with how many leagues are in play), each with that nation's
+    // nationality. (On load this is immediately replaced by the saved pool via loadState.)
+    const seededFreeAgents: Player[] = [];
+    for (const country of editableCountries.filter(c => allLeagueIds.includes(c.id))) {
+      for (let i = 0; i < INITIAL_FREE_AGENTS_PER_NATION; i++) {
+        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        const overall = 42 + Math.floor(this.rng() * 28); // 42–69: released players + the odd gem
+        seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
+      }
+    }
+    transferManager.addFreeAgents(seededFreeAgents);
 
     this.seasons = seasons;
     this.leagueManagers = leagueManagers;
