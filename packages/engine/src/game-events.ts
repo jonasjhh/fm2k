@@ -37,6 +37,14 @@ export type GameEvents = {
     playerId: string
     playerName: string
   }
+  // Emitted at season end for each player whose attributes changed through training/ageing.
+  'player.developed': {
+    playerId: string
+    playerName: string
+    age: number
+    // Net per-attribute change this season (only non-zero deltas).
+    deltas: Partial<Record<keyof import('@fm2k/match').PlayerAttributes, number>>
+  }
   'gate.receipt': {
     amount: number
     opponentId: string

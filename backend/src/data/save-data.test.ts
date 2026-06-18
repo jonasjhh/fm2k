@@ -106,6 +106,18 @@ describe('save-data codec round-trip:', () => {
     expect(byId.p1.injury).toBeUndefined();
   });
 
+  it('given a per-player training regiment then it survives the round-trip; unset stays unset', async () => {
+    const squad: ClubPlayer[] = [
+      clubPlayer('tr1', { training: 'finishing' }),
+      clubPlayer('tr2'), // no regiment set — should remain unset (consumer defaults it)
+    ];
+    await writeSave(makeSave({ clubState: { budget: 1, squad } as unknown as ClubState }));
+    const [loaded] = await readAllSaves();
+    const byId = Object.fromEntries(loaded.clubState.squad.map(p => [p.id, p]));
+    expect(byId.tr1.training).toBe('finishing');
+    expect(byId.tr2.training).toBeUndefined();
+  });
+
   it('given pass-through metadata then scalar fields are preserved', async () => {
     const original = makeSave({ matchday: 9, currentMatchday: 9, activeTab: 'tactics' });
     await writeSave(original);

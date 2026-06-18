@@ -4,7 +4,7 @@ import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchRe
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
-  TeamTacticsIntent, TacticalStyleId, TacticalSliders,
+  TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -126,6 +126,7 @@ interface GameStore {
   setTactics: (intent: TeamTacticsIntent) => void;
   setStyle: (style: TacticalStyleId) => void;
   setSliders: (sliders: Partial<TacticalSliders>) => void;
+  setTraining: (playerId: string, regiment: RegimentId) => void;
 
   // transfers
   buyPlayer: (listingId: string) => boolean;
@@ -288,6 +289,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     setBench: (ids) => { backend.commands.setBench(ids); },
     setFormation: (formation) => { backend.commands.setFormation(formation); },
     setTactics: (intent) => { backend.commands.setTactics(intent); },
+    setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {
       const cs = get().clubState;
       if (cs) { backend.commands.setTactics({ ...cs.tactics, style }); }

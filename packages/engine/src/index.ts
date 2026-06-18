@@ -43,6 +43,10 @@ export type {
 export { NameGenerator } from '@fm2k/names';
 export type { Gender, Country, NameCountry } from '@fm2k/names';
 export { PlayerGenerator } from './player/player-generator.ts';
+export {
+  trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
+} from './player/progression.ts';
+export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
 
 export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';

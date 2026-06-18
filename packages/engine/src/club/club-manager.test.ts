@@ -819,3 +819,54 @@ describe('ClubManager (mutation top-up):', () => {
     });
   });
 });
+
+describe('ClubManager training & development:', () => {
+  test('setTraining sets a squad player\'s regiment', () => {
+    const manager = new ClubManager(makeConfig());
+    const id = manager.getState().squad[0].id;
+    manager.setTraining(id, 'finishing');
+    expect(manager.getState().squad.find(p => p.id === id)?.training).toBe('finishing');
+  });
+
+  test('a played match can improve starters (not the bench) — rng forced to hit', () => {
+    const bus = new EventBus<GameEvents>();
+    // rng()=0 → balanced regiment picks the first attribute (speed) and the roll always hits.
+    const manager = new ClubManager(makeConfig({ eventBus: bus, rng: () => 0 }));
+    const before = manager.getState();
+    const xi = new Set(before.startingXI);
+
+    emitMatch(bus, 'club-1', 'other-1', 1, 0);
+
+    const after = manager.getState();
+    for (const p of after.squad) {
+      const wasStarter = xi.has(p.id);
+      const grew = p.attributes.speed > 10;
+      expect(grew).toBe(wasStarter); // only the eleven who played improved
+    }
+  });
+
+  test('handleSeasonComplete develops the whole squad and ages everyone', () => {
+    const bus = new EventBus<GameEvents>();
+    const developed: GameEvents['player.developed'][] = [];
+    bus.on('player.developed', e => developed.push(e));
+    const manager = new ClubManager(makeConfig({ eventBus: bus, rng: () => 0 }));
+
+    manager.handleSeasonComplete();
+
+    const after = manager.getState();
+    for (const p of after.squad) {
+      expect(p.age).toBe(26);                 // 25 → 26
+      expect(p.attributes.speed).toBeGreaterThan(10); // balanced/young → improved
+    }
+    expect(developed).toHaveLength(after.squad.length);
+    expect(developed[0].age).toBe(26);
+    expect(developed[0].deltas.speed).toBeGreaterThan(0);
+  });
+
+  test('does not train players on a match our club did not play', () => {
+    const bus = new EventBus<GameEvents>();
+    const manager = new ClubManager(makeConfig({ eventBus: bus, rng: () => 0 }));
+    emitMatch(bus, 'other-1', 'other-2', 2, 1);
+    expect(manager.getState().squad.every(p => p.attributes.speed === 10)).toBe(true);
+  });
+});

@@ -1,11 +1,14 @@
 import type { Player, Formation } from '@fm2k/match';
 import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
+import type { RegimentId } from '../player/progression.ts';
 
 export interface ClubPlayer extends Player {
   fitness: number  // 0–100
   injury?: { type: string; matchesRemaining: number }
   suspension?: { matchesRemaining: number }
+  /** The player's training focus; defaults to 'balanced' when unset. */
+  training?: RegimentId
 }
 
 export type FacilityLevel = 1 | 2 | 3 | 4

@@ -11,10 +11,12 @@ import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import { useGameStore } from '../../store/game-store';
-import type { ClubPlayer } from '@fm2k/engine';
+import type { ClubPlayer, RegimentId } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { sellPrice } from '@fm2k/engine';
+import { sellPrice, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT } from '@fm2k/engine';
 import { StatsCard } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
@@ -101,6 +103,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 
 function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
   const value = sellPrice(player.attributes);
+  const setTraining = useGameStore((s) => s.setTraining);
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -135,6 +138,21 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
           <PlayerStatusChip player={player} />
         </Box>
       )}
+
+      <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Training</Typography>
+        <Select
+          size="small"
+          fullWidth
+          value={player.training ?? DEFAULT_REGIMENT}
+          onChange={(e) => setTraining(player.id, e.target.value as RegimentId)}
+          sx={{ '& .MuiSelect-select': { py: 0.5 } }}
+        >
+          {REGIMENT_IDS.map((id) => (
+            <MenuItem key={id} value={id}>{REGIMENT_LABELS[id]}</MenuItem>
+          ))}
+        </Select>
+      </Box>
 
       <Box sx={{ px: 2, py: 1.5 }}>
         {ATTR_GROUPS.map((group, gi) => (

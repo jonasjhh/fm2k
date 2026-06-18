@@ -14,6 +14,10 @@ import type {
 } from './club-types.ts';
 import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
+import {
+  trainOnMatch, developOverSeason, DEFAULT_REGIMENT, type RegimentId,
+} from '../player/progression.ts';
+import type { PlayerAttributes } from '@fm2k/match';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {
   1: 50_000,
@@ -112,6 +116,14 @@ export class ClubManager {
 
   setBenchPlayers(playerIds: string[]): void {
     this.stateManager.updateState(state => { state.benchPlayers = playerIds; });
+  }
+
+  /** Set a squad player's training focus (drives their development). */
+  setTraining(playerId: string, regiment: RegimentId): void {
+    this.stateManager.updateState(state => {
+      const player = state.squad.find(p => p.id === playerId);
+      if (player) { player.training = regiment; }
+    });
   }
 
   queueSubstitution(playerOutId: string, playerInId: string): void {
@@ -270,6 +282,7 @@ export class ClubManager {
 
     this.stateManager.updateState(s => {
       const medicalLevel = s.facilities.medical;
+      const trainingLevel = s.facilities.training;
 
       for (const player of s.squad) {
         if (!s.startingXI.includes(player.id)) {continue;}
@@ -278,6 +291,9 @@ export class ClubManager {
           ? 100 - ourEnergy[player.id]
           : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
         player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent));
+
+        // A played match carries a tiny chance of attribute growth (the per-match training tick).
+        player.attributes = trainOnMatch(player, player.training ?? DEFAULT_REGIMENT, trainingLevel, this.rng);
       }
 
       for (const inj of ourInjuries ?? []) {
@@ -331,5 +347,37 @@ export class ClubManager {
         player.fitness = Math.min(100, player.fitness + 15);
       }
     });
+  }
+
+  // Call once when a season ends: the whole squad develops (a bigger step than per-match),
+  // ages a year, and older players may decline. Emits player.developed for each net change.
+  handleSeasonComplete(): void {
+    const developed: GameEvents['player.developed'][] = [];
+
+    this.stateManager.updateState(state => {
+      const trainingLevel = state.facilities.training;
+
+      for (const player of state.squad) {
+        const before = player.attributes;
+        const { attributes, age } = developOverSeason(
+          player, player.training ?? DEFAULT_REGIMENT, trainingLevel, this.rng,
+        );
+        player.attributes = attributes;
+        player.age = age;
+
+        const deltas: Partial<Record<keyof PlayerAttributes, number>> = {};
+        for (const key of Object.keys(attributes) as (keyof PlayerAttributes)[]) {
+          const d = attributes[key] - before[key];
+          if (d !== 0) { deltas[key] = d; }
+        }
+        if (Object.keys(deltas).length > 0) {
+          developed.push({ playerId: player.id, playerName: player.name, age, deltas });
+        }
+      }
+    });
+
+    for (const ev of developed) {
+      this.eventBus?.emit('player.developed', ev);
+    }
   }
 }

@@ -8,7 +8,7 @@ import {
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
-  TeamTacticsIntent, MatchInsight,
+  TeamTacticsIntent, MatchInsight, RegimentId,
 } from '@fm2k/engine';
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
@@ -527,8 +527,19 @@ export class GameSession {
       }
       this.currentMatchday = newMatchday;
     }
-    this.seasonComplete = !Object.values(this.seasons).some(s => s.hasNext());
+    if (!Object.values(this.seasons).some(s => s.hasNext())) {
+      this.completeSeason();
+    } else {
+      this.seasonComplete = false;
+    }
     return perSeason.flat() as OccurrenceEvent[];
+  }
+
+  /** Mark the season complete, running end-of-season player development exactly once. */
+  private completeSeason(): void {
+    if (this.seasonComplete) { return; }
+    this.seasonComplete = true;
+    this.clubManager?.handleSeasonComplete();
   }
 
   private idleResult(): AdvanceResult {
@@ -635,7 +646,7 @@ export class GameSession {
       nk = this.nextKickoff();
     }
     this.focusFixtureId = null;
-    this.seasonComplete = true;
+    this.completeSeason();
     this.notify();
   }
 
@@ -699,6 +710,12 @@ export class GameSession {
   setBench(ids: string[]): ClubState | null {
     if (!this.clubManager) { return null; }
     this.clubManager.setBenchPlayers(ids);
+    return this.clubChanged();
+  }
+
+  setTraining(playerId: string, regiment: RegimentId): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setTraining(playerId, regiment);
     return this.clubChanged();
   }
 

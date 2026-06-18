@@ -5,7 +5,7 @@ import type { LastMatchResult } from '../domain/match-result.ts';
 import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
-  StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight,
+  StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -26,6 +26,7 @@ export interface BackendCommands {
   setBench(ids: string[]): ClubState | null;
   setFormation(formation: Formation): ClubState | null;
   setTactics(intent: TeamTacticsIntent): ClubState | null;
+  setTraining(playerId: string, regiment: RegimentId): ClubState | null;
   // transfers
   buyPlayer(listingId: string): boolean;
   sellPlayer(playerId: string): boolean;
@@ -93,6 +94,7 @@ export function createBackend(): Backend {
     setBench: (ids) => s.setBench(ids),
     setFormation: (f) => s.setFormation(f),
     setTactics: (intent) => s.setTactics(intent),
+    setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),
     refreshTransfers: () => s.refreshTransfers(),

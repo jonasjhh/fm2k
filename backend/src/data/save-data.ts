@@ -2,7 +2,7 @@ import localforage from 'localforage';
 import type {
   LeagueState, CompetitionState, ClubState, TransferListing,
   Player, ClubPlayer, PlayerAttributes, Team, Formation, Position, TeamTactics,
-  CountryId, GameDateTime,
+  CountryId, GameDateTime, RegimentId,
 } from '@fm2k/engine';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
@@ -15,7 +15,8 @@ export type SaveType = 'QUICK' | 'AUTO';
 // Bump MIN_LOADABLE_VERSION only when old saves can no longer be safely migrated.
 // v4 added `cupStates` (national cup per nation). v5 added `now` (the game clock).
 // v6 added `clubState.tactics` (manager intent: style + sliders).
-export const SAVE_VERSION = 6;
+// v7 added `clubPlayer.training` (per-player training regiment).
+export const SAVE_VERSION = 7;
 export const MIN_LOADABLE_VERSION = 1;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
@@ -66,7 +67,7 @@ const ATTR_KEYS: (keyof PlayerAttributes)[] = [
 ];
 
 interface PlayerPack { id: string; n: string; nat: string; a: number; pos: string; pot: number; at: AttrPack; }
-interface ClubPlayerPack extends PlayerPack { fi: number; inj?: { t: string; mr: number }; sus?: { mr: number }; }
+interface ClubPlayerPack extends PlayerPack { fi: number; inj?: { t: string; mr: number }; sus?: { mr: number }; tr?: RegimentId; }
 
 interface PackedTeam {
   id: string; name: string; f: string;
@@ -103,6 +104,7 @@ function packClubPlayer(p: ClubPlayer): ClubPlayerPack {
   const packed: ClubPlayerPack = { ...packPlayer(p), fi: p.fitness };
   if (p.injury) {packed.inj = { t: p.injury.type, mr: p.injury.matchesRemaining };}
   if (p.suspension) {packed.sus = { mr: p.suspension.matchesRemaining };}
+  if (p.training) {packed.tr = p.training;}
   return packed;
 }
 
@@ -112,6 +114,9 @@ function unpackClubPlayer(p: ClubPlayerPack): ClubPlayer {
     fitness: p.fi,
     injury: p.inj ? { type: p.inj.t, matchesRemaining: p.inj.mr } : undefined,
     suspension: p.sus ? { matchesRemaining: p.sus.mr } : undefined,
+    // Preserved as-is; older saves (no per-player regiment) leave it unset and the
+    // consumer (ClubManager / UI) falls back to DEFAULT_REGIMENT.
+    training: p.tr,
   };
 }
 
