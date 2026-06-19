@@ -3,7 +3,7 @@ import { ALL_POSITIONS, CUP_ROUND_NAMES, cupCompetitionId } from './config.ts';
 describe('config:', () => {
   test('ALL_POSITIONS lists every outfield and goalkeeper position', () => {
     expect(ALL_POSITIONS).toEqual([
-      'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF',
+      'GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST',
     ]);
   });
 

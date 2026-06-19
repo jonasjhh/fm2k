@@ -43,14 +43,14 @@ const DIVISION_PENALTY = 9;
 const POSITION_POOL: Position[] = [
   'GK',
   'CB', 'CB', 'LB', 'RB',
-  'CDM', 'CM', 'CM', 'CAM',
+  'CM', 'CM', 'CM', 'CM',
   'LM', 'RM',
   'LW', 'RW',
-  'ST', 'ST', 'CF',
+  'ST', 'ST', 'ST',
   // second rotation for larger squads
   'GK',
   'CB', 'LB', 'RB',
-  'CM', 'CDM', 'CAM',
+  'CM', 'CM', 'CM',
   'LW', 'RW',
   'ST',
 ];

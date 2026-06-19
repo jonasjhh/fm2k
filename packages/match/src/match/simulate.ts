@@ -1,19 +1,18 @@
 import type { Player, Team } from '../shared/types.ts';
 import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
 import { resolveMatchParameters } from '../tactics/resolve.ts';
-import { selectStartingXI } from '../lineup/selection.ts';
 import { MatchSimulator } from './match-simulator.ts';
 import type { MatchEvent, MatchStatistics, MatchState } from './types.ts';
 import type { InjuryReport } from './injury.ts';
 
-/** One side's full match input: a squad + the manager's tactical intent. */
+/** One side's full match input: a squad + the manager's tactical intent. `team.starters`
+ *  must already be the resolved XI (exactly 11, in slot order for `intent.formation`) —
+ *  selection happens upstream of the simulator, never inside it. */
 export interface SideInput {
   team: Team;
   intent: TeamTacticsIntent;
   /** Starting energy 0..100 per player id (e.g. from fitness); default fresh. */
   fitness?: Record<string, number>;
-  /** Players unavailable (injured/suspended) — excluded from XI selection. */
-  unavailableIds?: ReadonlySet<string>;
 }
 
 export interface SimulateMatchInput {
@@ -57,10 +56,8 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
   const homeTeam: Team = { ...input.home.team, formation: input.home.intent.formation };
   const awayTeam: Team = { ...input.away.team, formation: input.away.intent.formation };
 
-  const homeXI = selectStartingXI(
-    [...homeTeam.starters, ...homeTeam.substitutes], homeTeam.formation, { unavailableIds: input.home.unavailableIds });
-  const awayXI = selectStartingXI(
-    [...awayTeam.starters, ...awayTeam.substitutes], awayTeam.formation, { unavailableIds: input.away.unavailableIds });
+  const homeXI = homeTeam.starters;
+  const awayXI = awayTeam.starters;
 
   const homeParams = resolveMatchParameters(input.home.intent, homeXI, awayXI);
   const awayParams = resolveMatchParameters(input.away.intent, awayXI, homeXI);
@@ -72,8 +69,6 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
     homeParams, awayParams,
     homeFitness: input.home.fitness,
     awayFitness: input.away.fitness,
-    homeUnavailableIds: input.home.unavailableIds,
-    awayUnavailableIds: input.away.unavailableIds,
     extraTimeIfDrawn: input.knockout,
     rng: input.rng,
   });

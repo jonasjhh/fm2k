@@ -40,12 +40,12 @@ function isCorner(key: SectorKey) {
 // ─── SVG sector renderer ──────────────────────────────────────────────────────
 
 function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: string, colorB: string): string {
-  if (sector.type === 'none') {return '';}
+  if (sector.type === 'none') { return ''; }
 
-  const width  = key === 'N' || key === 'S' ? 440 : 160;
+  const width = key === 'N' || key === 'S' ? 440 : 160;
   const height = key === 'E' || key === 'W' ? 280 : 160;
   const isCorn = isCorner(key);
-  const step   = sector.densityValue;
+  const step = sector.densityValue;
   const isRoofed = ['covered-grandstand', 'executive-suite', 'double-tier', 'triple-tier', 'kop'].includes(sector.type);
   const roofDepth = 45;
 
@@ -68,9 +68,9 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
     const cx = key === 'NW' || key === 'SW' ? 160 : 0;
     const cy = key === 'NW' || key === 'NE' ? 160 : 0;
     let startAng = Math.PI;
-    if (key === 'NE') {startAng = 1.5 * Math.PI;}
-    if (key === 'SW') {startAng = 0.5 * Math.PI;}
-    if (key === 'SE') {startAng = 0;}
+    if (key === 'NE') { startAng = 1.5 * Math.PI; }
+    if (key === 'SW') { startAng = 0.5 * Math.PI; }
+    if (key === 'SE') { startAng = 0; }
     let ring = 0;
     for (let r = rMin + 6; r < rMax - 6; r += step) {
       const count = Math.max(4, Math.floor(((2 * Math.PI * r) / 4) / step));
@@ -128,12 +128,12 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
       if (key === 'N' || key === 'S') {
         svg += gridSeats(6, mid - 12, 0, width);
         svg += `<rect x="0" y="${mid - 10}" width="${width}" height="20" fill="#1e1b4b" stroke="#eab308" stroke-width="1.5"/>`;
-        for (let p = 15; p < width; p += 35) {svg += `<rect x="${p}" y="${mid - 6}" width="14" height="12" fill="#f59e0b" rx="1"/>`;}
+        for (let p = 15; p < width; p += 35) { svg += `<rect x="${p}" y="${mid - 6}" width="14" height="12" fill="#f59e0b" rx="1"/>`; }
         svg += gridSeats(mid + 12, height - 6, 0, width, true);
       } else {
         svg += gridSeats(0, height, 6, mid - 12);
         svg += `<rect x="${mid - 10}" y="0" width="20" height="${height}" fill="#1e1b4b" stroke="#eab308" stroke-width="1.5"/>`;
-        for (let p = 15; p < height; p += 35) {svg += `<rect x="${mid - 6}" y="${p}" width="12" height="14" fill="#f59e0b" rx="1"/>`;}
+        for (let p = 15; p < height; p += 35) { svg += `<rect x="${mid - 6}" y="${p}" width="12" height="14" fill="#f59e0b" rx="1"/>`; }
         svg += gridSeats(0, height, mid + 12, width - 6, true);
       }
     } else {
@@ -143,16 +143,16 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
       svg += radialSeats(102, 155);
     }
   } else {
-    if (!isCorn) {svg += gridSeats(0, height, 0, width);}
-    else {svg += radialSeats(10, 155);}
+    if (!isCorn) { svg += gridSeats(0, height, 0, width); }
+    else { svg += radialSeats(10, 155); }
   }
 
   const ec = '#94a6b8';
   if (!isCorn) {
-    if (key === 'N') {svg += `<line x1="0" y1="2" x2="${width}" y2="2" stroke="${ec}" stroke-width="4"/>`;}
-    if (key === 'S') {svg += `<line x1="0" y1="${height - 2}" x2="${width}" y2="${height - 2}" stroke="${ec}" stroke-width="4"/>`;}
-    if (key === 'W') {svg += `<line x1="2" y1="0" x2="2" y2="${height}" stroke="${ec}" stroke-width="4"/>`;}
-    if (key === 'E') {svg += `<line x1="${width - 2}" y1="0" x2="${width - 2}" y2="${height}" stroke="${ec}" stroke-width="4"/>`;}
+    if (key === 'N') { svg += `<line x1="0" y1="2" x2="${width}" y2="2" stroke="${ec}" stroke-width="4"/>`; }
+    if (key === 'S') { svg += `<line x1="0" y1="${height - 2}" x2="${width}" y2="${height - 2}" stroke="${ec}" stroke-width="4"/>`; }
+    if (key === 'W') { svg += `<line x1="2" y1="0" x2="2" y2="${height}" stroke="${ec}" stroke-width="4"/>`; }
+    if (key === 'E') { svg += `<line x1="${width - 2}" y1="0" x2="${width - 2}" y2="${height}" stroke="${ec}" stroke-width="4"/>`; }
   } else {
     const cx = key === 'NW' || key === 'SW' ? 160 : 0, cy = key === 'NW' || key === 'NE' ? 160 : 0;
     svg += `<circle cx="${cx}" cy="${cy}" r="158" fill="none" stroke="${ec}" stroke-width="4"/>`;
@@ -160,10 +160,10 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
 
   if (isRoofed) {
     if (!isCorn) {
-      if (key === 'N') {svg += `<rect x="0" y="0" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
-      if (key === 'S') {svg += `<rect x="0" y="${height - roofDepth}" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
-      if (key === 'W') {svg += `<rect x="0" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
-      if (key === 'E') {svg += `<rect x="${width - roofDepth}" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`;}
+      if (key === 'N') { svg += `<rect x="0" y="0" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`; }
+      if (key === 'S') { svg += `<rect x="0" y="${height - roofDepth}" width="${width}" height="${roofDepth}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`; }
+      if (key === 'W') { svg += `<rect x="0" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`; }
+      if (key === 'E') { svg += `<rect x="${width - roofDepth}" y="0" width="${roofDepth}" height="${height}" fill="rgba(241,245,249,0.9)" stroke="#475569" stroke-width="2"/>`; }
     } else {
       const cx = key === 'NW' || key === 'SW' ? 160 : 0, cy = key === 'NW' || key === 'NE' ? 160 : 0;
       svg += `<circle cx="${cx}" cy="${cy}" r="160" fill="none" stroke="rgba(241,245,249,0.9)" stroke-width="${roofDepth}"/>`;
@@ -176,10 +176,10 @@ function generateSectorSvg(key: SectorKey, sector: StadiumSectorConfig, colorA: 
 // ─── Sector absolute positions ────────────────────────────────────────────────
 
 const SECTOR_POS: Record<SectorKey, React.CSSProperties> = {
-  N:  { position: 'absolute', top: 0, left: 160, width: 440, height: 160, zIndex: 20 },
-  S:  { position: 'absolute', bottom: 0, left: 160, width: 440, height: 160, zIndex: 20 },
-  W:  { position: 'absolute', top: 160, left: 0, width: 160, height: 280, zIndex: 20 },
-  E:  { position: 'absolute', top: 160, right: 0, width: 160, height: 280, zIndex: 20 },
+  N: { position: 'absolute', top: 0, left: 160, width: 440, height: 160, zIndex: 20 },
+  S: { position: 'absolute', bottom: 0, left: 160, width: 440, height: 160, zIndex: 20 },
+  W: { position: 'absolute', top: 160, left: 0, width: 160, height: 280, zIndex: 20 },
+  E: { position: 'absolute', top: 160, right: 0, width: 160, height: 280, zIndex: 20 },
   NW: { position: 'absolute', top: 0, left: 0, width: 160, height: 160, zIndex: 10 },
   NE: { position: 'absolute', top: 0, right: 0, width: 160, height: 160, zIndex: 10 },
   SW: { position: 'absolute', bottom: 0, left: 0, width: 160, height: 160, zIndex: 10 },
@@ -198,7 +198,7 @@ interface Props {
 export default function StadiumPlanner({ clubName, committedSectors, budget, onApply }: Props) {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
-  const isDark  = theme.palette.mode === 'dark';
+  const isDark = theme.palette.mode === 'dark';
 
   // Planning state — starts as copy of committed; discarded on reset
   const [plannedSectors, setPlannedSectors] = useState<Record<string, StadiumSectorConfig>>(
@@ -206,14 +206,14 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
   );
 
   // Cosmetic state (not persisted — local only)
-  const [primaryColor,   setPrimaryColor]   = useState('#000000');
+  const [primaryColor, setPrimaryColor] = useState('#000000');
   const [secondaryColor, setSecondaryColor] = useState('#ffffff');
-  const [stadiumName,    setStadiumName]    = useState(`${clubName} Stadium`);
-  const [activeSector,   setActiveSector]   = useState<SectorKey>('N');
-  const [pitchPattern,   setPitchPattern]   = useState<PitchPattern>('checkerboard');
-  const [tilt,  setTilt]  = useState(35);
+  const [stadiumName, setStadiumName] = useState(`${clubName} Stadium`);
+  const [activeSector, setActiveSector] = useState<SectorKey>('N');
+  const [pitchPattern, setPitchPattern] = useState<PitchPattern>('checkerboard');
+  const [tilt, setTilt] = useState(35);
   const [rotate, setRotate] = useState(-20);
-  const [zoom,   setZoom]   = useState(0.95);
+  const [zoom, setZoom] = useState(0.95);
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
@@ -233,19 +233,19 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
     [committedSectors, plannedSectors],
   );
 
-  const plannedCapacity  = useMemo(() => calculateTotalCapacity(plannedSectors),  [plannedSectors]);
+  const plannedCapacity = useMemo(() => calculateTotalCapacity(plannedSectors), [plannedSectors]);
   const committedCapacity = useMemo(() => calculateTotalCapacity(committedSectors), [committedSectors]);
 
-  const hasChanges  = changedKeys.length > 0;
-  const canAfford   = budget >= totalCost;
-  const canApply    = hasChanges && canAfford;
+  const hasChanges = changedKeys.length > 0;
+  const canAfford = budget >= totalCost;
+  const canApply = hasChanges && canAfford;
 
   const activeSectorData = useMemo(
     () => plannedSectors[activeSector] ?? { type: 'none', densityValue: 30 },
     [plannedSectors, activeSector],
   );
-  const uiDensity  = 60 - activeSectorData.densityValue;
-  const activeCap  = getSectorCapacity(activeSector, activeSectorData);
+  const uiDensity = 60 - activeSectorData.densityValue;
+  const activeCap = getSectorCapacity(activeSector, activeSectorData);
   const densityLabel = activeSectorData.type === 'none' ? 'N/A'
     : uiDensity > 35 ? 'High Density' : uiDensity > 20 ? 'Standard Rows' : 'Sparse Bleachers';
 
@@ -258,7 +258,7 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleSectorSelect = useCallback((e: SelectChangeEvent) => setActiveSector(e.target.value as SectorKey), []);
-  const handleSectorClick  = useCallback((key: SectorKey) => setActiveSector(key), []);
+  const handleSectorClick = useCallback((key: SectorKey) => setActiveSector(key), []);
 
   const handleStandType = useCallback((e: SelectChangeEvent) => {
     setPlannedSectors(prev => ({ ...prev, [activeSector]: { ...prev[activeSector]!, type: e.target.value } }));
@@ -269,9 +269,9 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
   }, [activeSector]);
 
   const handleApply = useCallback(() => {
-    if (!canApply) {return;}
+    if (!canApply) { return; }
     const ok = onApply(plannedSectors, totalCost, plannedCapacity);
-    if (!ok) {alert('Insufficient budget.');}
+    if (!ok) { alert('Insufficient budget.'); }
   }, [canApply, onApply, plannedSectors, totalCost, plannedCapacity]);
 
   const handleDiscard = useCallback(() => {
@@ -280,12 +280,55 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
 
   // ── Colours ─────────────────────────────────────────────────────────────────
 
-  const panelBg    = isDark ? 'rgba(15,23,42,0.6)'   : 'rgba(248,250,252,0.6)';
-  const subPanelBg = isDark ? 'rgba(15,23,42,0.5)'   : 'rgba(241,245,249,0.8)';
+  const panelBg = isDark ? 'rgba(15,23,42,0.6)' : 'rgba(248,250,252,0.6)';
+  const subPanelBg = isDark ? 'rgba(15,23,42,0.5)' : 'rgba(241,245,249,0.8)';
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
+    <>
+    {hasChanges ? (
+      <Box sx={{
+        bgcolor: canAfford ? 'success.main' : 'error.main',
+        borderRadius: 2, px: 2.5, py: 1.5,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
+        flexWrap: 'wrap',
+        mb: 2,
+      }}>
+        <Box>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+            Renovation Cost — {changedKeys.length} sector{changedKeys.length > 1 ? 's' : ''} changed
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'monospace', lineHeight: 1 }}>
+            £{fmt(totalCost)}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>
+            Budget after: £{fmt(budget - totalCost)}
+            {' · '}Capacity: {committedCapacity.toLocaleString()} → {plannedCapacity.toLocaleString()}
+          </Typography>
+        </Box>
+        <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
+          <Button variant="outlined" size="small" onClick={handleDiscard}
+            sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
+            Discard
+          </Button>
+          <Button variant="contained" size="small" disabled={!canApply} onClick={handleApply}
+            sx={{
+              bgcolor: '#fff', color: canAfford ? 'success.dark' : 'error.dark',
+              fontWeight: 700,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
+              '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)' },
+            }}>
+            {canAfford ? 'Apply Design' : 'Cannot Afford'}
+          </Button>
+        </Stack>
+      </Box>
+    ) : (
+      <Alert severity="info" sx={{ borderRadius: 2, mb: 2 }}>
+        Capacity: <strong>{committedCapacity.toLocaleString()} seats</strong>
+        {' · '}Edit any sector to design a renovation.
+      </Alert>
+    )}
     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 2, minHeight: 500 }}>
 
       {/* ── Controls Panel ── */}
@@ -300,7 +343,7 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
         {/* Sector selector */}
         <Box>
           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.5 }}>
-            Active Stand Sector
+            Stand Selector
           </Typography>
           <FormControl fullWidth size="small" sx={{ mt: 0.5 }}>
             <Select value={activeSector} onChange={handleSectorSelect}>
@@ -365,7 +408,7 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
         {/* Checkerboard colors */}
         <Box>
           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1.5 }}>
-            Checkerboard Palette
+            Seat Palette
           </Typography>
           <Stack direction="row" sx={{ gap: 2, mt: 1, bgcolor: subPanelBg, borderRadius: 1.5, p: 1.5, border: '1px solid', borderColor: 'divider' }}>
             {[
@@ -396,9 +439,9 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
           </Typography>
           <ToggleButtonGroup value={pitchPattern} exclusive
             onChange={(_, v) => v && setPitchPattern(v)} size="small" fullWidth sx={{ mt: 0.5 }}>
-            <ToggleButton value="checkerboard"       sx={{ fontSize: '0.7rem', textTransform: 'none' }}>Checkerboard</ToggleButton>
+            <ToggleButton value="checkerboard" sx={{ fontSize: '0.7rem', textTransform: 'none' }}>Checkerboard</ToggleButton>
             <ToggleButton value="horizontal-stripes" sx={{ fontSize: '0.7rem', textTransform: 'none' }}>H. Stripes</ToggleButton>
-            <ToggleButton value="vertical-stripes"   sx={{ fontSize: '0.7rem', textTransform: 'none' }}>V. Stripes</ToggleButton>
+            <ToggleButton value="vertical-stripes" sx={{ fontSize: '0.7rem', textTransform: 'none' }}>V. Stripes</ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -415,9 +458,9 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
           </Stack>
           <Stack sx={{ gap: 1 }}>
             {[
-              { label: 'Tilt Angle (X)',     val: `${tilt}°`,            min: 5,   max: 65,   step: 1,    value: tilt,   set: setTilt },
-              { label: 'Orbit Rotation (Z)', val: `${rotate}°`,          min: -180, max: 180, step: 1,    value: rotate, set: setRotate },
-              { label: 'Zoom Scale',         val: `${zoom.toFixed(2)}×`, min: 0.5, max: 1.5,  step: 0.05, value: zoom,   set: setZoom },
+              { label: 'Tilt Angle (X)', val: `${tilt}°`, min: 5, max: 65, step: 1, value: tilt, set: setTilt },
+              { label: 'Orbit Rotation (Z)', val: `${rotate}°`, min: -180, max: 180, step: 1, value: rotate, set: setRotate },
+              { label: 'Zoom Scale', val: `${zoom.toFixed(2)}×`, min: 0.5, max: 1.5, step: 0.05, value: zoom, set: setZoom },
             ].map(({ label, val, min, max, step, value, set }) => (
               <Box key={label}>
                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
@@ -435,49 +478,6 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
       {/* ── Viewport + Cost Panel ── */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-        {/* Cost summary bar */}
-        {hasChanges ? (
-          <Box sx={{
-            bgcolor: canAfford ? 'success.main' : 'error.main',
-            borderRadius: 2, px: 2.5, py: 1.5,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
-            flexWrap: 'wrap',
-          }}>
-            <Box>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                Renovation Cost — {changedKeys.length} sector{changedKeys.length > 1 ? 's' : ''} changed
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'monospace', lineHeight: 1 }}>
-                £{fmt(totalCost)}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>
-                Budget after: £{fmt(budget - totalCost)}
-                {' · '}Capacity: {committedCapacity.toLocaleString()} → {plannedCapacity.toLocaleString()}
-              </Typography>
-            </Box>
-            <Stack direction="row" sx={{ gap: 1, alignItems: 'center' }}>
-              <Button variant="outlined" size="small" onClick={handleDiscard}
-                sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
-                Discard
-              </Button>
-              <Button variant="contained" size="small" disabled={!canApply} onClick={handleApply}
-                sx={{
-                  bgcolor: '#fff', color: canAfford ? 'success.dark' : 'error.dark',
-                  fontWeight: 700,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
-                  '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)' },
-                }}>
-                {canAfford ? 'Apply Design' : 'Cannot Afford'}
-              </Button>
-            </Stack>
-          </Box>
-        ) : (
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
-            Capacity: <strong>{committedCapacity.toLocaleString()} seats</strong>
-            {' · '}Edit any sector above to design a renovation. Changes cost money before taking effect.
-          </Alert>
-        )}
-
         {/* Stadium visual */}
         <Box sx={{
           flex: 1,
@@ -489,8 +489,6 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
           {/* Header */}
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Box>
-              <Chip label="VECTOR ENGINE PREVIEW" size="small" color="primary" variant="outlined"
-                sx={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: 1, mb: 0.5 }} />
               <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
                 {stadiumName.toUpperCase()}
               </Typography>
@@ -519,9 +517,9 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
                 <Box sx={{ width: '100%', height: '100%', borderRadius: '196px', position: 'relative', overflow: 'hidden', background: 'transparent' }}>
 
                   {SECTOR_KEYS.map(key => {
-                    const sector  = plannedSectors[key] ?? { type: 'none', densityValue: 30 };
+                    const sector = plannedSectors[key] ?? { type: 'none', densityValue: 30 };
                     const isEmpty = sector.type === 'none';
-                    const isActive  = key === activeSector;
+                    const isActive = key === activeSector;
                     const isPending = changedKeys.includes(key);
                     return (
                       <Box key={key}
@@ -562,22 +560,22 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
                       border: '1.5px solid rgba(255,255,255,0.85)', overflow: 'hidden', borderRadius: '2px',
                       ...(pitchPattern === 'checkerboard' && { backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0.05) 50%, transparent 50%), linear-gradient(rgba(255,255,255,0.05) 50%, transparent 50%)', backgroundSize: '30px 30px' }),
                       ...(pitchPattern === 'horizontal-stripes' && { backgroundImage: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 14px, transparent 14px, transparent 28px)' }),
-                      ...(pitchPattern === 'vertical-stripes'   && { backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 18px, transparent 18px, transparent 36px)' }),
+                      ...(pitchPattern === 'vertical-stripes' && { backgroundImage: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 18px, transparent 18px, transparent 36px)' }),
                     }}>
                       <Box sx={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1.5px', bgcolor: 'rgba(255,255,255,0.8)', transform: 'translateX(-50%)' }} />
                       <Box sx={{ position: 'absolute', left: '50%', top: '50%', width: 70, height: 70, border: '1.5px solid rgba(255,255,255,0.8)', borderRadius: '50%', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Box sx={{ width: 4, height: 4, bgcolor: '#fff', borderRadius: '50%' }} />
                       </Box>
-                      <Box sx={{ position: 'absolute', top: '50%', left: 0,   width: 58, height: 120, border: '1.5px solid rgba(255,255,255,0.8)', borderLeft:  'none', transform: 'translateY(-50%)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', right: 0,  width: 58, height: 120, border: '1.5px solid rgba(255,255,255,0.8)', borderRight: 'none', transform: 'translateY(-50%)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', left: 0,   width: 20, height: 54,  border: '1.5px solid rgba(255,255,255,0.8)', borderLeft:  'none', transform: 'translateY(-50%)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', right: 0,  width: 20, height: 54,  border: '1.5px solid rgba(255,255,255,0.8)', borderRight: 'none', transform: 'translateY(-50%)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', left: 39,  width: 4, height: 4, bgcolor: '#fff', borderRadius: '50%', transform: 'translateY(-50%)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', left: 0, width: 58, height: 120, border: '1.5px solid rgba(255,255,255,0.8)', borderLeft: 'none', transform: 'translateY(-50%)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', right: 0, width: 58, height: 120, border: '1.5px solid rgba(255,255,255,0.8)', borderRight: 'none', transform: 'translateY(-50%)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', left: 0, width: 20, height: 54, border: '1.5px solid rgba(255,255,255,0.8)', borderLeft: 'none', transform: 'translateY(-50%)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', right: 0, width: 20, height: 54, border: '1.5px solid rgba(255,255,255,0.8)', borderRight: 'none', transform: 'translateY(-50%)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', left: 39, width: 4, height: 4, bgcolor: '#fff', borderRadius: '50%', transform: 'translateY(-50%)' }} />
                       <Box sx={{ position: 'absolute', top: '50%', right: 39, width: 4, height: 4, bgcolor: '#fff', borderRadius: '50%', transform: 'translateY(-50%)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', left: 7,   width: 64, height: 64, border: '1.5px solid rgba(255,255,255,0.8)', borderRadius: '50%', transform: 'translateY(-50%)', clipPath: 'inset(0 0 0 51px)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', right: 7,  width: 64, height: 64, border: '1.5px solid rgba(255,255,255,0.8)', borderRadius: '50%', transform: 'translateY(-50%)', clipPath: 'inset(0 51px 0 0)' }} />
-                      <Box sx={{ position: 'absolute', top: '50%', left: -8,  width: 8, height: 32, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.5)', borderRight: 'none', transform: 'translateY(-50%)', zIndex: 12 }} />
-                      <Box sx={{ position: 'absolute', top: '50%', right: -8, width: 8, height: 32, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.5)', borderLeft:  'none', transform: 'translateY(-50%)', zIndex: 12 }} />
+                      <Box sx={{ position: 'absolute', top: '50%', left: 7, width: 64, height: 64, border: '1.5px solid rgba(255,255,255,0.8)', borderRadius: '50%', transform: 'translateY(-50%)', clipPath: 'inset(0 0 0 51px)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', right: 7, width: 64, height: 64, border: '1.5px solid rgba(255,255,255,0.8)', borderRadius: '50%', transform: 'translateY(-50%)', clipPath: 'inset(0 51px 0 0)' }} />
+                      <Box sx={{ position: 'absolute', top: '50%', left: -8, width: 8, height: 32, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.5)', borderRight: 'none', transform: 'translateY(-50%)', zIndex: 12 }} />
+                      <Box sx={{ position: 'absolute', top: '50%', right: -8, width: 8, height: 32, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.5)', borderLeft: 'none', transform: 'translateY(-50%)', zIndex: 12 }} />
                       {[{ top: -4, left: -4 }, { top: -4, right: -4 }, { bottom: -4, left: -4 }, { bottom: -4, right: -4 }].map((c, i) => (
                         <Box key={i} sx={{ position: 'absolute', width: 8, height: 8, border: '1px solid rgba(255,255,255,0.8)', borderRadius: '50%', ...c }} />
                       ))}
@@ -591,5 +589,6 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
         </Box>
       </Box>
     </Box>
+    </>
   );
 }

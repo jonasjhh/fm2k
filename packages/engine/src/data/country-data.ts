@@ -1,4 +1,4 @@
-import { calculateBestFormation } from '@fm2k/match';
+import { calculateBestFormation, selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
 import type { Team, Player, Position } from '@fm2k/match';
 
 export interface CountryPlayerData {
@@ -57,12 +57,14 @@ function toPlayer(p: CountryPlayerData, countryNationality: string): Player {
 
 function toTeam(t: CountryTeamData, nationality: string): Team {
   const players = t.players.map(p => toPlayer(p, nationality));
+  const formation = calculateBestFormation(players);
+  const { starters, substitutes } = selectStartingXIWithSlots(players, formation);
   return {
     id: t.id,
     name: t.name,
-    formation: calculateBestFormation(players),
-    starters: players.slice(0, 11),
-    substitutes: players.slice(11),
+    formation,
+    starters,
+    substitutes,
     colors: { primary: t.primaryColor ?? '#FFFFFF', secondary: t.secondaryColor ?? '#000000' },
   };
 }

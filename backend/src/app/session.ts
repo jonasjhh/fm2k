@@ -5,7 +5,7 @@ import {
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, directTransferPrice, playerValue, transferWindow, runAiMarket,
-  churnSquad, churnFreeAgents, MAX_SQUAD_SIZE,
+  churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots,
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
@@ -680,6 +680,7 @@ export class GameSession {
     const playerNationality = findCountryForTeam(this.editableCountries, this.playerTeamId ?? '')?.nationality ?? 'unknown';
     for (const pos of playerOverflow) { overflow.push({ position: pos, nationality: playerNationality }); }
 
+    const churnedTeamIds: string[] = [];
     this.editableCountries = this.editableCountries.map(country => {
       if (!this.selectedLeagueIds.includes(country.id)) { return country; }
       return {
@@ -689,22 +690,40 @@ export class GameSession {
           teams: d.teams.map(team => {
             if (team.id === this.playerTeamId) { return team; } // already churned via ClubManager
             const level = this.facilityForLevel(d.level);
+            const squadSize = team.starters.length + team.substitutes.length;
             const res = churnSquad([...team.starters, ...team.substitutes], {
               rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
               trainingLevel: level, academyLevel: level,
             });
             for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
-            this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, team.starters.length + team.substitutes.length));
-            return { ...team, starters: res.squad.slice(0, team.starters.length), substitutes: res.squad.slice(team.starters.length) };
+            this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, squadSize));
+            churnedTeamIds.push(team.id);
+            const { starters, substitutes } = selectStartingXIWithSlots(res.squad, team.formation);
+            return { ...team, starters, substitutes };
           }),
         })),
       };
     });
+    this.pushTeamUpdates(churnedTeamIds);
 
     if (this.transferManager) {
       this.transferManager.setFreeAgents(churnFreeAgents(this.transferManager.getFreeAgents(), {
         rng: this.rng, youthFactory: this.youthFactory, overflow,
       }));
+    }
+  }
+
+  /** Push freshly-resolved Teams into the league/cup CompetitionManagers that scheduled them,
+   *  so not-yet-played fixtures see the post-churn/post-market squad rather than a stale copy
+   *  captured at CompetitionManager construction time. */
+  private pushTeamUpdates(teamIds: Iterable<string>): void {
+    for (const teamId of teamIds) {
+      const team = findTeamById(this.editableCountries, teamId);
+      if (!team) { continue; }
+      const division = findDivisionForTeam(this.editableCountries, teamId);
+      if (division) { this.leagueManagers[division.id]?.updateTeam(teamId, team); }
+      const country = findCountryForTeam(this.editableCountries, teamId);
+      if (country) { this.cupManagers[cupCompetitionId(country.id)]?.updateTeam(teamId, team); }
     }
   }
 
@@ -962,15 +981,15 @@ export class GameSession {
    */
   private runAiMarketWindow(): void {
     if (!this.transferManager) { return; }
-    // Flatten every AI team (skip the manager's) into {id, squad}, remembering each starters count.
-    const startersCount = new Map<string, number>();
+    // Flatten every AI team (skip the manager's) into {id, squad}.
+    const formationByTeamId = new Map<string, Formation>();
     const aiTeams: { id: string; squad: Player[] }[] = [];
     for (const country of this.editableCountries) {
       if (!this.selectedLeagueIds.includes(country.id)) { continue; }
       for (const division of country.divisions) {
         for (const team of division.teams) {
           if (team.id === this.playerTeamId) { continue; }
-          startersCount.set(team.id, team.starters.length);
+          formationByTeamId.set(team.id, team.formation);
           aiTeams.push({ id: team.id, squad: [...team.starters, ...team.substitutes] });
         }
       }
@@ -981,6 +1000,7 @@ export class GameSession {
     if (result.moves === 0) { return; }
 
     const byId = new Map(result.teams.map(t => [t.id, t.squad]));
+    const tradedTeamIds: string[] = [];
     this.editableCountries = this.editableCountries.map(c => ({
       ...c,
       divisions: c.divisions.map(d => ({
@@ -988,11 +1008,14 @@ export class GameSession {
         teams: d.teams.map(t => {
           const squad = byId.get(t.id);
           if (!squad) { return t; }
-          const n = startersCount.get(t.id) ?? t.starters.length;
-          return { ...t, starters: squad.slice(0, n), substitutes: squad.slice(n) };
+          tradedTeamIds.push(t.id);
+          const formation = formationByTeamId.get(t.id) ?? t.formation;
+          const { starters, substitutes } = selectStartingXIWithSlots(squad, formation);
+          return { ...t, starters, substitutes };
         }),
       })),
     }));
+    this.pushTeamUpdates(tradedTeamIds);
     this.transferManager.setFreeAgents(result.freeAgents);
   }
 

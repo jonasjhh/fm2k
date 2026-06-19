@@ -60,10 +60,10 @@ const SQUAD_POSITIONS: Position[] = [
   // substitutes
   'GK',
   'CB', 'LB', 'RB',
-  'CDM', 'CDM',
-  'CAM', 'CAM',
+  'CM', 'CM',
+  'CM', 'CM',
   'LW', 'RW',
-  'ST', 'CF', 'CF',
+  'ST', 'ST', 'ST',
   'CM',
 ];
 

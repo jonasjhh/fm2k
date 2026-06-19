@@ -1,8 +1,8 @@
 import {
-  positionFit, selectStartingXI, calculateBestFormation, buildXISlotAssignments,
-} from './selection.ts';
-import { FORMATION_LINES } from './lineup.ts';
-import type { Player, PlayerAttributes, Position } from '../shared/types.ts';
+  positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
+} from './lineup-selection.ts';
+import { FORMATION_LINES } from '@fm2k/match';
+import type { Player, PlayerAttributes, Position } from '@fm2k/match';
 
 function attrs(value: number): PlayerAttributes {
   return {
@@ -91,6 +91,25 @@ describe('selectStartingXI:', () => {
   it('never assigns the same player to more than one slot', () => {
     const xi = selectStartingXI(balancedSquad(), '4-4-2');
     expect(new Set(xi.map(p => p.id)).size).toBe(xi.length);
+  });
+});
+
+describe('selectStartingXIWithSlots:', () => {
+  it('returns a fielded-position map matching the flattened formation order, by player id', () => {
+    const squad = balancedSquad();
+    const { starters, fieldedPositions } = selectStartingXIWithSlots(squad, '4-3-3');
+    const slots = FORMATION_LINES['4-3-3'].flat();
+    starters.forEach((p, i) => {
+      expect(fieldedPositions[p.id]).toBe(slots[i]);
+    });
+  });
+
+  it('splits the squad into starters and substitutes with no overlap', () => {
+    const squad = balancedSquad();
+    const { starters, substitutes } = selectStartingXIWithSlots(squad, '4-4-2');
+    const starterIds = new Set(starters.map(p => p.id));
+    expect(substitutes.every(p => !starterIds.has(p.id))).toBe(true);
+    expect(starters.length + substitutes.length).toBe(squad.length);
   });
 });
 

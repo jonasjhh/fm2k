@@ -1,4 +1,4 @@
-import { Player, Team } from '../shared/types';
+import { Player, Team, type FieldedPositions } from '../shared/types';
 import type { MatchParameterSet } from '../tactics/match-parameters.ts';
 import type { InjuryReport } from './injury.ts';
 
@@ -59,6 +59,13 @@ export interface MatchState {
   momentum?: {
     home: number;
     away: number;
+  };
+  /** Fielded slot per player id, per side (formation position, not card position).
+   *  Optional so ad-hoc test MatchState literals keep compiling; when absent, callers
+   *  fall back to player.position. */
+  fieldedPositions?: {
+    home: FieldedPositions;
+    away: FieldedPositions;
   };
   bookings: {
     yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;

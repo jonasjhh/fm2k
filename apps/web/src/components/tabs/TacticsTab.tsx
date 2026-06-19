@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TableBody from '@mui/material/TableBody';
@@ -14,14 +13,11 @@ import { useGameStore } from '../../store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
-import { playerValue } from '@fm2k/engine';
-import { fmt } from '../../utils/formatting';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
+import PlayerDetailModal from '../ui/PlayerDetailModal';
 import SlotLabel from '../ui/SlotLabel';
 import { FormationGrid } from '../ui/FormationGrid';
-import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
@@ -30,7 +26,7 @@ type SortCol = 'slot' | 'name' | 'position';
 type SortDir = 'asc' | 'desc';
 
 const POSITION_ORDER: Record<string, number> = {
-  GK: 0, LB: 1, CB: 2, RB: 3, CDM: 4, LM: 5, CM: 6, CAM: 7, RM: 8, LW: 9, RW: 10, ST: 11, CF: 12,
+  GK: 0, LB: 1, CB: 2, RB: 3, LM: 4, CM: 5, RM: 6, LW: 7, RW: 8, ST: 9,
 };
 
 function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?: Map<string, number>): ClubPlayer[] {
@@ -51,68 +47,6 @@ const FORMATIONS_QUICK: Formation[] = [
   '5-3-2', '5-4-1',
 ];
 
-// ─── player detail panel ──────────────────────────────────────────────────────
-
-const ATTR_GROUPS = [
-  { label: 'Physical', attrs: [{ key: 'speed', label: 'Speed' }, { key: 'strength', label: 'Strength' }, { key: 'agility', label: 'Agility' }, { key: 'stamina', label: 'Stamina' }] },
-  { label: 'Technical', attrs: [{ key: 'passing', label: 'Passing' }, { key: 'finishing', label: 'Finishing' }, { key: 'technique', label: 'Technique' }, { key: 'defending', label: 'Defending' }] },
-  { label: 'Mental', attrs: [{ key: 'awareness', label: 'Awareness' }, { key: 'composure', label: 'Composure' }] },
-] as const;
-
-function AttrBar({ label, value }: { label: string; value: number }) {
-  const color = value >= 80 ? 'success.main' : value >= 65 ? 'warning.main' : 'error.light';
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-      <Typography variant="caption" sx={{ width: 76, color: 'text.secondary', flexShrink: 0 }}>{label}</Typography>
-      <Box sx={{ flex: 1, height: 6, borderRadius: 1, bgcolor: 'action.hover', overflow: 'hidden' }}>
-        <Box sx={{ height: '100%', width: `${value}%`, bgcolor: color, borderRadius: 1 }} />
-      </Box>
-      <Typography variant="caption" sx={{ width: 22, textAlign: 'right', fontWeight: 600 }}>{value}</Typography>
-    </Box>
-  );
-}
-
-function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
-  const value = playerValue(player);
-  return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-      <Box sx={{ px: 2, py: 1.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.06) }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }} noWrap>{player.name}</Typography>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 0.5 }}>
-          <Chip label={player.position} size="small" variant="outlined" />
-          <Chip label={`Age ${player.age}`} size="small" variant="outlined" />
-        </Box>
-      </Box>
-      <Grid container sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        {[{ label: 'Fitness', value: `${player.fitness}%` }, { label: 'Value', value: `£${fmt(value)}` }].map(({ label, value: val }) => (
-          <Grid size={6} key={label} sx={{ textAlign: 'center', py: 1, borderRight: 1, borderColor: 'divider', '&:last-child': { borderRight: 0 } }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{label}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>{val}</Typography>
-          </Grid>
-        ))}
-      </Grid>
-      {(player.injury ?? player.suspension) && (
-        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
-          <PlayerStatusChip player={player} />
-        </Box>
-      )}
-      <Box sx={{ px: 2, py: 1.5 }}>
-        {ATTR_GROUPS.map((group, gi) => (
-          <Box key={group.label} sx={gi > 0 ? { mt: 1.5 } : {}}>
-            <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-              {group.label}
-            </Typography>
-            {group.attrs.map(({ key, label }) => (
-              <AttrBar key={key} label={label} value={player.attributes[key]} />
-            ))}
-            {gi < ATTR_GROUPS.length - 1 && <Divider sx={{ mt: 1 }} />}
-          </Box>
-        ))}
-      </Box>
-    </Paper>
-  );
-}
-
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
@@ -129,17 +63,11 @@ export default function TacticsTab() {
     handlePlayerDragOver, handlePlayerDrop,
   } = useLineupSlots();
 
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
   const teamColors = useClubColors();
-
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
-
-  const selectedPlayer = useMemo(
-    () => clubState?.squad.find(p => p.id === selectedPlayerId) ?? null,
-    [clubState, selectedPlayerId],
-  );
 
   const sorted = useMemo(
     () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, playerSlotMap) : [],
@@ -191,10 +119,10 @@ export default function TacticsTab() {
         })}
       </Box>
 
-      {/* Three-column layout */}
+      {/* Two-column layout: player list + formation pitch */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
 
-        {/* Col 1: Player list */}
+        {/* Player list */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <ScrollableTable>
             <TableHead>
@@ -208,6 +136,7 @@ export default function TacticsTab() {
                 <TableCell sortDirection={sort.col === 'name' ? sort.dir : false}>
                   <TableSortLabel active={sort.col === 'name'} direction={sort.col === 'name' ? sort.dir : 'asc'} onClick={() => handleSort('name')}>Name</TableSortLabel>
                 </TableCell>
+                <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -216,13 +145,12 @@ export default function TacticsTab() {
                 const slotPos = slotIdx !== undefined
                   ? (slotIdx < starterSlots.length ? starterSlots[slotIdx] : 'SUB')
                   : null;
-                const isSelected = p.id === selectedPlayerId;
                 const isDropTarget = p.id === dropTargetId;
                 return (
                   <TableRow
                     key={p.id}
                     hover
-                    onClick={() => setSelectedPlayerId(isSelected ? null : p.id)}
+                    onClick={() => setSelectedPlayer(p)}
                     onDragOver={(e) => handlePlayerDragOver(e, p.id)}
                     onDragLeave={() => setDropTargetId(null)}
                     onDrop={(e) => handlePlayerDrop(e, p.id)}
@@ -230,11 +158,9 @@ export default function TacticsTab() {
                       cursor: 'pointer',
                       bgcolor: isDropTarget
                         ? (t) => alpha(t.palette.success.main, 0.15)
-                        : isSelected
-                          ? (t) => alpha(t.palette.primary.main, 0.12)
-                          : slotIdx !== undefined
-                            ? (t) => alpha(t.palette.primary.main, 0.04)
-                            : undefined,
+                        : slotIdx !== undefined
+                          ? (t) => alpha(t.palette.primary.main, 0.04)
+                          : undefined,
                       outline: isDropTarget ? '2px solid' : undefined,
                       outlineColor: isDropTarget ? 'success.main' : undefined,
                     }}
@@ -248,6 +174,7 @@ export default function TacticsTab() {
                       <Chip label={p.position} size="small" variant="outlined" />
                     </TableCell>
                     <TableCell>{p.name}</TableCell>
+                    <TableCell><PlayerStatusChip player={p} /></TableCell>
                   </TableRow>
                 );
               })}
@@ -260,25 +187,17 @@ export default function TacticsTab() {
           )}
         </Box>
 
-        {/* Col 2: Player detail */}
-        <Box sx={{ width: 256, flexShrink: 0 }}>
-          {selectedPlayer ? (
-            <PlayerDetailPanel player={selectedPlayer} />
-          ) : (
-            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Click a player to see details
-              </Typography>
-            </Paper>
-          )}
-        </Box>
-
-        {/* Col 3: Formation pitch */}
+        {/* Formation pitch */}
         <Box sx={{ width: 380, flexShrink: 0 }}>
           <FormationGrid lines={lines} slotAssignments={slotAssignments} squad={clubState.squad} teamColors={teamColors} />
         </Box>
 
       </Box>
+
+      <PlayerDetailModal
+        player={selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+      />
     </Box>
   );
 }

@@ -316,7 +316,7 @@
               "name": "Anneli Brun",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -336,7 +336,7 @@
               "name": "Eivor Borgen",
               "nationality": "danish",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -356,7 +356,7 @@
               "name": "Oda-Louise Øverland",
               "nationality": "danish",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 47,
@@ -376,7 +376,7 @@
               "name": "Vivian Haaland",
               "nationality": "danish",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -456,7 +456,7 @@
               "name": "Fride Torgersen",
               "nationality": "danish",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -476,7 +476,7 @@
               "name": "Jannike Tangen",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 80,
@@ -824,7 +824,7 @@
               "name": "Ingfrid Loken",
               "nationality": "danish",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -844,7 +844,7 @@
               "name": "Cynthia Skjerve",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 84,
               "attributes": {
                 "speed": 40,
@@ -864,7 +864,7 @@
               "name": "Ulla-Marie Rise",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 62,
@@ -884,7 +884,7 @@
               "name": "Annbjørg Hermansen",
               "nationality": "danish",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 60,
@@ -964,7 +964,7 @@
               "name": "Maria Bjerknes",
               "nationality": "danish",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -984,7 +984,7 @@
               "name": "Inga Terland",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -1332,7 +1332,7 @@
               "name": "Isabel Haugland",
               "nationality": "danish",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 85,
               "attributes": {
                 "speed": 40,
@@ -1352,7 +1352,7 @@
               "name": "Berit Halvorsen",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 61,
@@ -1372,7 +1372,7 @@
               "name": "Nicoline Østberg",
               "nationality": "danish",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -1392,7 +1392,7 @@
               "name": "Diana Bakke",
               "nationality": "danish",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -1472,7 +1472,7 @@
               "name": "Norunn Herlovsen",
               "nationality": "danish",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 93,
@@ -1492,7 +1492,7 @@
               "name": "Lovise Skogen",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -1840,7 +1840,7 @@
               "name": "Aisha Fredriksen",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -1860,7 +1860,7 @@
               "name": "Elaine Aabakken",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 72,
@@ -1880,7 +1880,7 @@
               "name": "Josefine Roed",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -1900,7 +1900,7 @@
               "name": "Dina Stensland",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 79,
@@ -1980,7 +1980,7 @@
               "name": "Anette Overbo",
               "nationality": "danish",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -2000,7 +2000,7 @@
               "name": "Nille Husby",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 46,
@@ -2348,7 +2348,7 @@
               "name": "Hege Egeland",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -2368,7 +2368,7 @@
               "name": "Åsfrid Stenberg",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 86,
@@ -2388,7 +2388,7 @@
               "name": "Lone Dalen",
               "nationality": "danish",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 98,
@@ -2408,7 +2408,7 @@
               "name": "Silje Olsson",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -2488,7 +2488,7 @@
               "name": "Dorthe Gjerde",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 64,
@@ -2508,7 +2508,7 @@
               "name": "Cynthia Eriksen",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 94,
@@ -2856,7 +2856,7 @@
               "name": "Freya Mikalsen",
               "nationality": "danish",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -2876,7 +2876,7 @@
               "name": "Aurora Eik",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 52,
@@ -2896,7 +2896,7 @@
               "name": "Lea Loken",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -2916,7 +2916,7 @@
               "name": "Yasmine Austad",
               "nationality": "danish",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 79,
@@ -2996,7 +2996,7 @@
               "name": "Inger Rød",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 44,
@@ -3016,7 +3016,7 @@
               "name": "Aurora Godal",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 67,
@@ -3364,7 +3364,7 @@
               "name": "Åse Panengstuen",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 47,
@@ -3384,7 +3384,7 @@
               "name": "Marie Tangvik",
               "nationality": "danish",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 66,
@@ -3404,7 +3404,7 @@
               "name": "Nadja Hakonsen",
               "nationality": "danish",
               "age": 22,
-              "position": "CAM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 40,
@@ -3424,7 +3424,7 @@
               "name": "Caroline Kristiansen",
               "nationality": "danish",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -3504,7 +3504,7 @@
               "name": "Ellen Dahlberg",
               "nationality": "danish",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 87,
               "attributes": {
                 "speed": 80,
@@ -3524,7 +3524,7 @@
               "name": "Julie Ask",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 99,
@@ -3872,7 +3872,7 @@
               "name": "Isabell Egeland",
               "nationality": "danish",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 76,
@@ -3892,7 +3892,7 @@
               "name": "Unice Hovland",
               "nationality": "danish",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 99,
@@ -3912,7 +3912,7 @@
               "name": "Helga Haavi",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 85,
@@ -3932,7 +3932,7 @@
               "name": "Tuva Thorsen",
               "nationality": "danish",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 40,
@@ -4012,7 +4012,7 @@
               "name": "Tone Granheim",
               "nationality": "danish",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -4032,7 +4032,7 @@
               "name": "Gabriella Stranden",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -4380,7 +4380,7 @@
               "name": "Christine Knudsen",
               "nationality": "danish",
               "age": 25,
-              "position": "CDM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -4400,7 +4400,7 @@
               "name": "Nicoline Nordstrom",
               "nationality": "danish",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 99,
@@ -4420,7 +4420,7 @@
               "name": "Nanna Bronstad",
               "nationality": "danish",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 86,
@@ -4440,7 +4440,7 @@
               "name": "Liv Reginiussen",
               "nationality": "danish",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -4520,7 +4520,7 @@
               "name": "Gry Karlsen",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 81,
@@ -4540,7 +4540,7 @@
               "name": "Yasmine Engen",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 81,
               "attributes": {
                 "speed": 99,
@@ -4888,7 +4888,7 @@
               "name": "Annbjørg Nordberg",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 43,
@@ -4908,7 +4908,7 @@
               "name": "Ulrika Dahlberg",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 40,
@@ -4928,7 +4928,7 @@
               "name": "Olina Ellefsen",
               "nationality": "danish",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 77,
@@ -4948,7 +4948,7 @@
               "name": "Marie Fagerli",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 60,
@@ -5028,7 +5028,7 @@
               "name": "Fjolla Bratseth",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 77,
@@ -5048,7 +5048,7 @@
               "name": "Ronja Birkeland",
               "nationality": "danish",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 81,
               "attributes": {
                 "speed": 40,
@@ -5396,7 +5396,7 @@
               "name": "Brynhild Edvardsen",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 99,
@@ -5416,7 +5416,7 @@
               "name": "Rebekka Volden",
               "nationality": "danish",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -5436,7 +5436,7 @@
               "name": "Clara Skjerve",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 48,
@@ -5456,7 +5456,7 @@
               "name": "Christine Dahlum",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 68,
@@ -5536,7 +5536,7 @@
               "name": "Tiril-Marie Svenning",
               "nationality": "danish",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 99,
@@ -5556,7 +5556,7 @@
               "name": "Dina-Marie Bolstad",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 57,
@@ -5904,7 +5904,7 @@
               "name": "Ulrikke Ødegaard",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 56,
@@ -5924,7 +5924,7 @@
               "name": "Nina Egeland",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -5944,7 +5944,7 @@
               "name": "Alma Holmberg",
               "nationality": "danish",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 65,
@@ -5964,7 +5964,7 @@
               "name": "Norunn Brun",
               "nationality": "danish",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 86,
@@ -6044,7 +6044,7 @@
               "name": "Randi Mikalsen",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 50,
@@ -6064,7 +6064,7 @@
               "name": "Chloe Nordahl",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 80,
@@ -6412,7 +6412,7 @@
               "name": "Malin Hermanrud",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 44,
@@ -6432,7 +6432,7 @@
               "name": "Anette Nilsen",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 99,
@@ -6452,7 +6452,7 @@
               "name": "Ellen Bragstad",
               "nationality": "danish",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 82,
@@ -6472,7 +6472,7 @@
               "name": "Ulrikke Skjold",
               "nationality": "danish",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -6552,7 +6552,7 @@
               "name": "Anette Eikeland",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -6572,7 +6572,7 @@
               "name": "Frida Bragstad",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 49,
@@ -6920,7 +6920,7 @@
               "name": "Noor Hermansen",
               "nationality": "danish",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -6940,7 +6940,7 @@
               "name": "Liv Saether",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 40,
@@ -6960,7 +6960,7 @@
               "name": "Barbara Overbo",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -6980,7 +6980,7 @@
               "name": "Ragna Bragstad",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -7060,7 +7060,7 @@
               "name": "Veronica Jacobsen",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 88,
@@ -7080,7 +7080,7 @@
               "name": "Cecilie Helle",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 80,
               "attributes": {
                 "speed": 94,
@@ -7428,7 +7428,7 @@
               "name": "Rikke Laberg",
               "nationality": "danish",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 99,
@@ -7448,7 +7448,7 @@
               "name": "Sigrid Bjelde",
               "nationality": "danish",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -7468,7 +7468,7 @@
               "name": "Ida Austad",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 99,
@@ -7488,7 +7488,7 @@
               "name": "Iselin Johansen",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -7568,7 +7568,7 @@
               "name": "Vibeke Myhre",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 52,
@@ -7588,7 +7588,7 @@
               "name": "Melina Austad",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -7936,7 +7936,7 @@
               "name": "Dorte Myklebust",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -7956,7 +7956,7 @@
               "name": "Lillian Brenden",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 49,
@@ -7976,7 +7976,7 @@
               "name": "Frøydis Granheim",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 63,
@@ -7996,7 +7996,7 @@
               "name": "Helene Iversen",
               "nationality": "danish",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -8076,7 +8076,7 @@
               "name": "Inga Ødegård",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 53,
@@ -8096,7 +8096,7 @@
               "name": "Unice Borgen",
               "nationality": "danish",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 44,
@@ -8451,7 +8451,7 @@
               "name": "Jakobine Støre",
               "nationality": "danish",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 57,
               "attributes": {
                 "speed": 40,
@@ -8471,7 +8471,7 @@
               "name": "Chloe Storflor",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 85,
@@ -8491,7 +8491,7 @@
               "name": "Kirsten Hagen",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 73,
@@ -8511,7 +8511,7 @@
               "name": "Elenora Karlsen",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -8591,7 +8591,7 @@
               "name": "Trine Larsen",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 42,
@@ -8611,7 +8611,7 @@
               "name": "Mathilde Loken",
               "nationality": "danish",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 46,
@@ -8959,7 +8959,7 @@
               "name": "Lene Heggem",
               "nationality": "danish",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 82,
@@ -8979,7 +8979,7 @@
               "name": "Sofie Holmberg",
               "nationality": "danish",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -8999,7 +8999,7 @@
               "name": "Yngvild Loken",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 58,
               "attributes": {
                 "speed": 68,
@@ -9019,7 +9019,7 @@
               "name": "Ragna Bolstad",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 60,
@@ -9099,7 +9099,7 @@
               "name": "Celin Johannessen",
               "nationality": "danish",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 53,
@@ -9119,7 +9119,7 @@
               "name": "Mathea Ulland",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -9467,7 +9467,7 @@
               "name": "Lene Graham",
               "nationality": "danish",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 66,
@@ -9487,7 +9487,7 @@
               "name": "Clara Holstad",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -9507,7 +9507,7 @@
               "name": "Lina Hagen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 68,
@@ -9527,7 +9527,7 @@
               "name": "Anni Wangberg",
               "nationality": "danish",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 46,
@@ -9607,7 +9607,7 @@
               "name": "Othilia Jacobsen",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 58,
               "attributes": {
                 "speed": 61,
@@ -9627,7 +9627,7 @@
               "name": "Stine Lunde",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 60,
               "attributes": {
                 "speed": 50,
@@ -9975,7 +9975,7 @@
               "name": "Eli Haga",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -9995,7 +9995,7 @@
               "name": "Åshild Evensen",
               "nationality": "danish",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 73,
@@ -10015,7 +10015,7 @@
               "name": "Signe Lund",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -10035,7 +10035,7 @@
               "name": "Joanna Lund",
               "nationality": "danish",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 61,
@@ -10115,7 +10115,7 @@
               "name": "Yngvild Skjerve",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -10135,7 +10135,7 @@
               "name": "Yvonne Holmberg",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -10483,7 +10483,7 @@
               "name": "Jeanette Sorensen",
               "nationality": "danish",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -10503,7 +10503,7 @@
               "name": "Fjolla Ekberg",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 58,
               "attributes": {
                 "speed": 76,
@@ -10523,7 +10523,7 @@
               "name": "Ellen Ingebrigtsen",
               "nationality": "danish",
               "age": 20,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 67,
@@ -10543,7 +10543,7 @@
               "name": "Frida Edvardsen",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 43,
@@ -10623,7 +10623,7 @@
               "name": "Ovidia Rønning",
               "nationality": "danish",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 61,
               "attributes": {
                 "speed": 53,
@@ -10643,7 +10643,7 @@
               "name": "Kari Storevik",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 80,
@@ -10991,7 +10991,7 @@
               "name": "Nydia Bangstad",
               "nationality": "danish",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -11011,7 +11011,7 @@
               "name": "Anniken Hjelle",
               "nationality": "danish",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -11031,7 +11031,7 @@
               "name": "Hanne-Lise Kvalheim",
               "nationality": "danish",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 44,
@@ -11051,7 +11051,7 @@
               "name": "Edel Holter",
               "nationality": "danish",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -11131,7 +11131,7 @@
               "name": "Clara Panengstuen",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 70,
@@ -11151,7 +11151,7 @@
               "name": "Filippa Saether",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 50,
@@ -11499,7 +11499,7 @@
               "name": "Nicoline Johnsen",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -11519,7 +11519,7 @@
               "name": "Evelyn Storevik",
               "nationality": "danish",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 73,
@@ -11539,7 +11539,7 @@
               "name": "Trine Bjerke",
               "nationality": "danish",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -11559,7 +11559,7 @@
               "name": "Trine Holter",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 48,
@@ -11639,7 +11639,7 @@
               "name": "Lina Storevik",
               "nationality": "danish",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 73,
               "attributes": {
                 "speed": 50,
@@ -11659,7 +11659,7 @@
               "name": "Alvilde Engh",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 76,
@@ -12007,7 +12007,7 @@
               "name": "Jakobine Jacobsen",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 59,
@@ -12027,7 +12027,7 @@
               "name": "Dina Fiskerstrand",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -12047,7 +12047,7 @@
               "name": "Kirsti Johansen",
               "nationality": "danish",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -12067,7 +12067,7 @@
               "name": "Sigrid Terland",
               "nationality": "danish",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -12147,7 +12147,7 @@
               "name": "Desiree Jøsendal",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 69,
@@ -12167,7 +12167,7 @@
               "name": "Cynthia Heggem",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 73,
               "attributes": {
                 "speed": 64,
@@ -12515,7 +12515,7 @@
               "name": "Inger Garberg",
               "nationality": "danish",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -12535,7 +12535,7 @@
               "name": "Rakel Storevik",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -12555,7 +12555,7 @@
               "name": "Ulla-Marie Volden",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 42,
@@ -12575,7 +12575,7 @@
               "name": "Veronica Åsheim",
               "nationality": "danish",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 43,
@@ -12655,7 +12655,7 @@
               "name": "Agnes Jansen",
               "nationality": "danish",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -12675,7 +12675,7 @@
               "name": "Gabriella Ellefsen",
               "nationality": "danish",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 57,
@@ -13023,7 +13023,7 @@
               "name": "Marthe Aabakken",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -13043,7 +13043,7 @@
               "name": "Ånette Solberg",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -13063,7 +13063,7 @@
               "name": "Helga Larsen",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 99,
@@ -13083,7 +13083,7 @@
               "name": "Anni Bronstad",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -13163,7 +13163,7 @@
               "name": "Hedda Aarnes",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 64,
@@ -13183,7 +13183,7 @@
               "name": "Mona Nilsen",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 68,
@@ -13531,7 +13531,7 @@
               "name": "Aina Johansen",
               "nationality": "danish",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 79,
@@ -13551,7 +13551,7 @@
               "name": "Åsta Maanum",
               "nationality": "danish",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 57,
@@ -13571,7 +13571,7 @@
               "name": "Borghild Ellingsen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -13591,7 +13591,7 @@
               "name": "Dorothy Haug",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -13671,7 +13671,7 @@
               "name": "Ådne Myklebust",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 62,
@@ -13691,7 +13691,7 @@
               "name": "Åselill Granheim",
               "nationality": "danish",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -14039,7 +14039,7 @@
               "name": "Berit Lillerud",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 57,
@@ -14059,7 +14059,7 @@
               "name": "Juliet Gjerde",
               "nationality": "danish",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -14079,7 +14079,7 @@
               "name": "Gjertrud Bråten",
               "nationality": "danish",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -14099,7 +14099,7 @@
               "name": "Jenny Saether",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -14179,7 +14179,7 @@
               "name": "Brynhild Holstad",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -14199,7 +14199,7 @@
               "name": "Rim Edvardsen",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 99,
@@ -14547,7 +14547,7 @@
               "name": "Evelyn Ekberg",
               "nationality": "danish",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 58,
@@ -14567,7 +14567,7 @@
               "name": "Maria Ellefsen",
               "nationality": "danish",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 72,
@@ -14587,7 +14587,7 @@
               "name": "Udele Hakonsen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 52,
@@ -14607,7 +14607,7 @@
               "name": "Lisbet Vangen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -14687,7 +14687,7 @@
               "name": "Borghild Sandberg",
               "nationality": "danish",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -14707,7 +14707,7 @@
               "name": "Linn Nypan",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 56,
               "attributes": {
                 "speed": 40,
@@ -15055,7 +15055,7 @@
               "name": "Unice Laberg",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -15075,7 +15075,7 @@
               "name": "Nadja Rogers",
               "nationality": "danish",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 44,
@@ -15095,7 +15095,7 @@
               "name": "Jenny Terland",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 49,
@@ -15115,7 +15115,7 @@
               "name": "Hanne-Mari Aabakken",
               "nationality": "danish",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 75,
@@ -15195,7 +15195,7 @@
               "name": "Thea Havik",
               "nationality": "danish",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 52,
@@ -15215,7 +15215,7 @@
               "name": "Ingfrid Svenning",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 58,
               "attributes": {
                 "speed": 40,
@@ -15563,7 +15563,7 @@
               "name": "Gunn Isaksen",
               "nationality": "danish",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 62,
@@ -15583,7 +15583,7 @@
               "name": "Juni Ellefsen",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -15603,7 +15603,7 @@
               "name": "Ragnhild Bjerknes",
               "nationality": "danish",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 41,
@@ -15623,7 +15623,7 @@
               "name": "Johanne Holstad",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 86,
@@ -15703,7 +15703,7 @@
               "name": "Unice Birkeland",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 50,
@@ -15723,7 +15723,7 @@
               "name": "Bjørnarine Ødegaard",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 66,
@@ -16071,7 +16071,7 @@
               "name": "Freja Ingebrigtsen",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -16091,7 +16091,7 @@
               "name": "Emilie Solberg",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 44,
@@ -16111,7 +16111,7 @@
               "name": "Yliane Hakonsen",
               "nationality": "danish",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -16131,7 +16131,7 @@
               "name": "Amira Ødegaard",
               "nationality": "danish",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 99,
@@ -16211,7 +16211,7 @@
               "name": "Julie Maanum",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -16231,7 +16231,7 @@
               "name": "Maren Huseby",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 57,
               "attributes": {
                 "speed": 45,
@@ -16586,7 +16586,7 @@
               "name": "Kaja Svenning",
               "nationality": "danish",
               "age": 29,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 78,
@@ -16606,7 +16606,7 @@
               "name": "Frøydis Skjerve",
               "nationality": "danish",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 46,
               "attributes": {
                 "speed": 40,
@@ -16626,7 +16626,7 @@
               "name": "Fjolla Isaksen",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 72,
@@ -16646,7 +16646,7 @@
               "name": "Yngvild Dahlberg",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 53,
@@ -16726,7 +16726,7 @@
               "name": "Cynthia Fiskerstrand",
               "nationality": "danish",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 73,
@@ -16746,7 +16746,7 @@
               "name": "Lillian Lie",
               "nationality": "danish",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 52,
@@ -17094,7 +17094,7 @@
               "name": "Lina Riseth",
               "nationality": "danish",
               "age": 29,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 45,
@@ -17114,7 +17114,7 @@
               "name": "Oline Sandberg",
               "nationality": "danish",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 40,
@@ -17134,7 +17134,7 @@
               "name": "Ulla Isaksen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 42,
@@ -17154,7 +17154,7 @@
               "name": "Gunn Kristiansen",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -17234,7 +17234,7 @@
               "name": "Marie Thorsen",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -17254,7 +17254,7 @@
               "name": "Marthe Nordahl",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -17602,7 +17602,7 @@
               "name": "Ulrika Øverland",
               "nationality": "danish",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 71,
@@ -17622,7 +17622,7 @@
               "name": "Mathilde Terland",
               "nationality": "danish",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 53,
@@ -17642,7 +17642,7 @@
               "name": "Hanne-Lise Bakkene",
               "nationality": "danish",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -17662,7 +17662,7 @@
               "name": "Udele Fjeld",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 53,
@@ -17742,7 +17742,7 @@
               "name": "Kristin Støre",
               "nationality": "danish",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 54,
               "attributes": {
                 "speed": 51,
@@ -17762,7 +17762,7 @@
               "name": "Karen Ekberg",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 48,
               "attributes": {
                 "speed": 40,
@@ -18110,7 +18110,7 @@
               "name": "Noor Molskred",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -18130,7 +18130,7 @@
               "name": "Guro Skjold",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 50,
@@ -18150,7 +18150,7 @@
               "name": "Juliet Aaberg",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 43,
@@ -18170,7 +18170,7 @@
               "name": "Eva Lillerud",
               "nationality": "danish",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -18250,7 +18250,7 @@
               "name": "Ågot Eikeland",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 57,
               "attributes": {
                 "speed": 44,
@@ -18270,7 +18270,7 @@
               "name": "Gina Haug",
               "nationality": "danish",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -18618,7 +18618,7 @@
               "name": "Mathilde Pettersen",
               "nationality": "danish",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 78,
@@ -18638,7 +18638,7 @@
               "name": "Ulla Rød",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 40,
@@ -18658,7 +18658,7 @@
               "name": "Gunhild Thoresen",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 63,
@@ -18678,7 +18678,7 @@
               "name": "Lea Hagen",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 57,
               "attributes": {
                 "speed": 49,
@@ -18758,7 +18758,7 @@
               "name": "Aina Stranden",
               "nationality": "danish",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -18778,7 +18778,7 @@
               "name": "Elenora Myklebust",
               "nationality": "danish",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 52,
@@ -19126,7 +19126,7 @@
               "name": "Fjolla Dahl",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -19146,7 +19146,7 @@
               "name": "Ågot Nypan",
               "nationality": "danish",
               "age": 29,
-              "position": "CDM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 82,
@@ -19166,7 +19166,7 @@
               "name": "Thale Bangstad",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -19186,7 +19186,7 @@
               "name": "Maria Bolstad",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -19266,7 +19266,7 @@
               "name": "Amalie Nordahl",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 64,
@@ -19286,7 +19286,7 @@
               "name": "Jorid Einarsen",
               "nationality": "danish",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -19634,7 +19634,7 @@
               "name": "Vivian Valø",
               "nationality": "danish",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 61,
@@ -19654,7 +19654,7 @@
               "name": "Runa Arnesen",
               "nationality": "danish",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 68,
@@ -19674,7 +19674,7 @@
               "name": "Katrin Brun",
               "nationality": "danish",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 54,
               "attributes": {
                 "speed": 40,
@@ -19694,7 +19694,7 @@
               "name": "Mathea Jørgensen",
               "nationality": "danish",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 49,
@@ -19774,7 +19774,7 @@
               "name": "Kirsten Ingebrigtsen",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 55,
               "attributes": {
                 "speed": 40,
@@ -19794,7 +19794,7 @@
               "name": "Berit Engh",
               "nationality": "danish",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 54,
               "attributes": {
                 "speed": 40,
@@ -20142,7 +20142,7 @@
               "name": "Carina Hovde",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 55,
               "attributes": {
                 "speed": 42,
@@ -20162,7 +20162,7 @@
               "name": "Justine Saether",
               "nationality": "danish",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -20182,7 +20182,7 @@
               "name": "Otilie Abrahamsen",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 88,
@@ -20202,7 +20202,7 @@
               "name": "Dorte Loken",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 40,
@@ -20282,7 +20282,7 @@
               "name": "Tove Abrahamsen",
               "nationality": "danish",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -20302,7 +20302,7 @@
               "name": "Mina Hovde",
               "nationality": "danish",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 58,
               "attributes": {
                 "speed": 57,
@@ -20650,7 +20650,7 @@
               "name": "Ann Valø",
               "nationality": "danish",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 63,
@@ -20670,7 +20670,7 @@
               "name": "Ulla-Marie Reiten",
               "nationality": "danish",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -20690,7 +20690,7 @@
               "name": "Maja Medalen",
               "nationality": "danish",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 40,
@@ -20710,7 +20710,7 @@
               "name": "Nille Saether",
               "nationality": "danish",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 45,
@@ -20790,7 +20790,7 @@
               "name": "Chloe Graham",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 56,
               "attributes": {
                 "speed": 40,
@@ -20810,7 +20810,7 @@
               "name": "Lovise Bratseth",
               "nationality": "danish",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 44,
@@ -21158,7 +21158,7 @@
               "name": "Annbjørg Vang",
               "nationality": "danish",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 56,
               "attributes": {
                 "speed": 40,
@@ -21178,7 +21178,7 @@
               "name": "Frida Berg",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 56,
@@ -21198,7 +21198,7 @@
               "name": "Dagny Sunde",
               "nationality": "danish",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 61,
@@ -21218,7 +21218,7 @@
               "name": "Ann Rød",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 40,
@@ -21298,7 +21298,7 @@
               "name": "Ingvild Wangberg",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 56,
               "attributes": {
                 "speed": 40,
@@ -21318,7 +21318,7 @@
               "name": "Ragna Aarønes",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 53,
               "attributes": {
                 "speed": 40,
@@ -21666,7 +21666,7 @@
               "name": "Oline Dahl",
               "nationality": "danish",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -21686,7 +21686,7 @@
               "name": "Cecilie Eliassen",
               "nationality": "danish",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 51,
@@ -21706,7 +21706,7 @@
               "name": "Noor Sandberg",
               "nationality": "danish",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 54,
               "attributes": {
                 "speed": 48,
@@ -21726,7 +21726,7 @@
               "name": "Jenny Stensland",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 51,
               "attributes": {
                 "speed": 40,
@@ -21806,7 +21806,7 @@
               "name": "Kaja Skjølsvik",
               "nationality": "danish",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 56,
               "attributes": {
                 "speed": 54,
@@ -21826,7 +21826,7 @@
               "name": "Yasmin Flatland",
               "nationality": "danish",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -22174,7 +22174,7 @@
               "name": "Rakel Syrstad",
               "nationality": "danish",
               "age": 29,
-              "position": "CDM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 46,
@@ -22194,7 +22194,7 @@
               "name": "Martine Fagerland",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 57,
               "attributes": {
                 "speed": 40,
@@ -22214,7 +22214,7 @@
               "name": "Marthe Ellefsen",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 55,
               "attributes": {
                 "speed": 52,
@@ -22234,7 +22234,7 @@
               "name": "Benedicte Herlovsen",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -22314,7 +22314,7 @@
               "name": "Julie Bronstad",
               "nationality": "danish",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 55,
               "attributes": {
                 "speed": 52,
@@ -22334,7 +22334,7 @@
               "name": "Ingrid Husby",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 61,
@@ -22682,7 +22682,7 @@
               "name": "Anette Skjølsvik",
               "nationality": "danish",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 58,
               "attributes": {
                 "speed": 47,
@@ -22702,7 +22702,7 @@
               "name": "Yvonne Bolstad",
               "nationality": "danish",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -22722,7 +22722,7 @@
               "name": "Lea Skogen",
               "nationality": "danish",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -22742,7 +22742,7 @@
               "name": "Sofie Rød",
               "nationality": "danish",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -22822,7 +22822,7 @@
               "name": "Hege Antonsen",
               "nationality": "danish",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 62,
@@ -22842,7 +22842,7 @@
               "name": "Eva Edvardsen",
               "nationality": "danish",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 56,
@@ -23190,7 +23190,7 @@
               "name": "Ovidia Laberg",
               "nationality": "danish",
               "age": 25,
-              "position": "CDM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -23210,7 +23210,7 @@
               "name": "Aurora Hovde",
               "nationality": "danish",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -23230,7 +23230,7 @@
               "name": "Brynhild Nilsen",
               "nationality": "danish",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -23250,7 +23250,7 @@
               "name": "Dagny Larsen",
               "nationality": "danish",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 40,
@@ -23330,7 +23330,7 @@
               "name": "Noor Horneland",
               "nationality": "danish",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -23350,7 +23350,7 @@
               "name": "Gabriella Østberg",
               "nationality": "danish",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 56,
               "attributes": {
                 "speed": 40,
@@ -23698,7 +23698,7 @@
               "name": "Yana Bakke",
               "nationality": "danish",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 65,
@@ -23718,7 +23718,7 @@
               "name": "Vibeke Myklebust",
               "nationality": "danish",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 59,
@@ -23738,7 +23738,7 @@
               "name": "Gry Eik",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 55,
               "attributes": {
                 "speed": 40,
@@ -23758,7 +23758,7 @@
               "name": "Anita Engh",
               "nationality": "danish",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -23838,7 +23838,7 @@
               "name": "Anja Nypan",
               "nationality": "danish",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 57,
@@ -23858,7 +23858,7 @@
               "name": "Yasmin Bakke",
               "nationality": "danish",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -24206,7 +24206,7 @@
               "name": "Cynthia Øverland",
               "nationality": "danish",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 40,
@@ -24226,7 +24226,7 @@
               "name": "Hanna Bø",
               "nationality": "danish",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 54,
@@ -24246,7 +24246,7 @@
               "name": "Gina Bakken",
               "nationality": "danish",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 57,
               "attributes": {
                 "speed": 53,
@@ -24266,7 +24266,7 @@
               "name": "Nora Eliassen",
               "nationality": "danish",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 76,
@@ -24346,7 +24346,7 @@
               "name": "Una Bøe",
               "nationality": "danish",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 58,
@@ -24366,7 +24366,7 @@
               "name": "Camilla Hansen",
               "nationality": "danish",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 60,
               "attributes": {
                 "speed": 40,

@@ -28,13 +28,13 @@ function createTestTeam(id: string, name: string): Team {
     colors: { primary: '#FFFFFF', secondary: '#000000' },
     starters: [
       createTestPlayer(`${id}-gk`, 'GK', 'GK'),
+      createTestPlayer(`${id}-lb`, 'LB', 'LB'),
       createTestPlayer(`${id}-cb1`, 'CB1', 'CB'),
       createTestPlayer(`${id}-cb2`, 'CB2', 'CB'),
-      createTestPlayer(`${id}-lb`, 'LB', 'LB'),
       createTestPlayer(`${id}-rb`, 'RB', 'RB'),
+      createTestPlayer(`${id}-lm`, 'LM', 'LM'),
       createTestPlayer(`${id}-cm1`, 'CM1', 'CM'),
       createTestPlayer(`${id}-cm2`, 'CM2', 'CM'),
-      createTestPlayer(`${id}-lm`, 'LM', 'LM'),
       createTestPlayer(`${id}-rm`, 'RM', 'RM'),
       createTestPlayer(`${id}-st1`, 'ST1', 'ST'),
       createTestPlayer(`${id}-st2`, 'ST2', 'ST'),
@@ -441,6 +441,24 @@ describe('MatchOccurrence:', () => {
       const homePlayers = occ.getMatchState().currentPlayers.home;
       expect(homePlayers.map(p => p.id)).toContain(sub.id);
       expect(homePlayers.map(p => p.id)).not.toContain(outPlayer.id);
+    });
+
+    test('given callback with one swap then the incoming sub inherits the outgoing starter\'s fielded slot', () => {
+      const { team, sub } = makeTeamWithSub();
+      const outPlayer = team.starters[0];
+      let lineup = [...team.starters];
+      const occ = makeOccurrence({
+        homeTeam: team,
+        playerTeamId: 'home',
+        getPlayerTeamLineup: () => lineup,
+      });
+      advanceTicks(occ, 5);
+      const slotBefore = occ.getMatchState().fieldedPositions?.home[outPlayer.id];
+      lineup = [sub, ...team.starters.slice(1)];
+      occ.onTick(KICK_OFF, CTX);
+      const fielded = occ.getMatchState().fieldedPositions?.home ?? {};
+      expect(fielded[sub.id]).toBe(slotBefore);
+      expect(fielded[outPlayer.id]).toBeUndefined();
     });
 
     test('given playerTeamId is away team then substitution applies to away currentPlayers', () => {

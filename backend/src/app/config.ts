@@ -26,5 +26,5 @@ export const CUP_ROUND_NAMES = [
 export const cupCompetitionId = (countryId: string): string => `${countryId}-cup`;
 
 export const ALL_POSITIONS: Position[] = [
-  'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF',
+  'GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST',
 ];

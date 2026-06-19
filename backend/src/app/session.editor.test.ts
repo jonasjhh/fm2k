@@ -126,7 +126,7 @@ describe('GameSession pre-game editor:', () => {
     });
 
     test('picks the position from the injected rng (index into ALL_POSITIONS)', () => {
-      // rng 0 → ALL_POSITIONS[floor(0 * 13)] = 'GK'; rng 0.99 → ALL_POSITIONS[12] = 'CF'.
+      // rng 0 → ALL_POSITIONS[floor(0 * 10)] = 'GK'; rng 0.99 → ALL_POSITIONS[9] = 'ST'.
       const low = new GameSession(() => 0);
       const lowTeam = firstTeam(low);
       low.addGeneratedPlayer(lowTeam.id);
@@ -137,7 +137,7 @@ describe('GameSession pre-game editor:', () => {
       const highTeam = firstTeam(high);
       high.addGeneratedPlayer(highTeam.id);
       const highAdded = teamOf(high, highTeam.id).starters.at(-1)!;
-      expect(highAdded.position).toBe('CF');
+      expect(highAdded.position).toBe('ST');
     });
   });
 

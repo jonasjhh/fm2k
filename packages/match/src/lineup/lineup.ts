@@ -1,4 +1,4 @@
-import type { Formation, Player } from '../shared/types.ts';
+import type { Formation, Player, Position, FieldedPositions } from '../shared/types.ts';
 
 /** Pitch slots (by position) for each formation, ordered back-to-front. */
 export const FORMATION_LINES: Record<Formation, string[][]> = {
@@ -47,4 +47,14 @@ export function buildSlotAssignments(
   const bench: (string | null)[] = Array(4).fill(null);
   benchIds.slice(0, 4).forEach((id, i) => { bench[i] = id; });
   return [...result, ...bench];
+}
+
+/** Zip an already-decided XI against its formation's flattened slot order. Assumes
+ *  `starters` is already exactly the right players in slot order (the simulator's
+ *  trust contract) — zips only the overlap if shorter/longer. */
+export function deriveFieldedPositions(starters: Player[], formation: Formation): FieldedPositions {
+  const slots = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as Position[];
+  const out: FieldedPositions = {};
+  starters.forEach((p, i) => { if (slots[i]) { out[p.id] = slots[i]; } });
+  return out;
 }

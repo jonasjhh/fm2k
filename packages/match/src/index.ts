@@ -2,7 +2,7 @@
 // tactics pipeline, lineup selection, and the match simulator itself.
 
 // Domain model
-export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from './shared/types.ts';
+export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics, FieldedPositions } from './shared/types.ts';
 export { getEffectiveAttributes, getPositionModifier } from './shared/position-rules.ts';
 
 // Ratings
@@ -11,10 +11,8 @@ export { calculateOverall, getTeamOVR, OVERALL_WEIGHTS } from './ratings.ts';
 // Tactics pipeline (intent → params → squad influence → resolve)
 export * from './tactics/index.ts';
 
-// Lineup selection
-export { FORMATION_LINES, buildSlotAssignments } from './lineup/lineup.ts';
-export { positionFit, selectStartingXI, calculateBestFormation, buildXISlotAssignments } from './lineup/selection.ts';
-export type { SelectionOptions } from './lineup/selection.ts';
+// Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
+export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from './lineup/lineup.ts';
 
 // Match simulation
 export { MatchSimulator, isTerminalPhase } from './match/match-simulator.ts';

@@ -7,13 +7,12 @@ const SECONDARY_POSITIONS: Record<Position, Position[]> = {
   RB:  ['RM', 'RW'],
   CDM: ['CM', 'CB'],
   CM:  ['CAM', 'CDM'],
-  CAM: ['CM', 'CF'],
+  CAM: ['CM'],
   LM:  ['LW', 'LB'],
   RM:  ['RW', 'RB'],
   LW:  ['LM', 'ST'],
   RW:  ['RM', 'ST'],
-  ST:  ['CF', 'LW', 'RW'],
-  CF:  ['ST', 'CAM'],
+  ST:  ['LW', 'RW'],
 };
 
 const SECONDARY_MODIFIER = 0.90;

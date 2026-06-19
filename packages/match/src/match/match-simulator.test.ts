@@ -27,13 +27,13 @@ function createTestPlayer(id: string, name: string, position: any): Player {
 function createTestTeam(id: string, name: string, formation: Formation = '4-4-2'): Team {
   const starters: Player[] = [
     createTestPlayer('gk1', 'Goalkeeper', 'GK'),
+    createTestPlayer('lb1', 'Left Back', 'LB'),
     createTestPlayer('cb1', 'Centre Back 1', 'CB'),
     createTestPlayer('cb2', 'Centre Back 2', 'CB'),
-    createTestPlayer('lb1', 'Left Back', 'LB'),
     createTestPlayer('rb1', 'Right Back', 'RB'),
+    createTestPlayer('lm1', 'Left Mid', 'LM'),
     createTestPlayer('cm1', 'Central Mid 1', 'CM'),
     createTestPlayer('cm2', 'Central Mid 2', 'CM'),
-    createTestPlayer('lm1', 'Left Mid', 'LM'),
     createTestPlayer('rm1', 'Right Mid', 'RM'),
     createTestPlayer('st1', 'Striker 1', 'ST'),
     createTestPlayer('st2', 'Striker 2', 'ST'),

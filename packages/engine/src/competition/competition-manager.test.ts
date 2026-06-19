@@ -232,6 +232,24 @@ describe('CompetitionManager (match.completed events):', () => {
   });
 });
 
+describe('CompetitionManager.updateTeam:', () => {
+  test('a team updated then rescheduled is the team object the live match actually holds', async () => {
+    const m = makeCupManager();
+    await m.simulateNextRound(); // round 1 complete; round 2 already materialised & scheduled
+
+    const nextFixture = m.getState().fixtures.find(f => f.status === 'scheduled')!;
+    const teamId = nextFixture.homeTeamId;
+    m.updateTeam(teamId, { ...cupTeam(teamId), name: 'Renamed FC' });
+    // Forces every still-scheduled fixture's MatchOccurrence to be rebuilt from ctx.teamsById,
+    // exactly like resuming a save after AI squad churn/transfers updated a team mid-competition.
+    m.loadState(m.getState());
+
+    await m.tickTo(addMinutes(nextFixture.scheduledTime, 1));
+    const live = m.getLiveMatches().find(l => l.fixtureId === nextFixture.id)!;
+    expect([live.homeTeamName, live.awayTeamName]).toContain('Renamed FC');
+  });
+});
+
 describe('CompetitionManager (knockout format):', () => {
   test('save/load mid-cup resumes to a single champion without re-counting rounds', async () => {
     const m = makeCupManager();

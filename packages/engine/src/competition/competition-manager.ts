@@ -85,6 +85,13 @@ export class CompetitionManager {
     });
   }
 
+  /** Push an updated Team (e.g. after AI squad churn/transfers) so not-yet-scheduled
+   *  matches pick up the new lineup; safe because fixture scheduling reads ctx.teamsById
+   *  fresh for each match. */
+  updateTeam(teamId: string, team: Team): void {
+    this.ctx.teamsById.set(teamId, team);
+  }
+
   getState(): CompetitionState { return this.stateManager.getState(); }
 
   subscribe(listener: (state: CompetitionState) => void): () => void {

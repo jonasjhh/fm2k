@@ -149,11 +149,11 @@ describe('TransferManager:', () => {
 
   describe('default player factory:', () => {
     test('picks positions from POSITIONS using the injected rng', () => {
-      // No playerFactory → built-in factory: position = POSITIONS[floor(rng * 13)].
-      // rng 0.5 → floor(6.5) = 6 → 'CAM'.
+      // No playerFactory → built-in factory: position = POSITIONS[floor(rng * 10)].
+      // rng 0.5 → floor(5) = 5 → 'LM'.
       const manager = new TransferManager({ marketSize: 4, rng: () => 0.5 });
       expect(manager.getListings()).toHaveLength(4);
-      expect(manager.getListings().every(l => l.player.position === 'CAM')).toBe(true);
+      expect(manager.getListings().every(l => l.player.position === 'LM')).toBe(true);
     });
   });
 

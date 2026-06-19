@@ -11,7 +11,7 @@ import type { TransferState, TransferListing } from './transfer-types.ts';
 export { calculateOverall, OVERALL_WEIGHTS };
 
 const POSITIONS: Position[] = [
-  'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF',
+  'GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST',
 ];
 
 function calculateAskingPrice(attrs: PlayerAttributes): number {

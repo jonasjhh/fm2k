@@ -23,7 +23,7 @@ const SQUAD_TEMPLATE: Position[] = [
   'GK', 'GK',
   'CB', 'CB', 'CB', 'LB', 'RB',
   'CDM', 'CM', 'CM', 'CAM', 'LM', 'RM',
-  'LW', 'RW', 'ST', 'ST', 'CF',
+  'LW', 'RW', 'ST', 'ST', 'ST',
 ];
 
 interface Team { id: string; nationality: string; trainingLevel: number; academyLevel: number; squad: Player[] }

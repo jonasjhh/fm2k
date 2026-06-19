@@ -177,14 +177,28 @@ export class MatchOccurrence implements Occurrence {
 
     if (playersIn.length === 0) {return [];}
 
+    const side = this.playerTeamSide;
+    const sideFielded = { ...(this.matchState.fieldedPositions?.[side] ?? {}) };
+    playersIn.forEach((playerIn, i) => {
+      const outgoingId = playersOut[i]?.id;
+      const slot = outgoingId ? sideFielded[outgoingId] : undefined;
+      if (outgoingId) {delete sideFielded[outgoingId];}
+      if (slot) {sideFielded[playerIn.id] = slot;}
+    });
+
     this.matchState = {
       ...this.matchState,
       currentPlayers: {
         ...this.matchState.currentPlayers,
-        [this.playerTeamSide]: [
+        [side]: [
           ...current.filter(p => desiredIds.has(p.id)),
           ...playersIn,
         ],
+      },
+      fieldedPositions: {
+        home: this.matchState.fieldedPositions?.home ?? {},
+        away: this.matchState.fieldedPositions?.away ?? {},
+        [side]: sideFielded,
       },
     };
 

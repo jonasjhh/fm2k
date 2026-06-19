@@ -6,7 +6,11 @@ export type Formation =
   | '3-5-2' | '3-4-3' | '3-4-2-1'
   | '5-3-2' | '5-4-1';
 
-export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST' | 'CF';
+export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
+
+/** playerId -> the Position they're fielded at right now (formation slot), as opposed
+ *  to Player.position (card/generation-time position). */
+export type FieldedPositions = Record<string, Position>;
 
 export interface Player {
   id: string;

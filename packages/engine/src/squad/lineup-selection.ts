@@ -1,6 +1,9 @@
-import { calculateOverall } from '../ratings.ts';
-import { FORMATION_LINES } from './lineup.ts';
-import type { Formation, Player, Position } from '../shared/types.ts';
+import {
+  calculateOverall, FORMATION_LINES, deriveFieldedPositions,
+} from '@fm2k/match';
+import type {
+  Formation, Player, Position, FieldedPositions,
+} from '@fm2k/match';
 
 /** Fit floor for two unrelated outfield positions. */
 const FIT_FLOOR = 0.4;
@@ -20,7 +23,6 @@ const FIT_PAIRS: [Position, Position, number][] = [
   // central midfield chain
   ['CDM', 'CM', 0.8],
   ['CM', 'CAM', 0.8],
-  ['CDM', 'CAM', 0.6],
   ['LM', 'CM', 0.7], ['RM', 'CM', 0.7],
   // wide players
   ['LM', 'RM', 0.85],
@@ -29,11 +31,8 @@ const FIT_PAIRS: [Position, Position, number][] = [
   ['LW', 'RW', 0.8],
   // attacking transitions
   ['CAM', 'LW', 0.7], ['CAM', 'RW', 0.7],
-  ['CAM', 'ST', 0.75], ['CAM', 'CF', 0.75],
+  ['CAM', 'ST', 0.75],
   ['LW', 'ST', 0.7], ['RW', 'ST', 0.7],
-  ['LW', 'CF', 0.7], ['RW', 'CF', 0.7],
-  // forwards
-  ['ST', 'CF', 0.9],
 ];
 
 const FIT_LOOKUP: Map<string, number> = new Map(
@@ -105,6 +104,23 @@ export function selectStartingXI(
   opts: SelectionOptions = {},
 ): Player[] {
   return assignToSlots(squad, formation, opts).slots.filter((p): p is Player => p !== null);
+}
+
+/**
+ * Like selectStartingXI, but also returns the slot-derived FieldedPositions for the
+ * chosen XI, and the leftover squad as substitutes (squad minus the XI) — a full
+ * reshuffled Team-shape, suitable for assigning directly onto a Team.
+ */
+export function selectStartingXIWithSlots(
+  squad: Player[],
+  formation: Formation,
+  opts: SelectionOptions = {},
+): { starters: Player[]; substitutes: Player[]; fieldedPositions: FieldedPositions } {
+  const { slots } = assignToSlots(squad, formation, opts);
+  const starters = slots.filter((p): p is Player => p !== null);
+  const startersIds = new Set(starters.map(p => p.id));
+  const substitutes = squad.filter(p => !startersIds.has(p.id));
+  return { starters, substitutes, fieldedPositions: deriveFieldedPositions(starters, formation) };
 }
 
 /**

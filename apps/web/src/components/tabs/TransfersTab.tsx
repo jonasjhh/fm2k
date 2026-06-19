@@ -27,7 +27,7 @@ import { fmt } from '../../utils/formatting';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 
-const POSITIONS: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CF'];
+const POSITIONS: Position[] = ['GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST'];
 const ROWS_PER_PAGE = 25;
 
 interface PlayerRow {

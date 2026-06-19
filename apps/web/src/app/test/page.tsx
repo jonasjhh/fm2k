@@ -15,7 +15,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createAppTheme } from '@fm2k/design-system';
 import {
-  simulateMatch, runDistribution, mulberry32,
+  simulateMatch, runDistribution, mulberry32, selectStartingXIWithSlots,
   STYLE_TENDENCIES, TACTICAL_STYLE_IDS,
 } from '@fm2k/engine';
 import type {
@@ -30,21 +30,22 @@ const FORMATIONS: Formation[] = [
   '3-5-2', '3-4-3', '3-4-2-1', '5-3-2', '5-4-1',
 ];
 
-// A generous squad at a uniform strength; simulateMatch picks the XI for the formation.
+// A generous squad at a uniform strength; selectStartingXIWithSlots picks the XI for the formation.
 const SQUAD_POSITIONS: Position[] = [
-  'GK', 'GK', 'LB', 'RB', 'CB', 'CB', 'CB', 'CDM', 'CM', 'CM', 'CM',
-  'CAM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST', 'CF',
+  'GK', 'GK', 'LB', 'RB', 'CB', 'CB', 'CB', 'CM', 'CM', 'CM', 'CM',
+  'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST', 'ST',
 ];
 
-function makeTeam(id: string, strength: number): Team {
-  const starters: Player[] = SQUAD_POSITIONS.map((position, i) => ({
+function makeTeam(id: string, strength: number, formation: Formation): Team {
+  const squad: Player[] = SQUAD_POSITIONS.map((position, i) => ({
     id: `${id}-${i}`, name: `${id} ${i}`, nationality: 'n', age: 25, position, potential: 80,
     attributes: {
       speed: strength, strength, agility: strength, passing: strength, finishing: strength,
       technique: strength, defending: strength, stamina: strength, awareness: strength, composure: strength,
     },
   }));
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  const { starters, substitutes } = selectStartingXIWithSlots(squad, formation);
+  return { id, name: id, formation, starters, substitutes, colors: { primary: '#fff', secondary: '#000' } };
 }
 
 interface SideState {
@@ -103,8 +104,8 @@ export default function MatchSandboxPage() {
   const [dist, setDist] = useState<DistributionResult | null>(null);
   const [seed, setSeed] = useState(1);
 
-  const homeTeam = useMemo(() => makeTeam('Home', home.strength), [home.strength]);
-  const awayTeam = useMemo(() => makeTeam('Away', away.strength), [away.strength]);
+  const homeTeam = useMemo(() => makeTeam('Home', home.strength, home.formation), [home.strength, home.formation]);
+  const awayTeam = useMemo(() => makeTeam('Away', away.strength, away.formation), [away.strength, away.formation]);
 
   const runOne = () => {
     const s = seed + 1; setSeed(s);

@@ -13,12 +13,12 @@ export default function StadiumSubPage() {
     clubState: s.clubState,
     applyStadiumDesign: s.applyStadiumDesign,
   })));
-  if (!clubState) {return null;}
+  if (!clubState) { return null; }
 
   const committedSectors = clubState.stadiumSectors ?? (DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>);
 
   const handleApply = (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number): boolean => {
-    if (!confirm(`Apply stadium renovation for £${fmt(cost)}? This will update your stadium to ${newCapacity.toLocaleString()} capacity.`)) {return false;}
+    if (!confirm(`Apply stadium renovation for £${fmt(cost)}? This will update your stadium to ${newCapacity.toLocaleString()} capacity.`)) { return false; }
     return applyStadiumDesign(sectors, cost, newCapacity);
   };
 
@@ -26,10 +26,6 @@ export default function StadiumSubPage() {
     <Card variant="outlined" sx={{ p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Stadium Planner</Typography>
-        <Typography variant="caption" color="text.secondary">
-          Design your stadium layout — configure each stand sector and seating density.
-          Changes cost money and are applied only when you confirm the renovation.
-        </Typography>
       </Box>
       <StadiumPlanner
         clubName={clubState.clubName}

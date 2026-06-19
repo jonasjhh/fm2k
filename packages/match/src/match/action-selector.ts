@@ -1,5 +1,5 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
-import { Player, Position } from '../shared/types.ts';
+import { Player, Position, type FieldedPositions } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { resolveContest, mirrorBall } from './action-generators.ts';
 
@@ -15,14 +15,14 @@ export const FIELD_LINE: Record<Position, FieldLine> = {
   GK: 'GK',
   CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF',
   CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
-  LW: 'ATT', RW: 'ATT', ST: 'ATT', CF: 'ATT',
+  LW: 'ATT', RW: 'ATT', ST: 'ATT',
 };
 
 const FLANK: Record<Position, 'left' | 'right' | 'center'> = {
   LB: 'left', LM: 'left', LW: 'left',
   RB: 'right', RM: 'right', RW: 'right',
   GK: 'center', CB: 'center', CDM: 'center',
-  CM: 'center', CAM: 'center', ST: 'center', CF: 'center',
+  CM: 'center', CAM: 'center', ST: 'center',
 };
 
 // zone index 0..4 = home_box, home_third, middle_third, away_third, away_box
@@ -42,11 +42,15 @@ const LINE_ZONE_WEIGHT: Record<FieldLine, [number, number, number, number, numbe
 const SIDE_MATCH = 1.6;     // player on the same flank as the ball
 const SIDE_OPPOSITE = 0.5;  // player on the opposite flank
 
-export function activePlayerWeight(player: Player, ball: BallPosition): number {
-  let w = LINE_ZONE_WEIGHT[FIELD_LINE[player.position]][ZONE_INDEX[ball.zone]];
+export function activePlayerWeight(
+  player: Player,
+  ball: BallPosition,
+  fieldedPosition: Position = player.position,
+): number {
+  let w = LINE_ZONE_WEIGHT[FIELD_LINE[fieldedPosition]][ZONE_INDEX[ball.zone]];
   if (w === 0) { return 0; }
   if (ball.side === 'left' || ball.side === 'right') {
-    const flank = FLANK[player.position];
+    const flank = FLANK[fieldedPosition];
     if (flank === ball.side) { w *= SIDE_MATCH; }
     else if (flank !== 'center') { w *= SIDE_OPPOSITE; }
   }
@@ -57,9 +61,10 @@ export function selectActivePlayer(
   players: Player[],
   ball: BallPosition,
   rng: () => number = Math.random,
+  fieldedPositions?: FieldedPositions,
 ): Player | null {
   const weighted = players
-    .map(p => ({ p, w: activePlayerWeight(p, ball) }))
+    .map(p => ({ p, w: activePlayerWeight(p, ball, fieldedPositions?.[p.id]) }))
     .filter(x => x.w > 0);
   if (weighted.length === 0) { return null; }
   const total = weighted.reduce((s, x) => s + x.w, 0);
@@ -92,7 +97,7 @@ const POSITION_PREFERENCE: Record<string, Record<string, number>> = {
   'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
   'cross': { 'LW': 1.5, 'RW': 1.5, 'LB': 1.2, 'RB': 1.2 },
   'dribble': { 'LW': 1.4, 'RW': 1.4, 'CAM': 1.2 },
-  'shot': { 'ST': 1.5, 'CF': 1.4, 'CAM': 1.2 },
+  'shot': { 'ST': 1.5, 'CAM': 1.2 },
   'tackle': { 'CB': 1.3, 'CDM': 1.2, 'LB': 1.1, 'RB': 1.1 },
   'clearance': { 'CB': 1.4, 'GK': 1.2 },
 };
@@ -196,9 +201,10 @@ export function calculateActionWeight(
   player: Player,
   state: MatchState,
   decisionQuality: number,
+  fieldedPosition: Position = player.position,
 ): number {
   let weight = action.probability;
-  weight *= getPositionPreference(action.type, player.position);
+  weight *= getPositionPreference(action.type, fieldedPosition);
   weight *= getSituationalModifier(action, state);
   weight *= getRiskTolerance(action.riskLevel, state);
   weight *= getParamWeight(action.type, attackingParams(state), defendingParams(state));
@@ -227,7 +233,7 @@ export class ActionSelector {
     const possibleActions = this.getPossibleActions(activePlayer, state);
     if (possibleActions.length === 0) {return null;}
 
-    const chosenAction = this.makeDecision(activePlayer, possibleActions, state);
+    const chosenAction = this.makeDecision(activePlayer, possibleActions, state, state.possession);
     if (!chosenAction) {return null;}
 
     if (chosenAction.type !== 'shot') {
@@ -246,7 +252,7 @@ export class ActionSelector {
     const team = state.possession === 'home'
       ? state.currentPlayers.home
       : state.currentPlayers.away;
-    return selectActivePlayer(team, state.ballPosition, this.rng);
+    return selectActivePlayer(team, state.ballPosition, this.rng, state.fieldedPositions?.[state.possession]);
   }
 
   // The defender who contests the action: nearest defending outfielder to the ball. The
@@ -255,7 +261,7 @@ export class ActionSelector {
   private selectContestingDefender(state: MatchState): Player | null {
     const defSide = state.possession === 'home' ? 'away' : 'home';
     const defRoster = state.currentPlayers[defSide].filter(p => p.position !== 'GK');
-    return selectActivePlayer(defRoster, mirrorBall(state.ballPosition), this.rng);
+    return selectActivePlayer(defRoster, mirrorBall(state.ballPosition), this.rng, state.fieldedPositions?.[defSide]);
   }
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {
@@ -277,17 +283,21 @@ export class ActionSelector {
     return actions;
   }
 
-  private makeDecision(player: Player, actions: PlayerAction[], state: MatchState): PlayerAction | null {
+  private makeDecision(
+    player: Player, actions: PlayerAction[], state: MatchState, side: 'home' | 'away',
+  ): PlayerAction | null {
     if (actions.length === 0) {return null;}
 
     // Decision quality based on awareness
     const awareness = player.attributes.awareness || 50;
     const decisionQuality = awareness / 100;
 
+    const fieldedPosition = state.fieldedPositions?.[side]?.[player.id] ?? player.position;
+
     // Weight actions by position preferences and situation
     const weightedActions = actions.map(action => ({
       ...action,
-      weight: calculateActionWeight(action, player, state, decisionQuality),
+      weight: calculateActionWeight(action, player, state, decisionQuality, fieldedPosition),
     }));
 
     // Sort by weight and add some randomness

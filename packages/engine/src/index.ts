@@ -95,11 +95,12 @@ export {
   calculateTotalChangeCost, hasSectorChanged,
 } from './stadium/stadium.ts';
 export type { SectorKey } from './stadium/stadium.ts';
-export { FORMATION_LINES, buildSlotAssignments } from '@fm2k/match';
+export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from '@fm2k/match';
+export type { FieldedPositions } from '@fm2k/match';
 export {
-  positionFit, selectStartingXI, calculateBestFormation, buildXISlotAssignments,
-} from '@fm2k/match';
-export type { SelectionOptions } from '@fm2k/match';
+  positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
+} from './squad/lineup-selection.ts';
+export type { SelectionOptions } from './squad/lineup-selection.ts';
 export { recentForm, leagueZone } from './league/form.ts';
 export { computeLadderMovements } from './season/promotion.ts';
 export type { LadderDivision } from './season/promotion.ts';

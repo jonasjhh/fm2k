@@ -316,7 +316,7 @@
               "name": "Isabella Peters",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 55,
@@ -336,7 +336,7 @@
               "name": "Violet Watson",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 88,
               "attributes": {
                 "speed": 82,
@@ -356,7 +356,7 @@
               "name": "Camille Wright",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 43,
@@ -376,7 +376,7 @@
               "name": "Vanessa Wagner",
               "nationality": "german",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 84,
               "attributes": {
                 "speed": 46,
@@ -456,7 +456,7 @@
               "name": "Marian Hill",
               "nationality": "german",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 69,
@@ -476,7 +476,7 @@
               "name": "Taylor King",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 85,
               "attributes": {
                 "speed": 72,
@@ -824,7 +824,7 @@
               "name": "Laura Morgan",
               "nationality": "german",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 71,
@@ -844,7 +844,7 @@
               "name": "Beth Adams",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -864,7 +864,7 @@
               "name": "Beatrice Taylor",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 40,
@@ -884,7 +884,7 @@
               "name": "Martha Perez",
               "nationality": "german",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -964,7 +964,7 @@
               "name": "Vanessa Carter",
               "nationality": "german",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 89,
               "attributes": {
                 "speed": 45,
@@ -984,7 +984,7 @@
               "name": "Nicole Sanders",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 83,
               "attributes": {
                 "speed": 40,
@@ -1332,7 +1332,7 @@
               "name": "Amy Carpenter",
               "nationality": "german",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 87,
               "attributes": {
                 "speed": 40,
@@ -1352,7 +1352,7 @@
               "name": "Elizabeth Kelly",
               "nationality": "german",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -1372,7 +1372,7 @@
               "name": "Isabel Sims",
               "nationality": "german",
               "age": 20,
-              "position": "CAM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 40,
@@ -1392,7 +1392,7 @@
               "name": "Sandra White",
               "nationality": "german",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 93,
               "attributes": {
                 "speed": 89,
@@ -1472,7 +1472,7 @@
               "name": "Sylvia Watkins",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 99,
@@ -1492,7 +1492,7 @@
               "name": "Brianna Jackson",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 84,
               "attributes": {
                 "speed": 49,
@@ -1840,7 +1840,7 @@
               "name": "Charlotte Foster",
               "nationality": "german",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 86,
@@ -1860,7 +1860,7 @@
               "name": "Kimberly Jordan",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 81,
@@ -1880,7 +1880,7 @@
               "name": "Jennifer Taylor",
               "nationality": "german",
               "age": 20,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -1900,7 +1900,7 @@
               "name": "Mary Weaver",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 99,
@@ -1980,7 +1980,7 @@
               "name": "Helen Long",
               "nationality": "german",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 46,
@@ -2000,7 +2000,7 @@
               "name": "Donna Castillo",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -2348,7 +2348,7 @@
               "name": "Julia Herrera",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -2368,7 +2368,7 @@
               "name": "Matilda Gordon",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 85,
               "attributes": {
                 "speed": 99,
@@ -2388,7 +2388,7 @@
               "name": "Jacqueline Watkins",
               "nationality": "german",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 78,
@@ -2408,7 +2408,7 @@
               "name": "Abby Sanders",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 86,
               "attributes": {
                 "speed": 65,
@@ -2488,7 +2488,7 @@
               "name": "Brenda Evans",
               "nationality": "german",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -2508,7 +2508,7 @@
               "name": "Isabel Richardson",
               "nationality": "german",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -2856,7 +2856,7 @@
               "name": "Daisy King",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 92,
@@ -2876,7 +2876,7 @@
               "name": "Kimberly Smyth",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 48,
@@ -2896,7 +2896,7 @@
               "name": "Tiffany Patterson",
               "nationality": "german",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 75,
@@ -2916,7 +2916,7 @@
               "name": "Lucia Ford",
               "nationality": "german",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 86,
               "attributes": {
                 "speed": 77,
@@ -2996,7 +2996,7 @@
               "name": "Linda Olson",
               "nationality": "german",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 40,
@@ -3016,7 +3016,7 @@
               "name": "Theresa Patterson",
               "nationality": "german",
               "age": 32,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 72,
@@ -3364,7 +3364,7 @@
               "name": "Edith Aguilar",
               "nationality": "german",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 93,
@@ -3384,7 +3384,7 @@
               "name": "Lola Ford",
               "nationality": "german",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 77,
@@ -3404,7 +3404,7 @@
               "name": "Fiona Baker",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 99,
@@ -3424,7 +3424,7 @@
               "name": "Bella Coleman",
               "nationality": "german",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 84,
               "attributes": {
                 "speed": 59,
@@ -3504,7 +3504,7 @@
               "name": "Brianna Price",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 79,
@@ -3524,7 +3524,7 @@
               "name": "Brooke Graham",
               "nationality": "german",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -3872,7 +3872,7 @@
               "name": "Isabella Ross",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 99,
@@ -3892,7 +3892,7 @@
               "name": "Samantha Greene",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 53,
@@ -3912,7 +3912,7 @@
               "name": "Anna Parker",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 72,
@@ -3932,7 +3932,7 @@
               "name": "Barbara Cox",
               "nationality": "german",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 99,
@@ -4012,7 +4012,7 @@
               "name": "Olivia Willis",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 40,
@@ -4032,7 +4032,7 @@
               "name": "Elizabeth Johnston",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 54,
@@ -4380,7 +4380,7 @@
               "name": "Michelle Baker",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 59,
@@ -4400,7 +4400,7 @@
               "name": "Julia Ray",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 48,
@@ -4420,7 +4420,7 @@
               "name": "Louise Stevens",
               "nationality": "german",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 85,
               "attributes": {
                 "speed": 40,
@@ -4440,7 +4440,7 @@
               "name": "Brenda Olson",
               "nationality": "german",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 87,
               "attributes": {
                 "speed": 66,
@@ -4520,7 +4520,7 @@
               "name": "Caroline Gray",
               "nationality": "german",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 82,
               "attributes": {
                 "speed": 40,
@@ -4540,7 +4540,7 @@
               "name": "Frances James",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 84,
               "attributes": {
                 "speed": 42,
@@ -4888,7 +4888,7 @@
               "name": "Diana Cole",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -4908,7 +4908,7 @@
               "name": "Ivy Hayes",
               "nationality": "german",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 47,
@@ -4928,7 +4928,7 @@
               "name": "Carla Howard",
               "nationality": "german",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 99,
@@ -4948,7 +4948,7 @@
               "name": "Ivy West",
               "nationality": "german",
               "age": 22,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 40,
@@ -5028,7 +5028,7 @@
               "name": "Julia Kim",
               "nationality": "german",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 94,
               "attributes": {
                 "speed": 82,
@@ -5048,7 +5048,7 @@
               "name": "Karen Moore",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 81,
               "attributes": {
                 "speed": 68,
@@ -5396,7 +5396,7 @@
               "name": "Megan Ward",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 87,
               "attributes": {
                 "speed": 40,
@@ -5416,7 +5416,7 @@
               "name": "Juliet Reynolds",
               "nationality": "german",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 87,
@@ -5436,7 +5436,7 @@
               "name": "Bella Jordan",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 92,
               "attributes": {
                 "speed": 40,
@@ -5456,7 +5456,7 @@
               "name": "Charlotte Adams",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 55,
@@ -5536,7 +5536,7 @@
               "name": "Charlotte Jenkins",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 82,
               "attributes": {
                 "speed": 99,
@@ -5556,7 +5556,7 @@
               "name": "Diana Jenkins",
               "nationality": "german",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 87,
               "attributes": {
                 "speed": 99,
@@ -5904,7 +5904,7 @@
               "name": "Lucia Cox",
               "nationality": "german",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 88,
               "attributes": {
                 "speed": 77,
@@ -5924,7 +5924,7 @@
               "name": "Vanessa Price",
               "nationality": "german",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 84,
@@ -5944,7 +5944,7 @@
               "name": "Margaret Peterson",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 88,
               "attributes": {
                 "speed": 83,
@@ -5964,7 +5964,7 @@
               "name": "Hannah Scott",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -6044,7 +6044,7 @@
               "name": "Ivy Thomas",
               "nationality": "german",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 85,
               "attributes": {
                 "speed": 40,
@@ -6064,7 +6064,7 @@
               "name": "Megan Ward",
               "nationality": "german",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 82,
               "attributes": {
                 "speed": 53,
@@ -6412,7 +6412,7 @@
               "name": "Wendy Long",
               "nationality": "german",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 59,
@@ -6432,7 +6432,7 @@
               "name": "Julia Elliott",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 45,
@@ -6452,7 +6452,7 @@
               "name": "Ivy Gray",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 99,
@@ -6472,7 +6472,7 @@
               "name": "Brianna Gordon",
               "nationality": "german",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -6552,7 +6552,7 @@
               "name": "Dorothy Myers",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 52,
@@ -6572,7 +6572,7 @@
               "name": "Wendy Martin",
               "nationality": "german",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 88,
               "attributes": {
                 "speed": 53,
@@ -6920,7 +6920,7 @@
               "name": "Claire Ray",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 74,
@@ -6940,7 +6940,7 @@
               "name": "Beth Harper",
               "nationality": "german",
               "age": 25,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -6960,7 +6960,7 @@
               "name": "Rachel Simmons",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 45,
@@ -6980,7 +6980,7 @@
               "name": "Frances Fox",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 52,
@@ -7060,7 +7060,7 @@
               "name": "Chloe Hart",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 85,
               "attributes": {
                 "speed": 40,
@@ -7080,7 +7080,7 @@
               "name": "Mary Stewart",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 83,
@@ -7428,7 +7428,7 @@
               "name": "Adeline Turner",
               "nationality": "german",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 92,
@@ -7448,7 +7448,7 @@
               "name": "Kimberly Sanders",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 99,
@@ -7468,7 +7468,7 @@
               "name": "Jasmine Gonzales",
               "nationality": "german",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -7488,7 +7488,7 @@
               "name": "Laura Morgan",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 99,
@@ -7568,7 +7568,7 @@
               "name": "Kimberly Herrera",
               "nationality": "german",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 82,
               "attributes": {
                 "speed": 40,
@@ -7588,7 +7588,7 @@
               "name": "Maria Jones",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 91,
               "attributes": {
                 "speed": 59,
@@ -7936,7 +7936,7 @@
               "name": "Frances Nguyen",
               "nationality": "german",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 89,
               "attributes": {
                 "speed": 40,
@@ -7956,7 +7956,7 @@
               "name": "Faith Barnes",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 84,
               "attributes": {
                 "speed": 53,
@@ -7976,7 +7976,7 @@
               "name": "Madison Baker",
               "nationality": "german",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 99,
@@ -7996,7 +7996,7 @@
               "name": "Allison Davis",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 40,
@@ -8076,7 +8076,7 @@
               "name": "Theresa Hughes",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -8096,7 +8096,7 @@
               "name": "Sandra Snyder",
               "nationality": "german",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 90,
@@ -8451,7 +8451,7 @@
               "name": "Isabel Chavez",
               "nationality": "german",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 84,
@@ -8471,7 +8471,7 @@
               "name": "Belinda Price",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 56,
@@ -8491,7 +8491,7 @@
               "name": "Faith Snyder",
               "nationality": "german",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -8511,7 +8511,7 @@
               "name": "Allison Greene",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 46,
@@ -8591,7 +8591,7 @@
               "name": "Bianca Duncan",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 77,
@@ -8611,7 +8611,7 @@
               "name": "Leah Herrera",
               "nationality": "german",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 99,
@@ -8959,7 +8959,7 @@
               "name": "Grace West",
               "nationality": "german",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 87,
@@ -8979,7 +8979,7 @@
               "name": "Matilda Jones",
               "nationality": "german",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 55,
@@ -8999,7 +8999,7 @@
               "name": "Evelyn Flores",
               "nationality": "german",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 76,
@@ -9019,7 +9019,7 @@
               "name": "Jane Carroll",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -9099,7 +9099,7 @@
               "name": "Frances Rivera",
               "nationality": "german",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -9119,7 +9119,7 @@
               "name": "Mia Morris",
               "nationality": "german",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -9467,7 +9467,7 @@
               "name": "Faith Hayes",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 54,
@@ -9487,7 +9487,7 @@
               "name": "Elaine Collins",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 70,
@@ -9507,7 +9507,7 @@
               "name": "Michelle Medina",
               "nationality": "german",
               "age": 22,
-              "position": "CAM",
+              "position": "CM",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -9527,7 +9527,7 @@
               "name": "Jacqueline Lane",
               "nationality": "german",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 99,
@@ -9607,7 +9607,7 @@
               "name": "Fiona Hayes",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 59,
@@ -9627,7 +9627,7 @@
               "name": "Lucy Baker",
               "nationality": "german",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -9975,7 +9975,7 @@
               "name": "Eliza Coleman",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 40,
@@ -9995,7 +9995,7 @@
               "name": "Linda Rivera",
               "nationality": "german",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 99,
@@ -10015,7 +10015,7 @@
               "name": "Vanessa Jordan",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -10035,7 +10035,7 @@
               "name": "Victoria Hamilton",
               "nationality": "german",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -10115,7 +10115,7 @@
               "name": "Violet Medina",
               "nationality": "german",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 63,
@@ -10135,7 +10135,7 @@
               "name": "Amy Sanchez",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 47,
@@ -10483,7 +10483,7 @@
               "name": "Charlotte Johnston",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 99,
@@ -10503,7 +10503,7 @@
               "name": "Jennifer Hughes",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 85,
@@ -10523,7 +10523,7 @@
               "name": "Alicia Hamilton",
               "nationality": "german",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 83,
               "attributes": {
                 "speed": 40,
@@ -10543,7 +10543,7 @@
               "name": "Matilda Duncan",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 80,
@@ -10623,7 +10623,7 @@
               "name": "Abigail Carpenter",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 74,
               "attributes": {
                 "speed": 85,
@@ -10643,7 +10643,7 @@
               "name": "Frances Elliott",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 50,
@@ -10991,7 +10991,7 @@
               "name": "Sandra Reynolds",
               "nationality": "german",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -11011,7 +11011,7 @@
               "name": "Abigail Diaz",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 62,
@@ -11031,7 +11031,7 @@
               "name": "Emma Myers",
               "nationality": "german",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -11051,7 +11051,7 @@
               "name": "Alice Cunningham",
               "nationality": "german",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -11131,7 +11131,7 @@
               "name": "Grace Medina",
               "nationality": "german",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -11151,7 +11151,7 @@
               "name": "Lily Young",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 61,
@@ -11499,7 +11499,7 @@
               "name": "Margaret Morgan",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 62,
               "attributes": {
                 "speed": 55,
@@ -11519,7 +11519,7 @@
               "name": "Amy Roberts",
               "nationality": "german",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -11539,7 +11539,7 @@
               "name": "Linda Hughes",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 76,
@@ -11559,7 +11559,7 @@
               "name": "Hannah Lawrence",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 58,
@@ -11639,7 +11639,7 @@
               "name": "Georgia Ray",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 78,
               "attributes": {
                 "speed": 40,
@@ -11659,7 +11659,7 @@
               "name": "Patricia Wagner",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 42,
@@ -12007,7 +12007,7 @@
               "name": "Diana Medina",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -12027,7 +12027,7 @@
               "name": "Juliet Ortiz",
               "nationality": "german",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 82,
               "attributes": {
                 "speed": 76,
@@ -12047,7 +12047,7 @@
               "name": "Grace Harris",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 63,
@@ -12067,7 +12067,7 @@
               "name": "Lauren Gutierrez",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -12147,7 +12147,7 @@
               "name": "Abigail West",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 82,
@@ -12167,7 +12167,7 @@
               "name": "Mary Bradley",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 72,
               "attributes": {
                 "speed": 86,
@@ -12515,7 +12515,7 @@
               "name": "Violet Duncan",
               "nationality": "german",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 70,
@@ -12535,7 +12535,7 @@
               "name": "Grace Thompson",
               "nationality": "german",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -12555,7 +12555,7 @@
               "name": "Jennifer Hill",
               "nationality": "german",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -12575,7 +12575,7 @@
               "name": "Eliza King",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 63,
@@ -12655,7 +12655,7 @@
               "name": "Belinda Young",
               "nationality": "german",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 56,
@@ -12675,7 +12675,7 @@
               "name": "Linda Cooper",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 84,
               "attributes": {
                 "speed": 40,
@@ -13023,7 +13023,7 @@
               "name": "Louise White",
               "nationality": "german",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -13043,7 +13043,7 @@
               "name": "Megan James",
               "nationality": "german",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 99,
@@ -13063,7 +13063,7 @@
               "name": "Gabriella King",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -13083,7 +13083,7 @@
               "name": "Georgia Butler",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 99,
@@ -13163,7 +13163,7 @@
               "name": "Catherine Aguilar",
               "nationality": "german",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 91,
@@ -13183,7 +13183,7 @@
               "name": "Cynthia Bryant",
               "nationality": "german",
               "age": 22,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -13531,7 +13531,7 @@
               "name": "Brianna Richardson",
               "nationality": "german",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -13551,7 +13551,7 @@
               "name": "Violet Ray",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 58,
@@ -13571,7 +13571,7 @@
               "name": "Victoria Castillo",
               "nationality": "german",
               "age": 22,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 46,
@@ -13591,7 +13591,7 @@
               "name": "Fiona Gomez",
               "nationality": "german",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 87,
@@ -13671,7 +13671,7 @@
               "name": "Taylor Rogers",
               "nationality": "german",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -13691,7 +13691,7 @@
               "name": "Erica Fox",
               "nationality": "german",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 99,
@@ -14039,7 +14039,7 @@
               "name": "Joanna Sanchez",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 91,
@@ -14059,7 +14059,7 @@
               "name": "Savannah Wilson",
               "nationality": "german",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 99,
@@ -14079,7 +14079,7 @@
               "name": "Isabella Ellis",
               "nationality": "german",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 79,
@@ -14099,7 +14099,7 @@
               "name": "Julia Peterson",
               "nationality": "german",
               "age": 29,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 61,
@@ -14179,7 +14179,7 @@
               "name": "Theresa Rogers",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -14199,7 +14199,7 @@
               "name": "Louise Richardson",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 73,
               "attributes": {
                 "speed": 40,
@@ -14547,7 +14547,7 @@
               "name": "Edith Morales",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 78,
               "attributes": {
                 "speed": 56,
@@ -14567,7 +14567,7 @@
               "name": "Jane Torres",
               "nationality": "german",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 42,
@@ -14587,7 +14587,7 @@
               "name": "Valerie Davis",
               "nationality": "german",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -14607,7 +14607,7 @@
               "name": "Barbara Harris",
               "nationality": "german",
               "age": 19,
-              "position": "CAM",
+              "position": "CM",
               "potential": 77,
               "attributes": {
                 "speed": 68,
@@ -14687,7 +14687,7 @@
               "name": "Diana Hamilton",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 43,
@@ -14707,7 +14707,7 @@
               "name": "Whitney Lewis",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -15055,7 +15055,7 @@
               "name": "Leah Walker",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -15075,7 +15075,7 @@
               "name": "Clara Hayes",
               "nationality": "german",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 76,
@@ -15095,7 +15095,7 @@
               "name": "Matilda Gomez",
               "nationality": "german",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 84,
               "attributes": {
                 "speed": 40,
@@ -15115,7 +15115,7 @@
               "name": "Lola Richardson",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -15195,7 +15195,7 @@
               "name": "Vanessa Bradley",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 64,
               "attributes": {
                 "speed": 99,
@@ -15215,7 +15215,7 @@
               "name": "Betsy Olson",
               "nationality": "german",
               "age": 27,
-              "position": "CF",
+              "position": "ST",
               "potential": 80,
               "attributes": {
                 "speed": 40,
@@ -15563,7 +15563,7 @@
               "name": "Valerie James",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 99,
@@ -15583,7 +15583,7 @@
               "name": "Christina Smyth",
               "nationality": "german",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 58,
@@ -15603,7 +15603,7 @@
               "name": "Lillian Cruz",
               "nationality": "german",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -15623,7 +15623,7 @@
               "name": "Diana Long",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 88,
@@ -15703,7 +15703,7 @@
               "name": "Georgia Cook",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 62,
@@ -15723,7 +15723,7 @@
               "name": "Melissa Lewis",
               "nationality": "german",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 40,
@@ -16071,7 +16071,7 @@
               "name": "Megan Kelly",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 79,
               "attributes": {
                 "speed": 82,
@@ -16091,7 +16091,7 @@
               "name": "Amelia Mitchell",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 51,
@@ -16111,7 +16111,7 @@
               "name": "Marian King",
               "nationality": "german",
               "age": 20,
-              "position": "CAM",
+              "position": "CM",
               "potential": 81,
               "attributes": {
                 "speed": 40,
@@ -16131,7 +16131,7 @@
               "name": "Carla Wagner",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -16211,7 +16211,7 @@
               "name": "Violet Wood",
               "nationality": "german",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -16231,7 +16231,7 @@
               "name": "Bianca Duncan",
               "nationality": "german",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -16586,7 +16586,7 @@
               "name": "Virginia Clark",
               "nationality": "german",
               "age": 35,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -16606,7 +16606,7 @@
               "name": "Allison Wright",
               "nationality": "german",
               "age": 30,
-              "position": "CDM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -16626,7 +16626,7 @@
               "name": "Savannah Andrews",
               "nationality": "german",
               "age": 20,
-              "position": "CAM",
+              "position": "CM",
               "potential": 68,
               "attributes": {
                 "speed": 88,
@@ -16646,7 +16646,7 @@
               "name": "Jessica Carroll",
               "nationality": "german",
               "age": 34,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -16726,7 +16726,7 @@
               "name": "Amy Jenkins",
               "nationality": "german",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 79,
               "attributes": {
                 "speed": 40,
@@ -16746,7 +16746,7 @@
               "name": "Martha Peterson",
               "nationality": "german",
               "age": 30,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 49,
@@ -17094,7 +17094,7 @@
               "name": "Isabel Lawrence",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -17114,7 +17114,7 @@
               "name": "Helen Brown",
               "nationality": "german",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -17134,7 +17134,7 @@
               "name": "Sarah Chavez",
               "nationality": "german",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 41,
@@ -17154,7 +17154,7 @@
               "name": "Alice Weaver",
               "nationality": "german",
               "age": 30,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 57,
@@ -17234,7 +17234,7 @@
               "name": "Isabella Simmons",
               "nationality": "german",
               "age": 35,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 97,
@@ -17254,7 +17254,7 @@
               "name": "Madeline Duncan",
               "nationality": "german",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 60,
@@ -17602,7 +17602,7 @@
               "name": "Georgia Riley",
               "nationality": "german",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 42,
@@ -17622,7 +17622,7 @@
               "name": "Taylor Cook",
               "nationality": "german",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 40,
@@ -17642,7 +17642,7 @@
               "name": "Joanna Williams",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -17662,7 +17662,7 @@
               "name": "Samantha Simmons",
               "nationality": "german",
               "age": 23,
-              "position": "CAM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 43,
@@ -17742,7 +17742,7 @@
               "name": "Lily Powell",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -17762,7 +17762,7 @@
               "name": "Mary James",
               "nationality": "german",
               "age": 26,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -18110,7 +18110,7 @@
               "name": "Isabella Harper",
               "nationality": "german",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 53,
@@ -18130,7 +18130,7 @@
               "name": "Daisy Hayes",
               "nationality": "german",
               "age": 17,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 71,
@@ -18150,7 +18150,7 @@
               "name": "Lily Brown",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 60,
               "attributes": {
                 "speed": 40,
@@ -18170,7 +18170,7 @@
               "name": "Mary Sanders",
               "nationality": "german",
               "age": 18,
-              "position": "CAM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -18250,7 +18250,7 @@
               "name": "Ivy Morris",
               "nationality": "german",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 75,
               "attributes": {
                 "speed": 40,
@@ -18270,7 +18270,7 @@
               "name": "Madison Morris",
               "nationality": "german",
               "age": 18,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 65,
@@ -18618,7 +18618,7 @@
               "name": "Elizabeth Thompson",
               "nationality": "german",
               "age": 26,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -18638,7 +18638,7 @@
               "name": "Bianca Ellis",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 75,
               "attributes": {
                 "speed": 93,
@@ -18658,7 +18658,7 @@
               "name": "Eleanor Peters",
               "nationality": "german",
               "age": 31,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 40,
@@ -18678,7 +18678,7 @@
               "name": "Lucy Greene",
               "nationality": "german",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 94,
@@ -18758,7 +18758,7 @@
               "name": "Edith Edwards",
               "nationality": "german",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 40,
@@ -18778,7 +18778,7 @@
               "name": "Heather Riley",
               "nationality": "german",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 58,
@@ -19126,7 +19126,7 @@
               "name": "Abigail Jordan",
               "nationality": "german",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -19146,7 +19146,7 @@
               "name": "Audrey Gonzales",
               "nationality": "german",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 57,
@@ -19166,7 +19166,7 @@
               "name": "Amelia Aguilar",
               "nationality": "german",
               "age": 27,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -19186,7 +19186,7 @@
               "name": "Patricia Austin",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -19266,7 +19266,7 @@
               "name": "Jennifer Phillips",
               "nationality": "german",
               "age": 25,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -19286,7 +19286,7 @@
               "name": "Elizabeth Murray",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 78,
@@ -19634,7 +19634,7 @@
               "name": "Georgia Miller",
               "nationality": "german",
               "age": 34,
-              "position": "CDM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 80,
@@ -19654,7 +19654,7 @@
               "name": "Jennifer Coleman",
               "nationality": "german",
               "age": 25,
-              "position": "CDM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 66,
@@ -19674,7 +19674,7 @@
               "name": "Karen Greene",
               "nationality": "german",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 46,
@@ -19694,7 +19694,7 @@
               "name": "Gabriella Smith",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 42,
@@ -19774,7 +19774,7 @@
               "name": "Lucy Martin",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 69,
               "attributes": {
                 "speed": 72,
@@ -19794,7 +19794,7 @@
               "name": "Isabella Martin",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -20142,7 +20142,7 @@
               "name": "Clara Torres",
               "nationality": "german",
               "age": 32,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 52,
@@ -20162,7 +20162,7 @@
               "name": "Melissa Price",
               "nationality": "german",
               "age": 25,
-              "position": "CDM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 43,
@@ -20182,7 +20182,7 @@
               "name": "Bernice Powell",
               "nationality": "german",
               "age": 24,
-              "position": "CAM",
+              "position": "CM",
               "potential": 64,
               "attributes": {
                 "speed": 40,
@@ -20202,7 +20202,7 @@
               "name": "Megan Kim",
               "nationality": "german",
               "age": 26,
-              "position": "CAM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 82,
@@ -20282,7 +20282,7 @@
               "name": "Abby Kim",
               "nationality": "german",
               "age": 17,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -20302,7 +20302,7 @@
               "name": "Mary Green",
               "nationality": "german",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 60,
               "attributes": {
                 "speed": 99,
@@ -20650,7 +20650,7 @@
               "name": "Cynthia Cook",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 54,
@@ -20670,7 +20670,7 @@
               "name": "Isabel Bradley",
               "nationality": "german",
               "age": 24,
-              "position": "CDM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 40,
@@ -20690,7 +20690,7 @@
               "name": "Camille Peterson",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -20710,7 +20710,7 @@
               "name": "Hannah Medina",
               "nationality": "german",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 43,
@@ -20790,7 +20790,7 @@
               "name": "Heather Ramos",
               "nationality": "german",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 70,
               "attributes": {
                 "speed": 72,
@@ -20810,7 +20810,7 @@
               "name": "Marilyn Foster",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 57,
               "attributes": {
                 "speed": 51,
@@ -21158,7 +21158,7 @@
               "name": "Lauren Ross",
               "nationality": "german",
               "age": 20,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -21178,7 +21178,7 @@
               "name": "Diana Hamilton",
               "nationality": "german",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 70,
@@ -21198,7 +21198,7 @@
               "name": "Lauren Jones",
               "nationality": "german",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 45,
@@ -21218,7 +21218,7 @@
               "name": "Evelyn Miller",
               "nationality": "german",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 66,
               "attributes": {
                 "speed": 67,
@@ -21298,7 +21298,7 @@
               "name": "Ella Kim",
               "nationality": "german",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 81,
               "attributes": {
                 "speed": 40,
@@ -21318,7 +21318,7 @@
               "name": "Megan Castillo",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 60,
               "attributes": {
                 "speed": 40,
@@ -21666,7 +21666,7 @@
               "name": "Catherine Kim",
               "nationality": "german",
               "age": 18,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 40,
@@ -21686,7 +21686,7 @@
               "name": "Catherine King",
               "nationality": "german",
               "age": 33,
-              "position": "CDM",
+              "position": "CM",
               "potential": 58,
               "attributes": {
                 "speed": 40,
@@ -21706,7 +21706,7 @@
               "name": "Abigail Barnes",
               "nationality": "german",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -21726,7 +21726,7 @@
               "name": "Kimberly Moore",
               "nationality": "german",
               "age": 22,
-              "position": "CAM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 73,
@@ -21806,7 +21806,7 @@
               "name": "Hannah Ellis",
               "nationality": "german",
               "age": 24,
-              "position": "CF",
+              "position": "ST",
               "potential": 63,
               "attributes": {
                 "speed": 42,
@@ -21826,7 +21826,7 @@
               "name": "Edith Thompson",
               "nationality": "german",
               "age": 23,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -22174,7 +22174,7 @@
               "name": "Frances Cook",
               "nationality": "german",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -22194,7 +22194,7 @@
               "name": "Rose Nguyen",
               "nationality": "german",
               "age": 27,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 40,
@@ -22214,7 +22214,7 @@
               "name": "Gabriella Walker",
               "nationality": "german",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 43,
@@ -22234,7 +22234,7 @@
               "name": "Jane Elliott",
               "nationality": "german",
               "age": 32,
-              "position": "CAM",
+              "position": "CM",
               "potential": 61,
               "attributes": {
                 "speed": 64,
@@ -22314,7 +22314,7 @@
               "name": "Claire Johnson",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 77,
               "attributes": {
                 "speed": 86,
@@ -22334,7 +22334,7 @@
               "name": "Paula Sims",
               "nationality": "german",
               "age": 21,
-              "position": "CF",
+              "position": "ST",
               "potential": 71,
               "attributes": {
                 "speed": 40,
@@ -22682,7 +22682,7 @@
               "name": "Ada Gordon",
               "nationality": "german",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 49,
@@ -22702,7 +22702,7 @@
               "name": "Abby Ray",
               "nationality": "german",
               "age": 22,
-              "position": "CDM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -22722,7 +22722,7 @@
               "name": "Frances Snyder",
               "nationality": "german",
               "age": 17,
-              "position": "CAM",
+              "position": "CM",
               "potential": 67,
               "attributes": {
                 "speed": 40,
@@ -22742,7 +22742,7 @@
               "name": "Pamela Miller",
               "nationality": "german",
               "age": 33,
-              "position": "CAM",
+              "position": "CM",
               "potential": 72,
               "attributes": {
                 "speed": 58,
@@ -22822,7 +22822,7 @@
               "name": "Marilyn Herrera",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 77,
@@ -22842,7 +22842,7 @@
               "name": "Renee Reyes",
               "nationality": "german",
               "age": 20,
-              "position": "CF",
+              "position": "ST",
               "potential": 66,
               "attributes": {
                 "speed": 42,
@@ -23190,7 +23190,7 @@
               "name": "Kimberly Foster",
               "nationality": "german",
               "age": 31,
-              "position": "CDM",
+              "position": "CM",
               "potential": 63,
               "attributes": {
                 "speed": 45,
@@ -23210,7 +23210,7 @@
               "name": "Maria Turner",
               "nationality": "german",
               "age": 23,
-              "position": "CDM",
+              "position": "CM",
               "potential": 74,
               "attributes": {
                 "speed": 63,
@@ -23230,7 +23230,7 @@
               "name": "Catherine Aguilar",
               "nationality": "german",
               "age": 25,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -23250,7 +23250,7 @@
               "name": "Martha Smith",
               "nationality": "german",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 70,
               "attributes": {
                 "speed": 83,
@@ -23330,7 +23330,7 @@
               "name": "Wendy Alexander",
               "nationality": "german",
               "age": 29,
-              "position": "CF",
+              "position": "ST",
               "potential": 67,
               "attributes": {
                 "speed": 64,
@@ -23350,7 +23350,7 @@
               "name": "Frances Herrera",
               "nationality": "german",
               "age": 19,
-              "position": "CF",
+              "position": "ST",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -23698,7 +23698,7 @@
               "name": "Eleanor Patterson",
               "nationality": "german",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 88,
@@ -23718,7 +23718,7 @@
               "name": "Adeline James",
               "nationality": "german",
               "age": 19,
-              "position": "CDM",
+              "position": "CM",
               "potential": 71,
               "attributes": {
                 "speed": 82,
@@ -23738,7 +23738,7 @@
               "name": "Amelia Peterson",
               "nationality": "german",
               "age": 21,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 44,
@@ -23758,7 +23758,7 @@
               "name": "Joanna Hughes",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 59,
               "attributes": {
                 "speed": 60,
@@ -23838,7 +23838,7 @@
               "name": "Maria Murray",
               "nationality": "german",
               "age": 31,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 61,
@@ -23858,7 +23858,7 @@
               "name": "Annabelle Ortiz",
               "nationality": "german",
               "age": 28,
-              "position": "CF",
+              "position": "ST",
               "potential": 68,
               "attributes": {
                 "speed": 40,
@@ -24206,7 +24206,7 @@
               "name": "Edith Williams",
               "nationality": "german",
               "age": 28,
-              "position": "CDM",
+              "position": "CM",
               "potential": 73,
               "attributes": {
                 "speed": 40,
@@ -24226,7 +24226,7 @@
               "name": "Sylvia Ramos",
               "nationality": "german",
               "age": 21,
-              "position": "CDM",
+              "position": "CM",
               "potential": 76,
               "attributes": {
                 "speed": 40,
@@ -24246,7 +24246,7 @@
               "name": "Helen Sims",
               "nationality": "german",
               "age": 35,
-              "position": "CAM",
+              "position": "CM",
               "potential": 65,
               "attributes": {
                 "speed": 40,
@@ -24266,7 +24266,7 @@
               "name": "Michelle Wilson",
               "nationality": "german",
               "age": 28,
-              "position": "CAM",
+              "position": "CM",
               "potential": 69,
               "attributes": {
                 "speed": 79,
@@ -24346,7 +24346,7 @@
               "name": "Tiffany Ray",
               "nationality": "german",
               "age": 33,
-              "position": "CF",
+              "position": "ST",
               "potential": 62,
               "attributes": {
                 "speed": 40,
@@ -24366,7 +24366,7 @@
               "name": "Samantha Butler",
               "nationality": "german",
               "age": 34,
-              "position": "CF",
+              "position": "ST",
               "potential": 61,
               "attributes": {
                 "speed": 41,

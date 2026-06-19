@@ -23,13 +23,13 @@ describe('GameSession lifecycle:', () => {
   });
 
   it('generates the transfer market with positions from the injected rng', () => {
-    // Built-in playerFactory picks ALL_POSITIONS[floor(rng * 13)]; rng 0.99 → index 12 = 'CF'.
+    // Built-in playerFactory picks ALL_POSITIONS[floor(rng * 10)]; rng 0.99 → index 9 = 'ST'.
     const session = new GameSession(() => 0.99);
     const country = session.getEditableCountries()[0];
     session.startGame(country.divisions[0].teams[0].id, [country.id]);
     const listings = session.snapshot().transferListings;
     expect(listings.length).toBeGreaterThan(0);
-    expect(listings.every(l => l.player.position === 'CF')).toBe(true);
+    expect(listings.every(l => l.player.position === 'ST')).toBe(true);
   });
 
   it('given an unknown team then startGame fails and leaves the snapshot empty', () => {

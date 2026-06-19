@@ -18,7 +18,7 @@ const HOME_ADVANTAGE_CQ = 16;
 function withHomeAdvantage(p: MatchParameters): MatchParameters {
   return { ...p, chanceQuality: clampParam(p.chanceQuality + HOME_ADVANTAGE_CQ) };
 }
-import { selectStartingXI } from '../lineup/selection.ts';
+import { deriveFieldedPositions } from '../lineup/lineup.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
   ShortPassGenerator,
@@ -34,9 +34,6 @@ export interface MatchConfig {
   eventsPerMinute: number;
   homeTeam: Team;
   awayTeam: Team;
-  /** Players that cannot play (injured/suspended/etc.); excluded from XI selection. */
-  homeUnavailableIds?: ReadonlySet<string>;
-  awayUnavailableIds?: ReadonlySet<string>;
   /** When the scores are level after 90', play two 15-minute halves of extra time. */
   extraTimeIfDrawn?: boolean;
   /** Resolved tactical parameters. Override the values carried on the Team objects;
@@ -94,13 +91,9 @@ export class MatchSimulator {
     this.actionSelector.registerAction('shot', new ShotGenerator(this.rng));
   }
 
-  private selectXI(team: Team, unavailableIds?: ReadonlySet<string>) {
-    return selectStartingXI([...team.starters, ...team.substitutes], team.formation, { unavailableIds });
-  }
-
   private createInitialState(): MatchState {
-    const homePlayers = this.selectXI(this.config.homeTeam, this.config.homeUnavailableIds);
-    const awayPlayers = this.selectXI(this.config.awayTeam, this.config.awayUnavailableIds);
+    const homePlayers = this.config.homeTeam.starters;
+    const awayPlayers = this.config.awayTeam.starters;
     return {
       minute: 0,
       homeScore: 0,
@@ -113,6 +106,10 @@ export class MatchSimulator {
       currentPlayers: {
         home: homePlayers,
         away: awayPlayers,
+      },
+      fieldedPositions: {
+        home: deriveFieldedPositions(homePlayers, this.config.homeTeam.formation),
+        away: deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation),
       },
       params: {
         // Home advantage: a modest, realistic edge applied as a chance-quality bump on the

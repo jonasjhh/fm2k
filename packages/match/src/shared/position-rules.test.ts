@@ -20,7 +20,6 @@ describe('getPositionModifier:', () => {
     expect(getPositionModifier('CM', 'CAM')).toBe(0.90);
     expect(getPositionModifier('CM', 'CDM')).toBe(0.90);
     expect(getPositionModifier('LB', 'LM')).toBe(0.90);
-    expect(getPositionModifier('ST', 'CF')).toBe(0.90);
     expect(getPositionModifier('RW', 'ST')).toBe(0.90);
   });
 

@@ -153,6 +153,13 @@ function defTeamSide(state: MatchState): 'home' | 'away' {
   return state.possession === 'home' ? 'away' : 'home';
 }
 
+/** The position `player` (on `side`) is actually fielded at right now, falling back to
+ *  their card position only when no fieldedPositions map is present on the state (the
+ *  old unit-test default — never a real in-match path once selection feeds it in). */
+function fielded(state: MatchState, side: 'home' | 'away', player: Player): Position {
+  return state.fieldedPositions?.[side]?.[player.id] ?? player.position;
+}
+
 function avgAttrOf(players: Player[], key: keyof Player['attributes']): number {
   if (players.length === 0) { return 50; }
   return players.reduce((s, p) => s + p.attributes[key], 0) / players.length;
@@ -329,7 +336,7 @@ export class DribbleGenerator implements ActionGenerator {
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (a propensity, not the outcome — being tackled is resolved by
     // the contest). A better dribbler vs a weaker defence is more likely to try it on.
-    const diff = SkillCalculator.dribbling(player) - defLineStrength(state);
+    const diff = SkillCalculator.dribbling(player, fielded(state, state.possession, player)) - defLineStrength(state);
     const base = clamp(0.2, 0.85, 0.5 + diff / 300);
     return Math.min(base * this.getZoneModifier(state.ballPosition), 0.85);
   }
@@ -392,7 +399,7 @@ export class ShotGenerator implements ActionGenerator {
     // (tier-flat), but a defence that outclasses the attack denies clean looks, so
     // a poor attacker is shut down rather than merely missing the chances it gets.
     const zoneModifier = state.ballPosition.zone === 'away_box' ? 1.2 : 0.8;
-    const diff = SkillCalculator.finishing(player) - defLineStrength(state);
+    const diff = SkillCalculator.finishing(player, fielded(state, state.possession, player)) - defLineStrength(state);
     const take = clamp(0.12, 0.6, SHOT_TAKE_PARITY + diff / SHOT_TAKE_SPREAD);
     return Math.min(take * zoneModifier, 0.9);
   }
@@ -405,7 +412,7 @@ export class ShotGenerator implements ActionGenerator {
     // Conversion is the finisher vs the keeper, parity-centred (so even matches at
     // any tier convert similarly) then scaled by zone and the tactical chance
     // quality (attacker) vs defensive compactness (defender).
-    const conv = clamp(0.02, 0.6, CONV_PARITY + (SkillCalculator.finishing(player) - gkSkill) / CONV_SPREAD);
+    const conv = clamp(0.02, 0.6, CONV_PARITY + (SkillCalculator.finishing(player, fielded(state, state.possession, player)) - gkSkill) / CONV_SPREAD);
     const goalProb = Math.max(0.01, Math.min(0.6, conv * zoneMultiplier * momentumQuality(state)));
     const isGoal = this.rng() < goalProb;
 
@@ -473,9 +480,9 @@ function zoneIndex(zone: BallPosition['zone']): number { return ZONES.indexOf(zo
 function possPlayers(state: MatchState): Player[] { return state.currentPlayers[state.possession]; }
 
 /** Average aerial ability of a group (for header duels). */
-function avgHeadingOf(players: Player[]): number {
+function avgHeadingOf(state: MatchState, side: 'home' | 'away', players: Player[]): number {
   if (players.length === 0) { return 50; }
-  return players.reduce((s, p) => s + SkillCalculator.heading(p), 0) / players.length;
+  return players.reduce((s, p) => s + SkillCalculator.heading(p, fielded(state, side, p)), 0) / players.length;
 }
 
 /** State after a shot/header: ball back to the keeper's side, possession turned over. */
@@ -554,7 +561,7 @@ export class ThroughBallGenerator implements ActionGenerator {
 
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (propensity) — being intercepted is resolved by the contest.
-    const diff = SkillCalculator.throughBall(player) - defLineStrength(state);
+    const diff = SkillCalculator.throughBall(player, fielded(state, state.possession, player)) - defLineStrength(state);
     return clamp(0.18, 0.7, 0.45 + diff / 280);
   }
 
@@ -589,7 +596,7 @@ export class CrossGenerator implements ActionGenerator {
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (propensity) — a cleared cross is resolved by the contest
     // (which also handles the cross-cleared-behind-for-a-corner outcome).
-    const diff = SkillCalculator.crossing(player) - defLineStrength(state);
+    const diff = SkillCalculator.crossing(player, fielded(state, state.possession, player)) - defLineStrength(state);
     return clamp(0.2, 0.8, 0.5 + diff / 300);
   }
 
@@ -607,14 +614,14 @@ export class CrossGenerator implements ActionGenerator {
 /** A target attacker meets a cross/corner, contested by the defenders' aerial ability and the keeper. */
 function headerAttempt(state: MatchState, rng: () => number): MatchEvent {
   const boxState: MatchState = { ...state, ballPosition: { zone: 'away_box', side: 'center' } };
-  const targets = possPlayers(state).filter(p => ['ST', 'CF', 'CB'].includes(p.position));
+  const targets = possPlayers(state).filter(p => ['ST', 'CB'].includes(p.position));
   const target = pickRandom(targets.length ? targets : possPlayers(state).filter(p => p.position !== 'GK'), rng)
     ?? possPlayers(state)[0];
 
   const gk = getGK(state);
   const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
-  const defAerial = avgHeadingOf(getDefenders(state));
-  const attackerHead = SkillCalculator.heading(target);
+  const defAerial = avgHeadingOf(state, defTeamSide(state), getDefenders(state));
+  const attackerHead = SkillCalculator.heading(target, fielded(state, state.possession, target));
 
   // Win the aerial duel, then beat the keeper. Parity-centred on both contests.
   const conv = clamp(0.03, 0.5,
@@ -717,11 +724,11 @@ function buildSetPiece(state: MatchState, zone: BallPosition['zone'], rng: () =>
 }
 
 function penaltyEvent(state: MatchState, rng: () => number): MatchEvent {
-  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.penalties(p))
+  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.penalties(p, fielded(state, state.possession, p)))
     ?? possPlayers(state)[0];
   const gk = getGK(state);
   const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.55, 0.92, 0.78 + (SkillCalculator.penalties(taker) - gkSkill) / 400);
+  const conv = clamp(0.55, 0.92, 0.78 + (SkillCalculator.penalties(taker, fielded(state, state.possession, taker)) - gkSkill) / 400);
   const isGoal = rng() < conv;
   return {
     id: makeId(), type: 'penalty', minute: state.minute, team: state.possession, playerId: taker.id,
@@ -732,11 +739,11 @@ function penaltyEvent(state: MatchState, rng: () => number): MatchEvent {
 }
 
 function freeKickShot(state: MatchState, rng: () => number): MatchEvent {
-  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.longShot(p))
+  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.longShot(p, fielded(state, state.possession, p)))
     ?? possPlayers(state)[0];
   const gk = getGK(state);
   const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.02, 0.3, 0.06 + (SkillCalculator.longShot(taker) - gkSkill) / 500);
+  const conv = clamp(0.02, 0.3, 0.06 + (SkillCalculator.longShot(taker, fielded(state, state.possession, taker)) - gkSkill) / 500);
   const goalProb = clamp(0.01, 0.3, conv * momentumQuality(state));
   const isGoal = rng() < goalProb;
   return {
@@ -765,27 +772,29 @@ function cornerEvent(state: MatchState, rng: () => number): MatchEvent {
 // it is resolved by the keeper in ShotGenerator.
 
 /** The attacker's relevant skill for the action being contested. */
-function attackerSkillForAction(actionType: string, player: Player): number {
+function attackerSkillForAction(actionType: string, player: Player, state: MatchState): number {
+  const fp = fielded(state, state.possession, player);
   switch (actionType) {
-  case 'dribble':      return SkillCalculator.dribbling(player);
-  case 'through_ball': return SkillCalculator.throughBall(player);
-  case 'cross':        return SkillCalculator.crossing(player);
+  case 'dribble':      return SkillCalculator.dribbling(player, fp);
+  case 'through_ball': return SkillCalculator.throughBall(player, fp);
+  case 'cross':        return SkillCalculator.crossing(player, fp);
   case 'long_pass':    return player.attributes.passing * 0.7 + player.attributes.strength * 0.3;
   default:             return player.attributes.passing * 0.6 + player.attributes.technique * 0.4; // short_pass
   }
 }
 
 /** The defender's relevant skill: tackling against a carry, reading against a pass. */
-function defenderSkillForAction(actionType: string, defender: Player): number {
+function defenderSkillForAction(actionType: string, defender: Player, state: MatchState): number {
+  const fp = fielded(state, defTeamSide(state), defender);
   return actionType === 'dribble'
-    ? SkillCalculator.tackling(defender)
-    : SkillCalculator.interception(defender);
+    ? SkillCalculator.tackling(defender, fp)
+    : SkillCalculator.interception(defender, fp);
 }
 
 /** Chance the defender wins the ball (= the turnover chance) — parity-centred, press-scaled. */
 export function contestWinChance(actionType: string, attacker: Player, defender: Player, state: MatchState): number {
   const parity = CONTEST_PARITY[actionType] ?? CONTEST_PARITY.short_pass;
-  const diff = defenderSkillForAction(actionType, defender) - attackerSkillForAction(actionType, attacker);
+  const diff = defenderSkillForAction(actionType, defender, state) - attackerSkillForAction(actionType, attacker, state);
   const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
   const base = clamp(CONTEST_LO, CONTEST_HI, parity + diff / CONTEST_SPREAD);
   return Math.min(base * pressFactor, 0.9);

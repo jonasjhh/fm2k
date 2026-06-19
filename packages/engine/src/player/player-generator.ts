@@ -24,15 +24,12 @@ const POSITION_BOOSTS: Partial<Record<Position, Partial<Record<keyof PlayerAttri
   CB:  { defending: 18, strength: 10, awareness: 10 },
   LB:  { defending: 10, speed: 10, stamina: 10 },
   RB:  { defending: 10, speed: 10, stamina: 10 },
-  CDM: { defending: 14, passing: 10, awareness: 10 },
   CM:  { passing: 14, stamina: 14, technique: 10 },
-  CAM: { passing: 14, technique: 14, composure: 10 },
   LM:  { speed: 14, passing: 10, stamina: 14 },
   RM:  { speed: 14, passing: 10, stamina: 14 },
   LW:  { speed: 18, technique: 10, agility: 10 },
   RW:  { speed: 18, technique: 10, agility: 10 },
   ST:  { finishing: 18, speed: 10, composure: 10 },
-  CF:  { finishing: 14, technique: 14, composure: 10 },
 };
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
