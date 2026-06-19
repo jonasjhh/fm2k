@@ -56,6 +56,11 @@ export class Season {
     return perComp.flat();
   }
 
+  /** Like tickTo but discards event arrays — no allocation of result collections. */
+  async drainTo(target: GameDateTime): Promise<void> {
+    await Promise.all(this.comps.map(c => c.drainTo(target)));
+  }
+
   private minTime(pick: (c: CompetitionManager) => GameDateTime | null): GameDateTime | null {
     let min: GameDateTime | null = null;
     for (const c of this.comps) {

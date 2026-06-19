@@ -1,4 +1,4 @@
-import { getTeamOVR, sellPrice, playerValue, directTransferPrice } from './valuation.ts';
+import { getTeamOVR, playerValue, directTransferPrice } from './valuation.ts';
 import { calculateOverall } from '../transfer/transfer-manager.ts';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 
@@ -32,16 +32,6 @@ describe('getTeamOVR:', () => {
   });
 });
 
-describe('sellPrice:', () => {
-  it('given a worthless player then the price is floored at 1,000', () => {
-    expect(sellPrice(attrs(0))).toBe(1_000);
-  });
-
-  it('given a capable player then the price is overall * 5,000', () => {
-    const expected = Math.round(calculateOverall(attrs(80))) * 5_000;
-    expect(sellPrice(attrs(80))).toBe(expected);
-  });
-});
 
 function p(over: Partial<Player> = {}): Player {
   return { ...makePlayer('v', 70), ...over };

@@ -48,21 +48,23 @@ describe('calculateSectorChangeCost:', () => {
     expect(calculateSectorChangeCost('N', none(), none())).toBe(0);
   });
 
-  it('given a corner upgrade then it charges construction plus per-seat at the corner multiplier', () => {
-    // NE loc 0.8: build 25000*0.8 = 20000; +2040 seats * 80 * 0.8 = 130560 => 150560
-    expect(calculateSectorChangeCost('NE', none(36), open(36))).toBe(150560);
+  it('given a corner upgrade then it charges build cost plus per-seat at the corner multiplier', () => {
+    // NE loc 0.8: demolish(none)=0 + build(open)=2_000_000, total=2_000_000*0.8=1_600_000
+    //   + 2040 seats * 20 * 0.8 = 32_640 => 1_632_640
+    expect(calculateSectorChangeCost('NE', none(36), open(36))).toBe(1_632_640);
   });
 
-  it('given a downgrade then it charges a demolition fee plus per-seat removal', () => {
-    // NE loc 0.8: demolition 25000*0.15*0.8 = 3000; +2040 seats * 10 * 0.8 = 16320 => 19320
-    expect(calculateSectorChangeCost('NE', open(36), none(36))).toBe(19320);
+  it('given a downgrade to empty then it only charges demolition plus per-seat removal', () => {
+    // NE loc 0.8: demolish(open)=500_000 + build(none)=0, total=500_000*0.8=400_000
+    //   + 2040 seats * 5 * 0.8 = 8_160 => 408_160
+    expect(calculateSectorChangeCost('NE', open(36), none(36))).toBe(408_160);
   });
 
-  it('given an upgrade between two paid tiers then construction is the tier-price difference', () => {
-    // open-bleacher (25k) → double-tier (220k) at sector N (loc 1.8):
-    //   construction (220000 - 25000) * 1.8 = 351000
-    //   seats: 2040 → 4488 (Δ2448) * 80 * 1.8 = 352512  => 703512
-    expect(calculateSectorChangeCost('N', open(36), { type: 'double-tier', densityValue: 36 })).toBe(703512);
+  it('given a tier upgrade then it charges full demolition of old plus full build of new', () => {
+    // open-bleacher → double-tier at sector N (loc 1.8):
+    //   demolish(open)=500_000 + build(double)=15_000_000 = 15_500_000 * 1.8 = 27_900_000
+    //   seats: 2040 → 4488 (Δ2448) * 20 * 1.8 = 88_128 => 27_988_128
+    expect(calculateSectorChangeCost('N', open(36), { type: 'double-tier', densityValue: 36 })).toBe(27_988_128);
   });
 });
 

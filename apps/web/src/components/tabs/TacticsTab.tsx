@@ -1,21 +1,20 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import Slider from '@mui/material/Slider';
-import Tooltip from '@mui/material/Tooltip';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
 import { useGameStore } from '../../store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
-import type { ClubPlayer, Formation, TacticalStyleId, TacticalSliders } from '@fm2k/engine';
-import { sellPrice, STYLE_TENDENCIES, TACTICAL_STYLE_IDS } from '@fm2k/engine';
+import type { ClubPlayer, Formation } from '@fm2k/engine';
+import { playerValue } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
@@ -24,6 +23,25 @@ import { FormationGrid } from '../ui/FormationGrid';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
+
+// ─── sorting ──────────────────────────────────────────────────────────────────
+
+type SortCol = 'slot' | 'name' | 'position';
+type SortDir = 'asc' | 'desc';
+
+const POSITION_ORDER: Record<string, number> = {
+  GK: 0, LB: 1, CB: 2, RB: 3, CDM: 4, LM: 5, CM: 6, CAM: 7, RM: 8, LW: 9, RW: 10, ST: 11, CF: 12,
+};
+
+function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?: Map<string, number>): ClubPlayer[] {
+  return [...players].sort((a, b) => {
+    let cmp = 0;
+    if (col === 'slot') { cmp = (slotMap?.get(a.id) ?? Infinity) - (slotMap?.get(b.id) ?? Infinity); }
+    else if (col === 'name') { cmp = a.name.localeCompare(b.name); }
+    else if (col === 'position') { cmp = (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99); }
+    return dir === 'asc' ? cmp : -cmp;
+  });
+}
 
 // ─── formation selector data ──────────────────────────────────────────────────
 
@@ -55,7 +73,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 }
 
 function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
-  const value = sellPrice(player.attributes);
+  const value = playerValue(player);
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
       <Box sx={{ px: 2, py: 1.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.06) }}>
@@ -95,80 +113,12 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
   );
 }
 
-// ─── style + sliders selector ──────────────────────────────────────────────────
-
-const SLIDER_DEFS: { key: keyof TacticalSliders; label: string; left: string; right: string }[] = [
-  { key: 'tempo', label: 'Tempo', left: 'Slow', right: 'Frantic' },
-  { key: 'risk', label: 'Passing risk', left: 'Safe', right: 'Ambitious' },
-  { key: 'defensiveLine', label: 'Defensive line', left: 'Deep', right: 'High' },
-];
-
-function TacticsSection({
-  style, sliders, onStyle, onSliders,
-}: {
-  style: TacticalStyleId;
-  sliders: TacticalSliders;
-  onStyle: (s: TacticalStyleId) => void;
-  onSliders: (s: Partial<TacticalSliders>) => void;
-}) {
-  // Local copy so dragging is smooth; commit to the backend only on release.
-  const [local, setLocal] = useState(sliders);
-  useEffect(() => { setLocal(sliders); }, [sliders.tempo, sliders.risk, sliders.defensiveLine]);
-
-  return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5, mb: 2 }}>
-      <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', display: 'block', mb: 1 }}>
-        Style
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 2 }}>
-        {TACTICAL_STYLE_IDS.map((id) => {
-          const t = STYLE_TENDENCIES[id];
-          return (
-            <Tooltip key={id} title={`${t.blurb} — Weakness: ${t.weakness}`} arrow>
-              <Button
-                variant={style === id ? 'contained' : 'outlined'}
-                onClick={() => onStyle(id)}
-                sx={{ px: 1.5, py: 0.5, fontSize: 12, fontWeight: 700, textTransform: 'none' }}
-              >
-                {t.label}
-              </Button>
-            </Tooltip>
-          );
-        })}
-      </Box>
-
-      <Grid container spacing={2}>
-        {SLIDER_DEFS.map(({ key, label, left, right }) => (
-          <Grid size={{ xs: 12, sm: 4 }} key={key}>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>{label}</Typography>
-            <Slider
-              value={local[key]}
-              min={0}
-              max={100}
-              size="small"
-              valueLabelDisplay="auto"
-              onChange={(_, v) => setLocal((p) => ({ ...p, [key]: v as number }))}
-              onChangeCommitted={(_, v) => onSliders({ [key]: v as number })}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="caption" color="text.secondary">{left}</Typography>
-              <Typography variant="caption" color="text.secondary">{right}</Typography>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
-    </Paper>
-  );
-}
-
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation, setStyle, setSliders } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
-    setStyle: s.setStyle,
-    setSliders: s.setSliders,
   })));
 
   const {
@@ -180,6 +130,7 @@ export default function TacticsTab() {
   } = useLineupSlots();
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
   const teamColors = useClubColors();
 
@@ -190,10 +141,18 @@ export default function TacticsTab() {
     [clubState, selectedPlayerId],
   );
 
+  const sorted = useMemo(
+    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, playerSlotMap) : [],
+    [clubState, sort, playerSlotMap],
+  );
+
   if (!clubState) {return null;}
 
-
   const playerById = new Map(clubState.squad.map(p => [p.id, p]));
+
+  function handleSort(col: SortCol) {
+    setSort((s) => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
+  }
 
   return (
     <Box>
@@ -210,14 +169,6 @@ export default function TacticsTab() {
           </Button>
         ))}
       </Box>
-
-      {/* Style + sliders */}
-      <TacticsSection
-        style={clubState.tactics.style}
-        sliders={clubState.tactics.sliders}
-        onStyle={setStyle}
-        onSliders={setSliders}
-      />
 
       {/* Position pills */}
       <Box sx={{ display: 'flex', gap: 0.75, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
@@ -248,15 +199,19 @@ export default function TacticsTab() {
           <ScrollableTable>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell align="center">Pos</TableCell>
-                <TableCell align="center">Age</TableCell>
-                <TableCell align="center">Slot</TableCell>
-                <TableCell align="right">Value</TableCell>
+                <TableCell align="center" sortDirection={sort.col === 'slot' ? sort.dir : false}>
+                  <TableSortLabel active={sort.col === 'slot'} direction={sort.col === 'slot' ? sort.dir : 'asc'} onClick={() => handleSort('slot')}>Slot</TableSortLabel>
+                </TableCell>
+                <TableCell align="center" sortDirection={sort.col === 'position' ? sort.dir : false}>
+                  <TableSortLabel active={sort.col === 'position'} direction={sort.col === 'position' ? sort.dir : 'asc'} onClick={() => handleSort('position')}>Pos</TableSortLabel>
+                </TableCell>
+                <TableCell sortDirection={sort.col === 'name' ? sort.dir : false}>
+                  <TableSortLabel active={sort.col === 'name'} direction={sort.col === 'name' ? sort.dir : 'asc'} onClick={() => handleSort('name')}>Name</TableSortLabel>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {clubState.squad.map(p => {
+              {sorted.map(p => {
                 const slotIdx = playerSlotMap.get(p.id);
                 const slotPos = slotIdx !== undefined
                   ? (slotIdx < starterSlots.length ? starterSlots[slotIdx] : 'SUB')
@@ -284,17 +239,15 @@ export default function TacticsTab() {
                       outlineColor: isDropTarget ? 'success.main' : undefined,
                     }}
                   >
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell align="center">
-                      <Chip label={p.position} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell align="center">{p.age}</TableCell>
                     <TableCell align="center">
                       {slotPos
                         ? <Chip label={slotPos} size="small" color="primary" />
                         : <Typography variant="caption" color="text.disabled">—</Typography>}
                     </TableCell>
-                    <TableCell align="right">£{fmt(sellPrice(p.attributes))}</TableCell>
+                    <TableCell align="center">
+                      <Chip label={p.position} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>{p.name}</TableCell>
                   </TableRow>
                 );
               })}

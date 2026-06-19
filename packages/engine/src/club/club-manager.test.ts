@@ -394,24 +394,35 @@ describe('ClubManager:', () => {
   describe('calculateHomeReceipt:', () => {
     test('returns a positive number', () => {
       const manager = new ClubManager(makeConfig());
-      const standing = { teamId: 't1', teamName: 'T', played: 10, won: 6, drawn: 2, lost: 2, goalsFor: 20, goalsAgainst: 10, goalDifference: 10, points: 20 };
-      expect(manager.calculateHomeReceipt(standing)).toBeGreaterThan(0);
+      expect(manager.calculateHomeReceipt(undefined, { ownPosition: 5, opponentPosition: 5, leagueSize: 16 })).toBeGreaterThan(0);
     });
 
-    test('does not exceed stadium capacity * ticket price', () => {
+    test('never exceeds stadium capacity * ticket price', () => {
       const manager = new ClubManager(makeConfig());
-      const standing = { teamId: 't1', teamName: 'T', played: 10, won: 10, drawn: 0, lost: 0, goalsFor: 30, goalsAgainst: 0, goalDifference: 30, points: 30 };
-      expect(manager.calculateHomeReceipt(standing)).toBeLessThanOrEqual(10_000 * 20);
+      // Top vs top (pos 1 in 16) should be near the cap but not over
+      expect(manager.calculateHomeReceipt(undefined, { ownPosition: 1, opponentPosition: 1, leagueSize: 16 })).toBeLessThanOrEqual(10_000 * 20);
     });
 
-    test('high-win-rate opponent yields higher receipt than low-win-rate', () => {
-      const manager = new ClubManager(makeConfig());
-      const strongOpponent = { teamId: 't1', teamName: 'T', played: 10, won: 9, drawn: 0, lost: 1, goalsFor: 25, goalsAgainst: 5, goalDifference: 20, points: 27 };
-      const weakOpponent = { teamId: 't2', teamName: 'T', played: 10, won: 1, drawn: 0, lost: 9, goalsFor: 5, goalsAgainst: 25, goalDifference: -20, points: 3 };
-      expect(manager.calculateHomeReceipt(strongOpponent)).toBeGreaterThan(manager.calculateHomeReceipt(weakOpponent));
+    test('top-vs-top approaches 95% fill', () => {
+      const manager = new ClubManager(makeConfig({ stadiumCapacity: 10_000 }));
+      // fillRate = min(0.95, 0.4 + 0.4*1 + 0.2*1) = 0.95 => 9500 * 20 = 190_000
+      expect(manager.calculateHomeReceipt(undefined, { ownPosition: 1, opponentPosition: 1, leagueSize: 16 })).toBe(190_000);
     });
 
-    test('opponent with no games played yields a mid-range receipt', () => {
+    test('bottom-vs-bottom stays near 40% fill', () => {
+      const manager = new ClubManager(makeConfig({ stadiumCapacity: 10_000 }));
+      // fillRate = 0.4 + 0 + 0 = 0.4 => 4000 * 20 = 80_000
+      expect(manager.calculateHomeReceipt(undefined, { ownPosition: 16, opponentPosition: 16, leagueSize: 16 })).toBe(80_000);
+    });
+
+    test('top opponent yields higher receipt than bottom opponent', () => {
+      const manager = new ClubManager(makeConfig({ stadiumCapacity: 10_000 }));
+      const topOpponent    = manager.calculateHomeReceipt(undefined, { ownPosition: 8, opponentPosition: 1,  leagueSize: 16 });
+      const bottomOpponent = manager.calculateHomeReceipt(undefined, { ownPosition: 8, opponentPosition: 16, leagueSize: 16 });
+      expect(topOpponent).toBeGreaterThan(bottomOpponent);
+    });
+
+    test('falls back to win-rate when no positions provided', () => {
       const manager = new ClubManager(makeConfig());
       const noGames = { teamId: 't1', teamName: 'T', played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 };
       const receipt = manager.calculateHomeReceipt(noGames);
@@ -709,10 +720,10 @@ describe('ClubManager (mutation top-up):', () => {
   });
 
   describe('calculateHomeReceipt', () => {
-    test('with no opponent uses a 50% baseline: capacity * 0.6 * ticket price', () => {
+    test('with no opponent and no positions uses 50% fallback for both factors', () => {
       const manager = new ClubManager(makeConfig({ stadiumCapacity: 10_000 }));
-      // attendance floor(10000 * (0.4 + 0.4*0.5)) = 6000; receipt 6000 * 20
-      expect(manager.calculateHomeReceipt()).toBe(120_000);
+      // fillRate = min(0.95, 0.4 + 0.4*0.5 + 0.2*0.5) = 0.70 => 7000 * 20 = 140_000
+      expect(manager.calculateHomeReceipt()).toBe(140_000);
     });
   });
 

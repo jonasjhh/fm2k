@@ -14,6 +14,10 @@ export type GameEvents = {
     // League matches carry both standings; knockout matches omit them.
     homeStanding?: LeagueStanding
     awayStanding?: LeagueStanding
+    // 1-based table position and league size at time of match (league fixtures only).
+    homePosition?: number
+    awayPosition?: number
+    leagueSize?: number
     // Competition context + knockout outcome details.
     competitionId?: string
     roundLabel?: string

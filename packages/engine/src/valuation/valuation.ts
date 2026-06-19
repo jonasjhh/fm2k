@@ -4,10 +4,6 @@ import type { Player } from '@fm2k/match';
 // getTeamOVR now lives in @fm2k/match; re-exported here for back-compat.
 export { getTeamOVR };
 
-export function sellPrice(attrs: Parameters<typeof calculateOverall>[0]): number {
-  return Math.max(1_000, Math.round(calculateOverall(attrs)) * 5_000);
-}
-
 // ── market value ────────────────────────────────────────────────────────────────
 // A player's transfer value rises steeply with skill, peaks in the mid-20s, fades with age, and
 // carries a premium for young players with unrealised potential.

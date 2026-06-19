@@ -17,7 +17,7 @@ import Button from '@mui/material/Button';
 import { useGameStore } from '../../store/game-store';
 import type { ClubPlayer, RegimentId } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { sellPrice, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT } from '@fm2k/engine';
+import { playerValue, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT } from '@fm2k/engine';
 import { StatsCard } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
@@ -26,7 +26,7 @@ import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
 
-type SortCol = 'name' | 'position' | 'age' | 'value' | 'status';
+type SortCol = 'slot' | 'name' | 'position' | 'age' | 'value' | 'status';
 type SortDir = 'asc' | 'desc';
 
 const POSITION_ORDER: Record<string, number> = {
@@ -39,13 +39,14 @@ function statusRank(p: ClubPlayer): number {
   return 2;
 }
 
-function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir): ClubPlayer[] {
+function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?: Map<string, number>): ClubPlayer[] {
   return [...players].sort((a, b) => {
     let cmp = 0;
-    if (col === 'name') {cmp = a.name.localeCompare(b.name);}
+    if (col === 'slot') {cmp = (slotMap?.get(a.id) ?? Infinity) - (slotMap?.get(b.id) ?? Infinity);}
+    else if (col === 'name') {cmp = a.name.localeCompare(b.name);}
     else if (col === 'position') {cmp = (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99);}
     else if (col === 'age') {cmp = a.age - b.age;}
-    else if (col === 'value') {cmp = sellPrice(a.attributes) - sellPrice(b.attributes);}
+    else if (col === 'value') {cmp = playerValue(a) - playerValue(b);}
     else if (col === 'status') {cmp = statusRank(a) - statusRank(b);}
     return dir === 'asc' ? cmp : -cmp;
   });
@@ -103,7 +104,7 @@ function AttrBar({ label, value }: { label: string; value: number }) {
 // ─── detail panel ─────────────────────────────────────────────────────────────
 
 function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
-  const value = sellPrice(player.attributes);
+  const value = playerValue(player);
   const setTraining = useGameStore((s) => s.setTraining);
   const sellPlayer = useGameStore((s) => s.sellPlayer);
   const windowOpen = useGameStore((s) => s.transferWindow.open);
@@ -197,7 +198,7 @@ function PlayerDetailPanel({ player }: { player: ClubPlayer }) {
 export default function SquadTab() {
   const clubState = useGameStore((s) => s.clubState);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'position', dir: 'asc' });
+  const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
   const {
     starterSlots, allSlots, slotAssignments,
@@ -208,13 +209,13 @@ export default function SquadTab() {
   } = useLineupSlots();
 
   const sorted = useMemo(
-    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir) : [],
-    [clubState, sort],
+    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, playerSlotMap) : [],
+    [clubState, sort, playerSlotMap],
   );
 
   if (!clubState) {return null;}
 
-  const totalValue = clubState.squad.reduce((s, p) => s + sellPrice(p.attributes), 0);
+  const totalValue = clubState.squad.reduce((s, p) => s + playerValue(p), 0);
   const selectedPlayer = clubState.squad.find((p) => p.id === selectedId) ?? null;
   const playerById = new Map(clubState.squad.map(p => [p.id, p]));
 
@@ -262,6 +263,16 @@ export default function SquadTab() {
           <ScrollableTable>
             <TableHead>
               <TableRow>
+                <TableCell align="center" sortDirection={sort.col === 'slot' ? sort.dir : false}>
+                  <TableSortLabel active={sort.col === 'slot'} direction={sort.col === 'slot' ? sort.dir : 'asc'} onClick={() => handleSort('slot')}>
+                    Slot
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="center" sortDirection={sort.col === 'position' ? sort.dir : false}>
+                  <TableSortLabel active={sort.col === 'position'} direction={sort.col === 'position' ? sort.dir : 'asc'} onClick={() => handleSort('position')}>
+                    Pos
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell sortDirection={sort.col === 'name' ? sort.dir : false}>
                   <TableSortLabel active={sort.col === 'name'} direction={sort.col === 'name' ? sort.dir : 'asc'} onClick={() => handleSort('name')}>
                     Name
@@ -272,12 +283,6 @@ export default function SquadTab() {
                     Age
                   </TableSortLabel>
                 </TableCell>
-                <TableCell align="center" sortDirection={sort.col === 'position' ? sort.dir : false}>
-                  <TableSortLabel active={sort.col === 'position'} direction={sort.col === 'position' ? sort.dir : 'asc'} onClick={() => handleSort('position')}>
-                    Pos
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="center">Slot</TableCell>
                 <TableCell align="right" sortDirection={sort.col === 'value' ? sort.dir : false}>
                   <TableSortLabel active={sort.col === 'value'} direction={sort.col === 'value' ? sort.dir : 'asc'} onClick={() => handleSort('value')}>
                     Value
@@ -319,17 +324,17 @@ export default function SquadTab() {
                       outlineColor: isDropTarget ? 'success.main' : undefined,
                     }}
                   >
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell align="center">{p.age}</TableCell>
-                    <TableCell align="center">
-                      <Chip label={p.position} size="small" variant="outlined" />
-                    </TableCell>
                     <TableCell align="center">
                       {slotPos
                         ? <Chip label={slotPos} size="small" color="primary" />
                         : <Typography variant="caption" color="text.disabled">—</Typography>}
                     </TableCell>
-                    <TableCell align="right">£{fmt(sellPrice(p.attributes))}</TableCell>
+                    <TableCell align="center">
+                      <Chip label={p.position} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>{p.name}</TableCell>
+                    <TableCell align="center">{p.age}</TableCell>
+                    <TableCell align="right">£{fmt(playerValue(p))}</TableCell>
                     <TableCell><PlayerStatusChip player={p} /></TableCell>
                   </TableRow>
                 );

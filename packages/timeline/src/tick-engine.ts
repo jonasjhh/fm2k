@@ -150,6 +150,23 @@ export class TickEngine {
     return results;
   }
 
+  /** Like tickTo but discards tick results — no event arrays allocated. Use when events are
+   *  handled via the onEvents callback and the return value is not needed. */
+  async drainTo(target: GameDateTime): Promise<void> {
+    while (isBefore(this.currentTime, target)) {
+      if (!this.hasNext()) {
+        this.currentTime = target;
+        break;
+      }
+      const next = this.peekNextTickTime()!;
+      if (isAfter(next, target)) {
+        this.currentTime = target;
+        break;
+      }
+      await this.tickToNext();
+    }
+  }
+
   async tickBy(amount: number, unit: TickResolution): Promise<TickResult[]> {
     if (unit === 'minute') {return this.tickTo(addMinutes(this.currentTime, amount));}
     if (unit === 'hour') {return this.tickTo(addHours(this.currentTime, amount));}

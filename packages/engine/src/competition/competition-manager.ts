@@ -144,6 +144,12 @@ export class CompetitionManager {
   }
 
   /** Advance until the next round (matchday / cup round) fully completes. */
+  /** Like tickTo but discards event arrays. Use from simulateToEnd where events are
+   *  handled via the bus callback and the return value is never read. */
+  async drainTo(target: GameDateTime): Promise<void> {
+    await this.engine.drainTo(target);
+  }
+
   async simulateNextRound(): Promise<void> {
     const before = this.completedRounds();
     while (this.engine.hasNext()) {
@@ -217,6 +223,9 @@ export class CompetitionManager {
           winnerTeamId: p.winnerTeamId,
           homeStanding: state.standings.find(s => s.teamId === p.homeTeamId),
           awayStanding: state.standings.find(s => s.teamId === p.awayTeamId),
+          homePosition: state.standings.findIndex(s => s.teamId === p.homeTeamId) >= 0 ? state.standings.findIndex(s => s.teamId === p.homeTeamId) + 1 : undefined,
+          awayPosition: state.standings.findIndex(s => s.teamId === p.awayTeamId) >= 0 ? state.standings.findIndex(s => s.teamId === p.awayTeamId) + 1 : undefined,
+          leagueSize: state.standings.length > 0 ? state.standings.length : undefined,
         });
       }
     }

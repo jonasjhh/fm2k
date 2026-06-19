@@ -13,6 +13,7 @@ import {
 import type { Player, Formation } from '@fm2k/engine';
 import { FormationGrid } from '../ui/FormationGrid';
 import MatchSimPanel from '../MatchSimPanel';
+import TacticsSection from '../ui/TacticsSection';
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   const color = result === 'W' ? 'success' : result === 'D' ? 'warning' : 'error';
@@ -20,7 +21,7 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 }
 
 export default function MatchTab() {
-  const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture } =
+  const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture, focusLive, isStreaming, setStyle, setSliders } =
     useGameStore(useShallow((s) => ({
       leagueState: s.leagueState,
       cupStates: s.cupStates,
@@ -29,6 +30,10 @@ export default function MatchTab() {
       editableCountries: s.editableCountries,
       seasonComplete: s.seasonComplete,
       focusFixture: s.focusFixture,
+      focusLive: s.focusLive,
+      isStreaming: s.isStreaming,
+      setStyle: s.setStyle,
+      setSliders: s.setSliders,
     })));
 
   if (!leagueState) {return null;}
@@ -49,8 +54,12 @@ export default function MatchTab() {
   const isHome = fixture.homeTeamId === playerTeamId;
   const competitionLabel = isCup ? `National Cup — ${fixture.roundLabel}` : leagueState.name;
 
+  const formFixtures = (focusLive || isStreaming)
+    ? leagueState.fixtures.filter(f => f.id !== fixture?.id)
+    : leagueState.fixtures;
+
   const formBadges = (teamId: string) =>
-    recentForm(leagueState.fixtures, teamId).map((r, i) => (
+    recentForm(formFixtures, teamId).map((r, i) => (
       <FormBadge key={`${teamId}-${i}`} result={r} />
     ));
 
@@ -137,6 +146,18 @@ export default function MatchTab() {
         {renderTeam(fixture.homeTeamId, !isCup)}
         {renderTeam(fixture.awayTeamId, !isCup)}
       </Grid>
+
+      {clubState && (
+        <Box sx={{ mt: 2 }}>
+          <TacticsSection
+            style={clubState.tactics.style}
+            sliders={clubState.tactics.sliders}
+            onStyle={setStyle}
+            onSliders={setSliders}
+            disabled={isStreaming || !!focusLive}
+          />
+        </Box>
+      )}
 
       <MatchSimPanel />
     </Box>

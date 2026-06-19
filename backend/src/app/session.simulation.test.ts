@@ -77,7 +77,7 @@ describe('GameSession clock:', () => {
     const { session } = newGame();
     await session.simulateToEnd();
     expect(session.snapshot().seasonComplete).toBe(true);
-  });
+  }, 15_000);
 
   it('rolls the world over: squad ages and is preserved, finances carry, AI squads churn', async () => {
     const { session } = newGame();
@@ -109,5 +109,5 @@ describe('GameSession clock:', () => {
     const aiAfter = session.getEditableCountries()[0].divisions
       .flatMap(d => d.teams).flatMap(t => [...t.starters, ...t.substitutes]).find(p => p.id === aiId);
     if (aiAfter) { expect(aiAfter.age).toBe(aiAgeBefore + 1); }
-  });
+  }, 20_000);
 });

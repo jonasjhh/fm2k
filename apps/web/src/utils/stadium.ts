@@ -4,7 +4,7 @@
 import type { SectorKey } from '@fm2k/engine';
 
 export {
-  SECTOR_KEYS, STAND_TYPES, STAND_CONSTRUCTION_COSTS, LOCATION_MULT,
+  SECTOR_KEYS, STAND_TYPES, STAND_BUILD_COSTS, STAND_DEMOLITION_COSTS, LOCATION_MULT,
   COST_PER_SEAT_ADDED, COST_PER_SEAT_REMOVED, DEFAULT_STADIUM_SECTORS,
   getSectorCapacity, calculateTotalCapacity, calculateSectorChangeCost,
   calculateTotalChangeCost, hasSectorChanged,

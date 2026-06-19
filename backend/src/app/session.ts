@@ -1,7 +1,7 @@
 import {
   CompetitionManager, LeagueFormat, KnockoutFormat, Season,
   ClubManager, TransferManager, PlayerGenerator, EventBus,
-  DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, sellPrice, v4 as uuidv4,
+  DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, directTransferPrice, playerValue, transferWindow, runAiMarket,
@@ -608,7 +608,19 @@ export class GameSession {
     if (!isBefore(this.now, target)) { return []; }
     const perSeason = await Promise.all(Object.values(this.seasons).map(s => s.tickTo(target)));
     this.now = target;
+    this.applyClockSideEffects();
+    return perSeason.flat() as OccurrenceEvent[];
+  }
 
+  /** Like advanceClockTo but discards event arrays (simulateToEnd path). */
+  private async drainClockTo(target: GameDateTime): Promise<void> {
+    if (!isBefore(this.now, target)) { return; }
+    await Promise.all(Object.values(this.seasons).map(s => s.drainTo(target)));
+    this.now = target;
+    this.applyClockSideEffects();
+  }
+
+  private applyClockSideEffects(): void {
     const newMatchday = this.leagueManager?.completedRounds() ?? this.currentMatchday;
     if (newMatchday > this.currentMatchday) {
       this.clubManager?.handleMatchdayComplete();
@@ -632,7 +644,6 @@ export class GameSession {
     } else {
       this.seasonComplete = false;
     }
-    return perSeason.flat() as OccurrenceEvent[];
   }
 
   /**
@@ -797,7 +808,7 @@ export class GameSession {
     let guard = 0;
     let nk = this.nextKickoff();
     while (nk && guard++ < 10_000) {
-      await this.advanceClockTo(addMinutes(nk, MATCH_MAX_MINUTES));
+      await this.drainClockTo(addMinutes(nk, MATCH_MAX_MINUTES));
       nk = this.nextKickoff();
     }
     this.focusFixtureId = null;
@@ -899,7 +910,7 @@ export class GameSession {
     if (!this.clubManager || !this.getTransferWindow().open) { return false; }
     const player = this.clubManager.getState().squad.find(p => p.id === playerId);
     if (!player) { return false; }
-    const sold = this.clubManager.sellPlayer(playerId, sellPrice(player.attributes));
+    const sold = this.clubManager.sellPlayer(playerId, playerValue(player));
     if (!sold) { return false; }
     // The sold player joins the shared pool rather than vanishing — listed again on the next refresh.
     this.transferManager?.addFreeAgents([sold]);

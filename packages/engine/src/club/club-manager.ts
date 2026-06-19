@@ -264,14 +264,30 @@ export class ClubManager {
     return true;
   }
 
-  // Attendance scales with opponent win rate; returns gate receipt amount
-  calculateHomeReceipt(opponentStanding?: LeagueStanding): number {
+  // Attendance scales with both teams' league positions; returns gate receipt amount.
+  calculateHomeReceipt(
+    opponentStanding?: LeagueStanding,
+    positions?: { ownPosition?: number; opponentPosition?: number; leagueSize?: number },
+  ): number {
     const { stadiumCapacity } = this.stateManager.getState();
-    const winRate = opponentStanding && opponentStanding.played > 0
-      ? opponentStanding.won / opponentStanding.played
+    const n = positions?.leagueSize ?? 16;
+    const norm = Math.max(1, n - 1);
+
+    let opponentFactor: number;
+    if (positions?.opponentPosition !== undefined) {
+      opponentFactor = (n - positions.opponentPosition) / norm;
+    } else if (opponentStanding && opponentStanding.played > 0) {
+      opponentFactor = opponentStanding.won / opponentStanding.played;
+    } else {
+      opponentFactor = 0.5;
+    }
+
+    const ownFactor = positions?.ownPosition !== undefined
+      ? (n - positions.ownPosition) / norm
       : 0.5;
-    const attendance = Math.floor(stadiumCapacity * (0.4 + 0.4 * winRate));
-    return Math.min(attendance, stadiumCapacity) * TICKET_PRICE;
+
+    const fillRate = Math.min(0.95, 0.4 + 0.4 * opponentFactor + 0.2 * ownFactor);
+    return Math.floor(stadiumCapacity * fillRate) * TICKET_PRICE;
   }
 
   recordGateReceipt(amount: number, opponent: string, timestamp: GameDateTime): void {
@@ -343,7 +359,11 @@ export class ClubManager {
     }
 
     if (payload.homeTeamId === clubId) {
-      const receipt = this.calculateHomeReceipt(payload.awayStanding);
+      const receipt = this.calculateHomeReceipt(payload.awayStanding, {
+        ownPosition: payload.homePosition,
+        opponentPosition: payload.awayPosition,
+        leagueSize: payload.leagueSize,
+      });
       this.recordGateReceipt(receipt, payload.awayTeamName ?? payload.awayTeamId, payload.timestamp);
       this.eventBus?.emit('gate.receipt', { amount: receipt, opponentId: payload.awayTeamId, timestamp: payload.timestamp });
     }

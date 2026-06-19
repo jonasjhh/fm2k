@@ -14,15 +14,27 @@ export const STAND_TYPES: Record<string, { name: string; capacityMultiplier: num
   'triple-tier':      { name: '3-Tier Colosseum Grandstand',        capacityMultiplier: 3.5 },
 };
 
-// Construction cost per stand type — grows exponentially with tier
-export const STAND_CONSTRUCTION_COSTS: Record<string, number> = {
-  none:               0,
-  'open-bleacher':    25_000,
-  'covered-grandstand': 70_000,
-  kop:                55_000,
-  'double-tier':      220_000,
-  'executive-suite':  650_000,
-  'triple-tier':      1_400_000,
+// Build cost to erect a stand from scratch (per base sector, × location multiplier).
+// Calibrated so all 8 sectors at triple-tier ≈ £1.84B total.
+export const STAND_BUILD_COSTS: Record<string, number> = {
+  none:                 0,
+  'open-bleacher':      2_000_000,
+  'covered-grandstand': 5_000_000,
+  kop:                  3_500_000,
+  'double-tier':        15_000_000,
+  'executive-suite':    45_000_000,
+  'triple-tier':        200_000_000,
+};
+
+// Cost to demolish an existing stand (≈25–30% of build cost).
+export const STAND_DEMOLITION_COSTS: Record<string, number> = {
+  none:                 0,
+  'open-bleacher':      500_000,
+  'covered-grandstand': 1_500_000,
+  kop:                  1_000_000,
+  'double-tier':        4_500_000,
+  'executive-suite':    14_000_000,
+  'triple-tier':        60_000_000,
 };
 
 // Location multiplier: corners cheapest → short sides → long sides most expensive
@@ -32,9 +44,9 @@ export const LOCATION_MULT: Record<SectorKey, number> = {
   N: 1.8,  S: 1.8,
 };
 
-// Cost per seat added/removed (seating density changes)
-export const COST_PER_SEAT_ADDED   = 80;
-export const COST_PER_SEAT_REMOVED = 10; // demolition is cheaper than building
+// Per-seat costs for density adjustments — kept small so stand structure dominates.
+export const COST_PER_SEAT_ADDED   = 20;
+export const COST_PER_SEAT_REMOVED = 5;
 
 // Initial stadium: 4 open side stands, no corners — produces ~8k seats
 export const DEFAULT_STADIUM_SECTORS: Record<string, StadiumSectorConfig> = {
@@ -60,10 +72,10 @@ export function calculateTotalCapacity(sectors: Record<string, StadiumSectorConf
 
 /**
  * Cost to go from sector state `from` to `to`.
- * Two components:
- *   1. Construction: upgrading a stand tier costs the tier-price difference;
- *      downgrading costs a demolition fee (15% of old stand cost).
- *   2. Seating density: each seat added/removed has a per-seat cost.
+ * Two independent components:
+ *   1. Structure: demolish the old stand + build the new one (both × location multiplier).
+ *      Going to/from 'none' naturally costs £0 for that half.
+ *   2. Seating density: each seat added/removed has a small per-seat cost (× location multiplier).
  */
 export function calculateSectorChangeCost(
   key: SectorKey,
@@ -74,14 +86,9 @@ export function calculateSectorChangeCost(
   let cost = 0;
 
   if (from.type !== to.type) {
-    const fromCost = STAND_CONSTRUCTION_COSTS[from.type] ?? 0;
-    const toCost   = STAND_CONSTRUCTION_COSTS[to.type]   ?? 0;
-    if (toCost >= fromCost) {
-      cost += (toCost - fromCost) * loc;
-    } else {
-      // Demolition / downgrade fee
-      cost += fromCost * 0.15 * loc;
-    }
+    const demolish = STAND_DEMOLITION_COSTS[from.type] ?? 0;
+    const build    = STAND_BUILD_COSTS[to.type]        ?? 0;
+    cost += (demolish + build) * loc;
   }
 
   const fromCap = getSectorCapacity(key, from);

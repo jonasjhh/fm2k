@@ -81,7 +81,7 @@ export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
-export { sellPrice, getTeamOVR, playerValue, directTransferPrice } from './valuation/valuation.ts';
+export { getTeamOVR, playerValue, directTransferPrice } from './valuation/valuation.ts';
 export type { LineupRole } from './valuation/valuation.ts';
 export { acceptBid } from './transfer/bid.ts';
 export {
@@ -89,7 +89,7 @@ export {
 } from './transfer/transfer-window.ts';
 export type { TransferWindow, TransferWindowKind } from './transfer/transfer-window.ts';
 export {
-  SECTOR_KEYS, STAND_TYPES, STAND_CONSTRUCTION_COSTS, LOCATION_MULT,
+  SECTOR_KEYS, STAND_TYPES, STAND_BUILD_COSTS, STAND_DEMOLITION_COSTS, LOCATION_MULT,
   COST_PER_SEAT_ADDED, COST_PER_SEAT_REMOVED, DEFAULT_STADIUM_SECTORS,
   getSectorCapacity, calculateTotalCapacity, calculateSectorChangeCost,
   calculateTotalChangeCost, hasSectorChanged,
