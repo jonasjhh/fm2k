@@ -26,7 +26,7 @@ function createTestTeam(id: string, name: string): Team {
     name,
     formation: '4-4-2' as Formation,
     colors: { primary: '#FFFFFF', secondary: '#000000' },
-    starters: [
+    squad: [
       createTestPlayer(`${id}-gk`, 'GK', 'GK'),
       createTestPlayer(`${id}-lb`, 'LB', 'LB'),
       createTestPlayer(`${id}-cb1`, 'CB1', 'CB'),
@@ -39,19 +39,24 @@ function createTestTeam(id: string, name: string): Team {
       createTestPlayer(`${id}-st1`, 'ST1', 'ST'),
       createTestPlayer(`${id}-st2`, 'ST2', 'ST'),
     ],
-    substitutes: [],
   };
 }
 
 const KICK_OFF = createGameDateTime(2025, 8, 15, 14, 0);
 const CTX: OccurrenceContext = {};
 
+/** Defaults homeStarters/awayStarters to the full squad (already exactly 11, slot-ordered,
+ *  by createTestTeam above) so existing call sites don't need to spell them out. */
 function makeOccurrence(overrides: Partial<MatchOccurrenceConfig> = {}): MatchOccurrence {
+  const homeTeam = overrides.homeTeam ?? createTestTeam('home', 'Home FC');
+  const awayTeam = overrides.awayTeam ?? createTestTeam('away', 'Away FC');
   return new MatchOccurrence({
     id: 'match-1',
     scheduledTime: KICK_OFF,
-    homeTeam: createTestTeam('home', 'Home FC'),
-    awayTeam: createTestTeam('away', 'Away FC'),
+    homeTeam,
+    awayTeam,
+    homeStarters: homeTeam.squad.slice(0, 11),
+    awayStarters: awayTeam.squad.slice(0, 11),
     eventsPerMinute: 2,
     ...overrides,
   });
@@ -338,11 +343,17 @@ describe('MatchOccurrence:', () => {
   });
 
   describe('lazy kickoff build (per-match settings):', () => {
-    test('given the team is mutated before kickoff then onStart uses the updated lineup', () => {
+    test('given the player resolver changes before kickoff then onStart uses the updated XI', () => {
       const home = createTestTeam('home', 'Home FC');
-      const occ = makeOccurrence({ homeTeam: home });
-      // Manager swaps the XI before kickoff (e.g. picks a new striker).
-      home.starters = [...home.starters.slice(0, 10), createTestPlayer('home-new', 'NEW', 'ST')];
+      // Manager swaps the XI before kickoff (e.g. picks a new striker) — resolved lazily
+      // via getPlayerStarters, called fresh at ensureStarted()/onStart() time.
+      let lineup = home.squad;
+      const occ = makeOccurrence({
+        homeTeam: home,
+        playerTeamId: 'home',
+        getPlayerStarters: () => lineup,
+      });
+      lineup = [...home.squad.slice(0, 10), createTestPlayer('home-new', 'NEW', 'ST')];
       occ.onStart(CTX);
       const ids = occ.getMatchState().currentPlayers.home.map(p => p.id);
       expect(ids).toContain('home-new');
@@ -370,11 +381,11 @@ describe('MatchOccurrence:', () => {
   });
 
   describe('substitution wiring:', () => {
-    function makeTeamWithSub(): { team: Team; sub: Player } {
+    function makeTeamWithSub(): { team: Team; sub: Player; starters: Player[] } {
       const team = createTestTeam('home', 'Home FC');
       const sub = createTestPlayer('home-sub', 'Sub Player', 'CM');
-      team.substitutes.push(sub);
-      return { team, sub };
+      team.squad.push(sub);
+      return { team, sub, starters: team.squad.slice(0, 11) };
     }
 
     test('given no callback then no substitution events are emitted', () => {
@@ -384,42 +395,42 @@ describe('MatchOccurrence:', () => {
     });
 
     test('given callback returning same lineup then no substitution events are emitted', () => {
-      const { team } = makeTeamWithSub();
-      const lineup = [...team.starters];
+      const { team, starters } = makeTeamWithSub();
+      const lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       const events = occ.onTick(KICK_OFF, CTX);
       expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(false);
     });
 
     test('given callback with one swap then emits one match.substitution_applied event', () => {
-      const { team, sub } = makeTeamWithSub();
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)]; // swap first starter for sub
+      lineup = [sub, ...starters.slice(1)]; // swap first starter for sub
       const events = occ.onTick(KICK_OFF, CTX);
       expect(events.filter(e => e.eventType === 'match.substitution_applied')).toHaveLength(1);
     });
 
     test('given callback with one swap then substitution event has correct playerOutId and playerInId', () => {
-      const { team, sub } = makeTeamWithSub();
-      const outPlayer = team.starters[0];
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      const outPlayer = starters[0];
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       const events = occ.onTick(KICK_OFF, CTX);
       const subEvent = events.find(e => e.eventType === 'match.substitution_applied')!;
       expect(subEvent.payload.playerOutId).toBe(outPlayer.id);
@@ -427,16 +438,16 @@ describe('MatchOccurrence:', () => {
     });
 
     test('given callback with one swap then currentPlayers reflects the new lineup', () => {
-      const { team, sub } = makeTeamWithSub();
-      const outPlayer = team.starters[0];
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      const outPlayer = starters[0];
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       occ.onTick(KICK_OFF, CTX);
       const homePlayers = occ.getMatchState().currentPlayers.home;
       expect(homePlayers.map(p => p.id)).toContain(sub.id);
@@ -444,17 +455,17 @@ describe('MatchOccurrence:', () => {
     });
 
     test('given callback with one swap then the incoming sub inherits the outgoing starter\'s fielded slot', () => {
-      const { team, sub } = makeTeamWithSub();
-      const outPlayer = team.starters[0];
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      const outPlayer = starters[0];
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
       const slotBefore = occ.getMatchState().fieldedPositions?.home[outPlayer.id];
-      lineup = [sub, ...team.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       occ.onTick(KICK_OFF, CTX);
       const fielded = occ.getMatchState().fieldedPositions?.home ?? {};
       expect(fielded[sub.id]).toBe(slotBefore);
@@ -462,66 +473,68 @@ describe('MatchOccurrence:', () => {
     });
 
     test('given playerTeamId is away team then substitution applies to away currentPlayers', () => {
-      const { team: awayTeam, sub } = makeTeamWithSub();
+      const { team: awayTeam, sub, starters } = makeTeamWithSub();
       awayTeam.id = 'away'; // ensure it matches
       awayTeam.name = 'Away FC';
-      let lineup = [...awayTeam.starters];
+      let lineup = [...starters];
+      const homeTeam = createTestTeam('home', 'Home FC');
       const occ = new MatchOccurrence({
         id: 'match-1',
         scheduledTime: KICK_OFF,
-        homeTeam: createTestTeam('home', 'Home FC'),
+        homeTeam,
         awayTeam,
+        homeStarters: homeTeam.squad,
         eventsPerMinute: 2,
         playerTeamId: 'away',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...awayTeam.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       occ.onTick(KICK_OFF, CTX);
       const awayPlayers = occ.getMatchState().currentPlayers.away;
       expect(awayPlayers.map(p => p.id)).toContain(sub.id);
     });
 
     test('given playerTeamId not matching either team then no substitution events', () => {
-      const { team, sub } = makeTeamWithSub();
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'unknown-team',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       const events = occ.onTick(KICK_OFF, CTX);
       expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(false);
     });
 
     test('given same swap requested twice then substitution only fires once', () => {
-      const { team, sub } = makeTeamWithSub();
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      let lineup = [...starters];
       const occ = makeOccurrence({
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)]; // first tick: triggers sub
+      lineup = [sub, ...starters.slice(1)]; // first tick: triggers sub
       occ.onTick(KICK_OFF, CTX);
       const events = occ.onTick(KICK_OFF, CTX); // second tick: same lineup, no sub
       expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(false);
     });
 
     test('given substitution event then occurrenceId and occurrenceType are correct', () => {
-      const { team, sub } = makeTeamWithSub();
-      let lineup = [...team.starters];
+      const { team, sub, starters } = makeTeamWithSub();
+      let lineup = [...starters];
       const occ = makeOccurrence({
         id: 'cup-final',
         homeTeam: team,
         playerTeamId: 'home',
-        getPlayerTeamLineup: () => lineup,
+        getPlayerStarters: () => lineup,
       });
       advanceTicks(occ, 5);
-      lineup = [sub, ...team.starters.slice(1)];
+      lineup = [sub, ...starters.slice(1)];
       const events = occ.onTick(KICK_OFF, CTX);
       const subEvent = events.find(e => e.eventType === 'match.substitution_applied')!;
       expect(subEvent.occurrenceId).toBe('cup-final');

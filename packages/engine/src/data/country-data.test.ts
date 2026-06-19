@@ -48,10 +48,9 @@ describe('getDivisionTeams:', () => {
     expect(getDivisionTeams(sampleCountry(), 99)).toEqual([]);
   });
 
-  it('given a 13-player team when converting then exactly 11 start and the rest are subs', () => {
+  it('given a 13-player team when converting then the whole squad is preserved', () => {
     const [team] = getDivisionTeams(sampleCountry(), 1);
-    expect(team.starters).toHaveLength(11);
-    expect(team.substitutes).toHaveLength(2);
+    expect(team.squad).toHaveLength(13);
   });
 
   it('given explicit colours when converting then they are preserved', () => {
@@ -68,7 +67,7 @@ describe('getDivisionTeams:', () => {
 describe('player conversion defaults:', () => {
   it('given a player without nationality/age/potential then country defaults fill in', () => {
     const [team] = getDivisionTeams(sampleCountry(), 2);
-    const p = team.starters[0];
+    const p = team.squad[0];
     expect(p.nationality).toBe('testish');
     expect(p.age).toBe(25);
     expect(p.potential).toBe(70);
@@ -78,7 +77,7 @@ describe('player conversion defaults:', () => {
     const country = sampleCountry();
     country.divisions[1].teams[0].players = [playerData('q0', { nationality: 'elsewhere', age: 31, potential: 88 })];
     const [team] = getDivisionTeams(country, 2);
-    expect(team.starters[0]).toMatchObject({ nationality: 'elsewhere', age: 31, potential: 88 });
+    expect(team.squad[0]).toMatchObject({ nationality: 'elsewhere', age: 31, potential: 88 });
   });
 });
 

@@ -1,5 +1,14 @@
-import { MatchSimulator } from './match-simulator.ts';
+import { MatchSimulator, type MatchConfig } from './match-simulator.ts';
+
 import type { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
+
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
+  return new MatchSimulator({
+    homeStarters: config.homeTeam.squad,
+    awayStarters: config.awayTeam.squad,
+    ...config,
+  });
+}
 
 function mulberry32(seed: number): () => number {
   let a = seed;
@@ -29,17 +38,17 @@ function team(id: string, value: number): Team {
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: attrs(value) });
     }
   });
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 
 function series(n: number, homeVal: number, awayVal: number) {
   let homeWins = 0, awayWins = 0, homeGoals = 0, awayGoals = 0, completed = 0, homeShots = 0, awayShots = 0;
   for (let s = 0; s < n; s++) {
-    const sim = new MatchSimulator({
+    const localSim = sim({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: team('home', homeVal), awayTeam: team('away', awayVal), rng: mulberry32(s + 1),
     });
-    const r = sim.simulate();
+    const r = localSim.simulate();
     if (r.finalState.phase === 'full_time') { completed++; }
     homeGoals += r.finalState.homeScore;
     awayGoals += r.finalState.awayScore;

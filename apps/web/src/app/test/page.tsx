@@ -36,7 +36,7 @@ const SQUAD_POSITIONS: Position[] = [
   'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST', 'ST',
 ];
 
-function makeTeam(id: string, strength: number, formation: Formation): Team {
+function makeTeam(id: string, strength: number, formation: Formation): { team: Team; starters: Player[] } {
   const squad: Player[] = SQUAD_POSITIONS.map((position, i) => ({
     id: `${id}-${i}`, name: `${id} ${i}`, nationality: 'n', age: 25, position, potential: 80,
     attributes: {
@@ -44,8 +44,8 @@ function makeTeam(id: string, strength: number, formation: Formation): Team {
       technique: strength, defending: strength, stamina: strength, awareness: strength, composure: strength,
     },
   }));
-  const { starters, substitutes } = selectStartingXIWithSlots(squad, formation);
-  return { id, name: id, formation, starters, substitutes, colors: { primary: '#fff', secondary: '#000' } };
+  const { starters } = selectStartingXIWithSlots(squad, formation);
+  return { team: { id, name: id, formation, squad, colors: { primary: '#fff', secondary: '#000' } }, starters };
 }
 
 interface SideState {
@@ -104,22 +104,22 @@ export default function MatchSandboxPage() {
   const [dist, setDist] = useState<DistributionResult | null>(null);
   const [seed, setSeed] = useState(1);
 
-  const homeTeam = useMemo(() => makeTeam('Home', home.strength, home.formation), [home.strength, home.formation]);
-  const awayTeam = useMemo(() => makeTeam('Away', away.strength, away.formation), [away.strength, away.formation]);
+  const homeSide = useMemo(() => makeTeam('Home', home.strength, home.formation), [home.strength, home.formation]);
+  const awaySide = useMemo(() => makeTeam('Away', away.strength, away.formation), [away.strength, away.formation]);
 
   const runOne = () => {
     const s = seed + 1; setSeed(s);
     setSingle(simulateMatch({
-      home: { team: homeTeam, intent: intentOf(home) },
-      away: { team: awayTeam, intent: intentOf(away) },
+      home: { team: homeSide.team, starters: homeSide.starters, intent: intentOf(home) },
+      away: { team: awaySide.team, starters: awaySide.starters, intent: intentOf(away) },
       rng: mulberry32(s),
     }));
   };
 
   const runMany = (n: number) => {
     setDist(runDistribution({
-      home: { team: homeTeam, intent: intentOf(home) },
-      away: { team: awayTeam, intent: intentOf(away) },
+      home: { team: homeSide.team, starters: homeSide.starters, intent: intentOf(home) },
+      away: { team: awaySide.team, starters: awaySide.starters, intent: intentOf(away) },
     }, n));
   };
 

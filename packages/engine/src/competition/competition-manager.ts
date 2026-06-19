@@ -3,7 +3,7 @@ import { TickEngine, EventLog } from '@fm2k/timeline';
 import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import type { EventBus } from '@fm2k/state';
 import { MatchOccurrence } from '@fm2k/match';
-import type { Team } from '@fm2k/match';
+import type { Player, Team } from '@fm2k/match';
 import type { GameEvents } from '../game-events.ts';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
@@ -23,6 +23,11 @@ export interface CompetitionManagerConfig {
   /** Division level per team id (knockout seeding); empty for leagues. */
   readonly levelByTeamId?: Map<string, number>;
   readonly rng?: () => number;
+  /** If one of `teams` is the human club, its id — `getPlayerStarters` then resolves
+   *  that side's XI lazily (at kickoff, and live for substitutions) instead of the
+   *  eager best-fit default every other team gets. */
+  readonly playerTeamId?: string;
+  readonly getPlayerStarters?: () => Player[];
 }
 
 /** Raw shape of a MatchOccurrence's `match.completed` payload. */
@@ -52,12 +57,16 @@ export class CompetitionManager {
   private readonly startDate: GameDateTime;
   private readonly eventsPerMinute: number;
   private readonly eventBus?: EventBus<GameEvents>;
+  private readonly playerTeamId?: string;
+  private readonly getPlayerStarters?: () => Player[];
 
   constructor(config: CompetitionManagerConfig) {
     this.format = config.format;
     this.eventsPerMinute = config.eventsPerMinute ?? 3;
     this.eventBus = config.eventBus;
     this.startDate = config.startDate;
+    this.playerTeamId = config.playerTeamId;
+    this.getPlayerStarters = config.getPlayerStarters;
 
     this.ctx = {
       competitionId: config.competitionId,
@@ -176,6 +185,10 @@ export class CompetitionManager {
         scheduledTime: m.scheduledTime,
         homeTeam: m.homeTeam,
         awayTeam: m.awayTeam,
+        homeStarters: m.homeStarters,
+        awayStarters: m.awayStarters,
+        playerTeamId: this.playerTeamId,
+        getPlayerStarters: this.getPlayerStarters,
         eventsPerMinute: this.eventsPerMinute,
         knockout: m.knockout,
         rng: this.ctx.rng,

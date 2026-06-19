@@ -4,7 +4,7 @@ import type { Team } from '@fm2k/engine';
 
 function team(id: string): Team {
   return {
-    id, name: id, formation: '4-4-2', starters: [], substitutes: [],
+    id, name: id, formation: '4-4-2', squad: [],
     colors: { primary: '#fff', secondary: '#000' },
   };
 }

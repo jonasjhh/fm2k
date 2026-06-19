@@ -1,5 +1,15 @@
-import { MatchSimulator, flattenMatchEventChain } from './match-simulator.ts';
+import { MatchSimulator, flattenMatchEventChain, type MatchConfig } from './match-simulator.ts';
 import { Team, Player, Formation } from '../shared/types.ts';
+
+/** Defaults homeStarters/awayStarters to the first 11 squad members (already slot-ordered
+ *  by createTestTeam below) so existing call sites don't need to spell them out. */
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
+  return new MatchSimulator({
+    homeStarters: config.homeTeam.squad.slice(0, 11),
+    awayStarters: config.awayTeam.squad.slice(0, 11),
+    ...config,
+  });
+}
 
 function createTestPlayer(id: string, name: string, position: any): Player {
   return {
@@ -50,8 +60,7 @@ function createTestTeam(id: string, name: string, formation: Formation = '4-4-2'
     name,
     formation,
     colors: { primary: '#FFFFFF', secondary: '#000000' },
-    starters,
-    substitutes,
+    squad: [...starters, ...substitutes],
     tactics: {
       attackingMentality: 'balanced',
       passingStyle: 'mixed',
@@ -73,7 +82,7 @@ describe('MatchSimulator:', () => {
   describe('.getCurrentState()', () => {
     test('given newly created match simulator when getting initial state then should return correct starting values', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const initialState = simulator.getCurrentState();
@@ -91,7 +100,7 @@ describe('MatchSimulator:', () => {
       // Arrange
       const team1 = createTestTeam('team1', 'Team 1', '4-4-2');
       const team2 = createTestTeam('team2', 'Team 2', '3-4-3');
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team1, awayTeam: team2 });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team1, awayTeam: team2 });
 
       // Act
       const state = simulator.getCurrentState();
@@ -119,7 +128,7 @@ describe('MatchSimulator:', () => {
         width: 'wide',
       };
 
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam: defensiveTeam, awayTeam: attackingTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: defensiveTeam, awayTeam: attackingTeam });
 
       // Act
       const state = simulator.getCurrentState();
@@ -132,7 +141,7 @@ describe('MatchSimulator:', () => {
     test('given simulated match when getting final state then should track player lineups', () => {
       // Arrange — a constant rng never trips a foul (foul chance < 0.4), so no sending-off
       // perturbs the count; this isolates "lineups are tracked" from discipline.
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: () => 0.5 });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: () => 0.5 });
 
       // Act
       const result = simulator.simulate();
@@ -148,7 +157,7 @@ describe('MatchSimulator:', () => {
   describe('.simulate()', () => {
     test('given valid teams when simulating entire match then should complete at full time', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act & Assert - Should not throw
       expect(() => {
@@ -162,7 +171,7 @@ describe('MatchSimulator:', () => {
 
     test('given valid teams when simulating match then should produce match events', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -176,7 +185,7 @@ describe('MatchSimulator:', () => {
 
     test('given valid teams when simulating match then should advance through match phases', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -190,7 +199,7 @@ describe('MatchSimulator:', () => {
 
     test('given valid teams when simulating match then should process events correctly', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -206,7 +215,7 @@ describe('MatchSimulator:', () => {
 
     test('given valid teams when simulating match then should track match statistics', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -223,7 +232,7 @@ describe('MatchSimulator:', () => {
 
     test('given valid teams when simulating match then should finish at full time', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -239,7 +248,7 @@ describe('MatchSimulator:', () => {
   describe('.getEvents()', () => {
     test('given simulated match when getting events then should handle events correctly', () => {
       // Arrange
-      const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
       // Act
       const result = simulator.simulate();
@@ -267,13 +276,13 @@ describe('MatchSimulator constructor:', () => {
   test('given valid teams when creating match simulator then should create without error', () => {
     // Act & Assert
     expect(() => {
-      new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+      sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
     }).not.toThrow();
   });
 
   test('given valid teams when creating simulator then should return valid instance', () => {
     // Act
-    const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+    const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
 
     // Assert
     expect(simulator).toBeInstanceOf(MatchSimulator);
@@ -281,8 +290,8 @@ describe('MatchSimulator constructor:', () => {
 
   test('given valid teams when creating multiple simulators then should create independent instances', () => {
     // Act
-    const simulator1 = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
-    const simulator2 = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam: awayTeam, awayTeam: homeTeam }); // Swapped
+    const simulator1 = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+    const simulator2 = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: awayTeam, awayTeam: homeTeam }); // Swapped
 
     // Assert
     expect(simulator1).toBeInstanceOf(MatchSimulator);
@@ -304,10 +313,10 @@ describe('MatchSimulator constructor:', () => {
 
     // Act & Assert
     expect(() => {
-      new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team433, awayTeam: team352 });
+      sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team433, awayTeam: team352 });
     }).not.toThrow();
 
-    const simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team433, awayTeam: team352 });
+    const simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team433, awayTeam: team352 });
     const state = simulator.getCurrentState();
 
     expect(state.homeTeam.formation).toBe('4-3-3');
@@ -330,7 +339,7 @@ describe('MatchSimulator.simulateMinute():', () => {
       phase: 'first_half',
       homeTeam,
       awayTeam,
-      currentPlayers: { home: homeTeam.starters, away: awayTeam.starters },
+      currentPlayers: { home: homeTeam.squad.slice(0, 11), away: awayTeam.squad.slice(0, 11) },
       bookings: { yellow: [], red: [] },
       ...overrides,
     };
@@ -339,7 +348,7 @@ describe('MatchSimulator.simulateMinute():', () => {
   beforeEach(() => {
     homeTeam = createTestTeam('home', 'Home Team');
     awayTeam = createTestTeam('away', 'Away Team');
-    simulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+    simulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
   });
 
   test('given a state when called then returns events and nextState', () => {
@@ -455,7 +464,7 @@ describe('MatchSimulator extra time:', () => {
       minute: 0, homeScore: 0, awayScore: 0, possession: 'home',
       ballPosition: { zone: 'middle_third', side: 'center' }, phase: 'first_half',
       homeTeam, awayTeam,
-      currentPlayers: { home: homeTeam.starters, away: awayTeam.starters },
+      currentPlayers: { home: homeTeam.squad.slice(0, 11), away: awayTeam.squad.slice(0, 11) },
       bookings: { yellow: [], red: [] },
       ...overrides,
     };
@@ -464,23 +473,23 @@ describe('MatchSimulator extra time:', () => {
   beforeEach(() => {
     homeTeam = createTestTeam('home', 'Home Team');
     awayTeam = createTestTeam('away', 'Away Team');
-    etSimulator = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true });
+    etSimulator = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true });
   });
 
   // The score is read after the minute's action loop, so pin the RNG to keep the
   // 90th-minute scoreline fixed; the phase must then follow whether it is level.
   test('given a level score at minute 89 with extra time enabled then phase becomes extra_time_first (not full_time)', () => {
     // rng 0.99 keeps the action loop from scoring, so the 1-1 stays level into the 90th.
-    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
-    const { nextState } = sim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 1, awayScore: 1 }));
+    const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
+    const { nextState } = localSim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 1, awayScore: 1 }));
     expect(nextState.homeScore).toBe(nextState.awayScore); // still level
     expect(nextState.phase).toBe('extra_time_first');
     expect(nextState.minute).toBe(90);
   });
 
   test('given a decided score at minute 89 with extra time enabled then phase becomes full_time', () => {
-    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
-    const { nextState } = sim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 }));
+    const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, extraTimeIfDrawn: true, rng: () => 0.99 });
+    const { nextState } = localSim.simulateMinute(baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 }));
     expect(nextState.phase).toBe('full_time'); // not level → no extra time
   });
 
@@ -516,7 +525,7 @@ describe('MatchSimulator extra time:', () => {
   });
 
   test('given extra time disabled then a level match still ends at full_time minute 90', () => {
-    const plain = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
+    const plain = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam });
     const result = plain.simulate();
     expect(result.finalState.phase).toBe('full_time');
     expect(result.finalState.minute).toBe(90);
@@ -537,9 +546,9 @@ describe('MatchSimulator statistics:', () => {
   test('derives every statistic from the recorded match events', () => {
     const homeTeam = createTestTeam('home', 'Home Team');
     const awayTeam = createTestTeam('away', 'Away Team');
-    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(42) });
+    const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(42) });
 
-    const result = sim.simulate();
+    const result = localSim.simulate();
     const ev = result.events;
     const he = ev.filter(e => e.team === 'home');
     const ae = ev.filter(e => e.team === 'away');
@@ -567,8 +576,8 @@ describe('MatchSimulator statistics:', () => {
   test('possession percentages always sum to 100', () => {
     const homeTeam = createTestTeam('home', 'Home Team');
     const awayTeam = createTestTeam('away', 'Away Team');
-    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(7) });
-    const { possession } = sim.simulate().statistics;
+    const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam, awayTeam, rng: mulberry32(7) });
+    const { possession } = localSim.simulate().statistics;
     expect(possession.home + possession.away).toBe(100);
   });
 });

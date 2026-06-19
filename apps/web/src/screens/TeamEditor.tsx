@@ -371,7 +371,7 @@ export default function TeamEditor() {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Players
-                <Chip label={activeTeam.starters.length + activeTeam.substitutes.length} size="small" sx={{ ml: 1 }} />
+                <Chip label={activeTeam.squad.length} size="small" sx={{ ml: 1 }} />
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={openAddModal}>
@@ -398,7 +398,7 @@ export default function TeamEditor() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {[...activeTeam.starters, ...activeTeam.substitutes].map(p => (
+                  {activeTeam.squad.map(p => (
                     <PlayerRow
                       key={p.id}
                       player={p}

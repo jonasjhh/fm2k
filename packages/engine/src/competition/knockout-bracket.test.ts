@@ -13,7 +13,7 @@ function mulberry32(seed: number): () => number {
 }
 
 function team(id: string): Team {
-  return { id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' }, starters: [], substitutes: [] };
+  return { id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' }, squad: [] };
 }
 
 function teamsByLevel(): Map<number, Team[]> {

@@ -106,8 +106,8 @@ export default function NationBrowser({ countries, selectedTeamId, onTeamClick }
       <Divider sx={{ my: 0.5 }} />
       <List dense disablePadding>
         {selectedDivision.teams.map(t => {
-          const playerCount = t.starters.length + t.substitutes.length;
-          const avgOvr = t.starters.length > 0 ? getTeamOVR(t.starters) : null;
+          const playerCount = t.squad.length;
+          const avgOvr = t.squad.length > 0 ? getTeamOVR(t.squad) : null;
           return (
             <ListItemButton
               key={t.id}

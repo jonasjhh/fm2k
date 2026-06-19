@@ -21,7 +21,7 @@ import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { useGameStore } from '../../store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { calculateOverall, playerValue, directTransferPrice } from '@fm2k/engine';
+import { calculateOverall, playerValue, directTransferPrice, selectStartingXIWithSlots } from '@fm2k/engine';
 import type { Player, Position } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { SectionHeader } from '@fm2k/design-system';
@@ -135,11 +135,11 @@ export default function TransfersTab() {
       for (const d of c.divisions) {
         for (const t of d.teams) {
           if (t.id === playerTeamId) { continue; }
-          for (const p of t.starters) {
-            rows.push({ player: p, club: t.name, isFreeAgent: false, price: directTransferPrice(p, 'starter'), ovr: Math.round(calculateOverall(p.attributes)) });
-          }
-          for (const p of t.substitutes) {
-            rows.push({ player: p, club: t.name, isFreeAgent: false, price: directTransferPrice(p, 'bench'), ovr: Math.round(calculateOverall(p.attributes)) });
+          const { starters } = selectStartingXIWithSlots(t.squad, t.formation);
+          const starterIds = new Set(starters.map(p => p.id));
+          for (const p of t.squad) {
+            const role = starterIds.has(p.id) ? 'starter' : 'bench';
+            rows.push({ player: p, club: t.name, isFreeAgent: false, price: directTransferPrice(p, role), ovr: Math.round(calculateOverall(p.attributes)) });
           }
         }
       }

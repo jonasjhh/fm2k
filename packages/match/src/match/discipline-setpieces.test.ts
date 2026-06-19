@@ -1,6 +1,15 @@
-import { MatchSimulator } from './match-simulator.ts';
+import { MatchSimulator, type MatchConfig } from './match-simulator.ts';
+
 import type { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
 import { NEUTRAL_PARAMS, type MatchParameters } from '../tactics/match-parameters.ts';
+
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
+  return new MatchSimulator({
+    homeStarters: config.homeTeam.squad,
+    awayStarters: config.awayTeam.squad,
+    ...config,
+  });
+}
 
 function mulberry32(seed: number): () => number {
   let a = seed;
@@ -22,18 +31,18 @@ function team(id: string, v: number, over: Partial<PlayerAttributes> = {}): Team
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: attrs(v, over) });
     }
   });
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 function totals(homeParams: MatchParameters, homeOver: Partial<PlayerAttributes> = {}, n = 150) {
   const t: Record<string, number> = {};
   for (let s = 0; s < n; s++) {
-    const sim = new MatchSimulator({
+    const localSim = sim({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: team('h', 55, homeOver), awayTeam: team('a', 55),
       homeParams, awayParams: NEUTRAL_PARAMS, rng: mulberry32(s + 1),
     });
     // The home team's fouls are committed when home is DEFENDING — count all foul events by home.
-    for (const e of sim.simulate().events) { t[`${e.team}:${e.type}`] = (t[`${e.team}:${e.type}`] ?? 0) + 1; }
+    for (const e of localSim.simulate().events) { t[`${e.team}:${e.type}`] = (t[`${e.team}:${e.type}`] ?? 0) + 1; }
   }
   const per = (k: string) => (t[k] ?? 0) / n;
   return per;
@@ -65,12 +74,12 @@ describe('discipline & set pieces (behavioural):', () => {
   it('given a red card is shown then that side finishes the match a player down', () => {
     let sawManDown = false;
     for (let s = 0; s < 200 && !sawManDown; s++) {
-      const sim = new MatchSimulator({
+      const localSim = sim({
         matchDuration: 90, eventsPerMinute: 3,
         homeTeam: team('h', 55), awayTeam: team('a', 55, { composure: 10, defending: 20 }),
         rng: mulberry32(s + 1),
       });
-      const r = sim.simulate();
+      const r = localSim.simulate();
       const reds = r.finalState.bookings.red;
       if (reds.length > 0) {
         const downSide = reds[0].team;
@@ -82,11 +91,11 @@ describe('discipline & set pieces (behavioural):', () => {
   });
 
   it('given a goal then the scoring side carries brief momentum that then decays', () => {
-    const sim = new MatchSimulator({ matchDuration: 90, eventsPerMinute: 4, homeTeam: team('h', 80), awayTeam: team('a', 30), rng: mulberry32(5) });
-    let state = sim.getCurrentState();
+    const localSim = sim({ matchDuration: 90, eventsPerMinute: 4, homeTeam: team('h', 80), awayTeam: team('a', 30), rng: mulberry32(5) });
+    let state = localSim.getCurrentState();
     let sawMomentum = false;
     for (let m = 0; m < 90; m++) {
-      const { nextState } = sim.simulateMinute(state);
+      const { nextState } = localSim.simulateMinute(state);
       state = nextState;
       if ((state.momentum?.home ?? 0) > 0 || (state.momentum?.away ?? 0) > 0) { sawMomentum = true; }
       expect(state.momentum!.home).toBeLessThanOrEqual(40);

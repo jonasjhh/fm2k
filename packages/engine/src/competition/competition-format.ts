@@ -1,5 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
-import type { Team } from '@fm2k/match';
+import type { Player, Team } from '@fm2k/match';
 import type { CompetitionKind, CompetitionState, DecidedBy } from './competition-types.ts';
 
 /** A completed match handed to a format for it to record. */
@@ -19,6 +19,11 @@ export interface ScheduledMatch {
   readonly fixtureId: string;
   readonly homeTeam: Team;
   readonly awayTeam: Team;
+  /** Eager best-fit XI for each side, computed now (schedule time) via
+   *  selectStartingXIWithSlots — the AI default; CompetitionManager substitutes the
+   *  human club's own choice instead, for whichever side is the player's team. */
+  readonly homeStarters: Player[];
+  readonly awayStarters: Player[];
   readonly scheduledTime: GameDateTime;
   readonly knockout: boolean;
 }

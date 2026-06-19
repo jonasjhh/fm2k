@@ -34,6 +34,10 @@ export interface MatchConfig {
   eventsPerMinute: number;
   homeTeam: Team;
   awayTeam: Team;
+  /** Already-resolved starting XI (slot-ordered) — resolution (AI best-fit vs the human
+   *  club's own choice) happens upstream, never inside the simulator. */
+  homeStarters: Player[];
+  awayStarters: Player[];
   /** When the scores are level after 90', play two 15-minute halves of extra time. */
   extraTimeIfDrawn?: boolean;
   /** Resolved tactical parameters. Override the values carried on the Team objects;
@@ -92,8 +96,8 @@ export class MatchSimulator {
   }
 
   private createInitialState(): MatchState {
-    const homePlayers = this.config.homeTeam.starters;
-    const awayPlayers = this.config.awayTeam.starters;
+    const homePlayers = this.config.homeStarters;
+    const awayPlayers = this.config.awayStarters;
     return {
       minute: 0,
       homeScore: 0,

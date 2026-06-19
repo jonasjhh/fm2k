@@ -32,8 +32,7 @@ function makeTeam(id: string): Team {
     name: id,
     formation: '4-4-2' as Formation,
     colors: { primary: '#FFFFFF', secondary: '#000000' },
-    starters: positions.map((pos, i) => makePlayer(`${id}-p${i}`)),
-    substitutes: [],
+    squad: positions.map((pos, i) => makePlayer(`${id}-p${i}`)),
   };
 }
 

@@ -11,10 +11,17 @@ export interface MatchOccurrenceConfig {
   readonly scheduledTime: GameDateTime
   readonly homeTeam: Team
   readonly awayTeam: Team
+  /** Eager, already-resolved starting XI for whichever side isn't the human club (AI's
+   *  best-fit XI, computed once at schedule time). Ignored for `playerTeamId`'s side when
+   *  `getPlayerStarters` is supplied. */
+  readonly homeStarters?: Player[]
+  readonly awayStarters?: Player[]
   readonly eventsPerMinute?: number
-  // When provided, lineup diffs are applied each tick and emitted as match.substitution_applied
+  /** When set, identifies which side is the human club; `getPlayerStarters` (if present)
+   *  resolves that side's XI lazily — at kickoff, and again each tick for substitution
+   *  diffing — instead of using the eager `homeStarters`/`awayStarters` default. */
   readonly playerTeamId?: string
-  readonly getPlayerTeamLineup?: () => Player[]
+  readonly getPlayerStarters?: () => Player[]
   /** Knockout tie: play extra time and a penalty shootout to force a winner. */
   readonly knockout?: boolean
   /** Injectable RNG for the shootout (deterministic tests). */
@@ -29,7 +36,9 @@ export class MatchOccurrence implements Occurrence {
   private simulator: MatchSimulator | null = null;
   private matchState!: MatchState;
   private readonly playerTeamSide: 'home' | 'away' | null;
-  private readonly getPlayerTeamLineup?: () => Player[];
+  private readonly getPlayerStarters?: () => Player[];
+  private readonly homeStartersDefault?: Player[];
+  private readonly awayStartersDefault?: Player[];
   private readonly knockout: boolean;
   private readonly rng: () => number;
   private readonly homeTeam: Team;
@@ -39,7 +48,9 @@ export class MatchOccurrence implements Occurrence {
   constructor(config: MatchOccurrenceConfig) {
     this.id = config.id;
     this.scheduledTime = config.scheduledTime;
-    this.getPlayerTeamLineup = config.getPlayerTeamLineup;
+    this.getPlayerStarters = config.getPlayerStarters;
+    this.homeStartersDefault = config.homeStarters;
+    this.awayStartersDefault = config.awayStarters;
     this.knockout = config.knockout ?? false;
     this.rng = config.rng ?? Math.random;
     this.homeTeam = config.homeTeam;
@@ -56,10 +67,25 @@ export class MatchOccurrence implements Occurrence {
     }
   }
 
+  /** Resolve a side's starting XI: lazily from `getPlayerStarters` for the human club's
+   *  side (fresh as of right now — kickoff, or a later tick for sub diffing), else the
+   *  eager AI default computed when the match was scheduled. */
+  private resolveStarters(side: 'home' | 'away'): Player[] {
+    if (this.playerTeamSide === side && this.getPlayerStarters) {
+      return this.getPlayerStarters();
+    }
+    const fallback = side === 'home' ? this.homeStartersDefault : this.awayStartersDefault;
+    if (!fallback) {
+      throw new Error(`MatchOccurrence: no starters resolved for ${side} side of match ${this.id}`);
+    }
+    return fallback;
+  }
+
   /**
    * Build the simulator lazily, at the moment the match first needs it (kickoff).
-   * This reads the home/away Team objects *as they are then*, so a manager's
-   * pre-match changes to lineup/formation/tactics take effect for that match.
+   * This reads the home/away Team objects *as they are then*, and resolves each side's
+   * starting XI fresh too, so a manager's pre-match changes to lineup/formation/tactics
+   * take effect for that match.
    */
   private ensureStarted(): MatchSimulator {
     if (!this.simulator) {
@@ -68,6 +94,8 @@ export class MatchOccurrence implements Occurrence {
         eventsPerMinute: this.eventsPerMinute,
         homeTeam: this.homeTeam,
         awayTeam: this.awayTeam,
+        homeStarters: this.resolveStarters('home'),
+        awayStarters: this.resolveStarters('away'),
         homeFitness: this.homeTeam.fitness,
         awayFitness: this.awayTeam.fitness,
         extraTimeIfDrawn: this.knockout,
@@ -118,7 +146,8 @@ export class MatchOccurrence implements Occurrence {
 
     if (this.knockout) {
       if (homeScore === awayScore) {
-        const result = simulateShootout(homeTeam, awayTeam, this.rng);
+        const result = simulateShootout(
+          this.matchState.currentPlayers.home, this.matchState.currentPlayers.away, this.rng);
         decidedBy = 'penalties';
         shootout = { home: result.home, away: result.away };
         winnerTeamId = result.winner === 'home' ? homeTeam.id : awayTeam.id;
@@ -164,9 +193,9 @@ export class MatchOccurrence implements Occurrence {
   }
 
   private applyPendingSubstitutions(now: GameDateTime): OccurrenceEvent[] {
-    if (!this.getPlayerTeamLineup || !this.playerTeamSide) {return [];}
+    if (!this.getPlayerStarters || !this.playerTeamSide) {return [];}
 
-    const desired = this.getPlayerTeamLineup();
+    const desired = this.getPlayerStarters();
     const current = this.matchState.currentPlayers[this.playerTeamSide];
 
     const currentIds = new Set(current.map(p => p.id));

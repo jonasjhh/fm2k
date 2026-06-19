@@ -1,6 +1,15 @@
-import { MatchSimulator } from './match-simulator.ts';
+import { MatchSimulator, type MatchConfig } from './match-simulator.ts';
+
 import type { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
 import { NEUTRAL_PARAMS, type MatchParameters } from '../tactics/match-parameters.ts';
+
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
+  return new MatchSimulator({
+    homeStarters: config.homeTeam.squad,
+    awayStarters: config.awayTeam.squad,
+    ...config,
+  });
+}
 
 function mulberry32(seed: number): () => number {
   let a = seed;
@@ -22,19 +31,19 @@ function team(id: string, v: number): Team {
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: attrs(v) });
     }
   });
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 
 /** Total count of each home-team action type over N seeded matches with the given home params. */
 function tally(homeParams: MatchParameters, n = 120): Record<string, number> {
   const t: Record<string, number> = {};
   for (let s = 0; s < n; s++) {
-    const sim = new MatchSimulator({
+    const localSim = sim({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: team('h', 55), awayTeam: team('a', 55),
       homeParams, awayParams: NEUTRAL_PARAMS, rng: mulberry32(s + 1),
     });
-    for (const e of sim.simulate().events) {
+    for (const e of localSim.simulate().events) {
       if (e.team === 'home') { t[e.type] = (t[e.type] ?? 0) + 1; }
     }
   }
@@ -71,13 +80,13 @@ describe('action vocabulary (behavioural):', () => {
     // Over many wide-team matches, at least one cross should be headed home.
     let headedGoals = 0;
     for (let s = 0; s < 60; s++) {
-      const sim = new MatchSimulator({
+      const localSim = sim({
         matchDuration: 90, eventsPerMinute: 3,
         homeTeam: team('h', 70), awayTeam: team('a', 40),
         homeParams: { ...NEUTRAL_PARAMS, buildUpWidth: 95 }, awayParams: NEUTRAL_PARAMS,
         rng: mulberry32(s + 1),
       });
-      for (const e of sim.simulate().events) {
+      for (const e of localSim.simulate().events) {
         if (e.type === 'goal' && e.description.includes('heads')) { headedGoals++; }
       }
     }

@@ -40,8 +40,7 @@ function clubPlayer(id: string, extra: Partial<ClubPlayer> = {}): ClubPlayer {
 function country(): EditableCountry {
   const team = {
     id: 't1', name: 'Team One', formation: '4-4-2' as const,
-    starters: [player('s1'), player('s2', { position: 'ST', attributes: attrs(88) })],
-    substitutes: [player('b1', { position: 'GK' })],
+    squad: [player('s1'), player('s2', { position: 'ST', attributes: attrs(88) }), player('b1', { position: 'GK' })],
     colors: { primary: '#ff0000', secondary: '#00ff00' },
   };
   return {
@@ -191,12 +190,8 @@ describe('checkSaveCompatibility:', () => {
     expect(checkSaveCompatibility(withVersion(0))).toBe('incompatible');
   });
 
-  it('given the oldest still-loadable version then outdated', () => {
-    expect(checkSaveCompatibility(withVersion(1))).toBe('outdated');
-  });
-
-  it('given a version between min and current then outdated', () => {
-    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('outdated');
+  it('given any version older than current (no migration path) then incompatible', () => {
+    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('incompatible');
   });
 
   it('given the current version then ok', () => {
@@ -210,7 +205,7 @@ describe('save-data tactics round-trip:', () => {
   function saveWithTeam(extra: { tactics?: TeamTactics }): SaveData {
     const team = {
       id: 'tt', name: 'Tactics FC', formation: '4-4-2' as const,
-      starters: [player('s1')], substitutes: [player('b1', { position: 'GK' })],
+      squad: [player('s1'), player('b1', { position: 'GK' })],
       colors: { primary: '#000', secondary: '#fff' },
       ...extra,
     };

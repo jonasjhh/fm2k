@@ -1,7 +1,8 @@
-import type { Team } from '@fm2k/match';
+import type { Player, Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import { cupRoundDates } from './cup-scheduling.ts';
 import { drawBracket, recordWinner, roundComplete, slotsInRound } from './knockout-bracket.ts';
+import { selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
 } from './competition-format.ts';
@@ -10,6 +11,12 @@ import type {
 } from './competition-types.ts';
 
 const DEFAULT_LEAGUE_MATCHDAYS = 30;
+
+/** AI's eager best-fit XI for a team — the default before the human club's own choice
+ *  (resolved later, lazily, by CompetitionManager/MatchOccurrence) overrides it. */
+function bestXI(team: Team): Player[] {
+  return selectStartingXIWithSlots(team.squad, team.formation).starters;
+}
 
 export interface KnockoutFormatOptions extends KnockoutFormatConfig {
   /** League season length the cup rounds are spread across. */
@@ -144,10 +151,13 @@ export class KnockoutFormat implements CompetitionFormat {
   }
 
   private toScheduledMatch(fixture: CompetitionFixture, ctx: FormatContext): ScheduledMatch {
+    const homeTeam = ctx.teamsById.get(fixture.homeTeamId)!;
+    const awayTeam = ctx.teamsById.get(fixture.awayTeamId)!;
     return {
       fixtureId: fixture.id,
-      homeTeam: ctx.teamsById.get(fixture.homeTeamId)!,
-      awayTeam: ctx.teamsById.get(fixture.awayTeamId)!,
+      homeTeam, awayTeam,
+      homeStarters: bestXI(homeTeam),
+      awayStarters: bestXI(awayTeam),
       scheduledTime: fixture.scheduledTime,
       knockout: true,
     };

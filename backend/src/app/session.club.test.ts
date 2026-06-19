@@ -125,7 +125,7 @@ describe('GameSession bidForPlayer:', () => {
 
   test('rejects a lowball offer', () => {
     const { session, opponent } = seededGame();
-    const target = opponent.substitutes[0] ?? opponent.starters[0];
+    const target = opponent.squad[0];
     expect(session.bidForPlayer(opponent.id, target.id, 1)).toBe(false);
   });
 
@@ -134,18 +134,17 @@ describe('GameSession bidForPlayer:', () => {
     // Raise budget so the fee is comfortably affordable.
     for (const p of club(session).squad.slice(11)) { session.sellPlayer(p.id); }
 
-    const target = opponent.substitutes[0] ?? opponent.starters[0];
+    const target = opponent.squad[0];
     const price = session.askingPriceFor(opponent.id, target.id)!;
-    const sellingSizeBefore = opponent.starters.length + opponent.substitutes.length;
+    const sellingSizeBefore = opponent.squad.length;
 
     expect(session.bidForPlayer(opponent.id, target.id, Math.round(price * 1.1))).toBe(true);
     expect(club(session).squad.some(p => p.id === target.id)).toBe(true);
 
     const after = session.getEditableCountries()
       .flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id)!;
-    expect(after.starters.some(p => p.id === target.id)).toBe(false);
-    expect(after.substitutes.some(p => p.id === target.id)).toBe(false);
-    expect(after.starters.length + after.substitutes.length).toBe(sellingSizeBefore);
+    expect(after.squad.some(p => p.id === target.id)).toBe(false);
+    expect(after.squad.length).toBe(sellingSizeBefore);
   });
 });
 
@@ -167,17 +166,16 @@ describe('GameSession signPlayer (one-click at asking):', () => {
   test('buys a club player deterministically (always succeeds at asking), seller backfills', () => {
     const { session, opponent } = seededGame();
     for (const p of club(session).squad.slice(11)) { session.sellPlayer(p.id); } // raise budget
-    const target = opponent.substitutes[0] ?? opponent.starters[0];
-    const sellingSizeBefore = opponent.starters.length + opponent.substitutes.length;
+    const target = opponent.squad[0];
+    const sellingSizeBefore = opponent.squad.length;
 
     expect(session.signPlayer(target.id)).toBe(true);
     expect(club(session).squad.some(p => p.id === target.id)).toBe(true);
 
     const after = session.getEditableCountries()
       .flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id)!;
-    expect(after.starters.some(p => p.id === target.id)).toBe(false);
-    expect(after.substitutes.some(p => p.id === target.id)).toBe(false);
-    expect(after.starters.length + after.substitutes.length).toBe(sellingSizeBefore);
+    expect(after.squad.some(p => p.id === target.id)).toBe(false);
+    expect(after.squad.length).toBe(sellingSizeBefore);
   });
 
   test('signing a club player succeeds regardless of rng seed (no acceptance roll)', () => {
@@ -188,7 +186,7 @@ describe('GameSession signPlayer (one-click at asking):', () => {
       session.startGame(teamId, [country.id]);
       for (const p of session.snapshot().clubState!.squad.slice(11)) { session.sellPlayer(p.id); }
       const opponent = country.divisions[0].teams.find(t => t.id !== teamId)!;
-      const target = opponent.substitutes[0] ?? opponent.starters[0];
+      const target = opponent.squad[0];
       expect(session.signPlayer(target.id)).toBe(true);
     }
   });

@@ -17,8 +17,10 @@ export type SaveType = 'QUICK' | 'AUTO';
 // v6 added `clubState.tactics` (manager intent: style + sliders).
 // v7 added `clubPlayer.training` (per-player training regiment).
 // v8 added `transferFreeAgents` (the shared free-agent pool behind the transfer market).
-export const SAVE_VERSION = 8;
-export const MIN_LOADABLE_VERSION = 1;
+// v9 collapsed Team's starters/substitutes split into a single `squad` — the starting XI
+// is no longer persisted on Team at all, so old saves can't be migrated (MIN bumped too).
+export const SAVE_VERSION = 9;
+export const MIN_LOADABLE_VERSION = 9;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
 
@@ -74,7 +76,7 @@ interface ClubPlayerPack extends PlayerPack { fi: number; inj?: { t: string; mr:
 
 interface PackedTeam {
   id: string; name: string; f: string;
-  s: PlayerPack[]; sub: PlayerPack[];
+  q: PlayerPack[];
   col: { primary: string; secondary: string };
   tac?: TeamTactics;
 }
@@ -127,7 +129,7 @@ function unpackClubPlayer(p: ClubPlayerPack): ClubPlayer {
 function packTeam(t: Team): PackedTeam {
   return {
     id: t.id, name: t.name, f: t.formation,
-    s: t.starters.map(packPlayer), sub: t.substitutes.map(packPlayer),
+    q: t.squad.map(packPlayer),
     col: t.colors,
     ...(t.tactics && { tac: t.tactics }),
   };
@@ -136,7 +138,7 @@ function packTeam(t: Team): PackedTeam {
 function unpackTeam(t: PackedTeam): Team {
   return {
     id: t.id, name: t.name, formation: t.f as Formation,
-    starters: t.s.map(unpackPlayer), substitutes: t.sub.map(unpackPlayer),
+    squad: t.q.map(unpackPlayer),
     colors: t.col,
     ...(t.tac && { tactics: t.tac }),
   };

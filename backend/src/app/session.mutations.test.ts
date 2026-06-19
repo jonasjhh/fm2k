@@ -59,11 +59,10 @@ describe('GameSession editor:', () => {
     expect(team?.name).toBe('Renamed FC');
   });
 
-  it('given generateFullTeam then the team has 11 starters and 4 subs', () => {
+  it('given generateFullTeam then the team has a 15-player squad (11 starters + 4 subs)', () => {
     const { session, teamId } = newGame();
     const updated = session.generateFullTeam(teamId);
     const team = updated.flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === teamId);
-    expect(team?.starters).toHaveLength(11);
-    expect(team?.substitutes).toHaveLength(4);
+    expect(team?.squad).toHaveLength(15);
   });
 });

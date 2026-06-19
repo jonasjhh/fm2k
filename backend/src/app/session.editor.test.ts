@@ -61,12 +61,12 @@ describe('GameSession pre-game editor:', () => {
     test('updates only the matching player', () => {
       const s = new GameSession();
       const team = firstTeam(s);
-      const [p0, p1] = team.starters;
+      const [p0, p1] = team.squad;
       s.updatePlayerData(team.id, p0.id, { name: 'EDITED' });
 
       const t = teamOf(s, team.id);
-      expect(t.starters.find(p => p.id === p0.id)!.name).toBe('EDITED');
-      expect(t.starters.find(p => p.id === p1.id)!.name).toBe(p1.name);
+      expect(t.squad.find(p => p.id === p0.id)!.name).toBe('EDITED');
+      expect(t.squad.find(p => p.id === p1.id)!.name).toBe(p1.name);
     });
   });
 
@@ -74,55 +74,40 @@ describe('GameSession pre-game editor:', () => {
     test('regenerates only the target, preserving its id and position', () => {
       const s = new GameSession();
       const team = firstTeam(s);
-      const [p0, p1] = team.starters;
+      const [p0, p1] = team.squad;
       s.regeneratePlayer(team.id, p0.id);
 
       const t = teamOf(s, team.id);
-      const newP0 = t.starters.find(p => p.id === p0.id)!;
+      const newP0 = t.squad.find(p => p.id === p0.id)!;
       expect(newP0.id).toBe(p0.id);
       expect(newP0.position).toBe(p0.position);
-      expect(newP0).not.toBe(p0);                              // target was replaced
-      expect(t.starters.find(p => p.id === p1.id)).toBe(p1);   // others untouched
+      expect(newP0).not.toBe(p0);                          // target was replaced
+      expect(t.squad.find(p => p.id === p1.id)).toBe(p1);  // others untouched
     });
   });
 
   describe('removePlayer', () => {
-    test('removes a starter and leaves substitutes intact', () => {
+    test('removes the target player and leaves the rest of the squad intact', () => {
       const s = new GameSession();
       const team = firstTeam(s);
-      const target = team.starters[0];
-      const startersBefore = team.starters.length;
-      const subsBefore = team.substitutes.length;
+      const target = team.squad[0];
+      const squadBefore = team.squad.length;
 
       s.removePlayer(team.id, target.id);
 
       const t = teamOf(s, team.id);
-      expect(t.starters).toHaveLength(startersBefore - 1);
-      expect(t.starters.some(p => p.id === target.id)).toBe(false);
-      expect(t.substitutes).toHaveLength(subsBefore);
-    });
-
-    test('removes a substitute', () => {
-      const s = new GameSession();
-      const team = firstTeam(s);
-      const target = team.substitutes[0];
-      const subsBefore = team.substitutes.length;
-
-      s.removePlayer(team.id, target.id);
-
-      const t = teamOf(s, team.id);
-      expect(t.substitutes).toHaveLength(subsBefore - 1);
-      expect(t.substitutes.some(p => p.id === target.id)).toBe(false);
+      expect(t.squad).toHaveLength(squadBefore - 1);
+      expect(t.squad.some(p => p.id === target.id)).toBe(false);
     });
   });
 
   describe('addGeneratedPlayer', () => {
-    test('appends exactly one starter', () => {
+    test('appends exactly one player', () => {
       const s = new GameSession();
       const team = firstTeam(s);
-      const before = team.starters.length;
+      const before = team.squad.length;
       s.addGeneratedPlayer(team.id);
-      expect(teamOf(s, team.id).starters).toHaveLength(before + 1);
+      expect(teamOf(s, team.id).squad).toHaveLength(before + 1);
     });
 
     test('picks the position from the injected rng (index into ALL_POSITIONS)', () => {
@@ -130,13 +115,13 @@ describe('GameSession pre-game editor:', () => {
       const low = new GameSession(() => 0);
       const lowTeam = firstTeam(low);
       low.addGeneratedPlayer(lowTeam.id);
-      const lowAdded = teamOf(low, lowTeam.id).starters.at(-1)!;
+      const lowAdded = teamOf(low, lowTeam.id).squad.at(-1)!;
       expect(lowAdded.position).toBe('GK');
 
       const high = new GameSession(() => 0.99);
       const highTeam = firstTeam(high);
       high.addGeneratedPlayer(highTeam.id);
-      const highAdded = teamOf(high, highTeam.id).starters.at(-1)!;
+      const highAdded = teamOf(high, highTeam.id).squad.at(-1)!;
       expect(highAdded.position).toBe('ST');
     });
   });
@@ -145,7 +130,7 @@ describe('GameSession pre-game editor:', () => {
     test('appends the given player with a generated id', () => {
       const s = new GameSession();
       const team = firstTeam(s);
-      const before = team.starters.length;
+      const before = team.squad.length;
       const incoming: Omit<Player, 'id'> = {
         name: 'Newbie', nationality: 'norwegian', age: 20, position: 'ST', potential: 80, attributes: attrs(75),
       };
@@ -153,22 +138,21 @@ describe('GameSession pre-game editor:', () => {
       s.addPlayer(team.id, incoming);
 
       const t = teamOf(s, team.id);
-      expect(t.starters).toHaveLength(before + 1);
-      const added = t.starters[t.starters.length - 1];
+      expect(t.squad).toHaveLength(before + 1);
+      const added = t.squad[t.squad.length - 1];
       expect(added.name).toBe('Newbie');
       expect(added.id).toBeTruthy();
     });
   });
 
   describe('generateFullTeam', () => {
-    test('builds 11 starters and 4 substitutes', () => {
+    test('builds a 15-player squad (11 starters + 4 bench)', () => {
       const s = new GameSession();
       const team = firstTeam(s);
       s.generateFullTeam(team.id);
 
       const t = teamOf(s, team.id);
-      expect(t.starters).toHaveLength(11);
-      expect(t.substitutes).toHaveLength(4);
+      expect(t.squad).toHaveLength(15);
     });
   });
 });

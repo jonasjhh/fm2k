@@ -17,7 +17,7 @@ function team(id: string): Team {
   const positions: Position[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
   return {
     id, name: id.toUpperCase(), formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
-    starters: positions.map((p, i) => player(`${id}-p${i}`, p)), substitutes: [],
+    squad: positions.map((p, i) => player(`${id}-p${i}`, p)),
   };
 }
 

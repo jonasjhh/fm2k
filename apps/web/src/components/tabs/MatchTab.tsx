@@ -78,7 +78,7 @@ export default function MatchTab() {
         squad: clubState.squad as Player[],
       };
     }
-    const squad: Player[] = team ? [...team.starters, ...team.substitutes] : [];
+    const squad: Player[] = team ? team.squad : [];
     const formation = (team?.formation ?? '4-4-2') as Formation;
     return { team, formation, lines: FORMATION_LINES[formation], slotAssignments: buildXISlotAssignments(squad, formation), squad };
   };

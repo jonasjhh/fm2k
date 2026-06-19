@@ -29,11 +29,10 @@ function cupTeam(id: string): Team {
   const positions: Position[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
   return {
     id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
-    starters: positions.map((p, i): Player => ({
+    squad: positions.map((p, i): Player => ({
       id: `${id}-p${i}`, name: `${id}-p${i}`, nationality: 'norwegian', age: 25, position: p, potential: 70,
       attributes: { speed: 70, strength: 70, agility: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, awareness: 70, composure: 70 },
     })),
-    substitutes: [],
   };
 }
 
@@ -247,6 +246,33 @@ describe('CompetitionManager.updateTeam:', () => {
     await m.tickTo(addMinutes(nextFixture.scheduledTime, 1));
     const live = m.getLiveMatches().find(l => l.fixtureId === nextFixture.id)!;
     expect([live.homeTeamName, live.awayTeamName]).toContain('Renamed FC');
+  });
+});
+
+describe('CompetitionManager player-team starters resolver:', () => {
+  test('getPlayerStarters is wired through to the live match and consulted at kickoff', async () => {
+    const teams = DIVISION_TEAMS;
+    const playerTeamId = teams[0].id;
+    const lineup = teams[0].squad.slice(0, 11);
+    const getPlayerStarters = vi.fn(() => lineup);
+
+    const m = new CompetitionManager({
+      format: new LeagueFormat(),
+      teams,
+      startDate: START,
+      competitionId: 'test-league',
+      name: 'Test League',
+      eventsPerMinute: 1,
+      playerTeamId,
+      getPlayerStarters,
+    });
+
+    expect(getPlayerStarters).not.toHaveBeenCalled(); // not consulted before kickoff
+
+    const fixture = m.getState().fixtures.find(f => f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId)!;
+    await m.tickTo(addMinutes(fixture.scheduledTime, 1));
+
+    expect(getPlayerStarters).toHaveBeenCalled(); // resolved lazily once the match actually kicks off
   });
 });
 

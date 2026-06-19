@@ -5,11 +5,12 @@ import { MatchSimulator } from './match-simulator.ts';
 import type { MatchEvent, MatchStatistics, MatchState } from './types.ts';
 import type { InjuryReport } from './injury.ts';
 
-/** One side's full match input: a squad + the manager's tactical intent. `team.starters`
- *  must already be the resolved XI (exactly 11, in slot order for `intent.formation`) —
+/** One side's full match input: a squad + the manager's tactical intent. `starters` must
+ *  already be the resolved XI (exactly 11, in slot order for `intent.formation`) —
  *  selection happens upstream of the simulator, never inside it. */
 export interface SideInput {
   team: Team;
+  starters: Player[];
   intent: TeamTacticsIntent;
   /** Starting energy 0..100 per player id (e.g. from fitness); default fresh. */
   fitness?: Record<string, number>;
@@ -56,8 +57,8 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
   const homeTeam: Team = { ...input.home.team, formation: input.home.intent.formation };
   const awayTeam: Team = { ...input.away.team, formation: input.away.intent.formation };
 
-  const homeXI = homeTeam.starters;
-  const awayXI = awayTeam.starters;
+  const homeXI = input.home.starters;
+  const awayXI = input.away.starters;
 
   const homeParams = resolveMatchParameters(input.home.intent, homeXI, awayXI);
   const awayParams = resolveMatchParameters(input.away.intent, awayXI, homeXI);
@@ -66,6 +67,7 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
     matchDuration: input.matchDuration ?? 90,
     eventsPerMinute: input.eventsPerMinute ?? 3,
     homeTeam, awayTeam,
+    homeStarters: homeXI, awayStarters: awayXI,
     homeParams, awayParams,
     homeFitness: input.home.fitness,
     awayFitness: input.away.fitness,

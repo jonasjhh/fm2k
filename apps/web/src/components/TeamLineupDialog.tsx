@@ -33,7 +33,7 @@ export default function TeamLineupDialog({ teamId, onClose }: Props) {
         // For the player's own club show their selected formation + starting XI;
         // for everyone else show the auto-selected best XI.
         const isPlayerTeam = teamId === playerTeamId && clubState !== null;
-        const squad: Player[] = isPlayerTeam ? clubState.squad : [...team.starters, ...team.substitutes];
+        const squad: Player[] = isPlayerTeam ? clubState.squad : team.squad;
         const formation = isPlayerTeam ? clubState.formation : team.formation;
         const lines = FORMATION_LINES[formation];
         const slotAssignments = isPlayerTeam

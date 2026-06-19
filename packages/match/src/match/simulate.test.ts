@@ -22,16 +22,22 @@ function team(id: string, v: number): Team {
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: attrs(v) });
     }
   });
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 const intent = (formation: Team['formation']): TeamTacticsIntent =>
   ({ formation, style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } });
 
+/** A side's full match input: squad + intent, with starters defaulting to the whole squad. */
+function side(id: string, v: number, formation: Team['formation']) {
+  const t = team(id, v);
+  return { team: t, starters: t.squad, intent: intent(formation) };
+}
+
 describe('simulateMatch (standalone contract):', () => {
   it('returns a self-describing result whose score matches the goal events', () => {
     const r = simulateMatch({
-      home: { team: team('h', 60), intent: intent('4-4-2') },
-      away: { team: team('a', 60), intent: intent('4-4-2') },
+      home: side('h', 60, '4-4-2'),
+      away: side('a', 60, '4-4-2'),
       rng: mulberry32(1),
     });
     const homeGoals = r.events.filter(e => e.type === 'goal' && e.team === 'home').length;
@@ -42,8 +48,8 @@ describe('simulateMatch (standalone contract):', () => {
 
   it('produces 11 player updates per side with minutes, energy and card fields', () => {
     const r = simulateMatch({
-      home: { team: team('h', 60), intent: intent('4-4-2') },
-      away: { team: team('a', 60), intent: intent('4-4-2') },
+      home: side('h', 60, '4-4-2'),
+      away: side('a', 60, '4-4-2'),
       rng: mulberry32(2),
     });
     expect(r.playerUpdates.home).toHaveLength(11);
@@ -57,8 +63,8 @@ describe('simulateMatch (standalone contract):', () => {
 
   it('is deterministic under a fixed seed', () => {
     const run = () => simulateMatch({
-      home: { team: team('h', 65), intent: intent('4-3-3') },
-      away: { team: team('a', 45), intent: intent('5-4-1') },
+      home: side('h', 65, '4-3-3'),
+      away: side('a', 45, '5-4-1'),
       rng: mulberry32(7),
     });
     const a = run(); const b = run();
@@ -70,8 +76,8 @@ describe('simulateMatch (standalone contract):', () => {
     let strongWins = 0;
     for (let s = 0; s < 60; s++) {
       const r = simulateMatch({
-        home: { team: team('h', 80), intent: intent('4-3-3') },
-        away: { team: team('a', 25), intent: intent('4-4-2') },
+        home: side('h', 80, '4-3-3'),
+        away: side('a', 25, '4-4-2'),
         rng: mulberry32(s + 1),
       });
       if (r.score.home > r.score.away) { strongWins++; }

@@ -218,7 +218,9 @@ export class GameSession {
         for (const t of d.teams) {
           const teamIntent = t.id === playerTeamId ? playerIntent : aiIntent(t.formation);
           t.tacticsIntent = teamIntent;
-          t.tacticsParams = resolveMatchParameters(teamIntent, t.starters);
+          // A rough season-start approximation — ClubManager doesn't exist yet at this point
+          // for the player's own team. syncPlayerTeam() resolves the real per-match XI later.
+          t.tacticsParams = resolveMatchParameters(teamIntent, selectStartingXIWithSlots(t.squad, t.formation).starters);
         }
       }
     }
@@ -309,6 +311,7 @@ export class GameSession {
       const competitions: CompetitionManager[] = [];
 
       for (const div of country.divisions) {
+        const isPlayerDivision = div.id === division.id;
         const lm = new CompetitionManager({
           format: new LeagueFormat(),
           teams: div.teams,
@@ -317,7 +320,9 @@ export class GameSession {
           competitionId: div.id,
           name: div.name,
           eventsPerMinute: EVENTS_PER_MINUTE,
-          eventBus: div.id === division.id ? eventBus : undefined,
+          eventBus: isPlayerDivision ? eventBus : undefined,
+          playerTeamId: isPlayerDivision ? teamId : undefined,
+          getPlayerStarters: isPlayerDivision ? () => this.resolvePlayerStarters() : undefined,
         });
         leagueManagers[div.id] = lm;
         competitions.push(lm);
@@ -343,6 +348,8 @@ export class GameSession {
         name: `${country.name} Cup`,
         eventsPerMinute: EVENTS_PER_MINUTE,
         eventBus: isPlayerNation ? eventBus : undefined,
+        playerTeamId: isPlayerNation ? teamId : undefined,
+        getPlayerStarters: isPlayerNation ? () => this.resolvePlayerStarters() : undefined,
       });
       cupManagers[cupId] = cup;
       competitions.push(cup);
@@ -350,17 +357,20 @@ export class GameSession {
       seasons[country.id] = new Season({ nationId: country.id, startDate: SEASON_START, competitions });
     }
 
+    // The player's initial pick: their own deliberate choice takes over from here via
+    // ClubState (setStartingXI/setBench) — Team itself never tracks a starters split again.
+    const initialXI = selectStartingXIWithSlots(team.squad, team.formation);
     const defaultSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
     const clubManager = new ClubManager({
       clubId: team.id,
       clubName: team.name,
       divisionId: division.id,
-      squad: [...team.starters, ...team.substitutes],
+      squad: team.squad,
       budget: BUDGET_START,
       formation: team.formation,
       tactics: intent,
-      startingXI: team.starters.slice(0, 11).map(p => p.id),
-      benchPlayers: team.substitutes.map(p => p.id),
+      startingXI: initialXI.starters.map(p => p.id),
+      benchPlayers: initialXI.substitutes.map(p => p.id),
       stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
       stadiumSectors: defaultSectors,
       eventBus,
@@ -402,7 +412,7 @@ export class GameSession {
     for (const country of editableCountries) {
       for (const div of country.divisions) {
         for (const t of div.teams) {
-          this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.starters.length + t.substitutes.length));
+          this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.squad.length));
         }
       }
     }
@@ -664,10 +674,7 @@ export class GameSession {
   private reconcilePlayerSquad(): void {
     if (!this.clubManager || !this.playerTeamId) { return; }
     const cs = this.clubManager.getState();
-    const starterIds = new Set(cs.startingXI);
-    const starters = cs.squad.filter(p => starterIds.has(p.id));
-    const substitutes = cs.squad.filter(p => !starterIds.has(p.id));
-    this.editableCountries = mapTeam(this.editableCountries, this.playerTeamId, t => ({ ...t, starters, substitutes }));
+    this.editableCountries = mapTeam(this.editableCountries, this.playerTeamId, t => ({ ...t, squad: cs.squad }));
   }
 
   /**
@@ -690,16 +697,14 @@ export class GameSession {
           teams: d.teams.map(team => {
             if (team.id === this.playerTeamId) { return team; } // already churned via ClubManager
             const level = this.facilityForLevel(d.level);
-            const squadSize = team.starters.length + team.substitutes.length;
-            const res = churnSquad([...team.starters, ...team.substitutes], {
+            const res = churnSquad(team.squad, {
               rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
               trainingLevel: level, academyLevel: level,
             });
             for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
-            this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, squadSize));
+            this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, team.squad.length));
             churnedTeamIds.push(team.id);
-            const { starters, substitutes } = selectStartingXIWithSlots(res.squad, team.formation);
-            return { ...team, starters, substitutes };
+            return { ...team, squad: res.squad };
           }),
         })),
       };
@@ -852,26 +857,32 @@ export class GameSession {
   }
 
   /**
-   * Mirror the player's current clubState (XI, formation, tactics) onto their
-   * live Team object. Because the simulator now builds lazily at kickoff, the
-   * player's chosen squad/formation/tactics are used on a per-match basis — the
-   * next match to start picks up whatever is set here. AI teams are never synced,
-   * so their season-start tactics stay fixed.
+   * Mirror the player's current clubState (squad, formation, tactics) onto their live
+   * Team object. The player's *starting XI* is never stored on Team at all — it's
+   * resolved lazily, straight from ClubState, by `resolvePlayerStarters()` (wired into
+   * CompetitionManager as `getPlayerStarters`), called fresh at kickoff and live for
+   * substitutions. AI teams are never synced, so their season-start tactics stay fixed.
    */
   private syncPlayerTeam(): void {
     const cs = this.clubManager?.getState();
     if (!this.playerTeam || !cs) { return; }
-    const byId = new Map(cs.squad.map(p => [p.id, p]));
-    const pick = (ids: string[]): Player[] =>
-      ids.map(id => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
-    this.playerTeam.starters = pick(cs.startingXI);
-    this.playerTeam.substitutes = pick(cs.benchPlayers);
+    this.playerTeam.squad = cs.squad;
     this.playerTeam.formation = cs.formation;
     this.playerTeam.tacticsIntent = cs.tactics;
-    this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.playerTeam.starters);
+    this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.resolvePlayerStarters());
     // Seed in-match starting energy from each player's current fitness, so a tired
     // squad (fixture congestion) starts and tires flatter.
     this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness]));
+  }
+
+  /** The human club's current starting XI, mapped from ClubState's deliberate choice —
+   *  never auto-selected/fit-scored. Called fresh by CompetitionManager at kickoff and
+   *  live for in-match substitution diffing. */
+  private resolvePlayerStarters(): Player[] {
+    const cs = this.clubManager?.getState();
+    if (!cs) { return []; }
+    const byId = new Map(cs.squad.map(p => [p.id, p]));
+    return cs.startingXI.map(id => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
   }
 
   toggleXI(id: string): ClubState | null {
@@ -948,9 +959,9 @@ export class GameSession {
     if (!this.getTransferWindow().open) { return false; }
     const team = findTeamById(this.editableCountries, teamId);
     if (!team) { return false; }
-    const isStarter = team.starters.some(p => p.id === playerId);
-    const target = (isStarter ? team.starters : team.substitutes).find(p => p.id === playerId);
+    const target = team.squad.find(p => p.id === playerId);
     if (!target) { return false; }
+    const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
 
     const role: LineupRole = isStarter ? 'starter' : 'bench';
     if (!acceptBid(target, role, amount, this.rng)) { return false; }
@@ -961,8 +972,7 @@ export class GameSession {
     const replacement = makeYouth(target.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
     this.editableCountries = mapTeam(this.editableCountries, teamId, t => ({
       ...t,
-      starters: isStarter ? [...t.starters.filter(p => p.id !== playerId), replacement] : t.starters,
-      substitutes: isStarter ? t.substitutes : [...t.substitutes.filter(p => p.id !== playerId), replacement],
+      squad: [...t.squad.filter(p => p.id !== playerId), replacement],
     }));
 
     this.eventBus?.emit('player.transferred', {
@@ -982,15 +992,13 @@ export class GameSession {
   private runAiMarketWindow(): void {
     if (!this.transferManager) { return; }
     // Flatten every AI team (skip the manager's) into {id, squad}.
-    const formationByTeamId = new Map<string, Formation>();
     const aiTeams: { id: string; squad: Player[] }[] = [];
     for (const country of this.editableCountries) {
       if (!this.selectedLeagueIds.includes(country.id)) { continue; }
       for (const division of country.divisions) {
         for (const team of division.teams) {
           if (team.id === this.playerTeamId) { continue; }
-          formationByTeamId.set(team.id, team.formation);
-          aiTeams.push({ id: team.id, squad: [...team.starters, ...team.substitutes] });
+          aiTeams.push({ id: team.id, squad: team.squad });
         }
       }
     }
@@ -1009,9 +1017,7 @@ export class GameSession {
           const squad = byId.get(t.id);
           if (!squad) { return t; }
           tradedTeamIds.push(t.id);
-          const formation = formationByTeamId.get(t.id) ?? t.formation;
-          const { starters, substitutes } = selectStartingXIWithSlots(squad, formation);
-          return { ...t, starters, substitutes };
+          return { ...t, squad };
         }),
       })),
     }));
@@ -1060,8 +1066,7 @@ export class GameSession {
     const replacement = makeYouth(player.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
     this.editableCountries = mapTeam(this.editableCountries, team.id, t => ({
       ...t,
-      starters: isStarter ? [...t.starters.filter(p => p.id !== playerId), replacement] : t.starters,
-      substitutes: isStarter ? t.substitutes : [...t.substitutes.filter(p => p.id !== playerId), replacement],
+      squad: [...t.squad.filter(p => p.id !== playerId), replacement],
     }));
     this.eventBus?.emit('player.transferred', {
       playerId, playerName: player.name, fromTeamId: team.id, toTeamId: this.playerTeamId, fee,
@@ -1079,10 +1084,10 @@ export class GameSession {
       for (const division of country.divisions) {
         for (const team of division.teams) {
           if (team.id === this.playerTeamId) { continue; }
-          const starter = team.starters.find(p => p.id === playerId);
-          if (starter) { return { team, player: starter, isStarter: true }; }
-          const sub = team.substitutes.find(p => p.id === playerId);
-          if (sub) { return { team, player: sub, isStarter: false }; }
+          const player = team.squad.find(p => p.id === playerId);
+          if (!player) { continue; }
+          const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
+          return { team, player, isStarter };
         }
       }
     }
@@ -1093,9 +1098,9 @@ export class GameSession {
   askingPriceFor(teamId: string, playerId: string): number | null {
     const team = findTeamById(this.editableCountries, teamId);
     if (!team) { return null; }
-    const isStarter = team.starters.some(p => p.id === playerId);
-    const target = (isStarter ? team.starters : team.substitutes).find(p => p.id === playerId);
+    const target = team.squad.find(p => p.id === playerId);
     if (!target) { return null; }
+    const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
     return directTransferPrice(target, isStarter ? 'starter' : 'bench');
   }
 
@@ -1156,29 +1161,28 @@ export class GameSession {
   }
 
   updatePlayerData(teamId: string, playerId: string, data: Partial<Player>): EditableCountry[] {
-    return this.editTeam(teamId, t => {
-      const upd = (list: Player[]) => list.map(p => p.id === playerId ? { ...p, ...data } : p);
-      return { ...t, starters: upd(t.starters), substitutes: upd(t.substitutes) };
-    });
+    return this.editTeam(teamId, t => ({
+      ...t,
+      squad: t.squad.map(p => p.id === playerId ? { ...p, ...data } : p),
+    }));
   }
 
   regeneratePlayer(teamId: string, playerId: string): EditableCountry[] {
-    return this.editTeam(teamId, t => {
-      const upd = (list: Player[]) => list.map(p => {
+    return this.editTeam(teamId, t => ({
+      ...t,
+      squad: t.squad.map(p => {
         if (p.id !== playerId) { return p; }
         const q = Math.round(calculateOverall(p.attributes));
         const gen = this.playerGenerator.generatePlayer(p.position, { overall: q });
         return { ...p, name: gen.name, attributes: gen.attributes };
-      });
-      return { ...t, starters: upd(t.starters), substitutes: upd(t.substitutes) };
-    });
+      }),
+    }));
   }
 
   removePlayer(teamId: string, playerId: string): EditableCountry[] {
     return this.editTeam(teamId, t => ({
       ...t,
-      starters: t.starters.filter(p => p.id !== playerId),
-      substitutes: t.substitutes.filter(p => p.id !== playerId),
+      squad: t.squad.filter(p => p.id !== playerId),
     }));
   }
 
@@ -1186,21 +1190,19 @@ export class GameSession {
     const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
     const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
     const newPlayer = this.makePlayer(pos, 70, nationality);
-    return this.editTeam(teamId, t => ({ ...t, starters: [...t.starters, newPlayer] }));
+    return this.editTeam(teamId, t => ({ ...t, squad: [...t.squad, newPlayer] }));
   }
 
   addPlayer(teamId: string, player: Omit<Player, 'id'>): EditableCountry[] {
-    return this.editTeam(teamId, t => ({ ...t, starters: [...t.starters, { ...player, id: uuidv4() }] }));
+    return this.editTeam(teamId, t => ({ ...t, squad: [...t.squad, { ...player, id: uuidv4() }] }));
   }
 
   generateFullTeam(teamId: string): EditableCountry[] {
     const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    return this.editTeam(teamId, t => ({
-      ...t,
-      starters: (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as Position[])
-        .map(pos => this.makePlayer(pos, 70, nationality)),
-      substitutes: (['GK', 'CB', 'CM', 'ST'] as Position[])
-        .map(pos => this.makePlayer(pos, 60, nationality)),
-    }));
+    const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as Position[])
+      .map(pos => this.makePlayer(pos, 70, nationality));
+    const bench = (['GK', 'CB', 'CM', 'ST'] as Position[])
+      .map(pos => this.makePlayer(pos, 60, nationality));
+    return this.editTeam(teamId, t => ({ ...t, squad: [...starters, ...bench] }));
   }
 }

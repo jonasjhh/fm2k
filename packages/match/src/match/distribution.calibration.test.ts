@@ -13,12 +13,14 @@ function team(id: string, v: number): Team {
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: attrs(v) });
     }
   });
-  return { id, name: id, formation: '4-4-2', starters, substitutes: [], colors: { primary: '#fff', secondary: '#000' } };
+  return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 const intent: TeamTacticsIntent = { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } };
-const matchup = (hv: number, av: number): DistributionInput => ({
-  home: { team: team('h', hv), intent }, away: { team: team('a', av), intent },
-});
+const matchup = (hv: number, av: number): DistributionInput => {
+  const home = team('h', hv);
+  const away = team('a', av);
+  return { home: { team: home, starters: home.squad, intent }, away: { team: away, starters: away.squad, intent } };
+};
 
 const N = 400;
 

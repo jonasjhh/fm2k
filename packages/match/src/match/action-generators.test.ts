@@ -48,12 +48,10 @@ function eleven(prefix: string): Player[] {
 }
 
 function team(id: string): Team {
-  const starters = eleven(id);
   return {
     id, name: id, formation: '4-4-2',
     colors: { primary: '#fff', secondary: '#000' },
-    starters,
-    substitutes: [],
+    squad: eleven(id),
   };
 }
 
@@ -69,7 +67,7 @@ function makeState(overrides: Partial<MatchState> = {}): MatchState {
     phase: 'first_half',
     homeTeam: home,
     awayTeam: away,
-    currentPlayers: { home: home.starters, away: away.starters },
+    currentPlayers: { home: home.squad, away: away.squad },
     bookings: { yellow: [], red: [] },
     ...overrides,
   };

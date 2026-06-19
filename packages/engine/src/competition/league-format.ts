@@ -1,10 +1,18 @@
 import { generateFixtures } from '../league/fixture-generator.ts';
+import { selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
+import type { Player, Team } from '@fm2k/match';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
 } from './competition-format.ts';
 import type {
   CompetitionState, CompetitionStanding, CompetitionFixture, LeagueFormatConfig,
 } from './competition-types.ts';
+
+/** AI's eager best-fit XI for a team — the default before the human club's own choice
+ *  (resolved later, lazily, by CompetitionManager/MatchOccurrence) overrides it. */
+function bestXI(team: Team): Player[] {
+  return selectStartingXIWithSlots(team.squad, team.formation).starters;
+}
 
 const DEFAULTS = { legs: 2, pointsForWin: 3, pointsForDraw: 1 } as const;
 
@@ -93,12 +101,17 @@ export class LeagueFormat implements CompetitionFormat {
   }
 
   private scheduleFor(fixtures: CompetitionFixture[], ctx: FormatContext): ScheduledMatch[] {
-    return fixtures.map(f => ({
-      fixtureId: f.id,
-      homeTeam: ctx.teamsById.get(f.homeTeamId)!,
-      awayTeam: ctx.teamsById.get(f.awayTeamId)!,
-      scheduledTime: f.scheduledTime,
-      knockout: false,
-    }));
+    return fixtures.map(f => {
+      const homeTeam = ctx.teamsById.get(f.homeTeamId)!;
+      const awayTeam = ctx.teamsById.get(f.awayTeamId)!;
+      return {
+        fixtureId: f.id,
+        homeTeam, awayTeam,
+        homeStarters: bestXI(homeTeam),
+        awayStarters: bestXI(awayTeam),
+        scheduledTime: f.scheduledTime,
+        knockout: false,
+      };
+    });
   }
 }

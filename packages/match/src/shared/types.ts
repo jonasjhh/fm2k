@@ -49,8 +49,10 @@ export interface Team {
   id: string;
   name: string;
   formation: Formation;
-  starters: Player[];
-  substitutes: Player[];
+  /** Full roster. Who's starting/on the bench is a match-build-time decision — never
+   *  persisted here (see selectStartingXIWithSlots in @fm2k/engine, and SideInput/
+   *  MatchConfig's explicit starters fields). */
+  squad: Player[];
   colors: TeamColors;
   tactics?: TeamTactics;
   /** Manager intent (formation + style + sliders); resolved into tacticsParams. */

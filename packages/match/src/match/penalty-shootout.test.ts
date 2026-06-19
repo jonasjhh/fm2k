@@ -1,5 +1,5 @@
 import { simulateShootout } from './penalty-shootout.ts';
-import type { Team, Player, Formation } from '../shared/types.ts';
+import type { Player } from '../shared/types.ts';
 
 function createTestPlayer(id: string, position: string, quality = 70): Player {
   return {
@@ -11,13 +11,8 @@ function createTestPlayer(id: string, position: string, quality = 70): Player {
   };
 }
 
-function createTestTeam(id: string, quality = 70, formation: Formation = '4-4-2'): Team {
-  return {
-    id, name: id, formation,
-    colors: { primary: '#fff', secondary: '#000' },
-    starters: Array.from({ length: 11 }, (_, i) => createTestPlayer(`${id}-p${i}`, 'ST', quality)),
-    substitutes: [],
-  };
+function createTestXI(id: string, quality = 70): Player[] {
+  return Array.from({ length: 11 }, (_, i) => createTestPlayer(`${id}-p${i}`, 'ST', quality));
 }
 
 /** Deterministic PRNG (mulberry32) — varies per call so a shootout always resolves. */
@@ -38,8 +33,8 @@ function seqRng(values: number[]): () => number {
 }
 
 describe('simulateShootout:', () => {
-  const home = createTestTeam('home');
-  const away = createTestTeam('away');
+  const home = createTestXI('home');
+  const away = createTestXI('away');
 
   test('always returns a winner', () => {
     for (let s = 0; s < 50; s++) {

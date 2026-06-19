@@ -26,8 +26,8 @@ function makePlayer(id: string): Player {
   };
 }
 
-function makeTeam(id: string, starters: Player[]): Team {
-  return { id, name: id, formation: '4-4-2' as Formation, starters, substitutes: [], colors: { primary: '#FFFFFF', secondary: '#000000' } };
+function makeTeam(id: string, squad: Player[]): Team {
+  return { id, name: id, formation: '4-4-2' as Formation, squad, colors: { primary: '#FFFFFF', secondary: '#000000' } };
 }
 
 function makeIntegrationSetup(eventBus?: EventBus<GameEvents>) {
