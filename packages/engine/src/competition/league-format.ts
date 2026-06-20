@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { generateFixtures } from '../league/fixture-generator.ts';
 import { selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
 import type { Player, Team } from '@fm2k/match';
@@ -54,8 +55,8 @@ export class LeagueFormat implements CompetitionFormat {
     fixture.result = { homeScore: outcome.homeScore, awayScore: outcome.awayScore };
     fixture.status = 'completed';
 
-    const home = draft.standings.find(s => s.teamId === outcome.homeTeamId)!;
-    const away = draft.standings.find(s => s.teamId === outcome.awayTeamId)!;
+    const home = assertDefined(draft.standings.find(s => s.teamId === outcome.homeTeamId), `unknown team '${outcome.homeTeamId}'`);
+    const away = assertDefined(draft.standings.find(s => s.teamId === outcome.awayTeamId), `unknown team '${outcome.awayTeamId}'`);
 
     home.played++; away.played++;
     home.goalsFor += outcome.homeScore; home.goalsAgainst += outcome.awayScore;
@@ -102,8 +103,8 @@ export class LeagueFormat implements CompetitionFormat {
 
   private scheduleFor(fixtures: CompetitionFixture[], ctx: FormatContext): ScheduledMatch[] {
     return fixtures.map(f => {
-      const homeTeam = ctx.teamsById.get(f.homeTeamId)!;
-      const awayTeam = ctx.teamsById.get(f.awayTeamId)!;
+      const homeTeam = assertDefined(ctx.teamsById.get(f.homeTeamId), `unknown team '${f.homeTeamId}'`);
+      const awayTeam = assertDefined(ctx.teamsById.get(f.awayTeamId), `unknown team '${f.awayTeamId}'`);
       return {
         fixtureId: f.id,
         homeTeam, awayTeam,

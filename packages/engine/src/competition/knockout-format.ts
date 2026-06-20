@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import type { Player, Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import { cupRoundDates } from './cup-scheduling.ts';
@@ -58,7 +59,7 @@ export class KnockoutFormat implements CompetitionFormat {
   }
 
   apply(draft: CompetitionState, outcome: MatchOutcome, ctx: FormatContext): ScheduledMatch[] {
-    const bracket = draft.bracket!;
+    const bracket = assertDefined(draft.bracket, 'knockout competition state has no bracket');
     const fixture = draft.fixtures.find(f => f.id === outcome.fixtureId);
     if (!fixture || fixture.status === 'completed') { return []; }
 
@@ -81,7 +82,7 @@ export class KnockoutFormat implements CompetitionFormat {
     const { nextTieId } = recordWinner(bracket, slot.tieId, winnerId, winnerName);
     if (nextTieId === null) { return []; }
 
-    const next = bracket.slots.find(s => s.tieId === nextTieId)!;
+    const next = assertDefined(bracket.slots.find(s => s.tieId === nextTieId), `unknown bracket tie '${nextTieId}'`);
     const dates = this.roundDates(ctx, bracket.rounds);
     const sched = this.materialise(next, bracket, draft, dates, ctx);
     return sched ? [sched] : [];
@@ -139,8 +140,8 @@ export class KnockoutFormat implements CompetitionFormat {
       roundLabel: bracket.roundNames[slot.round - 1],
       homeTeamId: slot.homeTeamId,
       awayTeamId: slot.awayTeamId,
-      homeTeamName: slot.homeTeamName!,
-      awayTeamName: slot.awayTeamName!,
+      homeTeamName: assertDefined(slot.homeTeamName, 'slot has a homeTeamId but no homeTeamName'),
+      awayTeamName: assertDefined(slot.awayTeamName, 'slot has an awayTeamId but no awayTeamName'),
       scheduledTime: dates[slot.round - 1],
       result: null,
       status: 'scheduled',
@@ -151,8 +152,8 @@ export class KnockoutFormat implements CompetitionFormat {
   }
 
   private toScheduledMatch(fixture: CompetitionFixture, ctx: FormatContext): ScheduledMatch {
-    const homeTeam = ctx.teamsById.get(fixture.homeTeamId)!;
-    const awayTeam = ctx.teamsById.get(fixture.awayTeamId)!;
+    const homeTeam = assertDefined(ctx.teamsById.get(fixture.homeTeamId), `unknown team '${fixture.homeTeamId}'`);
+    const awayTeam = assertDefined(ctx.teamsById.get(fixture.awayTeamId), `unknown team '${fixture.awayTeamId}'`);
     return {
       fixtureId: fixture.id,
       homeTeam, awayTeam,

@@ -3,7 +3,7 @@ import { LeagueFormat } from './league-format.ts';
 import { KnockoutFormat } from './knockout-format.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime, addDays, addMinutes } from '@fm2k/timeline';
-import { EventBus } from '@fm2k/state';
+import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { Team, Formation, Player, Position } from '@fm2k/match';
 import type { KnockoutFormatConfig } from './competition-types.ts';
@@ -178,15 +178,18 @@ describe('CompetitionManager (match.completed events):', () => {
 
     for (const e of events) {
       // Match the emitted score to the recorded fixture result (payload is forwarded faithfully).
-      const fx = completed.find(f => f.homeTeamId === e.homeTeamId && f.awayTeamId === e.awayTeamId);
-      expect(fx).toBeDefined();
-      expect(e.homeScore).toBe(fx!.result!.homeScore);
-      expect(e.awayScore).toBe(fx!.result!.awayScore);
+      const fx = assertDefined(
+        completed.find(f => f.homeTeamId === e.homeTeamId && f.awayTeamId === e.awayTeamId),
+        'fixture not found',
+      );
+      const fxResult = assertDefined(fx.result, 'fixture has no result');
+      expect(e.homeScore).toBe(fxResult.homeScore);
+      expect(e.awayScore).toBe(fxResult.awayScore);
       // Competition context forwarded.
       expect(e.competitionId).toBe('test-league');
-      expect(e.roundLabel).toBe(fx!.roundLabel);
-      expect(e.homeTeamName).toBe(fx!.homeTeamName);
-      expect(e.awayTeamName).toBe(fx!.awayTeamName);
+      expect(e.roundLabel).toBe(fx.roundLabel);
+      expect(e.homeTeamName).toBe(fx.homeTeamName);
+      expect(e.awayTeamName).toBe(fx.awayTeamName);
       // League matches finish in normal time and attach both standings.
       expect(e.decidedBy).toBe('normal');
       expect(e.homeStanding?.teamId).toBe(e.homeTeamId);
@@ -225,8 +228,8 @@ describe('CompetitionManager (match.completed events):', () => {
     // At least one tie should have gone to penalties (with a shootout score) across a full cup.
     const pens = events.filter(e => e.decidedBy === 'penalties');
     for (const e of pens) {
-      expect(e.shootout).toBeDefined();
-      expect(e.shootout!.home).not.toBe(e.shootout!.away);
+      const shootout = assertDefined(e.shootout, 'shootout missing');
+      expect(shootout.home).not.toBe(shootout.away);
     }
   });
 });
@@ -236,7 +239,7 @@ describe('CompetitionManager.updateTeam:', () => {
     const m = makeCupManager();
     await m.simulateNextRound(); // round 1 complete; round 2 already materialised & scheduled
 
-    const nextFixture = m.getState().fixtures.find(f => f.status === 'scheduled')!;
+    const nextFixture = assertDefined(m.getState().fixtures.find(f => f.status === 'scheduled'), 'no scheduled fixture');
     const teamId = nextFixture.homeTeamId;
     m.updateTeam(teamId, { ...cupTeam(teamId), name: 'Renamed FC' });
     // Forces every still-scheduled fixture's MatchOccurrence to be rebuilt from ctx.teamsById,
@@ -244,7 +247,7 @@ describe('CompetitionManager.updateTeam:', () => {
     m.loadState(m.getState());
 
     await m.tickTo(addMinutes(nextFixture.scheduledTime, 1));
-    const live = m.getLiveMatches().find(l => l.fixtureId === nextFixture.id)!;
+    const live = assertDefined(m.getLiveMatches().find(l => l.fixtureId === nextFixture.id), 'live match not found');
     expect([live.homeTeamName, live.awayTeamName]).toContain('Renamed FC');
   });
 });
@@ -269,7 +272,10 @@ describe('CompetitionManager player-team starters resolver:', () => {
 
     expect(getPlayerStarters).not.toHaveBeenCalled(); // not consulted before kickoff
 
-    const fixture = m.getState().fixtures.find(f => f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId)!;
+    const fixture = assertDefined(
+      m.getState().fixtures.find(f => f.homeTeamId === playerTeamId || f.awayTeamId === playerTeamId),
+      'fixture not found',
+    );
     await m.tickTo(addMinutes(fixture.scheduledTime, 1));
 
     expect(getPlayerStarters).toHaveBeenCalled(); // resolved lazily once the match actually kicks off

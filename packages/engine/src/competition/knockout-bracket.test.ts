@@ -1,6 +1,25 @@
+import { assertDefined } from '@fm2k/state';
 import { drawBracket, recordWinner, roundComplete, roundTieCounts, shuffle } from './knockout-bracket.ts';
 import type { Team, Formation } from '@fm2k/match';
-import type { KnockoutFormatConfig } from './competition-types.ts';
+import type { BracketSlot, KnockoutFormatConfig } from './competition-types.ts';
+
+/** Both team ids for a slot, validated set (a slot with two known sides). */
+function teamIds(s: BracketSlot): [string, string] {
+  if (s.homeTeamId === null || s.awayTeamId === null) { throw new Error(`slot ${s.tieId} is missing a team id`); }
+  return [s.homeTeamId, s.awayTeamId];
+}
+
+/** A slot's away team id, validated set. */
+function awayTeamId(s: BracketSlot): string {
+  if (s.awayTeamId === null) { throw new Error(`slot ${s.tieId} is missing its away team`); }
+  return s.awayTeamId;
+}
+
+/** A slot's home side (id + name), validated set. */
+function homeSide(s: BracketSlot): { id: string; name: string } {
+  if (s.homeTeamId === null || s.homeTeamName === null) { throw new Error(`slot ${s.tieId} is missing its home team`); }
+  return { id: s.homeTeamId, name: s.homeTeamName };
+}
 
 function mulberry32(seed: number): () => number {
   let a = seed;
@@ -74,7 +93,7 @@ describe('drawBracket:', () => {
   test('round 1 pairs exactly the 32 preliminary (level 2 & 3) teams, no duplicates', () => {
     const r1 = bracket.slots.filter(s => s.round === 1);
     expect(r1).toHaveLength(16);
-    const ids = r1.flatMap(s => [s.homeTeamId!, s.awayTeamId!]);
+    const ids = r1.flatMap(teamIds);
     expect(new Set(ids).size).toBe(32);
     expect(ids.every(id => id.startsWith('l2-') || id.startsWith('l3-'))).toBe(true);
   });
@@ -83,7 +102,7 @@ describe('drawBracket:', () => {
     const r2 = bracket.slots.filter(s => s.round === 2);
     expect(r2).toHaveLength(16);
     expect(r2.every(s => s.homeTeamId === null)).toBe(true);
-    const byeIds = r2.map(s => s.awayTeamId!);
+    const byeIds = r2.map(awayTeamId);
     expect(new Set(byeIds).size).toBe(16);
     expect(byeIds.every(id => id.startsWith('l1-'))).toBe(true);
   });
@@ -105,7 +124,7 @@ describe('drawBracket:', () => {
   });
 
   test('the final has no onward wiring', () => {
-    const final = bracket.slots.find(s => s.round === 6)!;
+    const final = assertDefined(bracket.slots.find(s => s.round === 6), 'final slot not found');
     expect(final.nextTieId).toBeNull();
     expect(final.nextSlot).toBeNull();
   });
@@ -133,10 +152,11 @@ describe('drawBracket:', () => {
 describe('recordWinner:', () => {
   test('advances a round-1 winner into its round-2 home slot', () => {
     const bracket = drawBracket(CFG, teamsByLevel(), mulberry32(3));
-    const r1 = bracket.slots.find(s => s.tieId === 'r1-t0')!;
-    const { nextTieId } = recordWinner(bracket, 'r1-t0', r1.homeTeamId!, r1.homeTeamName!);
+    const r1 = assertDefined(bracket.slots.find(s => s.tieId === 'r1-t0'), 'slot not found');
+    const home = homeSide(r1);
+    const { nextTieId } = recordWinner(bracket, 'r1-t0', home.id, home.name);
     expect(nextTieId).toBe('r2-t0');
-    const r2 = bracket.slots.find(s => s.tieId === 'r2-t0')!;
+    const r2 = assertDefined(bracket.slots.find(s => s.tieId === 'r2-t0'), 'slot not found');
     expect(r2.homeTeamId).toBe(r1.homeTeamId);
   });
 
@@ -150,7 +170,8 @@ describe('recordWinner:', () => {
     const bracket = drawBracket(CFG, teamsByLevel(), mulberry32(3));
     expect(roundComplete(bracket, 1)).toBe(false);
     for (const s of bracket.slots.filter(s => s.round === 1)) {
-      recordWinner(bracket, s.tieId, s.homeTeamId!, s.homeTeamName!);
+      const home = homeSide(s);
+      recordWinner(bracket, s.tieId, home.id, home.name);
     }
     expect(roundComplete(bracket, 1)).toBe(true);
   });
@@ -158,7 +179,8 @@ describe('recordWinner:', () => {
   test('roundComplete stays false when only some ties are decided', () => {
     const bracket = drawBracket(CFG, teamsByLevel(), mulberry32(3));
     const r1 = bracket.slots.filter(s => s.round === 1);
-    recordWinner(bracket, r1[0].tieId, r1[0].homeTeamId!, r1[0].homeTeamName!); // one of 16
+    const home = homeSide(r1[0]);
+    recordWinner(bracket, r1[0].tieId, home.id, home.name); // one of 16
     expect(roundComplete(bracket, 1)).toBe(false);
   });
 

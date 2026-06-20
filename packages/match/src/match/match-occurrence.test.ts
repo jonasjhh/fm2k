@@ -3,6 +3,7 @@ import type { MatchOccurrenceConfig } from './match-occurrence.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 import type { OccurrenceContext } from '@fm2k/timeline';
 import type { Team, Player, Formation } from '../shared/types.ts';
+import { assertDefined } from '../test-assert.ts';
 
 function createTestPlayer(id: string, name: string, position: string): Player {
   return {
@@ -113,8 +114,9 @@ describe('MatchOccurrence knockout:', () => {
       if (decidedBy === 'penalties') {
         expect(homeScore).toBe(awayScore);
         expect(shootout).toBeDefined();
-        expect(shootout!.home).not.toBe(shootout!.away);
-        expect(winnerTeamId).toBe(shootout!.home > shootout!.away ? 'home' : 'away');
+        const score = assertDefined(shootout, 'shootout missing');
+        expect(score.home).not.toBe(score.away);
+        expect(winnerTeamId).toBe(score.home > score.away ? 'home' : 'away');
       } else {
         // Decided in normal/extra time → scores differ, no shootout, winner is the higher score.
         expect(homeScore).not.toBe(awayScore);
@@ -432,7 +434,10 @@ describe('MatchOccurrence:', () => {
       advanceTicks(occ, 5);
       lineup = [sub, ...starters.slice(1)];
       const events = occ.onTick(KICK_OFF, CTX);
-      const subEvent = events.find(e => e.eventType === 'match.substitution_applied')!;
+      const subEvent = assertDefined(
+        events.find(e => e.eventType === 'match.substitution_applied'),
+        'substitution event not found',
+      );
       expect(subEvent.payload.playerOutId).toBe(outPlayer.id);
       expect(subEvent.payload.playerInId).toBe(sub.id);
     });
@@ -536,7 +541,10 @@ describe('MatchOccurrence:', () => {
       advanceTicks(occ, 5);
       lineup = [sub, ...starters.slice(1)];
       const events = occ.onTick(KICK_OFF, CTX);
-      const subEvent = events.find(e => e.eventType === 'match.substitution_applied')!;
+      const subEvent = assertDefined(
+        events.find(e => e.eventType === 'match.substitution_applied'),
+        'substitution event not found',
+      );
       expect(subEvent.occurrenceId).toBe('cup-final');
       expect(subEvent.occurrenceType).toBe('match');
     });

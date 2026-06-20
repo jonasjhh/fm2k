@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 
 function newGame() {
@@ -8,10 +9,10 @@ function newGame() {
   return { session, teamId };
 }
 
-const club = (s: GameSession) => s.snapshot().clubState!;
+const club = (s: GameSession) => assertDefined(s.snapshot().clubState, 'clubState missing');
 const benchedSquadId = (s: GameSession) => {
   const cs = club(s);
-  return cs.squad.find(p => !cs.startingXI.includes(p.id))!.id;
+  return assertDefined(cs.squad.find(p => !cs.startingXI.includes(p.id)), 'no benched player found').id;
 };
 
 describe('GameSession squad selection:', () => {
@@ -19,9 +20,9 @@ describe('GameSession squad selection:', () => {
     test('removes a player who is already in the starting XI', () => {
       const { session } = newGame();
       const inXI = club(session).startingXI[0];
-      const result = session.toggleXI(inXI);
-      expect(result!.startingXI).not.toContain(inXI);
-      expect(result!.startingXI).toHaveLength(10);
+      const result = assertDefined(session.toggleXI(inXI), 'toggleXI failed');
+      expect(result.startingXI).not.toContain(inXI);
+      expect(result.startingXI).toHaveLength(10);
     });
 
     test('adds a benched player when there is room', () => {
@@ -29,17 +30,17 @@ describe('GameSession squad selection:', () => {
       const inXI = club(session).startingXI[0];
       session.toggleXI(inXI);                 // drop to 10
       const benchId = benchedSquadId(session);
-      const result = session.toggleXI(benchId);
-      expect(result!.startingXI).toContain(benchId);
-      expect(result!.startingXI).toHaveLength(11);
+      const result = assertDefined(session.toggleXI(benchId), 'toggleXI failed');
+      expect(result.startingXI).toContain(benchId);
+      expect(result.startingXI).toHaveLength(11);
     });
 
     test('refuses to exceed 11 starters', () => {
       const { session } = newGame();
       const benchId = benchedSquadId(session);   // XI already full at 11
-      const result = session.toggleXI(benchId);
-      expect(result!.startingXI).toHaveLength(11);
-      expect(result!.startingXI).not.toContain(benchId);
+      const result = assertDefined(session.toggleXI(benchId), 'toggleXI failed');
+      expect(result.startingXI).toHaveLength(11);
+      expect(result.startingXI).not.toContain(benchId);
     });
   });
 
@@ -47,19 +48,19 @@ describe('GameSession squad selection:', () => {
     test('setStartingXI replaces the starting XI', () => {
       const { session } = newGame();
       const ids = club(session).squad.slice(0, 11).map(p => p.id);
-      expect(session.setStartingXI(ids)!.startingXI).toEqual(ids);
+      expect(assertDefined(session.setStartingXI(ids), 'setStartingXI failed').startingXI).toEqual(ids);
     });
 
     test('setBench replaces the bench', () => {
       const { session } = newGame();
       const cs = club(session);
       const benchIds = cs.squad.filter(p => !cs.startingXI.includes(p.id)).slice(0, 5).map(p => p.id);
-      expect(session.setBench(benchIds)!.benchPlayers).toEqual(benchIds);
+      expect(assertDefined(session.setBench(benchIds), 'setBench failed').benchPlayers).toEqual(benchIds);
     });
 
     test('setFormation updates the formation', () => {
       const { session } = newGame();
-      expect(session.setFormation('4-3-3')!.formation).toBe('4-3-3');
+      expect(assertDefined(session.setFormation('4-3-3'), 'setFormation failed').formation).toBe('4-3-3');
     });
   });
 });
@@ -106,7 +107,7 @@ function seededGame() {
   const country = session.getEditableCountries()[0];
   const teamId = country.divisions[0].teams[0].id;
   session.startGame(teamId, [country.id]);
-  const opponent = country.divisions[0].teams.find(t => t.id !== teamId)!;
+  const opponent = assertDefined(country.divisions[0].teams.find(t => t.id !== teamId), 'no opponent team found');
   return { session, teamId, opponent };
 }
 
@@ -135,14 +136,16 @@ describe('GameSession bidForPlayer:', () => {
     for (const p of club(session).squad.slice(11)) { session.sellPlayer(p.id); }
 
     const target = opponent.squad[0];
-    const price = session.askingPriceFor(opponent.id, target.id)!;
+    const price = assertDefined(session.askingPriceFor(opponent.id, target.id), 'asking price missing');
     const sellingSizeBefore = opponent.squad.length;
 
     expect(session.bidForPlayer(opponent.id, target.id, Math.round(price * 1.1))).toBe(true);
     expect(club(session).squad.some(p => p.id === target.id)).toBe(true);
 
-    const after = session.getEditableCountries()
-      .flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id)!;
+    const after = assertDefined(
+      session.getEditableCountries().flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id),
+      'selling team not found',
+    );
     expect(after.squad.some(p => p.id === target.id)).toBe(false);
     expect(after.squad.length).toBe(sellingSizeBefore);
   });
@@ -172,8 +175,10 @@ describe('GameSession signPlayer (one-click at asking):', () => {
     expect(session.signPlayer(target.id)).toBe(true);
     expect(club(session).squad.some(p => p.id === target.id)).toBe(true);
 
-    const after = session.getEditableCountries()
-      .flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id)!;
+    const after = assertDefined(
+      session.getEditableCountries().flatMap(c => c.divisions).flatMap(d => d.teams).find(t => t.id === opponent.id),
+      'selling team not found',
+    );
     expect(after.squad.some(p => p.id === target.id)).toBe(false);
     expect(after.squad.length).toBe(sellingSizeBefore);
   });
@@ -184,8 +189,10 @@ describe('GameSession signPlayer (one-click at asking):', () => {
       const country = session.getEditableCountries()[0];
       const teamId = country.divisions[0].teams[0].id;
       session.startGame(teamId, [country.id]);
-      for (const p of session.snapshot().clubState!.squad.slice(11)) { session.sellPlayer(p.id); }
-      const opponent = country.divisions[0].teams.find(t => t.id !== teamId)!;
+      for (const p of assertDefined(session.snapshot().clubState, 'clubState missing').squad.slice(11)) {
+        session.sellPlayer(p.id);
+      }
+      const opponent = assertDefined(country.divisions[0].teams.find(t => t.id !== teamId), 'no opponent team found');
       const target = opponent.squad[0];
       expect(session.signPlayer(target.id)).toBe(true);
     }

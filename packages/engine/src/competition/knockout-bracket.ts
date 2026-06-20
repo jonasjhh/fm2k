@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import type { Team } from '@fm2k/match';
 import type { BracketSlot, BracketState, KnockoutFormatConfig } from './competition-types.ts';
 
@@ -139,7 +140,7 @@ export function recordWinner(
     return { nextTieId: null };
   }
 
-  const next = slotById(bracket, slot.nextTieId)!;
+  const next = assertDefined(slotById(bracket, slot.nextTieId), `unknown bracket tie '${slot.nextTieId}'`);
   if (slot.nextSlot === 'home') {
     next.homeTeamId = winnerTeamId; next.homeTeamName = winnerTeamName;
   } else {

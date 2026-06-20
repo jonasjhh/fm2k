@@ -74,7 +74,7 @@ export {
   squadSuitability, defensiveSuitability, attackEffectiveness,
   resolveMatchParameters, buildMatchInsight,
 } from '@fm2k/match';
-export { v4, EventBus, StateManager } from '@fm2k/state';
+export { v4, EventBus, StateManager, assertDefined } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 
 export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore, isAfter } from '@fm2k/timeline';

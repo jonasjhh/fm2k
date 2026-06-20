@@ -100,11 +100,9 @@ function simulate(seasons: number, teamCount: number, seed: number): { history: 
 describe('world-churn calibration (long-run stability):', () => {
   it('prints the multi-season distribution table', () => {
     const { history } = simulate(30, TEAM_COUNT, 12345);
-    // eslint-disable-next-line no-console
     console.log('\n  season | meanOVR | meanAge | clubs | poolPeak | pool | squad[min..max]');
     for (const h of history) {
       if (h.season % 3 === 0 || h.season === history.length - 1) {
-        // eslint-disable-next-line no-console
         console.log(`   ${String(h.season).padStart(4)}  |  ${h.meanOverall.toFixed(1).padStart(4)}  |  ${h.meanAge.toFixed(1).padStart(4)}  |  ${String(h.clubPlayers).padStart(4)} |   ${String(h.poolPeak).padStart(4)}   | ${String(h.pool).padStart(4)} | ${h.minSquad}..${h.maxSquad}`);
       }
     }

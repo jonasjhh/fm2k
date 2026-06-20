@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 import { defaultIntent, formationToStyle } from '@fm2k/engine';
 import type { TeamTacticsIntent } from '@fm2k/engine';
@@ -10,7 +11,7 @@ function newGame() {
   return { session, teamId, countryId: country.id };
 }
 
-const club = (s: GameSession) => s.snapshot().clubState!;
+const club = (s: GameSession) => assertDefined(s.snapshot().clubState, 'clubState missing');
 
 describe('GameSession tactics:', () => {
   test('a new game starts with a balanced default intent mirroring the formation', () => {
@@ -26,14 +27,14 @@ describe('GameSession tactics:', () => {
     const intent: TeamTacticsIntent = {
       formation: '4-3-3', style: 'press_high', sliders: { tempo: 70, risk: 65, defensiveLine: 80 },
     };
-    const cs = session.setTactics(intent)!;
+    const cs = assertDefined(session.setTactics(intent), 'setTactics failed');
     expect(cs.tactics).toEqual(intent);
     expect(cs.formation).toBe('4-3-3');
   });
 
   test('setFormation keeps the intent formation in sync', () => {
     const { session } = newGame();
-    const cs = session.setFormation('3-5-2')!;
+    const cs = assertDefined(session.setFormation('3-5-2'), 'setFormation failed');
     expect(cs.formation).toBe('3-5-2');
     expect(cs.tactics.formation).toBe('3-5-2');
   });
@@ -55,8 +56,10 @@ describe('GameSession tactics:', () => {
       formation: '4-3-3', style: 'press_high', sliders: { tempo: 75, risk: 60, defensiveLine: 85 },
     };
     session.setTactics(intent);
-    const playerTeam = session.getEditableCountries()
-      .flatMap(c => c.divisions.flatMap(d => d.teams)).find(t => t.id === teamId)!;
+    const playerTeam = assertDefined(
+      session.getEditableCountries().flatMap(c => c.divisions.flatMap(d => d.teams)).find(t => t.id === teamId),
+      'player team not found',
+    );
     expect(playerTeam.tacticsIntent).toEqual(intent);
     expect(playerTeam.formation).toBe('4-3-3');
     expect(playerTeam.tacticsParams).toBeDefined();
@@ -73,7 +76,7 @@ describe('GameSession tactics:', () => {
       formation: '4-2-3-1', style: 'keep_the_ball', sliders: { tempo: 40, risk: 30, defensiveLine: 45 },
     };
     session.setTactics(intent);
-    const save = session.buildSaveData('QUICK')!;
+    const save = assertDefined(session.buildSaveData('QUICK'), 'buildSaveData failed');
 
     const reloaded = new GameSession();
     expect(reloaded.loadGame(save)).toBe(true);
@@ -82,7 +85,7 @@ describe('GameSession tactics:', () => {
 
   test('an old save lacking tactics loads with a default intent', () => {
     const { session } = newGame();
-    const save = session.buildSaveData('QUICK')!;
+    const save = assertDefined(session.buildSaveData('QUICK'), 'buildSaveData failed');
     delete (save.clubState as { tactics?: unknown }).tactics;
 
     const reloaded = new GameSession();

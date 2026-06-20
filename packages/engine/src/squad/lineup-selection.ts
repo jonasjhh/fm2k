@@ -63,8 +63,9 @@ function assignToSlots(
   opts: SelectionOptions = {},
 ): { slots: (Player | null)[]; score: number } {
   const positions = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as Position[];
-  const pool = opts.unavailableIds
-    ? squad.filter(p => !opts.unavailableIds!.has(p.id))
+  const unavailableIds = opts.unavailableIds;
+  const pool = unavailableIds
+    ? squad.filter(p => !unavailableIds.has(p.id))
     : squad;
 
   const pairs: { pi: number; si: number; score: number }[] = [];

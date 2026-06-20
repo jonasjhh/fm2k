@@ -98,10 +98,8 @@ describe('progression calibration (career distributions):', () => {
       ['pot40 L3 balanced', runScenario({ startAge: 18, potential: 40, startAttr: 45, regiment: 'balanced', facility: 3, seasons: 12 }, N)],
       ['old33 pot55 L2 physical', runScenario({ startAge: 33, potential: 55, startAttr: 70, regiment: 'physical', facility: 2, seasons: 6 }, N)],
     ];
-    // eslint-disable-next-line no-console
     console.log('\n  scenario                    | finalAvg | meanFin | %fin≥90 | match%');
     for (const [label, a] of rows) {
-      // eslint-disable-next-line no-console
       console.log(`  ${label.padEnd(27)} |   ${a.meanAvg.toFixed(1).padStart(4)}   |  ${a.meanFinishing.toFixed(1).padStart(4)}  |  ${(a.pctFinishing90 * 100).toFixed(0).padStart(3)}%  |  ${(a.meanMatchShare * 100).toFixed(0)}%`);
     }
     expect(rows.length).toBeGreaterThan(0);

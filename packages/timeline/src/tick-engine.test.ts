@@ -1,9 +1,15 @@
 import { TickEngine } from './tick-engine.ts';
-import type { TickEngineConfig } from './tick-engine.ts';
+import type { TickEngineConfig, TickResult } from './tick-engine.ts';
 import { EventLog } from './event-log.ts';
 import { createGameDateTime } from './game-date-time.ts';
 import type { Occurrence, OccurrenceContext, OccurrenceEvent, TickResolution } from './occurrence.ts';
 import type { GameDateTime } from './game-date-time.ts';
+
+/** Asserts a tick result is non-null, narrowing it to `TickResult`. */
+function assertTicked(result: TickResult | null): TickResult {
+  if (result === null) { throw new Error('expected a tick result'); }
+  return result;
+}
 
 // dt(15, 14, 30) = Aug 15 2025 14:30
 const dt = (day: number, hour = 0, minute = 0) =>
@@ -177,24 +183,24 @@ describe('TickEngine:', () => {
     test('given a scheduled occurrence when ticked then result includes its id in started', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
+      const result = assertTicked(await engine.tickToNext());
       // exact arrays: only occ-1 started, and nothing completed in this tick
-      expect(result!.started).toEqual(['occ-1']);
-      expect(result!.completed).toEqual([]);
+      expect(result.started).toEqual(['occ-1']);
+      expect(result.completed).toEqual([]);
     });
 
     test('given a scheduled occurrence when first ticked then fires onStart event', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
-      expect(result!.events.some(e => e.eventType === 'occ-1.started')).toBe(true);
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.events.some(e => e.eventType === 'occ-1.started')).toBe(true);
     });
 
     test('given a scheduled occurrence when first ticked then also fires onTick event', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
-      expect(result!.events.some(e => e.eventType === 'occ-1.ticked')).toBe(true);
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.events.some(e => e.eventType === 'occ-1.ticked')).toBe(true);
     });
 
     test('given an active minute-resolution occurrence when ticked again then advances by one minute', async () => {
@@ -235,23 +241,23 @@ describe('TickEngine:', () => {
       engine.schedule(makeOccurrence('day-occ', dt(15, 9), { requiredTicks: 7, tickResolution: 'day' }));
       engine.schedule(makeOccurrence('match', dt(15, 14), { requiredTicks: 90 }));
       await engine.tickToNext(); // to 09:00, day-occ starts
-      const result = await engine.tickToNext(); // should jump to 14:00 not day 16
-      expect(result!.currentTime).toEqual(dt(15, 14));
-      expect(result!.started).toContain('match');
+      const result = assertTicked(await engine.tickToNext()); // should jump to 14:00 not day 16
+      expect(result.currentTime).toEqual(dt(15, 14));
+      expect(result.started).toContain('match');
     });
 
     test('given an occurrence that completes in one tick then includes its id in completed', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 1 }));
-      const result = await engine.tickToNext();
-      expect(result!.completed).toContain('occ-1');
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.completed).toContain('occ-1');
     });
 
     test('given a completing occurrence then fires its onComplete event', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 1 }));
-      const result = await engine.tickToNext();
-      expect(result!.events.some(e => e.eventType === 'occ-1.completed')).toBe(true);
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.events.some(e => e.eventType === 'occ-1.completed')).toBe(true);
     });
 
     test('given a completing occurrence then removes it from the active set', async () => {
@@ -265,17 +271,17 @@ describe('TickEngine:', () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('match-1', dt(15, 15), { requiredTicks: 90 }));
       engine.schedule(makeOccurrence('match-2', dt(15, 15), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
-      expect(result!.started).toContain('match-1');
-      expect(result!.started).toContain('match-2');
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.started).toContain('match-1');
+      expect(result.started).toContain('match-2');
     });
 
     test('given two occurrences at the same time when ticked then both receive onTick events', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('match-1', dt(15, 15), { requiredTicks: 90 }));
       engine.schedule(makeOccurrence('match-2', dt(15, 15), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
-      const tickedIds = result!.events
+      const result = assertTicked(await engine.tickToNext());
+      const tickedIds = result.events
         .filter(e => e.eventType.endsWith('.ticked'))
         .map(e => e.occurrenceId);
       expect(tickedIds).toContain('match-1');
@@ -333,9 +339,9 @@ describe('TickEngine:', () => {
     test('given a tick then result previousTime and currentTime reflect the advance', async () => {
       const engine = makeEngine(dt(15, 10));
       engine.schedule(makeOccurrence('occ-1', dt(15, 14), { requiredTicks: 90 }));
-      const result = await engine.tickToNext();
-      expect(result!.previousTime).toEqual(dt(15, 10));
-      expect(result!.currentTime).toEqual(dt(15, 14));
+      const result = assertTicked(await engine.tickToNext());
+      expect(result.previousTime).toEqual(dt(15, 10));
+      expect(result.currentTime).toEqual(dt(15, 14));
     });
 
     test('given an occurrence scheduled at current time then activates immediately without moving clock', async () => {

@@ -41,7 +41,9 @@ export function buildSlotAssignments(
   }
   const remaining = players.filter(p => !used.has(p.id));
   for (let i = 0; i < result.length; i++) {
-    if (!result[i] && remaining.length) { result[i] = remaining.shift()!.id; }
+    if (result[i]) { continue; }
+    const next = remaining.shift();
+    if (next) { result[i] = next.id; }
   }
 
   const bench: (string | null)[] = Array(4).fill(null);

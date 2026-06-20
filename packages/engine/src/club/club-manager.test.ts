@@ -2,7 +2,7 @@ import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
 import type { Player, InjuryReport } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
-import { EventBus } from '@fm2k/state';
+import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
 
@@ -229,9 +229,8 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig());
       const newPlayer = makePlayer();
       manager.buyPlayer(newPlayer, 100_000);
-      const bought = manager.getState().squad.find(p => p.id === newPlayer.id);
-      expect(bought).toBeDefined();
-      expect(bought!.fitness).toBe(100);
+      const bought = assertDefined(manager.getState().squad.find(p => p.id === newPlayer.id), 'player not found');
+      expect(bought.fitness).toBe(100);
     });
 
     test('records transfer_in transaction in financialLog', () => {
@@ -509,7 +508,7 @@ describe('ClubManager:', () => {
       manager.upgradeFacility('medical'); // level 1 → 2
       manager.upgradeFacility('medical'); // level 2 → 3, so duration -= 2
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 4 }] });
-      const player = manager.getState().squad.find(p => p.id === id)!;
+      const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
       expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 2 }); // max(1, 4-(3-1))
     });
 
@@ -518,9 +517,9 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = manager.getState().startingXI[0];
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'ankle_sprain', baseDuration: 3 }] });
-      const first = manager.getState().squad.find(p => p.id === id)!.injury;
+      const first = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found').injury;
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 9 }] });
-      const second = manager.getState().squad.find(p => p.id === id)!.injury;
+      const second = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found').injury;
       expect(second).toEqual(first);
     });
 
@@ -582,9 +581,10 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = manager.getState().startingXI[0];
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'muscle_strain', baseDuration: 2 }] });
-      const remaining = manager.getState().squad.find(p => p.id === id)!.injury!.matchesRemaining;
+      const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
+      const remaining = assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining;
       manager.handleMatchdayComplete();
-      const after = manager.getState().squad.find(p => p.id === id)!;
+      const after = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
       expect(after.injury?.matchesRemaining).toBe(remaining - 1);
     });
 
@@ -594,10 +594,12 @@ describe('ClubManager:', () => {
       const id = manager.getState().startingXI[0];
       // baseDuration 1, medical level 1 → matchesRemaining max(1, 1-0) = 1
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'muscle_strain', baseDuration: 1 }] });
-      expect(manager.getState().squad.find(p => p.id === id)!.injury!.matchesRemaining).toBe(1);
+      const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
+      expect(assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining).toBe(1);
 
       manager.handleMatchdayComplete();
-      expect(manager.getState().squad.find(p => p.id === id)!.injury).toBeUndefined();
+      const afterPlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
+      expect(afterPlayer.injury).toBeUndefined();
     });
 
     test('counts down suspension matchesRemaining', () => {
@@ -676,7 +678,7 @@ describe('ClubManager (mutation top-up):', () => {
       const config = makeConfig();
       const manager = new ClubManager(config);
       const targetId = config.startingXI[0];
-      const name = manager.getState().squad.find(p => p.id === targetId)!.name;
+      const name = assertDefined(manager.getState().squad.find(p => p.id === targetId), 'player not found').name;
 
       expect(manager.sellPlayer(targetId, 5000)?.id).toBe(targetId);
       const s = manager.getState();
@@ -749,7 +751,7 @@ describe('ClubManager (mutation top-up):', () => {
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other');
       // stamina 10 -> drain max(5, 25-5) = 20
-      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBe(80);
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(80);
     });
 
     test('processes a match where the club is the away team', () => {
@@ -757,7 +759,7 @@ describe('ClubManager (mutation top-up):', () => {
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
       emitMatch(bus, 'other', 'club-1'); // we are away
-      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBeLessThan(100);
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBeLessThan(100);
     });
 
     test('clamps fitness at zero, never negative', () => {
@@ -765,7 +767,7 @@ describe('ClubManager (mutation top-up):', () => {
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
       for (let i = 0; i < 6; i++) { emitMatch(bus, 'club-1', 'other'); } // 6 * 20 drain >> 100
-      expect(manager.getState().squad.find(s => s.id === p.id)!.fitness).toBe(0);
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(0);
     });
 
     test('applies a reported injury verbatim at medical level 1 (no mitigation)', () => {
@@ -773,7 +775,7 @@ describe('ClubManager (mutation top-up):', () => {
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other', 0, 0, { home: [{ playerId: p.id, type: 'hamstring_pull', baseDuration: 3 }] });
-      const injury = manager.getState().squad.find(s => s.id === p.id)!.injury;
+      const injury = assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').injury;
       expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3 }); // max(1, 3-(1-1))
     });
 
@@ -782,7 +784,7 @@ describe('ClubManager (mutation top-up):', () => {
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other');
-      expect(manager.getState().squad.find(s => s.id === p.id)!.injury).toBeUndefined();
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').injury).toBeUndefined();
     });
 
     test('emits a gate receipt only when the club plays at home', () => {

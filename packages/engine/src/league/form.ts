@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import type { Fixture } from './league-types.ts';
 
 export type FormResult = 'W' | 'D' | 'L';
@@ -11,8 +12,9 @@ export function recentForm(fixtures: readonly Fixture[], teamId: string, count =
     .reverse()
     .map(f => {
       const home = f.homeTeamId === teamId;
-      const scored = home ? f.result!.homeScore : f.result!.awayScore;
-      const conceded = home ? f.result!.awayScore : f.result!.homeScore;
+      const result = assertDefined(f.result, `completed fixture ${f.id} has no result`);
+      const scored = home ? result.homeScore : result.awayScore;
+      const conceded = home ? result.awayScore : result.homeScore;
       return scored > conceded ? 'W' : scored < conceded ? 'L' : 'D';
     });
 }

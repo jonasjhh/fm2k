@@ -44,17 +44,17 @@ describe('in-match fatigue (behavioural):', () => {
   it('given a full match then outfield energy has clearly drained from fresh', () => {
     const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('h', 60), awayTeam: team('a', 60), rng: mulberry32(1) });
     const r = localSim.simulate();
-    expect(avgOutfieldEnergy(r.finalState.energy!.home)).toBeLessThan(95);
+    expect(avgOutfieldEnergy(r.finalState.energy?.home ?? {})).toBeLessThan(95);
   });
 
   it('given the match runs then energy is monotonically non-increasing', () => {
     const localSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('h', 60), awayTeam: team('a', 60), rng: mulberry32(2) });
     let state = localSim.getCurrentState();
-    let prev = avgOutfieldEnergy(state.energy!.home);
+    let prev = avgOutfieldEnergy(state.energy?.home ?? {});
     for (let m = 0; m < 90; m++) {
       const { nextState } = localSim.simulateMinute(state);
       state = nextState;
-      const now = avgOutfieldEnergy(state.energy!.home);
+      const now = avgOutfieldEnergy(state.energy?.home ?? {});
       expect(now).toBeLessThanOrEqual(prev + 1e-9);
       prev = now;
     }
@@ -64,8 +64,8 @@ describe('in-match fatigue (behavioural):', () => {
   it('given a low-stamina squad then it tires more than a high-stamina one over 90', () => {
     const lowSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('low', 60, 20), awayTeam: team('a', 60), rng: mulberry32(3) });
     const highSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('high', 60, 95), awayTeam: team('a', 60), rng: mulberry32(3) });
-    const low = avgOutfieldEnergy(lowSim.simulate().finalState.energy!.home);
-    const high = avgOutfieldEnergy(highSim.simulate().finalState.energy!.home);
+    const low = avgOutfieldEnergy(lowSim.simulate().finalState.energy?.home ?? {});
+    const high = avgOutfieldEnergy(highSim.simulate().finalState.energy?.home ?? {});
     expect(low).toBeLessThan(high);
   });
 
@@ -75,8 +75,8 @@ describe('in-match fatigue (behavioural):', () => {
     t.squad.forEach(p => { fitness[p.id] = 60; });
     const tiredSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: t, awayTeam: team('a', 60), homeFitness: fitness, rng: mulberry32(4) });
     const freshSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('h2', 60), awayTeam: team('a', 60), rng: mulberry32(4) });
-    expect(avgOutfieldEnergy(tiredSim.simulate().finalState.energy!.home))
-      .toBeLessThan(avgOutfieldEnergy(freshSim.simulate().finalState.energy!.home));
+    expect(avgOutfieldEnergy(tiredSim.simulate().finalState.energy?.home ?? {}))
+      .toBeLessThan(avgOutfieldEnergy(freshSim.simulate().finalState.energy?.home ?? {}));
   });
 
   it('given the same seed then the match is deterministic', () => {

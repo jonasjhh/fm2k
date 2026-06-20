@@ -1,4 +1,5 @@
 import { LeagueManager } from './league-manager.ts';
+import type { Fixture } from './league-types.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 
@@ -6,6 +7,12 @@ const START = createGameDateTime(2025, 8, 16, 15, 0);
 
 function makeManager(eventsPerMinute = 1): LeagueManager {
   return new LeagueManager({ teams: DIVISION_TEAMS, startDate: START, eventsPerMinute });
+}
+
+/** A completed fixture's result, validated set. */
+function resultOf(f: Fixture): NonNullable<Fixture['result']> {
+  if (!f.result) { throw new Error(`fixture ${f.id} has no result`); }
+  return f.result;
 }
 
 describe('LeagueManager:', () => {
@@ -55,9 +62,9 @@ describe('LeagueManager:', () => {
       await manager.simulateNextMatchday();
       const completed = manager.getState().fixtures.filter(f => f.status === 'completed');
       completed.forEach(f => {
-        expect(f.result).not.toBeNull();
-        expect(typeof f.result!.homeScore).toBe('number');
-        expect(typeof f.result!.awayScore).toBe('number');
+        const result = resultOf(f);
+        expect(typeof result.homeScore).toBe('number');
+        expect(typeof result.awayScore).toBe('number');
       });
     });
 
@@ -86,8 +93,9 @@ describe('LeagueManager:', () => {
       await manager.simulateNextMatchday();
       const { standings, fixtures } = manager.getState();
       const completed = fixtures.filter(f => f.status === 'completed');
-      const wins = completed.filter(f => f.result!.homeScore !== f.result!.awayScore).length;
-      const draws = completed.filter(f => f.result!.homeScore === f.result!.awayScore).length;
+      const results = completed.map(resultOf);
+      const wins = results.filter(r => r.homeScore !== r.awayScore).length;
+      const draws = results.filter(r => r.homeScore === r.awayScore).length;
       const totalPoints = standings.reduce((sum, s) => sum + s.points, 0);
       expect(totalPoints).toBe(wins * 3 + draws * 2);
     });
@@ -97,7 +105,7 @@ describe('LeagueManager:', () => {
       await manager.simulateNextMatchday();
       const { standings, fixtures } = manager.getState();
       const completed = fixtures.filter(f => f.status === 'completed');
-      const totalGoals = completed.reduce((sum, f) => sum + f.result!.homeScore + f.result!.awayScore, 0);
+      const totalGoals = completed.map(resultOf).reduce((sum, r) => sum + r.homeScore + r.awayScore, 0);
       const totalGoalsFor = standings.reduce((sum, s) => sum + s.goalsFor, 0);
       expect(totalGoalsFor).toBe(totalGoals);
     });
@@ -149,8 +157,9 @@ describe('LeagueManager:', () => {
       const manager = makeManager();
       await manager.simulateFullSeason();
       const { standings, fixtures } = manager.getState();
-      const wins = fixtures.filter(f => f.result!.homeScore !== f.result!.awayScore).length;
-      const draws = fixtures.filter(f => f.result!.homeScore === f.result!.awayScore).length;
+      const results = fixtures.map(resultOf);
+      const wins = results.filter(r => r.homeScore !== r.awayScore).length;
+      const draws = results.filter(r => r.homeScore === r.awayScore).length;
       const totalPoints = standings.reduce((sum, s) => sum + s.points, 0);
       expect(totalPoints).toBe(wins * 3 + draws * 2);
     }, 30000);

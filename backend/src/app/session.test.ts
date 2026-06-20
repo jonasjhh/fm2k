@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 
 function newGame() {
@@ -41,17 +42,16 @@ describe('GameSession lifecycle:', () => {
 
   it('given a save then loading it into a fresh session restores the read-model', () => {
     const { session, teamId } = newGame();
-    const save = session.buildSaveData('QUICK');
-    expect(save).not.toBeNull();
+    const save = assertDefined(session.buildSaveData('QUICK'), 'buildSaveData failed');
 
     const restored = new GameSession();
-    expect(restored.loadGame(save!)).toBe(true);
+    expect(restored.loadGame(save)).toBe(true);
 
     const snap = restored.snapshot();
     expect(snap.playerTeamId).toBe(teamId);
-    expect(snap.clubState?.clubName).toBe(save!.clubState.clubName);
-    expect(snap.currentMatchday).toBe(save!.currentMatchday);
-    expect(snap.leagueState?.fixtures.length).toBe(save!.leagueState.fixtures.length);
+    expect(snap.clubState?.clubName).toBe(save.clubState.clubName);
+    expect(snap.currentMatchday).toBe(save.currentMatchday);
+    expect(snap.leagueState?.fixtures.length).toBe(save.leagueState.fixtures.length);
   });
 });
 
@@ -73,7 +73,7 @@ describe('GameSession national cup:', () => {
     await session.skipToFullTime();
     await session.skipToFullTime();
 
-    const save = session.buildSaveData('QUICK')!;
+    const save = assertDefined(session.buildSaveData('QUICK'), 'buildSaveData failed');
     expect(save.cupStates).toBeDefined();
 
     const restored = new GameSession();

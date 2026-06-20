@@ -205,7 +205,8 @@ export class MatchSimulator {
     // A goal this minute gives the scorers a momentum lift (decays over the next minutes).
     for (const e of events) {
       if (e.type === 'goal') {
-        currentState = { ...currentState, momentum: { ...currentState.momentum!, [e.team]: MOMENTUM_ON_GOAL } };
+        const momentum = currentState.momentum ?? { home: 0, away: 0 };
+        currentState = { ...currentState, momentum: { ...momentum, [e.team]: MOMENTUM_ON_GOAL } };
       }
     }
 

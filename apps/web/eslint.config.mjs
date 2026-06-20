@@ -39,6 +39,9 @@ export default [
       'react/jsx-uses-vars': 'error',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // Web is fully clear of `!` — hold the line here so it can't regress
+      // (the shared base config only warns, to keep this opt-in per package).
+      '@typescript-eslint/no-non-null-assertion': 'error',
     },
   },
   {

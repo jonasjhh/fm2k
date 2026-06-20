@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 import { findTeamById } from '../domain/editable-country.ts';
 import type { Player, PlayerAttributes } from '@fm2k/engine';
@@ -19,7 +20,7 @@ function firstTeam(s: GameSession) {
   throw new Error('no team found');
 }
 
-const teamOf = (s: GameSession, id: string) => findTeamById(s.getEditableCountries(), id)!;
+const teamOf = (s: GameSession, id: string) => assertDefined(findTeamById(s.getEditableCountries(), id), `team ${id} not found`);
 
 describe('GameSession pre-game editor:', () => {
   describe('setEditableCountries / getEditableCountries', () => {
@@ -65,8 +66,8 @@ describe('GameSession pre-game editor:', () => {
       s.updatePlayerData(team.id, p0.id, { name: 'EDITED' });
 
       const t = teamOf(s, team.id);
-      expect(t.squad.find(p => p.id === p0.id)!.name).toBe('EDITED');
-      expect(t.squad.find(p => p.id === p1.id)!.name).toBe(p1.name);
+      expect(assertDefined(t.squad.find(p => p.id === p0.id), 'player not found').name).toBe('EDITED');
+      expect(assertDefined(t.squad.find(p => p.id === p1.id), 'player not found').name).toBe(p1.name);
     });
   });
 
@@ -78,7 +79,7 @@ describe('GameSession pre-game editor:', () => {
       s.regeneratePlayer(team.id, p0.id);
 
       const t = teamOf(s, team.id);
-      const newP0 = t.squad.find(p => p.id === p0.id)!;
+      const newP0 = assertDefined(t.squad.find(p => p.id === p0.id), 'player not found');
       expect(newP0.id).toBe(p0.id);
       expect(newP0.position).toBe(p0.position);
       expect(newP0).not.toBe(p0);                          // target was replaced
@@ -115,13 +116,13 @@ describe('GameSession pre-game editor:', () => {
       const low = new GameSession(() => 0);
       const lowTeam = firstTeam(low);
       low.addGeneratedPlayer(lowTeam.id);
-      const lowAdded = teamOf(low, lowTeam.id).squad.at(-1)!;
+      const lowAdded = assertDefined(teamOf(low, lowTeam.id).squad.at(-1), 'no players in squad');
       expect(lowAdded.position).toBe('GK');
 
       const high = new GameSession(() => 0.99);
       const highTeam = firstTeam(high);
       high.addGeneratedPlayer(highTeam.id);
-      const highAdded = teamOf(high, highTeam.id).squad.at(-1)!;
+      const highAdded = assertDefined(teamOf(high, highTeam.id).squad.at(-1), 'no players in squad');
       expect(highAdded.position).toBe('ST');
     });
   });

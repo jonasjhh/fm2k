@@ -12,6 +12,7 @@ import {
 import { MatchState, BallPosition } from './types.ts';
 import { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { assertDefined } from '../test-assert.ts';
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,10 @@ describe('ShortPassGenerator (success-only):', () => {
   it('always completes (keeps possession) and advances one zone on a low forward roll', () => {
     // neutral params → pForward = 0.24; rng 0 < 0.24 advances middle_third → away_third
     const gen = new ShortPassGenerator(seq([0]));
-    const event = gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.type).toBe('short_pass');
     expect(event.team).toBe('home');
     expect(event.description).toContain('completes a short pass');
@@ -171,13 +175,19 @@ describe('ShortPassGenerator (success-only):', () => {
 
   it('keeps the ball in the same zone when the forward roll is high', () => {
     const gen = new ShortPassGenerator(seq([0.5])); // 0.5 ≥ 0.24 → no advance
-    const event = gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.resultingState.ballPosition.zone).toBe('middle_third');
   });
 
   it('cannot advance past the final zone', () => {
     const gen = new ShortPassGenerator(seq([0])); // forward roll low
-    const event = gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(passer(), makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.resultingState.ballPosition.zone).toBe('away_box');
   });
 
@@ -218,7 +228,10 @@ describe('DribbleGenerator (success-only):', () => {
   it('always beats the defender (success path) and advances one zone on a low roll', () => {
     // advancement roll 0 (< 0.6 → +1), then side roll 0 (< 0.5 → keep side)
     const gen = new DribbleGenerator(seq([0, 0]));
-    const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.type).toBe('dribble');
     expect(event.description).toContain('skillful dribbling');
     expect(event.resultingState.possession).toBe('home');
@@ -227,20 +240,32 @@ describe('DribbleGenerator (success-only):', () => {
 
   it('advances two zones when the advancement roll is high', () => {
     const gen = new DribbleGenerator(seq([0.9, 0])); // 0.9 ≥ 0.6 → +2
-    const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.resultingState.ballPosition.zone).toBe('away_box');
   });
 
   it('the advancement roll exactly at 0.6 advances two zones (strict <)', () => {
     const gen = new DribbleGenerator(seq([0.6, 0]));
-    const event = gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.resultingState.ballPosition.zone).toBe('away_box');
   });
 
   it('keeps the side below 0.5 and moves a flank dribbler infield at ≥ 0.5', () => {
-    const keep = new DribbleGenerator(seq([0, 0])).generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
+    const keep = assertDefined(
+      new DribbleGenerator(seq([0, 0])).generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } })),
+      'generateEvent returned null',
+    );
     expect(keep.resultingState.ballPosition.side).toBe('left');
-    const infield = new DribbleGenerator(seq([0, 0.5])).generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } }))!;
+    const infield = assertDefined(
+      new DribbleGenerator(seq([0, 0.5])).generateEvent(dribbler(), makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'left' } })),
+      'generateEvent returned null',
+    );
     expect(infield.resultingState.ballPosition.side).toBe('center');
   });
 
@@ -264,8 +289,11 @@ describe('DribbleGenerator (success-only):', () => {
 describe('LongPass / ThroughBall / Cross (success-only):', () => {
   it('LongPass advances toward goal and keeps possession', () => {
     const gen = new LongPassGenerator(seq([0])); // jump roll low → +1
-    const event = gen.generateEvent(player('p', 'CM', { passing: 80, strength: 60 }),
-      makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(player('p', 'CM', { passing: 80, strength: 60 }),
+        makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.type).toBe('long_pass');
     expect(event.description).toContain('long ball');
     expect(event.resultingState.possession).toBe('home');
@@ -274,8 +302,11 @@ describe('LongPass / ThroughBall / Cross (success-only):', () => {
 
   it('ThroughBall splits the line by jumping two zones', () => {
     const gen = new ThroughBallGenerator(seq([0]));
-    const event = gen.generateEvent(player('p', 'CAM', { awareness: 80, passing: 80 }),
-      makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(player('p', 'CAM', { awareness: 80, passing: 80 }),
+        makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
+      'generateEvent returned null',
+    );
     expect(event.type).toBe('through_ball');
     expect(event.resultingState.ballPosition.zone).toBe('away_box');
     expect(event.resultingState.possession).toBe('home');
@@ -283,11 +314,14 @@ describe('LongPass / ThroughBall / Cross (success-only):', () => {
 
   it('Cross beats the first defender and chains a header in the box', () => {
     const gen = new CrossGenerator(seq([0.999]));
-    const event = gen.generateEvent(player('p', 'LM', { passing: 80, technique: 70 }),
-      makeState({ possession: 'home', ballPosition: { zone: 'away_third', side: 'left' } }))!;
+    const event = assertDefined(
+      gen.generateEvent(player('p', 'LM', { passing: 80, technique: 70 }),
+        makeState({ possession: 'home', ballPosition: { zone: 'away_third', side: 'left' } })),
+      'generateEvent returned null',
+    );
     expect(event.type).toBe('cross');
     expect(event.resultingState.ballPosition).toEqual({ zone: 'away_box', side: 'center' });
-    expect(event.chainedEvent!.type).toBe('shot'); // the header attempt
+    expect(assertDefined(event.chainedEvent, 'no chained event').type).toBe('shot'); // the header attempt
   });
 });
 
@@ -309,10 +343,10 @@ describe('ShotGenerator:', () => {
   it('given a converted shot when generating then a goal chains and the score increments', () => {
     const gen = new ShotGenerator(() => 0);
     const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
-    const event = gen.generateEvent(striker(), state)!;
+    const event = assertDefined(gen.generateEvent(striker(), state), 'generateEvent returned null');
     expect(event.type).toBe('shot');
     expect(event.description).toContain('shoots');
-    const goal = event.chainedEvent!;
+    const goal = assertDefined(event.chainedEvent, 'no chained event');
     expect(goal.type).toBe('goal');
     expect(goal.description).toContain('GOAL');
     expect(goal.resultingState.homeScore).toBe(1);
@@ -324,8 +358,8 @@ describe('ShotGenerator:', () => {
   it('given a saved shot when generating then a save chains and the score is unchanged', () => {
     const gen = new ShotGenerator(() => 0.999);
     const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
-    const event = gen.generateEvent(striker(), state)!;
-    const outcome = event.chainedEvent!;
+    const event = assertDefined(gen.generateEvent(striker(), state), 'generateEvent returned null');
+    const outcome = assertDefined(event.chainedEvent, 'no chained event');
     expect(outcome.type).toBe('save');
     expect(outcome.team).toBe('away');
     expect(outcome.description).toContain('save');
@@ -335,7 +369,8 @@ describe('ShotGenerator:', () => {
   it('scores the away team when they are in possession', () => {
     const gen = new ShotGenerator(() => 0);
     const state = makeState({ possession: 'away', ballPosition: { zone: 'away_box', side: 'center' } });
-    const goal = gen.generateEvent(striker(), state)!.chainedEvent!;
+    const event = assertDefined(gen.generateEvent(striker(), state), 'generateEvent returned null');
+    const goal = assertDefined(event.chainedEvent, 'no chained event');
     expect(goal.resultingState.awayScore).toBe(1);
     expect(goal.resultingState.homeScore).toBe(0);
   });
@@ -352,8 +387,12 @@ describe('ShotGenerator:', () => {
   it('Shot save names the defending goalkeeper', () => {
     const gen = new ShotGenerator(() => 0.999);
     const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
-    const gk = state.currentPlayers.away.find(p => p.position === 'GK')!;
-    const save = gen.generateEvent(player('p', 'ST', { finishing: 90 }), state)!.chainedEvent!;
+    const gk = assertDefined(state.currentPlayers.away.find(p => p.position === 'GK'), 'no GK found');
+    const event = assertDefined(
+      gen.generateEvent(player('p', 'ST', { finishing: 90 }), state),
+      'generateEvent returned null',
+    );
+    const save = assertDefined(event.chainedEvent, 'no chained event');
     expect(save.type).toBe('save');
     expect(save.playerId).toBe(gk.id);
   });
@@ -367,7 +406,7 @@ describe('resolveContest:', () => {
 
   it('a low foul roll yields a foul (set piece for the attackers)', () => {
     const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
-    const event = resolveContest('dribble', attacker(), defender(), state, seq([0]))!;
+    const event = assertDefined(resolveContest('dribble', attacker(), defender(), state, seq([0])), 'resolveContest returned null');
     expect(event.type).toBe('foul');
     expect(event.team).toBe('away'); // the defending side conceded it
   });
@@ -375,7 +414,10 @@ describe('resolveContest:', () => {
   it('a clean win against a dribble is a tackle that flips possession', () => {
     const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
     // rng[0] high → no foul; rng[1] low → defender wins
-    const event = resolveContest('dribble', attacker(), defender(), state, seq([0.999, 0]))!;
+    const event = assertDefined(
+      resolveContest('dribble', attacker(), defender(), state, seq([0.999, 0])),
+      'resolveContest returned null',
+    );
     expect(event.type).toBe('tackle');
     expect(event.team).toBe('away');
     expect(event.description).toContain('tackle');
@@ -384,7 +426,10 @@ describe('resolveContest:', () => {
 
   it('a clean win against a pass is an interception that flips possession', () => {
     const state = makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } });
-    const event = resolveContest('short_pass', attacker(), defender(), state, seq([0.999, 0]))!;
+    const event = assertDefined(
+      resolveContest('short_pass', attacker(), defender(), state, seq([0.999, 0])),
+      'resolveContest returned null',
+    );
     expect(event.type).toBe('interception');
     expect(event.team).toBe('away');
     expect(event.resultingState.possession).toBe('away');
@@ -392,7 +437,10 @@ describe('resolveContest:', () => {
 
   it('a win deep in the box is a clearance to midfield (relieves pressure)', () => {
     const state = makeState({ possession: 'home', ballPosition: { zone: 'away_box', side: 'center' } });
-    const event = resolveContest('dribble', attacker(), defender(), state, seq([0.999, 0]))!;
+    const event = assertDefined(
+      resolveContest('dribble', attacker(), defender(), state, seq([0.999, 0])),
+      'resolveContest returned null',
+    );
     expect(event.type).toBe('clearance');
     expect(event.resultingState.possession).toBe('away');
     expect(event.resultingState.ballPosition).toEqual({ zone: 'middle_third', side: 'center' });
@@ -401,9 +449,12 @@ describe('resolveContest:', () => {
   it('a cleared cross sometimes only reaches a corner', () => {
     const state = makeState({ possession: 'home', ballPosition: { zone: 'away_third', side: 'left' } });
     // no foul, win, then corner roll low (< CORNER_ON_CLEARED_CROSS)
-    const event = resolveContest('cross', attacker(), defender(), state, seq([0.999, 0, 0]))!;
+    const event = assertDefined(
+      resolveContest('cross', attacker(), defender(), state, seq([0.999, 0, 0])),
+      'resolveContest returned null',
+    );
     expect(event.type).toBe('cross');
-    expect(event.chainedEvent!.type).toBe('corner');
+    expect(assertDefined(event.chainedEvent, 'no chained event').type).toBe('corner');
   });
 
   it('when the defender neither fouls nor wins, the attacker proceeds (null)', () => {

@@ -25,7 +25,7 @@ export default function TacticsSection({
   disabled?: boolean;
 }) {
   const [local, setLocal] = useState(sliders);
-  useEffect(() => { setLocal(sliders); }, [sliders.tempo, sliders.risk, sliders.defensiveLine]);
+  useEffect(() => { setLocal(sliders); }, [sliders]);
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5, mb: 2, opacity: disabled ? 0.6 : 1 }}>

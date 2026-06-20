@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 
 function newGame() {
@@ -20,7 +21,7 @@ describe('GameSession tactics:', () => {
 
   it('given setStartingXI then the XI is stored', () => {
     const { session } = newGame();
-    const squad = session.snapshot().clubState!.squad;
+    const squad = assertDefined(session.snapshot().clubState, 'clubState missing').squad;
     const ids = squad.slice(0, 11).map(p => p.id);
     const cs = session.setStartingXI(ids);
     expect(cs?.startingXI).toEqual(ids);
@@ -36,11 +37,11 @@ describe('GameSession transfers:', () => {
 
   it('given selling a squad player then the squad shrinks and budget grows', () => {
     const { session } = newGame();
-    const before = session.snapshot().clubState!;
+    const before = assertDefined(session.snapshot().clubState, 'clubState missing');
     const victim = before.squad[before.squad.length - 1];
     const ok = session.sellPlayer(victim.id);
     expect(ok).toBe(true);
-    const after = session.snapshot().clubState!;
+    const after = assertDefined(session.snapshot().clubState, 'clubState missing');
     expect(after.squad.find(p => p.id === victim.id)).toBeUndefined();
     expect(after.budget).toBeGreaterThan(before.budget);
   });

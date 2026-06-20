@@ -1,7 +1,7 @@
 import { LeagueManager } from './league-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
 import type { ClubManagerConfig } from '../club/club-manager.ts';
-import { EventBus } from '@fm2k/state';
+import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 import type { Team, Player, Formation } from '@fm2k/match';
@@ -113,8 +113,10 @@ describe('LeagueManager eventBus:', () => {
     await leagueManager.simulateNextMatchday();
 
     for (const p of payloads) {
-      expect(p.homeStanding!.played).toBeGreaterThanOrEqual(1);
-      expect(p.awayStanding!.played).toBeGreaterThanOrEqual(1);
+      const { homeStanding, awayStanding } = p;
+      if (!homeStanding || !awayStanding) { throw new Error('payload missing standings'); }
+      expect(homeStanding.played).toBeGreaterThanOrEqual(1);
+      expect(awayStanding.played).toBeGreaterThanOrEqual(1);
     }
   });
 
@@ -199,7 +201,7 @@ describe('ClubManager wired to LeagueManager:', () => {
     await lm.simulateNextMatchday();
 
     bench.forEach(bp => {
-      const inSquad = club.getState().squad.find(p => p.id === bp.id)!;
+      const inSquad = assertDefined(club.getState().squad.find(p => p.id === bp.id), 'player not found');
       expect(inSquad.fitness).toBe(100);
     });
   }, 30000);

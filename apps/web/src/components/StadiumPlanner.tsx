@@ -261,11 +261,17 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
   const handleSectorClick = useCallback((key: SectorKey) => setActiveSector(key), []);
 
   const handleStandType = useCallback((e: SelectChangeEvent) => {
-    setPlannedSectors(prev => ({ ...prev, [activeSector]: { ...prev[activeSector]!, type: e.target.value } }));
+    setPlannedSectors(prev => ({
+      ...prev,
+      [activeSector]: { ...(prev[activeSector] ?? { type: 'none', densityValue: 30 }), type: e.target.value },
+    }));
   }, [activeSector]);
 
   const handleDensity = useCallback((_: Event, val: number | number[]) => {
-    setPlannedSectors(prev => ({ ...prev, [activeSector]: { ...prev[activeSector]!, densityValue: 60 - (val as number) } }));
+    setPlannedSectors(prev => ({
+      ...prev,
+      [activeSector]: { ...(prev[activeSector] ?? { type: 'none', densityValue: 30 }), densityValue: 60 - (val as number) },
+    }));
   }, [activeSector]);
 
   const handleApply = useCallback(() => {

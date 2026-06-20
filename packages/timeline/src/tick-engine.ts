@@ -105,7 +105,8 @@ export class TickEngine {
       this.queue.length > 0 &&
       compareGameDateTime(this.queue[0].scheduledTime, this.currentTime) <= 0
     ) {
-      const occurrence = this.queue.shift()!;
+      const occurrence = this.queue.shift();
+      if (!occurrence) { break; } // unreachable: the loop guard just confirmed queue.length > 0
       this.active.set(occurrence.id, occurrence);
       started.push(occurrence.id);
       allEvents.push(...occurrence.onStart(this.context));
@@ -136,16 +137,18 @@ export class TickEngine {
   async tickTo(target: GameDateTime): Promise<TickResult[]> {
     const results: TickResult[] = [];
     while (isBefore(this.currentTime, target)) {
-      if (!this.hasNext()) {
+      const next = this.peekNextTickTime();
+      if (next === null) { // hasNext() is false
         this.currentTime = target;
         break;
       }
-      const next = this.peekNextTickTime()!;
       if (isAfter(next, target)) {
         this.currentTime = target;
         break;
       }
-      results.push((await this.tickToNext())!);
+      const result = await this.tickToNext();
+      if (!result) { break; } // unreachable: peekNextTickTime() above already confirmed hasNext()
+      results.push(result);
     }
     return results;
   }
@@ -154,11 +157,11 @@ export class TickEngine {
    *  handled via the onEvents callback and the return value is not needed. */
   async drainTo(target: GameDateTime): Promise<void> {
     while (isBefore(this.currentTime, target)) {
-      if (!this.hasNext()) {
+      const next = this.peekNextTickTime();
+      if (next === null) { // hasNext() is false
         this.currentTime = target;
         break;
       }
-      const next = this.peekNextTickTime()!;
       if (isAfter(next, target)) {
         this.currentTime = target;
         break;

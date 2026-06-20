@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
 
 function newGame() {
@@ -21,10 +22,9 @@ describe('GameSession clock:', () => {
     expect(result.phase).toBe('half_time');
     expect(notified).toBeGreaterThan(0);
 
-    const focusLive = session.snapshot().focusLive;
-    expect(focusLive).not.toBeNull();
-    expect(focusLive!.minute).toBeGreaterThanOrEqual(40);
-    expect(focusLive!.homeTeamId === teamId || focusLive!.awayTeamId === teamId).toBe(true);
+    const focusLive = assertDefined(session.snapshot().focusLive, 'focusLive missing');
+    expect(focusLive.minute).toBeGreaterThanOrEqual(40);
+    expect(focusLive.homeTeamId === teamId || focusLive.awayTeamId === teamId).toBe(true);
     // The matchday has not completed while a match is still live.
     expect(session.snapshot().currentMatchday).toBe(0);
   });
@@ -36,9 +36,8 @@ describe('GameSession clock:', () => {
 
     expect(result.matchOver).toBe(true);
     expect(session.snapshot().currentMatchday).toBeGreaterThan(0);
-    const last = session.snapshot().lastMatchResult;
-    expect(last).not.toBeNull();
-    expect(last!.homeTeamId === teamId || last!.awayTeamId === teamId).toBe(true);
+    const last = assertDefined(session.snapshot().lastMatchResult, 'lastMatchResult missing');
+    expect(last.homeTeamId === teamId || last.awayTeamId === teamId).toBe(true);
   });
 
   it('skipToFullTime completes the player match in one step', async () => {
@@ -68,9 +67,8 @@ describe('GameSession clock:', () => {
     await session.skipToFullTime();
     const played = session.snapshot().focusFixture;
     session.nextMatch();
-    const next = session.snapshot().focusFixture;
-    expect(next).not.toBeNull();
-    expect(next!.id).not.toBe(played!.id);
+    const next = assertDefined(session.snapshot().focusFixture, 'focusFixture missing');
+    expect(next.id).not.toBe(assertDefined(played, 'played focusFixture missing').id);
   });
 
   it('given simulateToEnd then the season completes', async () => {
@@ -82,23 +80,26 @@ describe('GameSession clock:', () => {
   it('rolls the world over: squad ages and is preserved, finances carry, AI squads churn', async () => {
     const { session } = newGame();
     session.upgradeFacility('training');
-    const before = session.snapshot().clubState!;
+    const before = assertDefined(session.snapshot().clubState, 'clubState missing');
     const someSquadId = before.squad[0].id;
     const ageBefore = before.squad[0].age;
 
     // An AI team's squad ages too.
-    const aiTeam = session.getEditableCountries()[0].divisions[0].teams.find(t => t.id !== before.clubId)!;
+    const aiTeam = assertDefined(
+      session.getEditableCountries()[0].divisions[0].teams.find(t => t.id !== before.clubId),
+      'no AI team found',
+    );
     const aiAgeBefore = aiTeam.squad[0].age;
     const aiId = aiTeam.squad[0].id;
 
     await session.simulateToEnd();
     // Capture finances at season end (gate receipts have accrued); they should survive the rollover.
-    const endOfSeason = session.snapshot().clubState!;
+    const endOfSeason = assertDefined(session.snapshot().clubState, 'clubState missing');
     const budgetAtRollover = endOfSeason.budget;
     const trainingAtRollover = endOfSeason.facilities.training;
     session.startNewSeason();
 
-    const after = session.snapshot().clubState!;
+    const after = assertDefined(session.snapshot().clubState, 'clubState missing');
     // Finances + facilities carried across the rollover.
     expect(after.facilities.training).toBe(trainingAtRollover);
     expect(after.budget).toBe(budgetAtRollover);

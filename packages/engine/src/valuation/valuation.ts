@@ -50,7 +50,6 @@ const ROLE_PREMIUM: Record<LineupRole, number> = {
 
 /** The fee another club will demand to release `player`, given their role in that club's lineup. */
 export function directTransferPrice(player: Player, role: LineupRole): number {
-  const overall = calculateOverall(player.attributes);
   // Clubs especially resist selling young players who could still become stars.
   const prospectPremium = player.age <= 23 && player.potential >= 85 ? 1.3 : 1;
   return Math.max(1_000, Math.round(playerValue(player) * ROLE_PREMIUM[role] * prospectPremium));

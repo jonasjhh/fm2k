@@ -1,4 +1,4 @@
-import { StateManager } from '@fm2k/state';
+import { StateManager, assertDefined } from '@fm2k/state';
 import { LeagueManager } from '../league/league-manager.ts';
 import type { Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
@@ -75,7 +75,7 @@ export class SeasonManager {
     // Archive final standings before computing movements
     const divisionResults: Record<string, LeagueState> = {};
     for (const div of state.divisions) {
-      divisionResults[div.id] = this.leagueManagers.get(div.id)!.getState();
+      divisionResults[div.id] = assertDefined(this.leagueManagers.get(div.id), `no leagueManager for division ${div.id}`).getState();
     }
 
     // Process each adjacent pair (div[i] relegates to div[i+1], div[i+1] promotes to div[i])

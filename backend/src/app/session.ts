@@ -91,6 +91,12 @@ export interface GameSnapshot {
   notifications: GameNotification[];
 }
 
+/** Result of `buildManagers()`: the managers it built, or an explicit reason it couldn't
+ *  (unknown team/division — an expected validation failure, not a bug). */
+type BuildManagersResult =
+  | { ok: true; clubManager: ClubManager; transferManager: TransferManager; leagueManager: CompetitionManager }
+  | { ok: false; reason: string };
+
 /**
  * Owns the engine managers + EventBus for a single game and exposes lifecycle
  * operations. Reads are served via `snapshot()`. The frontend never touches the
@@ -299,7 +305,7 @@ export class GameSession {
     teamId: string,
     division: EditableDivision,
     eventBus: EventBus<GameEvents>,
-  ): void {
+  ): CompetitionManager {
     const playerCountry = findCountryForTeam(editableCountries, teamId);
     const seasons: Record<string, Season> = {};
     const leagueManagers: Record<string, CompetitionManager> = {};
@@ -363,6 +369,7 @@ export class GameSession {
     this.cupManagers = cupManagers;
     this.leagueManager = leagueManagers[division.id];
     this.playerCupManager = playerCountry ? cupManagers[cupCompetitionId(playerCountry.id)] : null;
+    return this.leagueManager;
   }
 
   /** Seed AI refill targets from current squad sizes (clamped to the cap). */
@@ -387,10 +394,10 @@ export class GameSession {
     teamId: string,
     leagueIds: string[],
     playerIntent?: TeamTacticsIntent,
-  ): boolean {
+  ): BuildManagersResult {
     const team = findTeamById(editableCountries, teamId);
     const division = findDivisionForTeam(editableCountries, teamId);
-    if (!team || !division) { return false; }
+    if (!team || !division) { return { ok: false, reason: `unknown team or division for teamId "${teamId}"` }; }
 
     // Resolve tactical parameters onto every team's live object BEFORE the
     // competition managers (which capture these references when scheduling the
@@ -402,7 +409,7 @@ export class GameSession {
 
     const allLeagueIds = this.resolveLeagueIds(editableCountries, teamId, leagueIds);
     const eventBus = this.rewireEventBus(editableCountries);
-    this.buildCompetitions(editableCountries, allLeagueIds, teamId, division, eventBus);
+    const leagueManager = this.buildCompetitions(editableCountries, allLeagueIds, teamId, division, eventBus);
 
     const playerCountry = findCountryForTeam(editableCountries, teamId);
     // The player's initial pick: their own deliberate choice takes over from here via
@@ -447,13 +454,13 @@ export class GameSession {
     });
 
     this.seedSquadTargets(editableCountries);
-    return true;
+    return { ok: true, clubManager: this.clubManager, transferManager: this.transferManager, leagueManager };
   }
 
   // ── lifecycle ───────────────────────────────────────────────────────────────
 
   startGame(teamId: string, leagueIds: string[], playerIntent?: TeamTacticsIntent): boolean {
-    if (!this.buildManagers(this.editableCountries, teamId, leagueIds, playerIntent)) { return false; }
+    if (!this.buildManagers(this.editableCountries, teamId, leagueIds, playerIntent).ok) { return false; }
     this.playerTeamId = teamId;
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = 0;
@@ -587,9 +594,10 @@ export class GameSession {
       ?? [findCountryForTeam(mergedCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
 
     const savedTactics = save.clubState.tactics ?? defaultIntent(save.clubState.formation);
-    if (!this.buildManagers(mergedCountries, save.playerTeamId, leagueIds, savedTactics)) { return false; }
+    const built = this.buildManagers(mergedCountries, save.playerTeamId, leagueIds, savedTactics);
+    if (!built.ok) { return false; }
 
-    this.leagueManager!.loadState(save.leagueState);
+    built.leagueManager.loadState(save.leagueState);
     if (save.leagueStates) {
       const playerDivId = findDivisionForTeam(mergedCountries, save.playerTeamId)?.id;
       for (const [id, state] of Object.entries(save.leagueStates)) {
@@ -612,13 +620,13 @@ export class GameSession {
     }
     savedClubState.recentDevelopment ??= [];
     savedClubState.seasonStartSnapshot ??= {};
-    this.clubManager!.loadState(savedClubState);
+    built.clubManager.loadState(savedClubState);
     const transferState: TransferState = {
       listings: save.transferListings,
       refreshedOnMatchday: save.currentMatchday,
       freeAgents: save.transferFreeAgents ?? [],
     };
-    this.transferManager!.loadState(transferState);
+    built.transferManager.loadState(transferState);
 
     this.editableCountries = mergedCountries;
     this.playerTeamId = save.playerTeamId;
@@ -855,7 +863,8 @@ export class GameSession {
 
   /** Bring the player's focus match into play, completing intervening non-player rounds. */
   private async ensurePlayerMatchLive(collected: OccurrenceEvent[]): Promise<string | null> {
-    if (this.playerLiveMatch()) { return this.playerLiveMatch()!.fixtureId; }
+    const live = this.playerLiveMatch();
+    if (live) { return live.fixtureId; }
     const nextFix = this.playerNextFixture();
     if (!nextFix) { return null; }
     this.focusFixtureId = nextFix.id;

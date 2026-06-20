@@ -1,11 +1,19 @@
 import { SeasonManager } from './season-manager.ts';
 import type { SeasonManagerConfig } from './season-manager.ts';
 import type { DivisionConfig } from './season-types.ts';
+import type { LeagueManager } from '../league/league-manager.ts';
 import type { Team, Player, Formation } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);
 const NEXT_SEASON_START = createGameDateTime(2026, 8, 15, 15, 0);
+
+/** A division's LeagueManager, validated set. */
+function leagueManagerOf(manager: SeasonManager, divisionId: string): LeagueManager {
+  const lm = manager.getLeagueManager(divisionId);
+  if (!lm) { throw new Error(`no league manager for division ${divisionId}`); }
+  return lm;
+}
 
 // ── test helpers ─────────────────────────────────────────────────────────────
 
@@ -107,12 +115,12 @@ describe('SeasonManager:', () => {
     });
 
     test('div1 league manager has 4 teams in standings', () => {
-      const lm = makeManager().getLeagueManager('div1')!;
+      const lm = leagueManagerOf(makeManager(), 'div1');
       expect(lm.getState().standings).toHaveLength(4);
     });
 
     test('div1 league manager has teams matching the config', () => {
-      const lm = makeManager().getLeagueManager('div1')!;
+      const lm = leagueManagerOf(makeManager(), 'div1');
       const teamIds = lm.getState().standings.map(s => s.teamId).sort();
       expect(teamIds).toEqual(DIV1_TEAMS.map(t => t.id).sort());
     });
@@ -122,8 +130,8 @@ describe('SeasonManager:', () => {
     test('after one matchday, each division has some completed fixtures', async () => {
       const manager = makeManager();
       await manager.simulateNextMatchday();
-      const div1Completed = manager.getLeagueManager('div1')!.getState().fixtures.filter(f => f.status === 'completed');
-      const div2Completed = manager.getLeagueManager('div2')!.getState().fixtures.filter(f => f.status === 'completed');
+      const div1Completed = leagueManagerOf(manager, 'div1').getState().fixtures.filter(f => f.status === 'completed');
+      const div2Completed = leagueManagerOf(manager, 'div2').getState().fixtures.filter(f => f.status === 'completed');
       expect(div1Completed.length).toBeGreaterThan(0);
       expect(div2Completed.length).toBeGreaterThan(0);
     });
@@ -140,7 +148,7 @@ describe('SeasonManager:', () => {
       const manager = makeManager();
       await manager.simulateFullSeason();
       for (const div of ['div1', 'div2']) {
-        const fixtures = manager.getLeagueManager(div)!.getState().fixtures;
+        const fixtures = leagueManagerOf(manager, div).getState().fixtures;
         expect(fixtures.every(f => f.status === 'completed')).toBe(true);
       }
     }, 30000);
@@ -148,7 +156,7 @@ describe('SeasonManager:', () => {
     test('each team in div1 has played 6 matches (double round-robin with 4 teams)', async () => {
       const manager = makeManager();
       await manager.simulateFullSeason();
-      manager.getLeagueManager('div1')!.getState().standings.forEach(s => {
+      leagueManagerOf(manager, 'div1').getState().standings.forEach(s => {
         expect(s.played).toBe(6);
       });
     }, 30000);
@@ -250,30 +258,30 @@ describe('SeasonManager:', () => {
 
     test('promoted team appears in div1 LeagueManager', async () => {
       const { manager, promotions } = await runFullCycle();
-      const div1Ids = manager.getLeagueManager('div1')!.getState().standings.map(s => s.teamId);
+      const div1Ids = leagueManagerOf(manager, 'div1').getState().standings.map(s => s.teamId);
       expect(div1Ids).toContain(promotions[0]);
     }, 30000);
 
     test('relegated team appears in div2 LeagueManager', async () => {
       const { manager, relegations } = await runFullCycle();
-      const div2Ids = manager.getLeagueManager('div2')!.getState().standings.map(s => s.teamId);
+      const div2Ids = leagueManagerOf(manager, 'div2').getState().standings.map(s => s.teamId);
       expect(div2Ids).toContain(relegations[0]);
     }, 30000);
 
     test('div1 still has 4 teams after swap', async () => {
       const { manager } = await runFullCycle();
-      expect(manager.getLeagueManager('div1')!.getState().standings).toHaveLength(4);
+      expect(leagueManagerOf(manager, 'div1').getState().standings).toHaveLength(4);
     }, 30000);
 
     test('div2 still has 4 teams after swap', async () => {
       const { manager } = await runFullCycle();
-      expect(manager.getLeagueManager('div2')!.getState().standings).toHaveLength(4);
+      expect(leagueManagerOf(manager, 'div2').getState().standings).toHaveLength(4);
     }, 30000);
 
     test('new season fixtures all start as scheduled', async () => {
       const { manager } = await runFullCycle();
       for (const div of ['div1', 'div2']) {
-        const fixtures = manager.getLeagueManager(div)!.getState().fixtures;
+        const fixtures = leagueManagerOf(manager, div).getState().fixtures;
         expect(fixtures.every(f => f.status === 'scheduled')).toBe(true);
       }
     }, 30000);
@@ -281,7 +289,7 @@ describe('SeasonManager:', () => {
     test('all standings reset to zero for new season', async () => {
       const { manager } = await runFullCycle();
       for (const div of ['div1', 'div2']) {
-        manager.getLeagueManager(div)!.getState().standings.forEach(s => {
+        leagueManagerOf(manager, div).getState().standings.forEach(s => {
           expect(s.played).toBe(0);
           expect(s.points).toBe(0);
         });

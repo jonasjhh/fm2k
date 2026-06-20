@@ -5,6 +5,7 @@ import type { FormatContext, MatchOutcome } from './competition-format.ts';
 import type { CompetitionState, KnockoutFormatConfig } from './competition-types.ts';
 import type { Team, Formation, Player, Position } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
+import { assertDefined } from '@fm2k/state';
 
 const SEASON_START = createGameDateTime(2025, 8, 16, 15, 0);
 
@@ -65,7 +66,7 @@ function makeCtx(rng: () => number): FormatContext {
 function playAll(format: KnockoutFormat, state: CompetitionState, ctx: FormatContext): void {
   let guard = 0;
   while (state.fixtures.some(f => f.status === 'scheduled') && guard++ < 100) {
-    const f = state.fixtures.find(fx => fx.status === 'scheduled')!;
+    const f = assertDefined(state.fixtures.find(fx => fx.status === 'scheduled'), 'no scheduled fixture');
     const outcome: MatchOutcome = {
       fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId,
       homeScore: 2, awayScore: 1, decidedBy: 'normal', winnerTeamId: f.homeTeamId,
@@ -172,11 +173,12 @@ describe('KnockoutFormat.apply edge cases:', () => {
 
     expect(format.apply(state, { fixtureId: 'nope', homeTeamId: 'x', awayTeamId: 'y', homeScore: 1, awayScore: 0 }, ctx)).toEqual([]);
 
-    const f = state.fixtures.find(fx => fx.status === 'scheduled')!;
+    const f = assertDefined(state.fixtures.find(fx => fx.status === 'scheduled'), 'no scheduled fixture');
     format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 2, awayScore: 1, winnerTeamId: f.homeTeamId }, ctx);
     // re-applying the now-completed fixture is a no-op
     format.apply(state, { fixtureId: f.id, homeTeamId: f.homeTeamId, awayTeamId: f.awayTeamId, homeScore: 9, awayScore: 9, winnerTeamId: f.awayTeamId }, ctx);
-    expect(state.fixtures.find(fx => fx.id === f.id)!.result!.homeScore).toBe(2);
+    const updated = assertDefined(state.fixtures.find(fx => fx.id === f.id), 'fixture not found');
+    expect(assertDefined(updated.result, 'fixture has no result').homeScore).toBe(2);
     expect(before).toBe(0);
   });
 
@@ -194,7 +196,7 @@ describe('KnockoutFormat.apply edge cases:', () => {
 
     const r2 = state.fixtures.filter(f => f.matchday === 2);
     expect(r2.length).toBeGreaterThan(0);
-    expect(r2.every(f => homeWinners.has(f.homeTeamId!))).toBe(true);
+    expect(r2.every(f => homeWinners.has(f.homeTeamId))).toBe(true);
   });
 
   test('rescheduleFromState returns only the still-scheduled fixtures', () => {

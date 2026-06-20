@@ -31,8 +31,8 @@ const DEFENSIVE_PROFILE: AttrWeights = {
 function weightedAttr(attrs: PlayerAttributes, weights: AttrWeights): number {
   let sum = 0;
   for (const key in weights) {
-    const w = weights[key as keyof PlayerAttributes]!;
-    sum += attrs[key as keyof PlayerAttributes] * w;
+    const w = weights[key as keyof PlayerAttributes];
+    if (w !== undefined) { sum += attrs[key as keyof PlayerAttributes] * w; }
   }
   return sum;
 }

@@ -20,8 +20,12 @@ import {
 } from '@fm2k/engine';
 import type {
   Team, Player, Position, Formation, TacticalStyleId, TeamTacticsIntent,
-  SimulateMatchResult, DistributionResult,
+  SimulateMatchResult, DistributionResult, PlayerMatchUpdate, InjuryReport,
 } from '@fm2k/engine';
+
+function hasInjury(u: PlayerMatchUpdate): u is PlayerMatchUpdate & { injury: InjuryReport } {
+  return !!u.injury;
+}
 
 const theme = createAppTheme('light');
 
@@ -125,7 +129,7 @@ export default function MatchSandboxPage() {
 
   const interesting = new Set(['goal', 'penalty', 'yellow_card', 'red_card', 'half_time', 'full_time']);
   const ticker = single?.events.filter(e => interesting.has(e.type)) ?? [];
-  const injuries = single ? [...single.playerUpdates.home, ...single.playerUpdates.away].filter(u => u.injury) : [];
+  const injuries = single ? [...single.playerUpdates.home, ...single.playerUpdates.away].filter(hasInjury) : [];
 
   return (
     <ThemeProvider theme={theme}>
@@ -154,7 +158,7 @@ export default function MatchSandboxPage() {
             </Typography>
             {injuries.length > 0 && (
               <Typography variant="body2" color="error">
-                Injuries: {injuries.map(u => `${u.playerId} (${u.injury!.type}, ${u.injury!.baseDuration})`).join(', ')}
+                Injuries: {injuries.map(u => `${u.playerId} (${u.injury.type}, ${u.injury.baseDuration})`).join(', ')}
               </Typography>
             )}
             <Divider sx={{ my: 1 }} />

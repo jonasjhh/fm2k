@@ -2,6 +2,7 @@ import { generateFixtures } from './fixture-generator.ts';
 import type { Fixture } from './league-types.ts';
 import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime } from '@fm2k/timeline';
+import { assertDefined } from '@fm2k/state';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);
 const TEAMS = DIVISION_TEAMS;
@@ -83,8 +84,8 @@ describe('generateFixtures:', () => {
 
     test('consecutive matchdays are 7 days apart', () => {
       const fixtures = generateFixtures(TEAMS, START);
-      const md1Time = fixtures.find(f => f.matchday === 1)!.scheduledTime;
-      const md2Time = fixtures.find(f => f.matchday === 2)!.scheduledTime;
+      const md1Time = assertDefined(fixtures.find(f => f.matchday === 1), 'matchday 1 not found').scheduledTime;
+      const md2Time = assertDefined(fixtures.find(f => f.matchday === 2), 'matchday 2 not found').scheduledTime;
       // 7 days later: same month unless crossing month boundary; just check absolute day diff via minutes
       const md1Minutes = md1Time.year * 525600 + md1Time.month * 43800 + md1Time.day * 1440;
       const md2Minutes = md2Time.year * 525600 + md2Time.month * 43800 + md2Time.day * 1440;
@@ -97,13 +98,17 @@ describe('generateFixtures:', () => {
       const fixtures = generateFixtures(TEAMS, START);
       const fixturesByMatchday = new Map<number, Fixture[]>();
       for (const f of fixtures) {
-        if (!fixturesByMatchday.has(f.matchday)) { fixturesByMatchday.set(f.matchday, []); }
-        fixturesByMatchday.get(f.matchday)!.push(f);
+        let bucket = fixturesByMatchday.get(f.matchday);
+        if (!bucket) {
+          bucket = [];
+          fixturesByMatchday.set(f.matchday, bucket);
+        }
+        bucket.push(f);
       }
       const matchdays = [...fixturesByMatchday.keys()].sort((a, b) => a - b);
       for (let i = 1; i < matchdays.length; i++) {
-        const prev = fixturesByMatchday.get(matchdays[i - 1])!;
-        const curr = fixturesByMatchday.get(matchdays[i])!;
+        const prev = assertDefined(fixturesByMatchday.get(matchdays[i - 1]), 'matchday bucket missing');
+        const curr = assertDefined(fixturesByMatchday.get(matchdays[i]), 'matchday bucket missing');
         const prevPairs = new Set(prev.map(f => [f.homeTeamId, f.awayTeamId].sort().join('|')));
         for (const f of curr) {
           const pair = [f.homeTeamId, f.awayTeamId].sort().join('|');

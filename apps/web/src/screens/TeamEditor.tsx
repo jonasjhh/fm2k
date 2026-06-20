@@ -143,6 +143,10 @@ export default function TeamEditor() {
       }
     }
   }
+  // Stable const aliases: narrowing of the `let`s above doesn't survive into nested
+  // closures (onChange/onClick handlers below), narrowing of a `const` does.
+  const team = activeTeam;
+  const country = teamCountry;
 
   function goToNations() { setEditingTeamId(null); setSelectedCountry(null); }
   function goToTeams(country: EditableCountry) { setEditingTeamId(null); setSelectedCountry(country); }
@@ -342,43 +346,43 @@ export default function TeamEditor() {
         )}
 
         {/* ── team editor view — PlayerRow memoised to limit re-renders ──── */}
-        {view === 'team-editor' && activeTeam && teamCountry && (
+        {view === 'team-editor' && team && country && (
           <Box>
             {/* ── team identity header ──────────────────────────────────── */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 2, mb: 3,
               p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'background.paper',
               border: '1px solid', borderColor: 'divider',
-              borderLeftColor: activeTeam.colors.primary, borderLeftWidth: 6,
+              borderLeftColor: team.colors.primary, borderLeftWidth: 6,
             }}>
               <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
-                <Box sx={{ width: 20, height: 28, borderRadius: '3px 3px 0 0', bgcolor: activeTeam.colors.primary, border: '1px solid rgba(0,0,0,0.15)' }} />
-                <Box sx={{ width: 20, height: 28, borderRadius: '3px 3px 0 0', bgcolor: activeTeam.colors.secondary, border: '1px solid rgba(0,0,0,0.15)' }} />
+                <Box sx={{ width: 20, height: 28, borderRadius: '3px 3px 0 0', bgcolor: team.colors.primary, border: '1px solid rgba(0,0,0,0.15)' }} />
+                <Box sx={{ width: 20, height: 28, borderRadius: '3px 3px 0 0', bgcolor: team.colors.secondary, border: '1px solid rgba(0,0,0,0.15)' }} />
               </Box>
               <TextField
                 label="Club Name"
-                value={activeTeam.name}
-                onChange={e => updateTeamName(activeTeam!.id, e.target.value)}
+                value={team.name}
+                onChange={e => updateTeamName(team.id, e.target.value)}
                 size="small"
                 sx={{ flexGrow: 1, maxWidth: 360 }}
               />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto', flexShrink: 0 }}>
-                <FlagIcon countryId={teamCountry.id} size={20} style={{ borderRadius: 3 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>{teamCountry.name}</Typography>
+                <FlagIcon countryId={country.id} size={20} style={{ borderRadius: 3 }} />
+                <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>{country.name}</Typography>
               </Box>
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Players
-                <Chip label={activeTeam.squad.length} size="small" sx={{ ml: 1 }} />
+                <Chip label={team.squad.length} size="small" sx={{ ml: 1 }} />
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={openAddModal}>
                   Add Player
                 </Button>
                 <Button size="small" variant="contained" color="secondary" startIcon={<CasinoIcon />}
-                  onClick={() => { if (confirm(`Replace all players in ${activeTeam!.name}?`)) {generateFullTeam(activeTeam!.id);} }}>
+                  onClick={() => { if (confirm(`Replace all players in ${team.name}?`)) {generateFullTeam(team.id);} }}>
                   Full Team
                 </Button>
               </Box>
@@ -398,11 +402,11 @@ export default function TeamEditor() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {activeTeam.squad.map(p => (
+                  {team.squad.map(p => (
                     <PlayerRow
                       key={p.id}
                       player={p}
-                      teamId={activeTeam!.id}
+                      teamId={team.id}
                       onEdit={openEditModal}
                       regeneratePlayer={regeneratePlayer}
                       removePlayer={removePlayer}

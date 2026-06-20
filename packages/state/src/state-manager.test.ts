@@ -1,4 +1,5 @@
 import { StateManager } from './state-manager.ts';
+import { assertDefined } from './assert.ts';
 
 interface TestGameState {
   score: number;
@@ -155,9 +156,7 @@ describe('StateManager:', () => {
 
       // Assert
       expect(notificationCount).toBe(1);
-      expect(lastReceivedState).toBeTruthy();
-      // Use type assertion since we know it's not null from the test above
-      const state = lastReceivedState!;
+      const state = assertDefined<SimpleState>(lastReceivedState, 'lastReceivedState missing');
       expect(state.count).toBe(5);
       expect(state.message).toBe('test');
 
@@ -453,7 +452,7 @@ describe('StateManager persistence internals:', () => {
   test('given persistence without history then the stored history is an empty array', () => {
     const sm = new StateManager<SimpleState>({ count: 0, message: 'a' }, { enablePersistence: true, persistenceKey: 'no-hist' });
     sm.updateState(d => { d.count = 1; });
-    const stored = JSON.parse(mockLocalStorage.getItem('no-hist')!);
+    const stored = JSON.parse(assertDefined(mockLocalStorage.getItem('no-hist'), 'no-hist not stored'));
     expect(stored.history).toEqual([]);
   });
 

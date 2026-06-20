@@ -98,8 +98,8 @@ describe('discipline & set pieces (behavioural):', () => {
       const { nextState } = localSim.simulateMinute(state);
       state = nextState;
       if ((state.momentum?.home ?? 0) > 0 || (state.momentum?.away ?? 0) > 0) { sawMomentum = true; }
-      expect(state.momentum!.home).toBeLessThanOrEqual(40);
-      expect(state.momentum!.away).toBeLessThanOrEqual(40);
+      expect(state.momentum?.home ?? 0).toBeLessThanOrEqual(40);
+      expect(state.momentum?.away ?? 0).toBeLessThanOrEqual(40);
     }
     expect(sawMomentum).toBe(true);
   });

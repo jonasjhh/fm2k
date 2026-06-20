@@ -124,6 +124,12 @@ describe('selectActivePlayer:', () => {
 
 import { ActionSelector, ActionGenerator } from './action-selector.ts';
 import { MatchState, MatchEvent, EventType } from './types.ts';
+import { assertDefined } from '../test-assert.ts';
+
+/** The `.type` of a `selectPlayerAction` result, asserting it actually fired. */
+function actionType(result: MatchEvent | null): EventType {
+  return assertDefined(result, 'selectPlayerAction returned null').type;
+}
 
 /** A generator that always offers `prob` and emits an event tagged with its type. */
 function stubGen(type: EventType, prob: number, canPerform = true): ActionGenerator {
@@ -161,17 +167,17 @@ describe('ActionSelector class:', () => {
   }
 
   it('picks the highest-weighted action on a confident decision (rng below quality)', () => {
-    expect(selectorWith(() => 0).selectPlayerAction(stateWith(cm))!.type).toBe('shot');
+    expect(actionType(selectorWith(() => 0).selectPlayerAction(stateWith(cm)))).toBe('shot');
   });
 
   it('picks the second-best action in the mid band', () => {
     // rng 0.5: not < 0.4, but < 0.7 → second-best
-    expect(selectorWith(() => 0.5).selectPlayerAction(stateWith(cm))!.type).toBe('dribble');
+    expect(actionType(selectorWith(() => 0.5).selectPlayerAction(stateWith(cm)))).toBe('dribble');
   });
 
   it('falls back to a weighted-index random pick on a poor decision', () => {
     // rng 0.99: ≥ 0.7 → random → floor(0.99 * 3) = index 2 (lowest weight)
-    expect(selectorWith(() => 0.99).selectPlayerAction(stateWith(cm))!.type).toBe('tackle');
+    expect(actionType(selectorWith(() => 0.99).selectPlayerAction(stateWith(cm)))).toBe('tackle');
   });
 
   it('returns null when there is no active player', () => {
@@ -204,7 +210,7 @@ describe('ActionSelector class:', () => {
     sel.registerAction('tackle', stubGen('tackle', 0.1));
     sel.registerAction('dribble', stubGen('dribble', 0.5));
     sel.registerAction('shot', stubGen('shot', 0.9));
-    expect(sel.selectPlayerAction(stateWith(cm))!.type).toBe('shot');
+    expect(actionType(sel.selectPlayerAction(stateWith(cm)))).toBe('shot');
   });
 
   it('uses awareness for decision quality, falling back to 50 only when falsy', () => {
@@ -212,31 +218,31 @@ describe('ActionSelector class:', () => {
     // If the fallback were `&& 50`, dq would be 0 and 0.4 would miss the best band.
     const zero = createTestPlayer('z', 'CM');
     zero.attributes.awareness = 0;
-    expect(selectorWith(() => 0.4).selectPlayerAction(stateWith(zero))!.type).toBe('shot');
+    expect(actionType(selectorWith(() => 0.4).selectPlayerAction(stateWith(zero)))).toBe('shot');
   });
 
   it('treats rng exactly equal to quality as NOT confident (strict <)', () => {
     // awareness 40 → dq 0.4; rng exactly 0.4 → not best, falls to second ('dribble').
-    expect(selectorWith(() => 0.4).selectPlayerAction(stateWith(cm))!.type).toBe('dribble');
+    expect(actionType(selectorWith(() => 0.4).selectPlayerAction(stateWith(cm)))).toBe('dribble');
   });
 
   it('uses the dq+0.3 mid band, not dq-0.3', () => {
     // seq[0] feeds selectActivePlayer; randomFactor=0.5: 0.4 ≤ 0.5 < 0.7 → second ('dribble').
     // With dq-0.3 (=0.1) it would fall to random.
-    expect(selectorWith(seq([0, 0.5, 0.99])).selectPlayerAction(stateWith(cm))!.type).toBe('dribble');
+    expect(actionType(selectorWith(seq([0, 0.5, 0.99])).selectPlayerAction(stateWith(cm)))).toBe('dribble');
   });
 
   it('treats rng exactly at the mid-band edge as random (strict <)', () => {
     // seq[0] feeds selectActivePlayer; randomFactor=0.7 == dq+0.3 → not second;
     // random uses next rng 0.99 → floor(0.99*3)=2 ('tackle').
-    expect(selectorWith(seq([0, 0.7, 0.99])).selectPlayerAction(stateWith(cm))!.type).toBe('tackle');
+    expect(actionType(selectorWith(seq([0, 0.7, 0.99])).selectPlayerAction(stateWith(cm)))).toBe('tackle');
   });
 
   it('falls back to the single available action on a poor decision (length guard)', () => {
     // Only one action; poor decision (rng high) must still return it, not undefined/null.
     const sel = new ActionSelector(() => 0.99);
     sel.registerAction('shot', stubGen('shot', 0.9));
-    expect(sel.selectPlayerAction(stateWith(cm))!.type).toBe('shot');
+    expect(actionType(sel.selectPlayerAction(stateWith(cm)))).toBe('shot');
   });
 });
 
@@ -263,7 +269,7 @@ describe('ActionSelector contest (two-step):', () => {
     const state = contestState(attacker);
 
     const types = new Set<string>();
-    for (let i = 0; i < 400; i++) { types.add(sel.selectPlayerAction(state)!.type); }
+    for (let i = 0; i < 400; i++) { types.add(actionType(sel.selectPlayerAction(state))); }
     // Both outcomes occur: the attacker sometimes dribbles, the defender sometimes wins it.
     expect(types.has('dribble')).toBe(true);
     expect([...types].some(t => DEFENSIVE.has(t))).toBe(true);
@@ -276,7 +282,7 @@ describe('ActionSelector contest (two-step):', () => {
 
     for (let i = 0; i < 400; i++) {
       // Never replaced by a defensive event — the stub shot always comes through.
-      expect(sel.selectPlayerAction(state)!.type).toBe('shot');
+      expect(actionType(sel.selectPlayerAction(state))).toBe('shot');
     }
   });
 
@@ -287,7 +293,7 @@ describe('ActionSelector contest (two-step):', () => {
       ...contestState(createTestPlayer('a', 'CM')),
       currentPlayers: { home: [createTestPlayer('a', 'CM')], away: [createTestPlayer('gk', 'GK')] },
     };
-    for (let i = 0; i < 100; i++) { expect(sel.selectPlayerAction(state)!.type).toBe('dribble'); }
+    for (let i = 0; i < 100; i++) { expect(actionType(sel.selectPlayerAction(state))).toBe('dribble'); }
   });
 });
 

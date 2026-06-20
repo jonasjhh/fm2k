@@ -1,7 +1,7 @@
 import {
   retirementChance, makeYouth, churnSquad, churnFreeAgents, runAiMarket, type YouthFactory,
 } from './world-churn.ts';
-import type { Player, PlayerAttributes, Position } from '@fm2k/match';
+import type { Player, PlayerAttributes } from '@fm2k/match';
 
 function attrs(v: number): PlayerAttributes {
   return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };

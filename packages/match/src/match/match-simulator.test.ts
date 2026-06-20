@@ -1,5 +1,6 @@
 import { MatchSimulator, flattenMatchEventChain, type MatchConfig } from './match-simulator.ts';
 import { Team, Player, Formation } from '../shared/types.ts';
+import { assertDefined } from '../test-assert.ts';
 
 /** Defaults homeStarters/awayStarters to the first 11 squad members (already slot-ordered
  *  by createTestTeam below) so existing call sites don't need to spell them out. */
@@ -409,7 +410,7 @@ describe('MatchSimulator.simulateMinute():', () => {
   test('given minute 89 in second_half when called then full_time event description includes score', () => {
     const state = baseState({ minute: 89, phase: 'second_half', homeScore: 2, awayScore: 1 });
     const { events, nextState } = simulator.simulateMinute(state);
-    const fullTimeEvent = events.find(e => e.type === 'full_time')!;
+    const fullTimeEvent = assertDefined(events.find(e => e.type === 'full_time'), 'full_time event not found');
     // A goal can fall in the 90th minute, so assert against the actual final score.
     expect(fullTimeEvent.description).toContain(String(nextState.homeScore));
     expect(fullTimeEvent.description).toContain(String(nextState.awayScore));

@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { applyPromotionRelegation } from './promotion.ts';
 import type { EditableCountry } from './editable-country.ts';
 import type { Team } from '@fm2k/engine';
@@ -22,7 +23,7 @@ function country(): EditableCountry {
 }
 
 function teamIdsIn(c: EditableCountry, divId: string): string[] {
-  return c.divisions.find(d => d.id === divId)!.teams.map(t => t.id);
+  return assertDefined(c.divisions.find(d => d.id === divId), `division ${divId} not found`).teams.map(t => t.id);
 }
 
 describe('applyPromotionRelegation:', () => {

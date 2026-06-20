@@ -3,6 +3,7 @@ import type { FormatContext } from './competition-format.ts';
 import type { CompetitionState } from './competition-types.ts';
 import type { Team, Formation, Player, Position } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
+import { assertDefined } from '@fm2k/state';
 
 const SEASON_START = createGameDateTime(2025, 8, 16, 15, 0);
 
@@ -44,7 +45,8 @@ function play(fmt: LeagueFormat, state: CompetitionState, homeId: string, awayId
   return fx;
 }
 
-const standing = (state: CompetitionState, teamId: string) => state.standings.find(s => s.teamId === teamId)!;
+const standing = (state: CompetitionState, teamId: string) =>
+  assertDefined(state.standings.find(s => s.teamId === teamId), `no standing for team ${teamId}`);
 const rank = (state: CompetitionState, teamId: string) => state.standings.findIndex(s => s.teamId === teamId);
 
 describe('LeagueFormat:', () => {

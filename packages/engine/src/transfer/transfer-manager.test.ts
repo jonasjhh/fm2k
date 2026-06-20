@@ -1,3 +1,4 @@
+import { assertDefined } from '@fm2k/state';
 import { TransferManager, calculateOverall, OVERALL_WEIGHTS } from './transfer-manager.ts';
 import type { TransferManagerConfig } from './transfer-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
@@ -316,7 +317,7 @@ describe('TransferManager:', () => {
       const sold = makePlayer();
       manager.addFreeAgents([sold]);
       manager.refreshMarket(3);
-      const listing = manager.getListings().find(l => l.player.id === sold.id)!;
+      const listing = assertDefined(manager.getListings().find(l => l.player.id === sold.id), 'listing not found');
       const club = makeClubManager(listing.askingPrice * 2);
       expect(manager.purchase(listing.id, club)).toBe(true);
       expect(manager.getListings().some(l => l.id === listing.id)).toBe(false);
