@@ -24,6 +24,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { calculateOverall, playerValue, directTransferPrice, selectStartingXIWithSlots } from '@fm2k/engine';
 import type { Player, Position } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
+import { buyPlayerWithConfirm } from '../../utils/transfers';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 
@@ -198,10 +199,7 @@ export default function TransfersTab() {
   };
 
   const handleBuy = (row: PlayerRow) => {
-    if (!confirm(`Sign ${row.player.name} for £${fmt(row.price)}?`)) { return; }
-    if (!signPlayer(row.player.id)) {
-      alert('Transfer failed — insufficient budget or the window is closed.');
-    } else {
+    if (buyPlayerWithConfirm(signPlayer, row.player.name, row.player.id, row.price)) {
       setSelectedId(null);
     }
   };

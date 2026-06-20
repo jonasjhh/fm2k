@@ -11,13 +11,14 @@ function shortName(name: string): string {
 
 /** Football pitch visual: formation lines back-to-front with player circles per slot. */
 export function FormationGrid({
-  lines, slotAssignments, squad, teamColors, compact = false,
+  lines, slotAssignments, squad, teamColors, compact = false, onPlayerClick,
 }: {
   lines: string[][];
   slotAssignments: (string | null)[];
   squad: Player[];
   teamColors: { primary: string; secondary: string };
   compact?: boolean;
+  onPlayerClick?: (playerId: string) => void;
 }) {
   const playerById = useMemo(() => {
     const m = new Map<string, Player>();
@@ -53,7 +54,17 @@ export function FormationGrid({
               const playerId = slotAssignments[idx] ?? null;
               const player = playerId ? playerById.get(playerId) ?? null : null;
               return (
-                <Box key={`${pos}-${si}`} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW }}>
+                <Box
+                  key={`${pos}-${si}`}
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW }}
+                  {...(player && onPlayerClick ? {
+                    role: 'button',
+                    tabIndex: 0,
+                    onClick: () => onPlayerClick(player.id),
+                    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { onPlayerClick(player.id); } },
+                  } : {})}
+                  style={player && onPlayerClick ? { cursor: 'pointer' } : undefined}
+                >
                   <Box sx={{
                     width: sz.circle, height: sz.circle, borderRadius: '50%',
                     bgcolor: player ? teamColors.primary : 'rgba(255,255,255,0.15)',
@@ -61,6 +72,8 @@ export function FormationGrid({
                     border: '2px solid',
                     borderColor: player ? teamColors.secondary : 'rgba(255,255,255,0.3)',
                     flexShrink: 0,
+                    transition: player && onPlayerClick ? 'transform 0.1s' : undefined,
+                    '&:hover': player && onPlayerClick ? { transform: 'scale(1.08)' } : undefined,
                   }}>
                     <Typography sx={{ fontSize: sz.posFont, fontWeight: 800, color: teamColors.secondary, lineHeight: 1, textAlign: 'center' }}>
                       {pos}

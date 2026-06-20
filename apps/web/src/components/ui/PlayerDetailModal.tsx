@@ -1,4 +1,4 @@
-import type { ClubPlayer, RegimentId } from '@fm2k/engine';
+import type { ClubPlayer, Player, RegimentId } from '@fm2k/engine';
 import { playerValue, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT } from '@fm2k/engine';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -66,8 +66,12 @@ export function AttrBar({ label, value }: { label: string; value: number }) {
 
 // ─── modal ────────────────────────────────────────────────────────────────────
 
+/** A scouted player from another club is a plain `Player` — fitness/injury/suspension/training
+ *  only exist on the manager's own `ClubPlayer` squad. */
+type ViewablePlayer = Player & Partial<Pick<ClubPlayer, 'fitness' | 'injury' | 'suspension' | 'training'>>;
+
 interface PlayerDetailModalProps {
-  player: ClubPlayer | null;
+  player: ViewablePlayer | null;
   onClose: () => void;
   showTraining?: boolean;
   actions?: React.ReactNode;
@@ -110,11 +114,11 @@ export default function PlayerDetailModal({ player, onClose, showTraining, actio
           <DialogContent sx={{ p: 0 }}>
             {/* Stats grid */}
             <Grid container sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              {[
-                { label: 'Fitness', value: `${player.fitness}%` },
-                { label: 'Value',   value: `£${fmt(value)}` },
-              ].map(({ label, value: val }) => (
-                <Grid size={6} key={label} sx={{ textAlign: 'center', py: 1.5, borderRight: 1, borderColor: 'divider', '&:last-child': { borderRight: 0 } }}>
+              {(player.fitness !== undefined
+                ? [{ label: 'Fitness', value: `${player.fitness}%` }, { label: 'Value', value: `£${fmt(value)}` }]
+                : [{ label: 'Value', value: `£${fmt(value)}` }]
+              ).map(({ label, value: val }, i, arr) => (
+                <Grid size={12 / arr.length} key={label} sx={{ textAlign: 'center', py: 1.5, borderRight: 1, borderColor: 'divider', '&:last-child': { borderRight: 0 } }}>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{label}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>{val}</Typography>
                 </Grid>
