@@ -5,7 +5,7 @@ import { DIVISION_TEAMS } from '../data/teams-data.ts';
 import { createGameDateTime, addDays, addMinutes } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
-import type { Team, Formation, Player, Position } from '@fm2k/match';
+import type { Team, Formation, Player, PlayerPosition } from '@fm2k/match';
 import type { KnockoutFormatConfig } from './competition-types.ts';
 
 const START = createGameDateTime(2025, 8, 16, 15, 0);
@@ -26,7 +26,7 @@ function mulberry32(seed: number): () => number {
 }
 
 function cupTeam(id: string): Team {
-  const positions: Position[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
+  const positions: PlayerPosition[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
   return {
     id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
     squad: positions.map((p, i): Player => ({

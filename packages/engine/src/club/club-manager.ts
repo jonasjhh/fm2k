@@ -1,5 +1,5 @@
 import { StateManager } from '@fm2k/state';
-import type { Player, Formation, Position } from '@fm2k/match';
+import type { Player, Formation, PlayerPosition } from '@fm2k/match';
 import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/match';
 import { defaultIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
@@ -393,7 +393,7 @@ export class ClubManager {
   // veterans may retire, and a *small* academy intake (1–2) joins directly. Emits player.developed
   // for each net change and player.retired (ownClub) for each departure. Returns the retiree
   // positions NOT backfilled in-club (overflow) so the caller can mint them into the free-agent pool.
-  handleSeasonComplete(): Position[] {
+  handleSeasonComplete(): PlayerPosition[] {
     const state = this.stateManager.getState();
     const result = churnSquad(state.squad, {
       rng: this.rng,

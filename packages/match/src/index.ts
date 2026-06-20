@@ -2,7 +2,11 @@
 // tactics pipeline, lineup selection, and the match simulator itself.
 
 // Domain model
-export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics, FieldedPositions } from './shared/types.ts';
+export type {
+  Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors,
+  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy,
+} from './shared/types.ts';
+export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts';
 export { getEffectiveAttributes, getPositionModifier } from './shared/position-rules.ts';
 
 // Ratings

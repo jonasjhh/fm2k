@@ -3,7 +3,7 @@ import { CompetitionManager } from './competition-manager.ts';
 import { cupRoundDate } from './cup-scheduling.ts';
 import type { FormatContext, MatchOutcome } from './competition-format.ts';
 import type { CompetitionState, KnockoutFormatConfig } from './competition-types.ts';
-import type { Team, Formation, Player, Position } from '@fm2k/match';
+import type { Team, Formation, Player, PlayerPosition } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 import { assertDefined } from '@fm2k/state';
 
@@ -19,7 +19,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function player(id: string, position: Position): Player {
+function player(id: string, position: PlayerPosition): Player {
   return {
     id, name: id, nationality: 'norwegian', age: 25, position, potential: 70,
     attributes: { speed: 70, strength: 70, agility: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, awareness: 70, composure: 70 },
@@ -27,7 +27,7 @@ function player(id: string, position: Position): Player {
 }
 
 function fullTeam(id: string): Team {
-  const positions: Position[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
+  const positions: PlayerPosition[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
   return {
     id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
     squad: positions.map((p, i) => player(`${id}-p${i}`, p)),

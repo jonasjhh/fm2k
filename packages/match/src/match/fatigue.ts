@@ -1,4 +1,4 @@
-import type { Formation, Player, PlayerAttributes, Position } from '../shared/types.ts';
+import type { Formation, Player, PlayerAttributes, FormationPosition } from '../shared/types.ts';
 import { type MatchParameters } from '../tactics/match-parameters.ts';
 import { FIELD_LINE, type FieldLine } from './action-selector.ts';
 
@@ -40,7 +40,7 @@ const FORMATION_LOAD: Partial<Record<Formation, Partial<Record<FieldLine, number
 };
 
 /** Running load of a role in a given formation. */
-export function positionLoad(formation: Formation, position: Position): number {
+export function positionLoad(formation: Formation, position: FormationPosition): number {
   const line = FIELD_LINE[position];
   const shape = FORMATION_LOAD[formation]?.[line] ?? 1;
   return LINE_BASE_LOAD[line] * shape;

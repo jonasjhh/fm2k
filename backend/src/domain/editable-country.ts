@@ -1,11 +1,11 @@
 import {
   COUNTRY_IDS, COUNTRY_DATA, getAllDivisions,
 } from '@fm2k/engine';
-import type { Team, CountryId, StructuredDivision } from '@fm2k/engine';
+import type { Team, CountryKey, StructuredDivision } from '@fm2k/engine';
 
 /** A country whose teams can be edited pre-game (the game-setup view model). */
 export interface EditableCountry {
-  id: CountryId;
+  id: CountryKey;
   name: string;         // display name: "Norway", "England", etc.
   nationality: string;  // demonym: "norwegian", "english", etc.
   divisions: EditableDivision[];

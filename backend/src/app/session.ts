@@ -9,7 +9,7 @@ import {
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
-  Position, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
+  PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
 } from '@fm2k/engine';
 import {
@@ -23,7 +23,7 @@ import {
 } from '../data/save-data.ts';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
-  MARKET_REFRESH_INTERVAL, ALL_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
+  MARKET_REFRESH_INTERVAL, ALL_PLAYER_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
 } from './config.ts';
 
 /** Significant match events the UI animates (goals, cards, saves, phase changes). */
@@ -439,7 +439,7 @@ export class GameSession {
     const seededFreeAgents: Player[] = [];
     for (const country of editableCountries.filter(c => allLeagueIds.includes(c.id))) {
       for (let i = 0; i < INITIAL_FREE_AGENTS_PER_NATION; i++) {
-        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
         const overall = 42 + Math.floor(this.rng() * 28); // 42–69: released players + the odd gem
         seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
       }
@@ -447,7 +447,7 @@ export class GameSession {
     this.transferManager = new TransferManager({
       marketSize: MARKET_SIZE,
       playerFactory: () => {
-        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
         return this.playerGenerator.generatePlayer(pos, { overall: 65 });
       },
       initialFreeAgents: seededFreeAgents,
@@ -532,7 +532,7 @@ export class GameSession {
     this.transferManager = new TransferManager({
       marketSize: MARKET_SIZE,
       playerFactory: () => {
-        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
         return this.playerGenerator.generatePlayer(pos, { overall: 65 });
       },
       initialFreeAgents: prevTransfer.freeAgents,
@@ -774,7 +774,7 @@ export class GameSession {
    * player's, then churn the free-agent pool — which replaces its own retirees 1:1 and mints all the
    * overflow as fresh youth. Conserves world population; clubs rebuild from the pool during windows.
    */
-  private churnWorld(playerOverflow: Position[]): void {
+  private churnWorld(playerOverflow: PlayerPosition[]): void {
     const overflow: OverflowSpec[] = [];
     const playerNationality = findCountryForTeam(this.editableCountries, this.playerTeamId ?? '')?.nationality ?? 'unknown';
     for (const pos of playerOverflow) { overflow.push({ position: pos, nationality: playerNationality }); }
@@ -1237,7 +1237,7 @@ export class GameSession {
     return this.editableCountries;
   }
 
-  private makePlayer(position: Position, quality: number, nationality: string): Player {
+  private makePlayer(position: PlayerPosition, quality: number, nationality: string): Player {
     return { ...this.playerGenerator.generatePlayer(position, { overall: quality }), nationality };
   }
 
@@ -1281,7 +1281,7 @@ export class GameSession {
 
   addGeneratedPlayer(teamId: string): EditableCountry[] {
     const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+    const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
     const newPlayer = this.makePlayer(pos, 70, nationality);
     return this.editTeam(teamId, t => ({ ...t, squad: [...t.squad, newPlayer] }));
   }
@@ -1292,9 +1292,9 @@ export class GameSession {
 
   generateFullTeam(teamId: string): EditableCountry[] {
     const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as Position[])
+    const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as PlayerPosition[])
       .map(pos => this.makePlayer(pos, 70, nationality));
-    const bench = (['GK', 'CB', 'CM', 'ST'] as Position[])
+    const bench = (['GK', 'CB', 'CM', 'ST'] as PlayerPosition[])
       .map(pos => this.makePlayer(pos, 60, nationality));
     return this.editTeam(teamId, t => ({ ...t, squad: [...starters, ...bench] }));
   }

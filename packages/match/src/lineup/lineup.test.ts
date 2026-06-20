@@ -1,7 +1,7 @@
 import { FORMATION_LINES, buildSlotAssignments } from './lineup.ts';
-import type { Position, Player } from '../shared/types.ts';
+import type { PlayerPosition, Player } from '../shared/types.ts';
 
-function player(id: string, position: Position): Player {
+function player(id: string, position: PlayerPosition): Player {
   return {
     id, name: id, nationality: 'n', age: 25, position, potential: 70,
     attributes: {

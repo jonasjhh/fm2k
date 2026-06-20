@@ -2,8 +2,6 @@ export const TOTAL_MATCHDAYS = 22;
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const ALL_POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST'] as const;
-
 export const FACILITY_NAMES: Record<string, string> = {
   medical: 'Medical Centre',
   training: 'Training Grounds',

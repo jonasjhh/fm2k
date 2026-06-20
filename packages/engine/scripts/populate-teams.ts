@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 import { PlayerGenerator, COUNTRY_IDS, calculateOverall } from '../src/index.ts';
-import type { Position, PlayerAttributes } from '../src/index.ts';
+import type { PlayerPosition, PlayerAttributes } from '../src/index.ts';
 import type { NameCountry } from '@fm2k/names';
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '../src/data');
@@ -51,7 +51,7 @@ function scaleAttributes(attrs: PlayerAttributes, targetOverall: number): Player
 // ── 25-player position layout ─────────────────────────────────────────────────
 // First 11 = 4-4-2 starters, remaining 14 = squad depth
 
-const SQUAD_POSITIONS: Position[] = [
+const SQUAD_POSITIONS: PlayerPosition[] = [
   // starters — 4-4-2
   'GK',
   'LB', 'CB', 'CB', 'RB',
@@ -81,7 +81,7 @@ interface PlayerJson {
 
 function buildPlayer(
   generator: PlayerGenerator,
-  position: Position,
+  position: PlayerPosition,
   ovr: number,
   nationality: string,
 ): PlayerJson {

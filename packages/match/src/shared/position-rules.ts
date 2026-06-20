@@ -1,13 +1,11 @@
-import type { Position, PlayerAttributes, Player } from './types.ts';
+import type { PlayerPosition, FormationPosition, PlayerAttributes, Player } from './types.ts';
 
-const SECONDARY_POSITIONS: Record<Position, Position[]> = {
+const SECONDARY_POSITIONS: Record<PlayerPosition, FormationPosition[]> = {
   GK:  [],
   CB:  ['CDM'],
   LB:  ['LM', 'LW'],
   RB:  ['RM', 'RW'],
-  CDM: ['CM', 'CB'],
   CM:  ['CAM', 'CDM'],
-  CAM: ['CM'],
   LM:  ['LW', 'LB'],
   RM:  ['RW', 'RB'],
   LW:  ['LM', 'ST'],
@@ -18,13 +16,13 @@ const SECONDARY_POSITIONS: Record<Position, Position[]> = {
 const SECONDARY_MODIFIER = 0.90;
 const OUT_OF_POSITION_MODIFIER = 0.75;
 
-export function getPositionModifier(natural: Position, fielded: Position): number {
+export function getPositionModifier(natural: PlayerPosition, fielded: FormationPosition): number {
   if (natural === fielded) { return 1.0; }
   if (SECONDARY_POSITIONS[natural].includes(fielded)) { return SECONDARY_MODIFIER; }
   return OUT_OF_POSITION_MODIFIER;
 }
 
-export function getEffectiveAttributes(player: Player, fieldedPosition: Position): PlayerAttributes {
+export function getEffectiveAttributes(player: Player, fieldedPosition: FormationPosition): PlayerAttributes {
   const modifier = getPositionModifier(player.position, fieldedPosition);
   if (modifier === 1.0) { return player.attributes; }
   const attrs = player.attributes;

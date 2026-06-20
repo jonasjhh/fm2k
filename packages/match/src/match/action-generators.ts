@@ -1,5 +1,5 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
-import { Player, Position } from '../shared/types.ts';
+import { Player, type FormationPosition } from '../shared/types.ts';
 import type { ActionGenerator } from './action-selector.ts';
 import { getEffectiveAttributes } from '../shared/position-rules.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
@@ -13,61 +13,61 @@ import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameter
  */
 export class SkillCalculator {
   /** Close control while running: technique-led, helped by pace and balance. */
-  static dribbling(player: Player, fieldedPosition: Position = player.position): number {
+  static dribbling(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.technique * 0.4 + a.speed * 0.3 + a.agility * 0.3);
   }
 
   /** Putting the ball away: dominated by finishing, steadied by composure. */
-  static finishing(player: Player, fieldedPosition: Position = player.position): number {
+  static finishing(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.finishing * 0.7 + a.composure * 0.2 + a.technique * 0.1);
   }
 
   /** Aerial duel / header: chiefly strength + jumping (agility); finishing matters least. */
-  static heading(player: Player, fieldedPosition: Position = player.position): number {
+  static heading(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.strength * 0.4 + a.agility * 0.35 + a.finishing * 0.25);
   }
 
   /** Spot kick: a composure test as much as a finishing one. */
-  static penalties(player: Player, fieldedPosition: Position = player.position): number {
+  static penalties(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.finishing * 0.55 + a.composure * 0.35 + a.technique * 0.1);
   }
 
   /** Defence-splitting pass: vision (awareness) first, then passing weight. */
-  static throughBall(player: Player, fieldedPosition: Position = player.position): number {
+  static throughBall(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.awareness * 0.5 + a.passing * 0.4 + a.technique * 0.1);
   }
 
   /** Shot from distance: finishing + technique, with some composure. */
-  static longShot(player: Player, fieldedPosition: Position = player.position): number {
+  static longShot(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.finishing * 0.5 + a.technique * 0.3 + a.composure * 0.2);
   }
 
   /** Delivery from wide: a passing skill above all. */
-  static crossing(player: Player, fieldedPosition: Position = player.position): number {
+  static crossing(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.passing * 0.6 + a.technique * 0.3 + a.awareness * 0.1);
   }
 
   /** Winning the ball in a challenge: defending-led, with reading and power. */
-  static tackling(player: Player, fieldedPosition: Position = player.position): number {
+  static tackling(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.defending * 0.6 + a.awareness * 0.2 + a.strength * 0.2);
   }
 
   /** Reading and cutting out a pass: awareness first, then defending. */
-  static interception(player: Player, fieldedPosition: Position = player.position): number {
+  static interception(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.awareness * 0.5 + a.defending * 0.3 + a.agility * 0.2);
   }
 
   /** Hoofing the ball clear: power and defending. */
-  static clearing(player: Player, fieldedPosition: Position = player.position): number {
+  static clearing(player: Player, fieldedPosition: FormationPosition = player.position): number {
     const a = getEffectiveAttributes(player, fieldedPosition);
     return (a.defending * 0.5 + a.strength * 0.4 + a.awareness * 0.1);
   }
@@ -156,7 +156,7 @@ function defTeamSide(state: MatchState): 'home' | 'away' {
 /** The position `player` (on `side`) is actually fielded at right now, falling back to
  *  their card position only when no fieldedPositions map is present on the state (the
  *  old unit-test default — never a real in-match path once selection feeds it in). */
-function fielded(state: MatchState, side: 'home' | 'away', player: Player): Position {
+function fielded(state: MatchState, side: 'home' | 'away', player: Player): FormationPosition {
   return state.fieldedPositions?.[side]?.[player.id] ?? player.position;
 }
 

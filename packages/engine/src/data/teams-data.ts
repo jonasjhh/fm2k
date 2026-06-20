@@ -8,6 +8,7 @@ import swedenData from './sweden.json';
 import denmarkData from './denmark.json';
 import { getAllTeams, getDivisionTeams } from './country-data.ts';
 import type { CountryData } from './country-data.ts';
+import type { CountryKey } from '@fm2k/names';
 
 export { getAllTeams, getDivisionTeams };
 
@@ -15,7 +16,7 @@ export { getAllTeams, getDivisionTeams };
 // To add a new country: import its JSON above, add the country name here,
 // and add it to COUNTRY_DATA below. Everything else derives from this registry.
 
-export const COUNTRY_IDS = [
+export const COUNTRY_IDS: readonly CountryKey[] = [
   'norway',
   'england',
   'germany',
@@ -24,11 +25,9 @@ export const COUNTRY_IDS = [
   'italy',
   'sweden',
   'denmark',
-] as const;
+];
 
-export type CountryId = typeof COUNTRY_IDS[number];
-
-export const COUNTRY_DATA: Record<CountryId, CountryData> = {
+export const COUNTRY_DATA: Record<CountryKey, CountryData> = {
   norway:   norwayData   as unknown as CountryData,
   england:  englandData  as unknown as CountryData,
   germany:  germanyData  as unknown as CountryData,
@@ -41,7 +40,7 @@ export const COUNTRY_DATA: Record<CountryId, CountryData> = {
 
 export const ALL_COUNTRIES: CountryData[] = COUNTRY_IDS.map(id => COUNTRY_DATA[id]);
 
-export const COUNTRY_FLAG: Record<CountryId, string> = {
+export const COUNTRY_FLAG: Record<CountryKey, string> = {
   norway:  '🇳🇴',
   england: '🇬🇧',
   germany: '🇩🇪',
@@ -52,7 +51,7 @@ export const COUNTRY_FLAG: Record<CountryId, string> = {
   denmark: '🇩🇰',
 };
 
-export const COUNTRY_COLORS: Record<CountryId, { primary: string; secondary: string }> = {
+export const COUNTRY_COLORS: Record<CountryKey, { primary: string; secondary: string }> = {
   norway:  { primary: '#EF2B2D', secondary: '#FFFFFF' },
   england: { primary: '#CF142B', secondary: '#FFFFFF' },
   germany: { primary: '#000000', secondary: '#DD0000' },

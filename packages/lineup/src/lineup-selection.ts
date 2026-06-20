@@ -2,7 +2,7 @@ import {
   calculateOverall, FORMATION_LINES, deriveFieldedPositions,
 } from '@fm2k/match';
 import type {
-  Formation, Player, Position, FieldedPositions,
+  Formation, Player, PlayerPosition, FormationPosition, FieldedPositions,
 } from '@fm2k/match';
 
 /** Fit floor for two unrelated outfield positions. */
@@ -12,7 +12,7 @@ const FIT_FLOOR = 0.4;
  * Suitability (symmetric, excluding GK and exact matches) of playing a player of
  * one position in a slot of another. Anything not listed falls back to FIT_FLOOR.
  */
-const FIT_PAIRS: [Position, Position, number][] = [
+const FIT_PAIRS: [FormationPosition, FormationPosition, number][] = [
   // full-backs
   ['LB', 'RB', 0.85],
   ['LB', 'CB', 0.7], ['RB', 'CB', 0.7],
@@ -40,7 +40,7 @@ const FIT_LOOKUP: Map<string, number> = new Map(
 );
 
 /** 0..1 suitability of a `playerPos` player filling a `slotPos` slot. */
-export function positionFit(playerPos: Position, slotPos: Position): number {
+export function positionFit(playerPos: PlayerPosition, slotPos: FormationPosition): number {
   if (playerPos === slotPos) { return 1; }
   if (playerPos === 'GK' || slotPos === 'GK') { return 0; }
   return FIT_LOOKUP.get(`${playerPos}|${slotPos}`) ?? FIT_FLOOR;
@@ -62,7 +62,7 @@ function assignToSlots(
   formation: Formation,
   opts: SelectionOptions = {},
 ): { slots: (Player | null)[]; score: number } {
-  const positions = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as Position[];
+  const positions = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as FormationPosition[];
   const unavailableIds = opts.unavailableIds;
   const pool = unavailableIds
     ? squad.filter(p => !unavailableIds.has(p.id))

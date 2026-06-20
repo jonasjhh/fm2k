@@ -10,7 +10,7 @@ import {
   contestWinChance,
 } from './action-generators.ts';
 import { MatchState, BallPosition } from './types.ts';
-import { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
+import { Player, PlayerAttributes, PlayerPosition, Team } from '../shared/types.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { assertDefined } from '../test-assert.ts';
 
@@ -24,7 +24,7 @@ function attrs(overrides: Partial<PlayerAttributes> = {}): PlayerAttributes {
   };
 }
 
-function player(id: string, position: Position, a: Partial<PlayerAttributes> = {}): Player {
+function player(id: string, position: PlayerPosition, a: Partial<PlayerAttributes> = {}): Player {
   return {
     id, name: id, nationality: 'norwegian', age: 25, position,
     potential: 70, attributes: attrs(a),
@@ -90,7 +90,7 @@ describe('SkillCalculator:', () => {
   const cases: Array<{
     name: string;
     calc: (p: Player) => number;
-    pos: Position;
+    pos: PlayerPosition;
     a: Partial<PlayerAttributes>;
     expected: number;
   }> = [
@@ -303,7 +303,7 @@ describe('LongPass / ThroughBall / Cross (success-only):', () => {
   it('ThroughBall splits the line by jumping two zones', () => {
     const gen = new ThroughBallGenerator(seq([0]));
     const event = assertDefined(
-      gen.generateEvent(player('p', 'CAM', { awareness: 80, passing: 80 }),
+      gen.generateEvent(player('p', 'CM', { awareness: 80, passing: 80 }),
         makeState({ possession: 'home', ballPosition: { zone: 'middle_third', side: 'center' } })),
       'generateEvent returned null',
     );

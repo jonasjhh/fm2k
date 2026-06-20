@@ -19,7 +19,7 @@ import {
   STYLE_TENDENCIES, TACTICAL_STYLE_IDS,
 } from '@fm2k/engine';
 import type {
-  Team, Player, Position, Formation, TacticalStyleId, TeamTacticsIntent,
+  Team, Player, PlayerPosition, Formation, TacticalStyleId, TeamTacticsIntent,
   SimulateMatchResult, DistributionResult, PlayerMatchUpdate, InjuryReport,
 } from '@fm2k/engine';
 
@@ -35,7 +35,7 @@ const FORMATIONS: Formation[] = [
 ];
 
 // A generous squad at a uniform strength; selectStartingXIWithSlots picks the XI for the formation.
-const SQUAD_POSITIONS: Position[] = [
+const SQUAD_POSITIONS: PlayerPosition[] = [
   'GK', 'GK', 'LB', 'RB', 'CB', 'CB', 'CB', 'CM', 'CM', 'CM', 'CM',
   'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST', 'ST',
 ];

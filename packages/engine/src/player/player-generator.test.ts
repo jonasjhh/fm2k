@@ -1,5 +1,5 @@
 import { PlayerGenerator } from './player-generator';
-import { calculateOverall, type Position, type PlayerAttributes } from '@fm2k/match';
+import { calculateOverall, type PlayerPosition, type PlayerAttributes } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
   'speed', 'strength', 'agility', 'passing', 'finishing',
@@ -42,7 +42,7 @@ describe('PlayerGenerator:', () => {
 
     test('shapes attributes for the position (a striker finishes better than a centre-back)', () => {
       const gen = new PlayerGenerator('female', 'all');
-      const sample = (pos: Position, key: keyof PlayerAttributes) => {
+      const sample = (pos: PlayerPosition, key: keyof PlayerAttributes) => {
         const vals = Array.from({ length: 40 }, () => gen.generatePlayer(pos, { overall: 65 }).attributes[key]);
         return vals.reduce((a, b) => a + b, 0) / vals.length;
       };

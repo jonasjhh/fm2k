@@ -1,6 +1,6 @@
 import { churnSquad, churnFreeAgents, runAiMarket, generatorYouthFactory, MAX_SQUAD_SIZE, type OverflowSpec } from './world-churn.ts';
 import { PlayerGenerator } from '../player/player-generator.ts';
-import { calculateOverall, type Player, type Position } from '@fm2k/match';
+import { calculateOverall, type Player, type PlayerPosition } from '@fm2k/match';
 
 /**
  * World-churn distribution simulation — the **long-run** picture of the shared pool: do mean skill,
@@ -19,10 +19,10 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const SQUAD_TEMPLATE: Position[] = [
+const SQUAD_TEMPLATE: PlayerPosition[] = [
   'GK', 'GK',
   'CB', 'CB', 'CB', 'LB', 'RB',
-  'CDM', 'CM', 'CM', 'CAM', 'LM', 'RM',
+  'CM', 'CM', 'CM', 'CM', 'LM', 'RM',
   'LW', 'RW', 'ST', 'ST', 'ST',
 ];
 

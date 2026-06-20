@@ -1,4 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
+import type { MatchOutcomeDecidedBy } from '@fm2k/match';
 
 /** Discriminates the two built-in competition formats. */
 export type CompetitionKind = 'league' | 'knockout';
@@ -21,7 +22,7 @@ export interface CompetitionStanding {
   points: number;
 }
 
-export type DecidedBy = 'normal' | 'extra_time' | 'penalties';
+export type DecidedBy = MatchOutcomeDecidedBy;
 
 export interface FixtureResult {
   homeScore: number;

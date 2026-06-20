@@ -6,18 +6,49 @@ export type Formation =
   | '3-5-2' | '3-4-3' | '3-4-2-1'
   | '5-3-2' | '5-4-1';
 
-export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
+/** How a match's result was decided — produced by MatchOccurrence, consumed (re-exported
+ *  as DecidedBy) by @fm2k/engine's competition layer. */
+export type MatchOutcomeDecidedBy = 'normal' | 'extra_time' | 'penalties';
 
-/** playerId -> the Position they're fielded at right now (formation slot), as opposed
- *  to Player.position (card/generation-time position). */
-export type FieldedPositions = Record<string, Position>;
+/** A player's native/card position — what they're scouted, generated, and recruited as.
+ *  Excludes CDM/CAM: those are formation slots a CM plays, not a position a player has. */
+export type PlayerPosition = 'GK' | 'CB' | 'LB' | 'RB' | 'CM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
+
+/** A formation slot / in-match role a player can be fielded at — a superset of
+ *  PlayerPosition that also includes CDM and CAM (always filled by a CM, never a
+ *  player's own PlayerPosition). */
+export type FormationPosition = PlayerPosition | 'CDM' | 'CAM';
+
+/** Single source of truth for all PlayerPosition values — a Record keyed by the full
+ *  union, so TypeScript refuses to compile if a position is ever added without an entry
+ *  here. Other layers should import ALL_PLAYER_POSITIONS rather than hand-maintain their
+ *  own list. */
+export const PLAYER_POSITION_LABELS: Record<PlayerPosition, string> = {
+  GK: 'Goalkeeper',
+  CB: 'Centre Back',
+  LB: 'Left Back',
+  RB: 'Right Back',
+  CM: 'Centre Midfielder',
+  LM: 'Left Midfielder',
+  RM: 'Right Midfielder',
+  LW: 'Left Winger',
+  RW: 'Right Winger',
+  ST: 'Striker',
+};
+
+export const ALL_PLAYER_POSITIONS: readonly PlayerPosition[] =
+  Object.keys(PLAYER_POSITION_LABELS) as PlayerPosition[];
+
+/** playerId -> the FormationPosition they're fielded at right now (formation slot), as
+ *  opposed to Player.position (card/generation-time PlayerPosition). */
+export type FieldedPositions = Record<string, FormationPosition>;
 
 export interface Player {
   id: string;
   name: string;
   nationality: string;
   age: number;
-  position: Position;
+  position: PlayerPosition;
   potential: number;
   attributes: PlayerAttributes;
 }

@@ -1,4 +1,4 @@
-import type { Player, PlayerAttributes, Position } from '@fm2k/match';
+import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 import { calculateOverall } from '@fm2k/match';
 import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
 import { PlayerGenerator } from '../player/player-generator.ts';
@@ -53,7 +53,7 @@ const YOUTH_AGE_MAX = 19;
 
 /** A factory that mints a youth player to the requested spec (injected; impure part lives here). */
 export type YouthFactory = (
-  position: Position,
+  position: PlayerPosition,
   spec: { overall: number; age: number; potential: number; nationality: string },
 ) => Player;
 
@@ -68,7 +68,7 @@ export function generatorYouthFactory(rng: () => number = Math.random): YouthFac
 
 /** Build a youth spec for the given academy level, then mint via the factory. */
 export function makeYouth(
-  position: Position, academyLevel: number, nationality: string, factory: YouthFactory, rng: () => number,
+  position: PlayerPosition, academyLevel: number, nationality: string, factory: YouthFactory, rng: () => number,
 ): Player {
   const level = clamp(1, 4, Math.round(academyLevel));
   const overall = YOUTH_START_OVERALL[level] + Math.round((rng() - 0.5) * 8);
@@ -116,7 +116,7 @@ export interface SquadChurnResult {
   /** Academy youth that actually joined the club this season (≤ maxIntake). */
   youth: Player[];
   /** Retiree positions left unfilled — overflow to be minted into the free-agent pool. */
-  overflow: Position[];
+  overflow: PlayerPosition[];
 }
 
 /** Per-attribute net change between two attribute snapshots (only non-zero entries). */
@@ -167,7 +167,7 @@ export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurn
 
 // ── free-agent pool churn ───────────────────────────────────────────────────────────
 /** A youth to mint into the pool: overflow from clubs (a retiree position they didn't backfill). */
-export interface OverflowSpec { position: Position; nationality: string }
+export interface OverflowSpec { position: PlayerPosition; nationality: string }
 
 export interface PoolChurnOptions {
   rng: () => number;

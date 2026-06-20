@@ -2,12 +2,12 @@ import { Season } from './season.ts';
 import { CompetitionManager } from './competition-manager.ts';
 import { LeagueFormat } from './league-format.ts';
 import { createGameDateTime, addMinutes, addDays } from '@fm2k/timeline';
-import type { Team, Formation, Player, Position } from '@fm2k/match';
+import type { Team, Formation, Player, PlayerPosition } from '@fm2k/match';
 
 const EARLY_START = createGameDateTime(2025, 8, 16, 15, 0);
 const LATE_START = createGameDateTime(2025, 8, 23, 15, 0);
 
-function player(id: string, position: Position): Player {
+function player(id: string, position: PlayerPosition): Player {
   return {
     id, name: id, nationality: 'norwegian', age: 25, position, potential: 70,
     attributes: { speed: 70, strength: 70, agility: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, awareness: 70, composure: 70 },
@@ -15,7 +15,7 @@ function player(id: string, position: Position): Player {
 }
 
 function team(id: string): Team {
-  const positions: Position[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
+  const positions: PlayerPosition[] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'LM', 'RM', 'ST', 'ST'];
   return {
     id, name: id.toUpperCase(), formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
     squad: positions.map((p, i) => player(`${id}-p${i}`, p)),

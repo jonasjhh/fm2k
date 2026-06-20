@@ -3,7 +3,7 @@ import {
   carryOverLineup,
 } from './lineup-selection.ts';
 import { FORMATION_LINES } from '@fm2k/match';
-import type { Player, PlayerAttributes, Position } from '@fm2k/match';
+import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 
 function attrs(value: number): PlayerAttributes {
   return {
@@ -12,15 +12,15 @@ function attrs(value: number): PlayerAttributes {
   };
 }
 
-function makePlayer(id: string, position: Position, value: number): Player {
+function makePlayer(id: string, position: PlayerPosition, value: number): Player {
   return { id, name: id, nationality: 'n', age: 25, position, potential: 70, attributes: attrs(value) };
 }
 
 /** A balanced 18-player squad with at least 2 of every common slot position. */
 function balancedSquad(): Player[] {
-  const spec: [Position, number][] = [
+  const spec: [PlayerPosition, number][] = [
     ['GK', 2], ['CB', 3], ['LB', 1], ['RB', 1],
-    ['CDM', 1], ['CM', 3], ['CAM', 1], ['LM', 1], ['RM', 1],
+    ['CM', 5], ['LM', 1], ['RM', 1],
     ['LW', 1], ['RW', 1], ['ST', 2],
   ];
   const players: Player[] = [];

@@ -1,4 +1,4 @@
-import type { Formation, Player, Position, FieldedPositions } from '../shared/types.ts';
+import type { Formation, Player, FormationPosition, FieldedPositions } from '../shared/types.ts';
 
 /** Pitch slots (by position) for each formation, ordered back-to-front. */
 export const FORMATION_LINES: Record<Formation, string[][]> = {
@@ -55,7 +55,7 @@ export function buildSlotAssignments(
  *  `starters` is already exactly the right players in slot order (the simulator's
  *  trust contract) — zips only the overlap if shorter/longer. */
 export function deriveFieldedPositions(starters: Player[], formation: Formation): FieldedPositions {
-  const slots = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as Position[];
+  const slots = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as FormationPosition[];
   const out: FieldedPositions = {};
   starters.forEach((p, i) => { if (slots[i]) { out[p.id] = slots[i]; } });
   return out;

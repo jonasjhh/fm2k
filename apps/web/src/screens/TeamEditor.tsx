@@ -33,12 +33,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { calculateOverall, NameGenerator, COUNTRY_COLORS } from '@fm2k/engine';
+import { calculateOverall, NameGenerator, COUNTRY_COLORS, ALL_PLAYER_POSITIONS } from '@fm2k/engine';
 
-import type { CountryId } from '@fm2k/engine';
-import type { Player, Position, PlayerAttributes } from '@fm2k/engine';
+import type { CountryKey } from '@fm2k/engine';
+import type { Player, PlayerPosition, PlayerAttributes } from '@fm2k/engine';
 import type { EditableCountry } from '@/store/game-store';
-import { ALL_POSITIONS } from '../constants';
 import FlagIcon from '../components/FlagIcon';
 
 // ── attribute column definitions ──────────────────────────────────────────────
@@ -109,7 +108,7 @@ export default function TeamEditor() {
   const [modalMode, setModalMode] = useState<'add' | 'edit' | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [draftName, setDraftName] = useState('');
-  const [draftPos, setDraftPos] = useState<Position>('CM');
+  const [draftPos, setDraftPos] = useState<PlayerPosition>('CM');
   const [draftAge, setDraftAge] = useState(22);
   const [draftPotential, setDraftPotential] = useState(70);
   const [draftAttrs, setDraftAttrs] = useState<PlayerAttributes>({ ...DEFAULT_ATTRS });
@@ -229,7 +228,7 @@ export default function TeamEditor() {
             color: getContrastColor(activeTeam.colors.primary),
             borderBottom: `3px solid ${activeTeam.colors.secondary}`,
           } : view === 'teams' && selectedCountry ? (() => {
-            const nc = COUNTRY_COLORS[selectedCountry.id as CountryId];
+            const nc = COUNTRY_COLORS[selectedCountry.id as CountryKey];
             return {
               bgcolor: nc.primary,
               color: getContrastColor(nc.primary),
@@ -281,7 +280,7 @@ export default function TeamEditor() {
           <Grid container spacing={2}>
             {editableCountries.map(c => {
               const teamCount = c.divisions.reduce((n, d) => n + d.teams.length, 0);
-              const nc = COUNTRY_COLORS[c.id as CountryId];
+              const nc = COUNTRY_COLORS[c.id as CountryKey];
               return (
                 <Grid key={c.id} size={{ xs: 12, sm: 6, md: 4 }}>
                   <ButtonBase
@@ -431,8 +430,8 @@ export default function TeamEditor() {
             <Grid size={{ xs: 6, sm: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Position</InputLabel>
-                <Select value={draftPos} label="Position" onChange={e => setDraftPos(e.target.value as Position)}>
-                  {ALL_POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                <Select value={draftPos} label="Position" onChange={e => setDraftPos(e.target.value as PlayerPosition)}>
+                  {ALL_PLAYER_POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>

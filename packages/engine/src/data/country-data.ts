@@ -1,5 +1,5 @@
 import { calculateBestFormation } from '@fm2k/lineup';
-import type { Team, Player, Position } from '@fm2k/match';
+import type { Team, Player, PlayerPosition } from '@fm2k/match';
 
 export interface CountryPlayerData {
   id: string;
@@ -49,7 +49,7 @@ function toPlayer(p: CountryPlayerData, countryNationality: string): Player {
     name: p.name,
     nationality: p.nationality ?? countryNationality,
     age: p.age ?? 25,
-    position: p.position as Position,
+    position: p.position as PlayerPosition,
     potential: p.potential ?? 70,
     attributes: p.attributes,
   };

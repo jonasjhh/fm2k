@@ -13,6 +13,7 @@ import { useGameStore } from '@/store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
+import { FORMATION_LINES } from '@fm2k/engine';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
@@ -41,11 +42,7 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
 
 // ─── formation selector data ──────────────────────────────────────────────────
 
-const FORMATIONS_QUICK: Formation[] = [
-  '4-4-2', '4-3-3', '4-5-1', '4-2-3-1', '4-1-4-1', '4-4-1-1', '4-2-4',
-  '3-5-2', '3-4-3', '3-4-2-1',
-  '5-3-2', '5-4-1',
-];
+const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 
 // ─── main component ───────────────────────────────────────────────────────────
 

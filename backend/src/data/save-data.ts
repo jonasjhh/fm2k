@@ -1,8 +1,8 @@
 import localforage from 'localforage';
 import type {
   LeagueState, CompetitionState, ClubState, TransferListing,
-  Player, ClubPlayer, PlayerAttributes, Team, Formation, Position, TeamTactics,
-  CountryId, GameDateTime, RegimentId,
+  Player, ClubPlayer, PlayerAttributes, Team, Formation, PlayerPosition, TeamTactics,
+  CountryKey, GameDateTime, RegimentId,
 } from '@fm2k/engine';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
@@ -105,7 +105,7 @@ function packPlayer(p: Player): PlayerPack {
 }
 
 function unpackPlayer(p: PlayerPack): Player {
-  return { id: p.id, name: p.n, nationality: p.nat, age: p.a, position: p.pos as Position, potential: p.pot, attributes: unpackAttrs(p.at) };
+  return { id: p.id, name: p.n, nationality: p.nat, age: p.a, position: p.pos as PlayerPosition, potential: p.pot, attributes: unpackAttrs(p.at) };
 }
 
 function packClubPlayer(p: ClubPlayer): ClubPlayerPack {
@@ -158,7 +158,7 @@ function packCountry(c: EditableCountry): PackedCountry {
 
 function unpackCountry(c: PackedCountry): EditableCountry {
   return {
-    id: c.id as CountryId, name: c.name, nationality: c.nationality,
+    id: c.id as CountryKey, name: c.name, nationality: c.nationality,
     divisions: c.divisions.map(d => ({
       id: d.id, name: d.name, level: d.level,
       teams: d.teams.map(unpackTeam),

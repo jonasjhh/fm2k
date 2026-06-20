@@ -1,9 +1,9 @@
 import { NameGenerator, type Gender, type Country } from '@fm2k/names';
-import { type Player, type PlayerAttributes, type Position, calculateOverall } from '@fm2k/match';
+import { type Player, type PlayerAttributes, type PlayerPosition, calculateOverall } from '@fm2k/match';
 import { v4 as uuidv4 } from '@fm2k/state';
-import type { CountryId } from '../data/teams-data.ts';
+import type { CountryKey } from '@fm2k/names';
 
-const COUNTRY_NATIONALITY: Record<CountryId, string> = {
+const COUNTRY_NATIONALITY: Record<CountryKey, string> = {
   norway:  'norwegian',
   england: 'english',
   germany: 'german',
@@ -19,7 +19,7 @@ const DEFAULT_OVERALL = 60;
 /** Per-attribute spread around the target overall (before position shaping). */
 const ATTR_SPREAD = 16;
 /** Position emphasis on the 1–99 scale (a striker finishes better than they defend, etc.). */
-const POSITION_BOOSTS: Partial<Record<Position, Partial<Record<keyof PlayerAttributes, number>>>> = {
+const POSITION_BOOSTS: Partial<Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, number>>>> = {
   GK:  { agility: 14, composure: 10, awareness: 10 },
   CB:  { defending: 18, strength: 10, awareness: 10 },
   LB:  { defending: 10, speed: 10, stamina: 10 },
@@ -68,7 +68,7 @@ export class PlayerGenerator {
    * rating lands near `options.overall` on the **1–99 scale**. (Scaling lives here rather than in
    * callers — there is a single canonical place attributes are produced.)
    */
-  generatePlayer(position: Position, options: GeneratePlayerOptions = {}): Player {
+  generatePlayer(position: PlayerPosition, options: GeneratePlayerOptions = {}): Player {
     const target = clamp(1, 99, options.overall ?? DEFAULT_OVERALL);
     const attributes = this.generateAttributes(position, target);
     const overall = Math.round(calculateOverall(attributes));
@@ -85,7 +85,7 @@ export class PlayerGenerator {
     };
   }
 
-  private generateAttributes(position: Position, target: number): PlayerAttributes {
+  private generateAttributes(position: PlayerPosition, target: number): PlayerAttributes {
     const raw = {} as PlayerAttributes;
     const boosts = POSITION_BOOSTS[position] ?? {};
     for (const key of ATTR_KEYS) {

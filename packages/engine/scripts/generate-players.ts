@@ -18,7 +18,7 @@
  */
 
 import { PlayerGenerator, COUNTRY_IDS, COUNTRY_DATA, calculateOverall } from '../src/index.ts';
-import type { Position, PlayerAttributes } from '../src/index.ts';
+import type { PlayerPosition, PlayerAttributes } from '../src/index.ts';
 import type { Gender, NameCountry } from '@fm2k/names';
 
 // ── nation tier (affects base skill level) ────────────────────────────────────
@@ -40,7 +40,7 @@ const DIVISION_PENALTY = 9;
 // ── position pool ─────────────────────────────────────────────────────────────
 // A realistic squad shape; repeated as needed when count > pool size.
 
-const POSITION_POOL: Position[] = [
+const POSITION_POOL: PlayerPosition[] = [
   'GK',
   'CB', 'CB', 'LB', 'RB',
   'CM', 'CM', 'CM', 'CM',
@@ -119,7 +119,7 @@ function scaleAttributes(attrs: PlayerAttributes, targetOverall: number): Player
   return result;
 }
 
-function positionAt(index: number): Position {
+function positionAt(index: number): PlayerPosition {
   return POSITION_POOL[index % POSITION_POOL.length];
 }
 

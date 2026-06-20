@@ -1,4 +1,4 @@
-import type { Player, PlayerAttributes, Position, Formation } from '../shared/types.ts';
+import type { Player, PlayerAttributes, PlayerPosition, Formation } from '../shared/types.ts';
 import {
   NEUTRAL_PARAMS, NEUTRAL_VALUE, PARAM_KEYS, clampParam, clampParams, applyDelta,
   type MatchParameters,
@@ -21,7 +21,7 @@ function attrs(value: number, overrides: Partial<PlayerAttributes> = {}): Player
   };
 }
 
-function makePlayer(id: string, position: Position, value: number, ov: Partial<PlayerAttributes> = {}): Player {
+function makePlayer(id: string, position: PlayerPosition, value: number, ov: Partial<PlayerAttributes> = {}): Player {
   return { id, name: id, nationality: 'n', age: 25, position, potential: 70, attributes: attrs(value, ov) };
 }
 

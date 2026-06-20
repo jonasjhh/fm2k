@@ -1,5 +1,7 @@
 import { createGameDateTime } from '@fm2k/engine';
-import type { GameDateTime, Position } from '@fm2k/engine';
+import type { GameDateTime } from '@fm2k/engine';
+
+export { ALL_PLAYER_POSITIONS } from '@fm2k/engine';
 
 /** New-game starting budget. */
 export const BUDGET_START = 1_000_000;
@@ -24,7 +26,3 @@ export const CUP_ROUND_NAMES = [
 
 /** Competition id for a nation's cup, derived from its country id. */
 export const cupCompetitionId = (countryId: string): string => `${countryId}-cup`;
-
-export const ALL_POSITIONS: Position[] = [
-  'GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST',
-];

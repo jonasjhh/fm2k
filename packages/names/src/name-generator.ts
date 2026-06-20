@@ -1,8 +1,8 @@
 import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name-data.ts';
 
 export type Gender = 'male' | 'female' | 'all';
-export type NameCountry = 'norway' | 'england' | 'germany' | 'france' | 'spain' | 'italy' | 'sweden' | 'denmark';
-export type Country = NameCountry | 'all';
+export type CountryKey = 'norway' | 'england' | 'germany' | 'france' | 'spain' | 'italy' | 'sweden' | 'denmark';
+export type Country = CountryKey | 'all';
 
 type NameEntry = string | string[];
 

@@ -21,14 +21,13 @@ import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { calculateOverall, playerValue, valuePlayer, selectStartingXIWithSlots } from '@fm2k/engine';
-import type { Player, Position } from '@fm2k/engine';
+import { calculateOverall, playerValue, valuePlayer, selectStartingXIWithSlots, ALL_PLAYER_POSITIONS } from '@fm2k/engine';
+import type { Player } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { buyPlayerWithConfirm } from '../../utils/transfers';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 
-const POSITIONS: Position[] = ['GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST'];
 const ROWS_PER_PAGE = 25;
 
 interface PlayerRow {
@@ -230,7 +229,7 @@ export default function TransfersTab() {
           <InputLabel id="pos-label">Position</InputLabel>
           <Select labelId="pos-label" label="Position" value={position} onChange={(e) => { setPosition(e.target.value); setPage(0); }}>
             <MenuItem value="">Any</MenuItem>
-            {POSITIONS.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+            {ALL_PLAYER_POSITIONS.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 160 }}>

@@ -11,7 +11,7 @@ import Divider from '@mui/material/Divider';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { COUNTRY_COLORS } from '@fm2k/engine';
 import { getTeamOVR } from '@fm2k/engine';
-import type { Team, CountryId } from '@fm2k/engine';
+import type { Team, CountryKey } from '@fm2k/engine';
 import FlagIcon from './FlagIcon';
 import type { EditableCountry, EditableDivision } from '@/store/game-store';
 
@@ -40,7 +40,7 @@ export default function NationBrowser({ countries, selectedTeamId, onTeamClick }
         <List dense disablePadding>
           {countries.map(c => {
             const teamCount = c.divisions.reduce((n, d) => n + d.teams.length, 0);
-            const nc = COUNTRY_COLORS[c.id as CountryId];
+            const nc = COUNTRY_COLORS[c.id as CountryKey];
             return (
               <ListItemButton
                 key={c.id}

@@ -25,7 +25,6 @@ export type {
 } from './competition/competition-types.ts';
 export { TBD_TEAM_ID, TBD_TEAM_NAME } from './competition/competition-types.ts';
 export { DIVISION_TEAMS, ALL_COUNTRIES, COUNTRY_IDS, COUNTRY_DATA, COUNTRY_FLAG, COUNTRY_COLORS, getAllTeams, getDivisionTeams } from './data/teams-data.ts';
-export type { CountryId } from './data/teams-data.ts';
 export type { CountryData, CountryDivisionData, CountryTeamData, CountryPlayerData, StructuredDivision } from './data/country-data.ts';
 export { getAllDivisions } from './data/country-data.ts';
 
@@ -41,7 +40,7 @@ export type {
 } from '@fm2k/match';
 
 export { NameGenerator } from '@fm2k/names';
-export type { Gender, Country, NameCountry } from '@fm2k/names';
+export type { Gender, Country, CountryKey } from '@fm2k/names';
 export { PlayerGenerator } from './player/player-generator.ts';
 export {
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
@@ -59,7 +58,10 @@ export type {
 export { SeasonManager } from './season/season-manager.ts';
 export type { SeasonState } from './season/season-types.ts';
 
-export type { Formation, Player, PlayerAttributes, Position, Team, TeamColors, TeamTactics } from '@fm2k/match';
+export type {
+  Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors, TeamTactics,
+} from '@fm2k/match';
+export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from '@fm2k/match';
 
 export type {
   TacticalStyleId, TacticalSliders, TeamTacticsIntent,

@@ -1,4 +1,4 @@
-import { NameGenerator, NameCountry } from './name-generator.ts';
+import { NameGenerator, CountryKey } from './name-generator.ts';
 import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name-data.ts';
 
 type Pool = { male: (string | string[])[]; female: (string | string[])[]; last: (string | string[])[] };
@@ -38,18 +38,18 @@ describe('country name-pool mapping:', () => {
   const englishLast = new Set(flatten(ENGLISH_NAMES.last));
 
   // Sample enough names that a wrong mapping is overwhelmingly likely to be caught.
-  function lastNames(country: NameCountry): string[] {
+  function lastNames(country: CountryKey): string[] {
     return new NameGenerator('all', country).generateNames(40).map(lastNameOf);
   }
 
-  it.each<NameCountry>(['norway', 'sweden', 'denmark'])(
+  it.each<CountryKey>(['norway', 'sweden', 'denmark'])(
     'given %s then surnames are drawn from the Norwegian pool',
     (country) => {
       expect(lastNames(country).every(n => norwegianLast.has(n))).toBe(true);
     },
   );
 
-  it.each<NameCountry>(['england', 'germany', 'france', 'spain', 'italy'])(
+  it.each<CountryKey>(['england', 'germany', 'france', 'spain', 'italy'])(
     'given %s then surnames are drawn from the English pool',
     (country) => {
       expect(lastNames(country).every(n => englishLast.has(n))).toBe(true);

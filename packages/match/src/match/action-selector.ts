@@ -1,5 +1,5 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
-import { Player, Position, type FieldedPositions } from '../shared/types.ts';
+import { Player, type FormationPosition, type FieldedPositions } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { resolveContest, mirrorBall } from './action-generators.ts';
 
@@ -11,14 +11,14 @@ import { resolveContest, mirrorBall } from './action-generators.ts';
 
 export type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
 
-export const FIELD_LINE: Record<Position, FieldLine> = {
+export const FIELD_LINE: Record<FormationPosition, FieldLine> = {
   GK: 'GK',
   CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF',
   CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
   LW: 'ATT', RW: 'ATT', ST: 'ATT',
 };
 
-const FLANK: Record<Position, 'left' | 'right' | 'center'> = {
+const FLANK: Record<FormationPosition, 'left' | 'right' | 'center'> = {
   LB: 'left', LM: 'left', LW: 'left',
   RB: 'right', RM: 'right', RW: 'right',
   GK: 'center', CB: 'center', CDM: 'center',
@@ -45,7 +45,7 @@ const SIDE_OPPOSITE = 0.5;  // player on the opposite flank
 export function activePlayerWeight(
   player: Player,
   ball: BallPosition,
-  fieldedPosition: Position = player.position,
+  fieldedPosition: FormationPosition = player.position,
 ): number {
   let w = LINE_ZONE_WEIGHT[FIELD_LINE[fieldedPosition]][ZONE_INDEX[ball.zone]];
   if (w === 0) { return 0; }
@@ -201,7 +201,7 @@ export function calculateActionWeight(
   player: Player,
   state: MatchState,
   decisionQuality: number,
-  fieldedPosition: Position = player.position,
+  fieldedPosition: FormationPosition = player.position,
 ): number {
   let weight = action.probability;
   weight *= getPositionPreference(action.type, fieldedPosition);

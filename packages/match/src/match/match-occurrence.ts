@@ -4,7 +4,7 @@ import { MatchSimulator, isTerminalPhase } from './match-simulator.ts';
 import { simulateShootout } from './penalty-shootout.ts';
 import { generateInjuries } from './injury.ts';
 import type { MatchState, MatchEvent } from './types.ts';
-import type { Team, Player } from '../shared/types.ts';
+import type { Team, Player, MatchOutcomeDecidedBy } from '../shared/types.ts';
 
 export interface MatchOccurrenceConfig {
   readonly id: string
@@ -140,7 +140,7 @@ export class MatchOccurrence implements Occurrence {
     this.ensureStarted();
     const { homeScore, awayScore, homeTeam, awayTeam, minute } = this.matchState;
 
-    let decidedBy: 'normal' | 'extra_time' | 'penalties' = minute > 90 ? 'extra_time' : 'normal';
+    let decidedBy: MatchOutcomeDecidedBy = minute > 90 ? 'extra_time' : 'normal';
     let shootout: { home: number; away: number } | undefined;
     let winnerTeamId: string | undefined;
 

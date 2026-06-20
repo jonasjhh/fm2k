@@ -1,8 +1,8 @@
 import { activePlayerWeight, selectActivePlayer } from './action-selector.ts';
 import { BallPosition } from './types.ts';
-import { Player, Position } from '../shared/types.ts';
+import { Player, PlayerPosition } from '../shared/types.ts';
 
-function createTestPlayer(id: string, position: Position): Player {
+function createTestPlayer(id: string, position: PlayerPosition): Player {
   return {
     id,
     name: id,
@@ -27,7 +27,7 @@ function createTestPlayer(id: string, position: Position): Player {
 
 // A full XI mirroring the match-simulator test team (4-4-2).
 function createTestXI(): Player[] {
-  const spec: [string, Position][] = [
+  const spec: [string, PlayerPosition][] = [
     ['gk1', 'GK'],
     ['cb1', 'CB'], ['cb2', 'CB'], ['lb1', 'LB'], ['rb1', 'RB'],
     ['cm1', 'CM'], ['cm2', 'CM'], ['lm1', 'LM'], ['rm1', 'RM'],

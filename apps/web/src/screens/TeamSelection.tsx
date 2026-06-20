@@ -12,7 +12,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import EditIcon from '@mui/icons-material/Edit';
 import { COUNTRY_COLORS } from '@fm2k/engine';
-import type { CountryId } from '@fm2k/engine';
+import type { CountryKey } from '@fm2k/engine';
 import FlagIcon from '../components/FlagIcon';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
@@ -50,7 +50,7 @@ export default function TeamSelection() {
 
   // ── derived ─────────────────────────────────────────────────────────────────
   const availableNations = editableCountries.filter(c => selectedLeagueIds.has(c.id));
-  const nc = selectedNation ? COUNTRY_COLORS[selectedNation.id as CountryId] : null;
+  const nc = selectedNation ? COUNTRY_COLORS[selectedNation.id as CountryKey] : null;
 
   const headerBgColor   = step === 'team' && nc ? nc.primary : 'primary.main';
   const headerColor     = step === 'team' && nc ? getContrastColor(nc.primary) : '#ffffff';
@@ -92,7 +92,7 @@ export default function TeamSelection() {
             <Grid container spacing={2} sx={{ mb: 4 }}>
               {editableCountries.map(c => {
                 const isSelected = selectedLeagueIds.has(c.id);
-                const colors = COUNTRY_COLORS[c.id as CountryId];
+                const colors = COUNTRY_COLORS[c.id as CountryKey];
                 const teamCount = c.divisions.reduce((n, d) => n + d.teams.length, 0);
                 return (
                   <Grid key={c.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -159,7 +159,7 @@ export default function TeamSelection() {
             </Typography>
             <Grid container spacing={2}>
               {availableNations.map(c => {
-                const colors = COUNTRY_COLORS[c.id as CountryId];
+                const colors = COUNTRY_COLORS[c.id as CountryKey];
                 const teamCount = c.divisions.reduce((n, d) => n + d.teams.length, 0);
                 return (
                   <Grid key={c.id} size={{ xs: 12, sm: 6, md: 4 }}>

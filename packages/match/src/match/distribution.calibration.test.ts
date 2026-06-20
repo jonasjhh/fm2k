@@ -1,11 +1,11 @@
 import { runDistribution, type DistributionInput } from './distribution.ts';
-import type { Player, PlayerAttributes, Position, Team } from '../shared/types.ts';
+import type { Player, PlayerAttributes, PlayerPosition, Team } from '../shared/types.ts';
 import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
 
 function attrs(v: number): PlayerAttributes {
   return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };
 }
-const F: [Position, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];
+const F: [PlayerPosition, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];
 function team(id: string, v: number): Team {
   const starters: Player[] = [];
   F.forEach(([pos, n]) => {

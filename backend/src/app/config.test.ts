@@ -1,8 +1,8 @@
-import { ALL_POSITIONS, CUP_ROUND_NAMES, cupCompetitionId } from './config.ts';
+import { ALL_PLAYER_POSITIONS, CUP_ROUND_NAMES, cupCompetitionId } from './config.ts';
 
 describe('config:', () => {
-  test('ALL_POSITIONS lists every outfield and goalkeeper position', () => {
-    expect(ALL_POSITIONS).toEqual([
+  test('ALL_PLAYER_POSITIONS lists every outfield and goalkeeper position', () => {
+    expect(ALL_PLAYER_POSITIONS).toEqual([
       'GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST',
     ]);
   });

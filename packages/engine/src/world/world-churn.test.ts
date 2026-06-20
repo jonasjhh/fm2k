@@ -153,7 +153,7 @@ describe('runAiMarket:', () => {
       player({ id: 'w2', position: 'CB' }, 40),
       player({ id: 'ok', position: 'ST' }, 70),
     ] };
-    const pool = [player({ id: 'star', position: 'CAM' }, 88)];
+    const pool = [player({ id: 'star', position: 'CM' }, 88)];
     const res = runAiMarket([team], pool, { rng: () => 0, activity: 1, targetSizes: { t: 2 } });
     const squad = res.teams[0].squad;
     expect(squad.some(p => p.id === 'star')).toBe(true);
