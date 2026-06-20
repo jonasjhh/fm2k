@@ -276,7 +276,7 @@ export const ITALIAN_NAMES = {
     'Santoro', 'Simeone', 'Spinazzola',
     'Tardelli', 'Tonali', 'Totti', 'Trezeguet',
     'Vieri', 'Vincenzi',
-    'Zambrotta', 'Zaniolo', 'Zola'
+    'Zambrotta', 'Zaniolo', 'Zola',
   ],
 };
 
@@ -317,6 +317,6 @@ export const SPANISH_NAMES = {
     'Uribe', 'Urrutia',
     'Valdés', 'Vargas', 'Vázquez', 'Vega', 'Vela', 'Vera', 'Vidal', 'Viera', 'Vicente',
     'Yáñez', 'Yuste',
-    'Zamora', 'Zambrano', 'Zaragoza', 'Zubimendi', 'Zubizarreta'
+    'Zamora', 'Zambrano', 'Zaragoza', 'Zubimendi', 'Zubizarreta',
   ],
 };

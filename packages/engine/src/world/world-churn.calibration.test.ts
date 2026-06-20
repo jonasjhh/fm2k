@@ -1,5 +1,5 @@
 import { churnSquad, churnFreeAgents, runAiMarket, generatorYouthFactory, MAX_SQUAD_SIZE, type OverflowSpec } from './world-churn.ts';
-import { PlayerGenerator } from '../player/player-generator.ts';
+import { PlayerGenerator } from '@fm2k/players';
 import { calculateOverall, type Player, type PlayerPosition } from '@fm2k/match';
 
 /**

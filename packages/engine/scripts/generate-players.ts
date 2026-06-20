@@ -17,25 +17,12 @@
  *   pnpm --filter @fm2k/engine generate-players -- --nationality norway --division 2 --format json
  */
 
-import { PlayerGenerator, COUNTRY_IDS, COUNTRY_DATA, calculateOverall } from '../src/index.ts';
-import type { PlayerPosition, PlayerAttributes } from '../src/index.ts';
-import type { Gender, NameCountry } from '@fm2k/names';
-
-// ── nation tier (affects base skill level) ────────────────────────────────────
-
-const NATION_BASE_OVR: Record<string, number> = {
-  england: 72,
-  spain:   72,
-  germany: 71,
-  france:  71,
-  italy:   70,
-  norway:  63,
-  sweden:  63,
-  denmark: 62,
-};
-
-// Penalty per division level below 1 (so level 2 = -9, level 3 = -18)
-const DIVISION_PENALTY = 9;
+import {
+  PlayerGenerator, COUNTRY_IDS, COUNTRY_DATA, calculateOverall,
+  divisionOverallDistribution, divisionCategoryBias,
+} from '../src/index.ts';
+import type { PlayerPosition } from '../src/index.ts';
+import type { Gender, NameCountry, CountryKey } from '@fm2k/names';
 
 // ── position pool ─────────────────────────────────────────────────────────────
 // A realistic squad shape; repeated as needed when count > pool size.
@@ -101,24 +88,6 @@ function divisionName(nationality: string, level: number): string {
   return country?.divisions.find(d => d.level === level)?.name ?? `Division ${level}`;
 }
 
-function targetOvr(nationality: string, divisionLevel: number): number {
-  const base = NATION_BASE_OVR[nationality] ?? 60;
-  return Math.max(40, base - (divisionLevel - 1) * DIVISION_PENALTY);
-}
-
-function scaleAttributes(attrs: PlayerAttributes, targetOverall: number): PlayerAttributes {
-  const current = calculateOverall(attrs);
-  // Add ±4 OVR variance per player so not everyone is identical
-  const variance = (Math.random() - 0.5) * 8;
-  const adjusted = Math.max(40, Math.min(95, targetOverall + variance));
-  const scale = adjusted / (current * 5);
-  const result: PlayerAttributes = { ...attrs };
-  for (const key of Object.keys(attrs) as (keyof PlayerAttributes)[]) {
-    result[key] = Math.max(40, Math.min(99, Math.round(attrs[key] * scale * 5)));
-  }
-  return result;
-}
-
 function positionAt(index: number): PlayerPosition {
   return POSITION_POOL[index % POSITION_POOL.length];
 }
@@ -145,9 +114,9 @@ function renderTable(rows: ReturnType<typeof buildRow>[], nationality: string, d
 
   const div = divisionName(nationality, divLevel);
   const countryName = COUNTRY_DATA[nationality as keyof typeof COUNTRY_DATA]?.country ?? nationality;
-  const ovr = targetOvr(nationality, divLevel);
+  const dist = divisionOverallDistribution(nationality as CountryKey, divLevel);
 
-  console.log(`\n${countryName} · ${div} · avg OVR ~${ovr}\n`);
+  console.log(`\n${countryName} · ${div} · target OVR ~${dist.mean} (stdDev ${dist.stdDev})\n`);
   console.log(header);
   console.log('─'.repeat(header.length));
 
@@ -191,12 +160,12 @@ function buildRow(player: ReturnType<PlayerGenerator['generatePlayer']>) {
 const { nationality, gender, divisionLevel, count, format } = parseArgs();
 
 const generator = new PlayerGenerator(gender, nationality as NameCountry);
-const ovr = targetOvr(nationality, divisionLevel);
+const overallDistribution = divisionOverallDistribution(nationality as CountryKey, divisionLevel);
+const categoryBias = divisionCategoryBias(divisionLevel);
 
 const players = Array.from({ length: count }, (_, i) => {
   const position = positionAt(i);
-  const raw = generator.generatePlayer(position, 1, 20);
-  return { ...raw, attributes: scaleAttributes(raw.attributes, ovr) };
+  return generator.generatePlayer(position, { overallDistribution, categoryBias });
 });
 
 if (format === 'json') {

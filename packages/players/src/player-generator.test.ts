@@ -1,4 +1,4 @@
-import { PlayerGenerator } from './player-generator';
+import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES } from './player-generator.ts';
 import { calculateOverall, type PlayerPosition, type PlayerAttributes } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
@@ -65,6 +65,48 @@ describe('PlayerGenerator:', () => {
         expect(p.potential).toBeLessThanOrEqual(99);
       }
     });
+
+    test('overall is sampled near the mean of an overallDistribution when no fixed overall is given', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const overalls = Array.from(
+        { length: 60 },
+        () => calculateOverall(gen.generatePlayer('CM', { overallDistribution: { mean: 55, stdDev: 6 } }).attributes),
+      );
+      const mean = overalls.reduce((a, b) => a + b, 0) / overalls.length;
+      expect(Math.abs(mean - 55)).toBeLessThan(4);
+    });
+
+    test('a fixed overall wins outright over an overallDistribution', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const overall = calculateOverall(
+        gen.generatePlayer('CM', { overall: 80, overallDistribution: { mean: 30, stdDev: 5 } }).attributes,
+      );
+      expect(Math.abs(overall - 80)).toBeLessThan(6);
+    });
+
+    test('categoryBias shifts a biased category up relative to an unbiased control, at the same target overall', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const sample = (bias: Record<string, number> | undefined, key: keyof PlayerAttributes) => {
+        const vals = Array.from(
+          { length: 40 },
+          () => gen.generatePlayer('CM', { overall: 60, categoryBias: bias }).attributes[key],
+        );
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      };
+      const biased = sample({ mental: 15 }, 'composure');
+      const control = sample(undefined, 'composure');
+      expect(biased).toBeGreaterThan(control);
+    });
+
+    test('categoryBias still lands the overall near the target after rescaling', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const overalls = Array.from(
+        { length: 30 },
+        () => calculateOverall(gen.generatePlayer('CM', { overall: 60, categoryBias: { technical: -10, mental: -10 } }).attributes),
+      );
+      const mean = overalls.reduce((a, b) => a + b, 0) / overalls.length;
+      expect(Math.abs(mean - 60)).toBeLessThan(4);
+    });
   });
 
   describe('deterministic generation (injected rng):', () => {
@@ -107,5 +149,37 @@ describe('PlayerGenerator:', () => {
       const player = new PlayerGenerator('female', 'all').generatePlayer('ST');
       expect(player.nationality).toBe('Unknown');
     });
+  });
+});
+
+describe('sampleNormal:', () => {
+  test('a fixed rng produces a deterministic sample', () => {
+    const a = sampleNormal({ mean: 60, stdDev: 10 }, () => 0.5);
+    const b = sampleNormal({ mean: 60, stdDev: 10 }, () => 0.5);
+    expect(a).toBe(b);
+  });
+
+  test('the mean of many samples converges near the distribution mean', () => {
+    const samples = Array.from({ length: 2000 }, () => sampleNormal({ mean: 50, stdDev: 10 }, Math.random));
+    const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+    expect(Math.abs(mean - 50)).toBeLessThan(2);
+  });
+
+  test('respects an explicit min/max clamp', () => {
+    const samples = Array.from({ length: 500 }, () => sampleNormal({ mean: 50, stdDev: 30, min: 40, max: 60 }, Math.random));
+    expect(samples.every(s => s >= 40 && s <= 60)).toBe(true);
+  });
+
+  test('defaults to the true 1–99 scale when min/max are omitted', () => {
+    const samples = Array.from({ length: 500 }, () => sampleNormal({ mean: 50, stdDev: 200 }, Math.random));
+    expect(samples.every(s => s >= 1 && s <= 99)).toBe(true);
+  });
+});
+
+describe('ATTRIBUTE_CATEGORIES:', () => {
+  test('every attribute belongs to exactly one category', () => {
+    const all = Object.values(ATTRIBUTE_CATEGORIES).flat();
+    expect(all.sort()).toEqual([...ATTR_KEYS].sort());
+    expect(new Set(all).size).toBe(all.length);
   });
 });

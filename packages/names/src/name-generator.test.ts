@@ -1,4 +1,4 @@
-import { NameGenerator, Country, NameData } from './name-generator';
+import { NameGenerator, NameData } from './name-generator';
 import {
   NORWEGIAN_NAMES, ENGLISH_NAMES, SWEDISH_NAMES, DANISH_NAMES,
   FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES,

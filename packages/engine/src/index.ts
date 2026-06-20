@@ -44,7 +44,9 @@ export type {
 
 export { NameGenerator } from '@fm2k/names';
 export type { Gender, Country, CountryKey } from '@fm2k/names';
-export { PlayerGenerator } from './player/player-generator.ts';
+export { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES } from '@fm2k/players';
+export type { PlayerInstruction, OverallDistribution, AttributeCategory } from '@fm2k/players';
+export { divisionOverallDistribution, divisionCategoryBias } from './player/generation-profile.ts';
 export {
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
 } from './player/progression.ts';

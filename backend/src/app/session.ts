@@ -1,6 +1,6 @@
 import {
   CompetitionManager, LeagueFormat, KnockoutFormat, QualifierFormat, Season,
-  ClubManager, TransferManager, PlayerGenerator, EventBus,
+  ClubManager, TransferManager, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
@@ -8,6 +8,7 @@ import {
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE,
 } from '@fm2k/engine';
+import { PlayerGenerator } from '@fm2k/players';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@fm2k/engine": "workspace:*",
+    "@fm2k/players": "workspace:*",
     "@fm2k/state": "workspace:*",
     "localforage": "^1.10.0"
   },

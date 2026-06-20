@@ -1,5 +1,5 @@
 import { StateManager } from '@fm2k/state';
-import { PlayerGenerator } from '../player/player-generator.ts';
+import { PlayerGenerator } from '@fm2k/players';
 import { v4 as uuidv4 } from '@fm2k/state';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 import { calculateOverall, ALL_PLAYER_POSITIONS } from '@fm2k/match';

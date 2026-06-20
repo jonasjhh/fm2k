@@ -1,7 +1,7 @@
 import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 import { calculateOverall } from '@fm2k/match';
 import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
-import { PlayerGenerator } from '../player/player-generator.ts';
+import { PlayerGenerator } from '@fm2k/players';
 import { playerValue } from '@fm2k/valuation';
 
 /**

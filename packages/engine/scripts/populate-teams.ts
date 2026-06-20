@@ -12,43 +12,14 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
-import { PlayerGenerator, COUNTRY_IDS, calculateOverall } from '../src/index.ts';
-import type { PlayerPosition, PlayerAttributes } from '../src/index.ts';
+import {
+  PlayerGenerator, COUNTRY_IDS, divisionOverallDistribution, divisionCategoryBias,
+} from '../src/index.ts';
+import type { PlayerPosition } from '../src/index.ts';
 import type { CountryDivisionRow, CountryTeamRow } from '../src/index.ts';
-import type { NameCountry } from '@fm2k/names';
+import type { NameCountry, CountryKey } from '@fm2k/names';
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '../src/data');
-
-// ── skill scaling (mirrors generate-players.ts) ───────────────────────────────
-
-const NATION_BASE_OVR: Record<string, number> = {
-  england: 72,
-  spain:   72,
-  germany: 71,
-  france:  71,
-  italy:   70,
-  norway:  63,
-  sweden:  63,
-  denmark: 62,
-};
-const DIVISION_PENALTY = 9;
-
-function targetOvr(nationality: string, divisionLevel: number): number {
-  const base = NATION_BASE_OVR[nationality] ?? 60;
-  return Math.max(40, base - (divisionLevel - 1) * DIVISION_PENALTY);
-}
-
-function scaleAttributes(attrs: PlayerAttributes, targetOverall: number): PlayerAttributes {
-  const current = calculateOverall(attrs);
-  const variance = (Math.random() - 0.5) * 8;
-  const adjusted = Math.max(40, Math.min(95, targetOverall + variance));
-  const scale = adjusted / (current * 5);
-  const result: PlayerAttributes = { ...attrs };
-  for (const key of Object.keys(attrs) as (keyof PlayerAttributes)[]) {
-    result[key] = Math.max(40, Math.min(99, Math.round(attrs[key] * scale * 5)));
-  }
-  return result;
-}
 
 // ── 25-player position layout ─────────────────────────────────────────────────
 // First 11 = 4-4-2 starters, remaining 14 = squad depth
@@ -85,24 +56,24 @@ interface PlayerJson {
 function buildPlayer(
   generator: PlayerGenerator,
   position: PlayerPosition,
-  ovr: number,
+  divisionLevel: number,
+  nationalityKey: CountryKey,
   nationality: string,
   clubId: string,
 ): PlayerJson {
-  const raw = generator.generatePlayer(position, 1, 20);
-  const scaledAttrs = scaleAttributes(raw.attributes, ovr);
-  const scaledOvr = Math.round(calculateOverall(scaledAttrs));
-  const potential = Math.min(99, scaledOvr + Math.floor(Math.random() * 15));
+  const overallDistribution = divisionOverallDistribution(nationalityKey, divisionLevel);
+  const categoryBias = divisionCategoryBias(divisionLevel);
+  const player = generator.generatePlayer(position, { overallDistribution, categoryBias });
 
   return {
-    id: raw.id,
-    name: raw.name,
+    id: player.id,
+    name: player.name,
     clubId,
     nationality,
-    age: raw.age,
+    age: player.age,
     position,
-    potential,
-    attributes: scaledAttrs,
+    potential: player.potential,
+    attributes: player.attributes,
   };
 }
 
@@ -119,15 +90,15 @@ for (const countryId of COUNTRY_IDS) {
 
   const players: PlayerJson[] = [];
   for (const division of divisions) {
-    const ovr = targetOvr(countryId, division.level);
+    const dist = divisionOverallDistribution(countryId as CountryKey, division.level);
     const divisionTeams = teams.filter(t => t.divisionId === division.id);
     for (const team of divisionTeams) {
       for (const pos of SQUAD_POSITIONS) {
-        players.push(buildPlayer(generator, pos, ovr, meta.nationality, team.id));
+        players.push(buildPlayer(generator, pos, division.level, countryId as CountryKey, meta.nationality, team.id));
       }
       totalTeams++;
     }
-    console.log(`  ${meta.country} · ${division.name} (L${division.level}, ~${ovr} OVR) — ${divisionTeams.length} teams`);
+    console.log(`  ${meta.country} · ${division.name} (L${division.level}, ~${dist.mean} OVR) — ${divisionTeams.length} teams`);
   }
 
   writeFileSync(join(countryDir, 'players.json'), JSON.stringify(players, null, 2) + '\n');
