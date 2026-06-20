@@ -47,6 +47,13 @@ export interface ClubManagerConfig {
   readonly nationality?: string
   /** Injected youth factory; falls back to a default `PlayerGenerator`-backed one. */
   readonly youthFactory?: YouthFactory
+  /** Facility levels; defaults to all-level-1 (a brand-new club). Pass the previous season's
+   *  levels directly here for a season rollover — there's no post-construction setter. */
+  readonly facilities?: FacilityLevels
+  /** Carried-over finance/development history (a season rollover); defaults to empty (a
+   *  brand-new club has no history yet). */
+  readonly financialLog?: FinancialTransaction[]
+  readonly recentDevelopment?: PlayerDelta[]
 }
 
 export class ClubManager {
@@ -75,37 +82,17 @@ export class ClubManager {
       startingXI: config.startingXI,
       benchPlayers: config.benchPlayers,
       pendingSubstitutions: [],
-      facilities: { medical: 1, training: 1, academy: 1 },
+      facilities: config.facilities ?? { medical: 1, training: 1, academy: 1 },
       stadiumCapacity: config.stadiumCapacity,
       stadiumSectors: config.stadiumSectors,
-      financialLog: [],
-      recentDevelopment: [],
+      financialLog: config.financialLog ?? [],
+      recentDevelopment: config.recentDevelopment ?? [],
       seasonStartSnapshot: Object.fromEntries(squad.map(p => [p.id, p.attributes])),
     });
   }
 
   loadState(state: ClubState): void {
     this.stateManager.setState(state);
-  }
-
-  /** Carry finances, facilities, stadium, and development history across a season rollover
-   *  (squad comes from the Team; lineup/free-agent carryover is handled by the caller). */
-  applySeasonCarryover(c: {
-    budget: number;
-    facilities: FacilityLevels;
-    stadiumSectors: Record<string, StadiumSectorConfig>;
-    stadiumCapacity: number;
-    financialLog: FinancialTransaction[];
-    recentDevelopment: PlayerDelta[];
-  }): void {
-    this.stateManager.updateState(s => {
-      s.budget = c.budget;
-      s.facilities = c.facilities;
-      s.stadiumSectors = c.stadiumSectors;
-      s.stadiumCapacity = c.stadiumCapacity;
-      s.financialLog = c.financialLog;
-      s.recentDevelopment = c.recentDevelopment;
-    });
   }
 
   getState(): ClubState {

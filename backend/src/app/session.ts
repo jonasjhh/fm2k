@@ -15,7 +15,7 @@ import type {
 import {
   buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
 } from '../domain/editable-country.ts';
-import type { EditableCountry } from '../domain/editable-country.ts';
+import type { EditableCountry, EditableDivision } from '../domain/editable-country.ts';
 import { applyPromotionRelegation } from '../domain/promotion.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import {
@@ -226,30 +226,19 @@ export class GameSession {
     }
   }
 
-  private buildManagers(
-    editableCountries: EditableCountry[],
-    teamId: string,
-    leagueIds: string[],
-    playerIntent?: TeamTacticsIntent,
-  ): boolean {
-    const team = findTeamById(editableCountries, teamId);
-    const division = findDivisionForTeam(editableCountries, teamId);
-    if (!team || !division) { return false; }
-
-    // Resolve tactical parameters onto every team's live object BEFORE the
-    // competition managers (which capture these references when scheduling the
-    // season). The player uses their chosen intent; AI teams get a style derived
-    // from their formation so opponents vary.
-    const intent = playerIntent ?? defaultIntent(team.formation);
-    this.stampTeamTactics(editableCountries, teamId, intent);
-    this.playerTeam = team;
-
-    // Ensure the player's nation is always included even if not in leagueIds.
-    const playerCountry = findCountryForTeam(editableCountries, teamId);
-    const allLeagueIds = playerCountry && !leagueIds.includes(playerCountry.id)
-      ? [...leagueIds, playerCountry.id]
+  /** Always include the player's own nation, even if the caller's `leagueIds` omitted it. */
+  private resolveLeagueIds(editableCountries: EditableCountry[], teamId: string, leagueIds: string[]): string[] {
+    const playerCountryId = findCountryForTeam(editableCountries, teamId)?.id;
+    return playerCountryId && !leagueIds.includes(playerCountryId)
+      ? [...leagueIds, playerCountryId]
       : leagueIds;
+  }
 
+  /** Fresh EventBus + the session-level listeners that drive notifications/lastMatchResult/
+   *  lastMatchInsight. Used whenever the competition layer is rebuilt (new game or season
+   *  rollover) since the old bus's subscriptions are tied to the CompetitionManagers being
+   *  discarded. */
+  private rewireEventBus(editableCountries: EditableCountry[]): EventBus<GameEvents> {
     this.eventBusCleanup?.();
     const eventBus = new EventBus<GameEvents>();
     this.eventBus = eventBus;
@@ -296,10 +285,22 @@ export class GameSession {
     }));
 
     this.eventBusCleanup = () => { for (const u of unsubs) { u(); } };
+    return eventBus;
+  }
 
-    // Build a per-nation Season: its league divisions plus its national cup. The
-    // EventBus is wired only to the player's own division and the player's cup so
-    // their results drive lastMatchResult, gate receipts, and injuries.
+  /** Build a per-nation Season: its league divisions plus its national cup. The EventBus is
+   *  wired only to the player's own division and the player's cup so their results drive
+   *  lastMatchResult, gate receipts, and injuries. Sets `this.seasons`/`leagueManagers`/
+   *  `cupManagers`/`leagueManager`/`playerCupManager`. Identical for a new game and a season
+   *  rollover — only the inputs (post-promotion/relegation membership) differ. */
+  private buildCompetitions(
+    editableCountries: EditableCountry[],
+    allLeagueIds: string[],
+    teamId: string,
+    division: EditableDivision,
+    eventBus: EventBus<GameEvents>,
+  ): void {
+    const playerCountry = findCountryForTeam(editableCountries, teamId);
     const seasons: Record<string, Season> = {};
     const leagueManagers: Record<string, CompetitionManager> = {};
     const cupManagers: Record<string, CompetitionManager> = {};
@@ -357,11 +358,58 @@ export class GameSession {
       seasons[country.id] = new Season({ nationId: country.id, startDate: SEASON_START, competitions });
     }
 
+    this.seasons = seasons;
+    this.leagueManagers = leagueManagers;
+    this.cupManagers = cupManagers;
+    this.leagueManager = leagueManagers[division.id];
+    this.playerCupManager = playerCountry ? cupManagers[cupCompetitionId(playerCountry.id)] : null;
+  }
+
+  /** Seed AI refill targets from current squad sizes (clamped to the cap). */
+  private seedSquadTargets(editableCountries: EditableCountry[]): void {
+    this.squadTargets.clear();
+    for (const country of editableCountries) {
+      for (const div of country.divisions) {
+        for (const t of div.teams) {
+          this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.squad.length));
+        }
+      }
+    }
+  }
+
+  /** Build every manager for a brand-new game: fresh ClubManager (starting budget, default
+   *  stadium, auto-picked XI) and fresh TransferManager (a small randomly-seeded free-agent
+   *  pool). Also used by `loadGame()`, which immediately overwrites the result wholesale via
+   *  `loadState()`. Season rollovers use `startNewSeason()`'s own independent body instead —
+   *  see its doc comment for why this fresh-defaults construction is wrong for that case. */
+  private buildManagers(
+    editableCountries: EditableCountry[],
+    teamId: string,
+    leagueIds: string[],
+    playerIntent?: TeamTacticsIntent,
+  ): boolean {
+    const team = findTeamById(editableCountries, teamId);
+    const division = findDivisionForTeam(editableCountries, teamId);
+    if (!team || !division) { return false; }
+
+    // Resolve tactical parameters onto every team's live object BEFORE the
+    // competition managers (which capture these references when scheduling the
+    // season). The player uses their chosen intent; AI teams get a style derived
+    // from their formation so opponents vary.
+    const intent = playerIntent ?? defaultIntent(team.formation);
+    this.stampTeamTactics(editableCountries, teamId, intent);
+    this.playerTeam = team;
+
+    const allLeagueIds = this.resolveLeagueIds(editableCountries, teamId, leagueIds);
+    const eventBus = this.rewireEventBus(editableCountries);
+    this.buildCompetitions(editableCountries, allLeagueIds, teamId, division, eventBus);
+
+    const playerCountry = findCountryForTeam(editableCountries, teamId);
     // The player's initial pick: their own deliberate choice takes over from here via
     // ClubState (setStartingXI/setBench) — Team itself never tracks a starters split again.
     const initialXI = selectStartingXIWithSlots(team.squad, team.formation);
     const defaultSectors = DEFAULT_STADIUM_SECTORS as Record<string, StadiumSectorConfig>;
-    const clubManager = new ClubManager({
+    this.clubManager = new ClubManager({
       clubId: team.id,
       clubName: team.name,
       divisionId: division.id,
@@ -378,14 +426,6 @@ export class GameSession {
       youthFactory: this.youthFactory,
     });
 
-    const transferManager = new TransferManager({
-      marketSize: MARKET_SIZE,
-      playerFactory: () => {
-        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
-        return this.playerGenerator.generatePlayer(pos, { overall: 65 });
-      },
-    });
-
     // Seed a starting free-agent pool so a new game's market isn't empty: a batch per included
     // nation (so the pool scales with how many leagues are in play), each with that nation's
     // nationality. (On load this is immediately replaced by the saved pool via loadState.)
@@ -397,25 +437,16 @@ export class GameSession {
         seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
       }
     }
-    transferManager.addFreeAgents(seededFreeAgents);
+    this.transferManager = new TransferManager({
+      marketSize: MARKET_SIZE,
+      playerFactory: () => {
+        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        return this.playerGenerator.generatePlayer(pos, { overall: 65 });
+      },
+      initialFreeAgents: seededFreeAgents,
+    });
 
-    this.seasons = seasons;
-    this.leagueManagers = leagueManagers;
-    this.cupManagers = cupManagers;
-    this.leagueManager = leagueManagers[division.id];
-    this.playerCupManager = playerCountry ? cupManagers[cupCompetitionId(playerCountry.id)] : null;
-    this.clubManager = clubManager;
-    this.transferManager = transferManager;
-
-    // Seed AI refill targets from current squad sizes (clamped to the cap).
-    this.squadTargets.clear();
-    for (const country of editableCountries) {
-      for (const div of country.divisions) {
-        for (const t of div.teams) {
-          this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.squad.length));
-        }
-      }
-    }
+    this.seedSquadTargets(editableCountries);
     return true;
   }
 
@@ -435,41 +466,80 @@ export class GameSession {
   }
 
   /**
-   * Roll over to the next season: apply promotion/relegation from the just-finished
-   * standings, then rebuild every division (and the player's club) from the updated
-   * memberships.
+   * Roll over to the next season: apply promotion/relegation from the just-finished standings,
+   * rebuild the competition layer (fixtures/standings genuinely reset every season), and
+   * construct the new ClubManager/TransferManager directly from the outgoing club's actual
+   * state — budget, facilities, financial history, development history, and the already-churned
+   * free-agent pool — rather than `startGame()`'s brand-new-game defaults. This is deliberately
+   * independent of `startGame()`: promotion/relegation only ever happens here, and the transfer
+   * pool is sourced from the previous season's churn, never a fresh random seed.
    */
   startNewSeason(): boolean {
-    if (!this.playerTeamId) { return false; }
+    if (!this.playerTeamId || !this.clubManager || !this.transferManager) { return false; }
     const ranked: Record<string, string[]> = {};
     for (const [divId, lm] of Object.entries(this.leagueManagers)) {
       ranked[divId] = lm.getState().standings.map(s => s.teamId);
     }
     this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked);
-    // Carry the player's tactical intent, finances/facilities/stadium, development history, and
-    // free-agent pool across the ClubManager/TransferManager rebuild — none of that is re-derivable
-    // from the fresh squad the way e.g. seasonStartSnapshot is.
-    const prev = this.clubManager?.getState();
-    const prevFreeAgents = this.transferManager?.getFreeAgents() ?? [];
-    const ok = this.startGame(this.playerTeamId, this.selectedLeagueIds, prev?.tactics);
-    if (ok && prev && this.clubManager) {
-      this.clubManager.applySeasonCarryover({
-        budget: prev.budget,
-        facilities: prev.facilities,
-        stadiumSectors: prev.stadiumSectors,
-        stadiumCapacity: prev.stadiumCapacity,
-        financialLog: prev.financialLog,
-        recentDevelopment: prev.recentDevelopment,
-      });
-      const newSquad = this.clubManager.getState();
-      const { startingXI, benchPlayers } = carryOverLineup(
-        prev.startingXI, prev.benchPlayers, newSquad.squad, newSquad.formation,
-      );
-      this.clubManager.setStartingXI(startingXI);
-      this.clubManager.setBenchPlayers(benchPlayers);
-      this.transferManager?.setFreeAgents(prevFreeAgents);
-    }
-    return ok;
+
+    const teamId = this.playerTeamId;
+    const team = findTeamById(this.editableCountries, teamId);
+    const division = findDivisionForTeam(this.editableCountries, teamId);
+    if (!team || !division) { return false; }
+
+    const prevClub = this.clubManager.getState();
+    const prevTransfer = this.transferManager.getState();
+
+    const intent = prevClub.tactics;
+    this.stampTeamTactics(this.editableCountries, teamId, intent);
+    this.playerTeam = team;
+
+    const allLeagueIds = this.resolveLeagueIds(this.editableCountries, teamId, this.selectedLeagueIds);
+    const eventBus = this.rewireEventBus(this.editableCountries);
+    this.buildCompetitions(this.editableCountries, allLeagueIds, teamId, division, eventBus);
+
+    const playerCountry = findCountryForTeam(this.editableCountries, teamId);
+    const { startingXI, benchPlayers } = carryOverLineup(
+      prevClub.startingXI, prevClub.benchPlayers, team.squad, team.formation,
+    );
+    this.clubManager = new ClubManager({
+      clubId: team.id,
+      clubName: team.name,
+      divisionId: division.id,
+      squad: team.squad,
+      budget: prevClub.budget,
+      formation: team.formation,
+      tactics: intent,
+      startingXI,
+      benchPlayers,
+      stadiumCapacity: prevClub.stadiumCapacity,
+      stadiumSectors: prevClub.stadiumSectors,
+      eventBus,
+      nationality: playerCountry?.nationality ?? 'unknown',
+      youthFactory: this.youthFactory,
+      facilities: prevClub.facilities,
+      financialLog: prevClub.financialLog,
+      recentDevelopment: prevClub.recentDevelopment,
+    });
+
+    this.transferManager = new TransferManager({
+      marketSize: MARKET_SIZE,
+      playerFactory: () => {
+        const pos = ALL_POSITIONS[Math.floor(this.rng() * ALL_POSITIONS.length)] as Position;
+        return this.playerGenerator.generatePlayer(pos, { overall: 65 });
+      },
+      initialFreeAgents: prevTransfer.freeAgents,
+    });
+
+    this.seedSquadTargets(this.editableCountries);
+
+    this.currentMatchday = 0;
+    this.seasonComplete = false;
+    this.now = SEASON_START;
+    this.focusFixtureId = null;
+    this.lastMatchResult = null;
+    this.lastMatchInsight = null;
+    return true;
   }
 
   buildSaveData(type: SaveType, activeTab = 'squad'): SaveData | null {

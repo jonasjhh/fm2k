@@ -24,6 +24,10 @@ export interface TransferManagerConfig {
   readonly listingDuration?: number  // matchdays until a listing expires, default 3
   readonly playerFactory?: () => Player
   readonly rng?: () => number
+  /** The free-agent pool to seed at construction — a small fresh random batch for a brand-new
+   *  game, or the previous (already churned) pool carried across a season rollover. Defaults
+   *  to empty. */
+  readonly initialFreeAgents?: Player[]
 }
 
 export class TransferManager {
@@ -51,7 +55,7 @@ export class TransferManager {
     this.stateManager = new StateManager<TransferState>({
       listings: this.generateListings(this.marketSize, 0),
       refreshedOnMatchday: 0,
-      freeAgents: [],
+      freeAgents: config.initialFreeAgents ?? [],
     });
   }
 
