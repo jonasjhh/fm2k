@@ -3,13 +3,14 @@ import {
   getAllTeams,
   getAllDivisions,
   CountryData,
-  CountryPlayerData,
+  CountryPlayerRow,
 } from './country-data.ts';
 
-function playerData(id: string, overrides: Partial<CountryPlayerData> = {}): CountryPlayerData {
+function playerData(id: string, clubId: string, overrides: Partial<CountryPlayerRow> = {}): CountryPlayerRow {
   return {
     id,
     name: id,
+    clubId,
     position: 'CM',
     attributes: {
       speed: 50, strength: 50, agility: 50, passing: 50, finishing: 50,
@@ -21,20 +22,19 @@ function playerData(id: string, overrides: Partial<CountryPlayerData> = {}): Cou
 
 // One team with 13 players (so 11 starters + 2 subs), in a 2-division country.
 function sampleCountry(): CountryData {
-  const players = Array.from({ length: 13 }, (_, i) => playerData(`p${i}`));
+  const players = Array.from({ length: 13 }, (_, i) => playerData(`p${i}`, 't1'));
   return {
     country: 'Testland',
     nationality: 'testish',
     divisions: [
-      {
-        id: 'd1', name: 'First Division', level: 1,
-        teams: [{ id: 't1', name: 'Team One', primaryColor: '#123456', secondaryColor: '#654321', players }],
-      },
-      {
-        id: 'd2', name: 'Second Division', level: 2,
-        teams: [{ id: 't2', name: 'Team Two', players: [playerData('q0')] }],
-      },
+      { id: 'd1', name: 'First Division', level: 1 },
+      { id: 'd2', name: 'Second Division', level: 2 },
     ],
+    teams: [
+      { id: 't1', name: 'Team One', divisionId: 'd1', primaryColor: '#123456', secondaryColor: '#654321' },
+      { id: 't2', name: 'Team Two', divisionId: 'd2' },
+    ],
+    players: [...players, playerData('q0', 't2')],
   };
 }
 
@@ -75,7 +75,7 @@ describe('player conversion defaults:', () => {
 
   it('given a player with explicit nationality then it overrides the country default', () => {
     const country = sampleCountry();
-    country.divisions[1].teams[0].players = [playerData('q0', { nationality: 'elsewhere', age: 31, potential: 88 })];
+    country.players = [playerData('q0', 't2', { nationality: 'elsewhere', age: 31, potential: 88 })];
     const [team] = getDivisionTeams(country, 2);
     expect(team.squad[0]).toMatchObject({ nationality: 'elsewhere', age: 31, potential: 88 });
   });

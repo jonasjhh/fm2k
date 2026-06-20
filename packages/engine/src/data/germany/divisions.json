@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ger-d1",
+    "name": "Bundesliga",
+    "level": 1
+  },
+  {
+    "id": "ger-d2",
+    "name": "2. Bundesliga",
+    "level": 2
+  },
+  {
+    "id": "ger-d3",
+    "name": "3. Liga",
+    "level": 3
+  }
+]

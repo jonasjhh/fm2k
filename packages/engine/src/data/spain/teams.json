@@ -1,0 +1,338 @@
+[
+  {
+    "id": "esp-01",
+    "name": "Real Madrid",
+    "divisionId": "esp-d1",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#FFD700"
+  },
+  {
+    "id": "esp-02",
+    "name": "Barcelona",
+    "divisionId": "esp-d1",
+    "primaryColor": "#A50044",
+    "secondaryColor": "#004D98"
+  },
+  {
+    "id": "esp-03",
+    "name": "Atlético de Madrid",
+    "divisionId": "esp-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-04",
+    "name": "Valencia",
+    "divisionId": "esp-d1",
+    "primaryColor": "#FF6600",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "esp-05",
+    "name": "Sevilla",
+    "divisionId": "esp-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-06",
+    "name": "Athletic Bilbao",
+    "divisionId": "esp-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-07",
+    "name": "Real Betis",
+    "divisionId": "esp-d1",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-08",
+    "name": "Real Sociedad",
+    "divisionId": "esp-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-09",
+    "name": "Villarreal",
+    "divisionId": "esp-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-10",
+    "name": "Deportivo de La Coruña",
+    "divisionId": "esp-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-11",
+    "name": "Celta Vigo",
+    "divisionId": "esp-d1",
+    "primaryColor": "#6CABDD",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-12",
+    "name": "Espanyol",
+    "divisionId": "esp-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-13",
+    "name": "Real Zaragoza",
+    "divisionId": "esp-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-14",
+    "name": "Mallorca",
+    "divisionId": "esp-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "esp-15",
+    "name": "Málaga",
+    "divisionId": "esp-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-16",
+    "name": "Osasuna",
+    "divisionId": "esp-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-17",
+    "name": "Getafe",
+    "divisionId": "esp-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-18",
+    "name": "Rayo Vallecano",
+    "divisionId": "esp-d2",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "esp-19",
+    "name": "Sporting Gijón",
+    "divisionId": "esp-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-20",
+    "name": "Oviedo",
+    "divisionId": "esp-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-21",
+    "name": "Las Palmas",
+    "divisionId": "esp-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-22",
+    "name": "Valladolid",
+    "divisionId": "esp-d2",
+    "primaryColor": "#800080",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-23",
+    "name": "Alavés",
+    "divisionId": "esp-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "esp-24",
+    "name": "Girona",
+    "divisionId": "esp-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-25",
+    "name": "Tenerife",
+    "divisionId": "esp-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-26",
+    "name": "Racing Santander",
+    "divisionId": "esp-d2",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-27",
+    "name": "Cádiz",
+    "divisionId": "esp-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-28",
+    "name": "Granada",
+    "divisionId": "esp-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-29",
+    "name": "Elche",
+    "divisionId": "esp-d2",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-30",
+    "name": "Levante",
+    "divisionId": "esp-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "esp-31",
+    "name": "Almería",
+    "divisionId": "esp-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-32",
+    "name": "Murcia",
+    "divisionId": "esp-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-33",
+    "name": "Córdoba",
+    "divisionId": "esp-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#006633"
+  },
+  {
+    "id": "esp-34",
+    "name": "Hércules",
+    "divisionId": "esp-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "esp-35",
+    "name": "Castellón",
+    "divisionId": "esp-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "esp-36",
+    "name": "Salamanca",
+    "divisionId": "esp-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-37",
+    "name": "Numancia",
+    "divisionId": "esp-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "esp-38",
+    "name": "Ponferradina",
+    "divisionId": "esp-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-39",
+    "name": "Eibar",
+    "divisionId": "esp-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "esp-40",
+    "name": "Lugo",
+    "divisionId": "esp-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "esp-41",
+    "name": "Leganés",
+    "divisionId": "esp-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-42",
+    "name": "Burgos",
+    "divisionId": "esp-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-43",
+    "name": "Ferrol",
+    "divisionId": "esp-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "esp-44",
+    "name": "Cartagena",
+    "divisionId": "esp-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-45",
+    "name": "Recreativo de Huelva",
+    "divisionId": "esp-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-46",
+    "name": "Sabadell",
+    "divisionId": "esp-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-47",
+    "name": "Albacete",
+    "divisionId": "esp-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "esp-48",
+    "name": "Gimnàstic de Tarragona",
+    "divisionId": "esp-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  }
+]

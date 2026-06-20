@@ -1,0 +1,17 @@
+[
+  {
+    "id": "fra-d1",
+    "name": "Ligue 1",
+    "level": 1
+  },
+  {
+    "id": "fra-d2",
+    "name": "Ligue 2",
+    "level": 2
+  },
+  {
+    "id": "fra-d3",
+    "name": "National",
+    "level": 3
+  }
+]

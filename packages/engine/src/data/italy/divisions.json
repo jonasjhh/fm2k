@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ita-d1",
+    "name": "Serie A",
+    "level": 1
+  },
+  {
+    "id": "ita-d2",
+    "name": "Serie B",
+    "level": 2
+  },
+  {
+    "id": "ita-d3",
+    "name": "Serie C",
+    "level": 3
+  }
+]

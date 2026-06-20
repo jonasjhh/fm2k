@@ -1,0 +1,338 @@
+[
+  {
+    "id": "swe-01",
+    "name": "Malmö FF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-02",
+    "name": "IFK Göteborg",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-03",
+    "name": "AIK",
+    "divisionId": "swe-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFD700"
+  },
+  {
+    "id": "swe-04",
+    "name": "Djurgårdens IF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFD700"
+  },
+  {
+    "id": "swe-05",
+    "name": "Hammarby IF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-06",
+    "name": "IF Elfsborg",
+    "divisionId": "swe-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "swe-07",
+    "name": "Helsingborgs IF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-08",
+    "name": "IFK Norrköping",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-09",
+    "name": "Kalmar FF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-10",
+    "name": "BK Hacken",
+    "divisionId": "swe-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "swe-11",
+    "name": "Örebro SK",
+    "divisionId": "swe-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-12",
+    "name": "GIF Sundsvall",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-13",
+    "name": "Halmstads BK",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-14",
+    "name": "GAIS",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-15",
+    "name": "Örgryte IS",
+    "divisionId": "swe-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-16",
+    "name": "Trelleborgs FF",
+    "divisionId": "swe-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-17",
+    "name": "Gefle IF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "swe-18",
+    "name": "Brommapojkarna",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-19",
+    "name": "Sirius",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-20",
+    "name": "Mjällby AIF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-21",
+    "name": "Östers IF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-22",
+    "name": "Landskrona BoIS",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-23",
+    "name": "Jönköpings Södra",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-24",
+    "name": "AFC Eskilstuna",
+    "divisionId": "swe-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-25",
+    "name": "IK Brage",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-26",
+    "name": "Degerfors IF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-27",
+    "name": "Falkenbergs FF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "swe-28",
+    "name": "Västerås SK",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-29",
+    "name": "Utsiktens BK",
+    "divisionId": "swe-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-30",
+    "name": "Örgryte",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-31",
+    "name": "Norrby IF",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "swe-32",
+    "name": "Varbergs BoIS",
+    "divisionId": "swe-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-33",
+    "name": "Assyriska FF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-34",
+    "name": "Syrianska FC",
+    "divisionId": "swe-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-35",
+    "name": "Örebro Syrianska",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-36",
+    "name": "Dalkurd FF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#006633"
+  },
+  {
+    "id": "swe-37",
+    "name": "Ängelholms FF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "swe-38",
+    "name": "Ljungskile SK",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-39",
+    "name": "Vasalunds IF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-40",
+    "name": "Sandvikens IF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-41",
+    "name": "Motala AIF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-42",
+    "name": "Oskarshamns AIK",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "swe-43",
+    "name": "Skövde AIK",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-44",
+    "name": "IF Sylvia",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-45",
+    "name": "Team TG",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-46",
+    "name": "Qviding FIF",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-47",
+    "name": "Forward Örebro",
+    "divisionId": "swe-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "swe-48",
+    "name": "Karlstad BK",
+    "divisionId": "swe-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "esp-d1",
+    "name": "La Liga",
+    "level": 1
+  },
+  {
+    "id": "esp-d2",
+    "name": "Segunda División",
+    "level": 2
+  },
+  {
+    "id": "esp-d3",
+    "name": "Primera Federación",
+    "level": 3
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "den-d1",
+    "name": "Superliga",
+    "level": 1
+  },
+  {
+    "id": "den-d2",
+    "name": "1. Division",
+    "level": 2
+  },
+  {
+    "id": "den-d3",
+    "name": "2. Division",
+    "level": 3
+  }
+]

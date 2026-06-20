@@ -1,0 +1,338 @@
+[
+  {
+    "id": "den-01",
+    "name": "FC Copenhagen",
+    "divisionId": "den-d1",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#009BDE"
+  },
+  {
+    "id": "den-02",
+    "name": "Brøndby IF",
+    "divisionId": "den-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "den-03",
+    "name": "Aalborg BK",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-04",
+    "name": "FC Midtjylland",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "den-05",
+    "name": "AGF",
+    "divisionId": "den-d1",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "den-06",
+    "name": "Odense BK",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-07",
+    "name": "Esbjerg fB",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-08",
+    "name": "Randers FC",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-09",
+    "name": "FC Nordsjælland",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "den-10",
+    "name": "Viborg FF",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-11",
+    "name": "Silkeborg IF",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-12",
+    "name": "Sønderjyske",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-13",
+    "name": "Lyngby BK",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-14",
+    "name": "Vejle BK",
+    "divisionId": "den-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-15",
+    "name": "AC Horsens",
+    "divisionId": "den-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "den-16",
+    "name": "HB Køge",
+    "divisionId": "den-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-17",
+    "name": "Næstved BK",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-18",
+    "name": "Hvidovre IF",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-19",
+    "name": "Fremad Amager",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-20",
+    "name": "Kolding IF",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-21",
+    "name": "Hobro IK",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-22",
+    "name": "Fredericia",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-23",
+    "name": "B 93",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-24",
+    "name": "AB Gladsaxe",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-25",
+    "name": "FC Helsingør",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "den-26",
+    "name": "Jammerbugt FC",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-27",
+    "name": "Skive IK",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-28",
+    "name": "Thisted FC",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-29",
+    "name": "Nykøbing FC",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-30",
+    "name": "Vendsyssel FF",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "den-31",
+    "name": "Køge BK",
+    "divisionId": "den-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-32",
+    "name": "Boldklubben Frem",
+    "divisionId": "den-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-33",
+    "name": "Middelfart",
+    "divisionId": "den-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-34",
+    "name": "Brabrand IF",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-35",
+    "name": "Ishøj IF",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "den-36",
+    "name": "Avarta",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-37",
+    "name": "Dalum IF",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-38",
+    "name": "Holbæk B&I",
+    "divisionId": "den-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-39",
+    "name": "Ringkøbing IF",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-40",
+    "name": "Brønshøj BK",
+    "divisionId": "den-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-41",
+    "name": "HIK",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-42",
+    "name": "Kjellerup IF",
+    "divisionId": "den-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-43",
+    "name": "Aarhus Fremad",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-44",
+    "name": "SfB-Oure",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-45",
+    "name": "MFA",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-46",
+    "name": "Marienlyst",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-47",
+    "name": "B 1908",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "den-48",
+    "name": "Greve Fodbold",
+    "divisionId": "den-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  }
+]

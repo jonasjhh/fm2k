@@ -1,0 +1,17 @@
+[
+  {
+    "id": "swe-d1",
+    "name": "Allsvenskan",
+    "level": 1
+  },
+  {
+    "id": "swe-d2",
+    "name": "Superettan",
+    "level": 2
+  },
+  {
+    "id": "swe-d3",
+    "name": "Division 1",
+    "level": 3
+  }
+]

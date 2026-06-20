@@ -1,0 +1,17 @@
+[
+  {
+    "id": "nor-d1",
+    "name": "Eliteserien",
+    "level": 1
+  },
+  {
+    "id": "nor-d2",
+    "name": "1. divisjon",
+    "level": 2
+  },
+  {
+    "id": "nor-d3",
+    "name": "2. divisjon",
+    "level": 3
+  }
+]

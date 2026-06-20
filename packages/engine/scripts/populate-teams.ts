@@ -1,6 +1,7 @@
 /**
- * Populates every team in every country JSON with 25 generated female players.
- * Players are nationality- and division-appropriate.
+ * Populates every team in every country with 25 generated female players,
+ * replacing that country's `players.json` wholesale. Players are nationality-
+ * and division-appropriate.
  *
  * Usage:
  *   pnpm --filter @fm2k/engine populate-teams
@@ -13,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 import { PlayerGenerator, COUNTRY_IDS, calculateOverall } from '../src/index.ts';
 import type { PlayerPosition, PlayerAttributes } from '../src/index.ts';
+import type { CountryDivisionRow, CountryTeamRow } from '../src/index.ts';
 import type { NameCountry } from '@fm2k/names';
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '../src/data');
@@ -72,6 +74,7 @@ const SQUAD_POSITIONS: PlayerPosition[] = [
 interface PlayerJson {
   id: string;
   name: string;
+  clubId: string;
   nationality: string;
   age: number;
   position: string;
@@ -84,6 +87,7 @@ function buildPlayer(
   position: PlayerPosition,
   ovr: number,
   nationality: string,
+  clubId: string,
 ): PlayerJson {
   const raw = generator.generatePlayer(position, 1, 20);
   const scaledAttrs = scaleAttributes(raw.attributes, ovr);
@@ -93,6 +97,7 @@ function buildPlayer(
   return {
     id: raw.id,
     name: raw.name,
+    clubId,
     nationality,
     age: raw.age,
     position,
@@ -106,23 +111,27 @@ function buildPlayer(
 let totalTeams = 0;
 
 for (const countryId of COUNTRY_IDS) {
-  const filePath = join(DATA_DIR, `${countryId}.json`);
-  const data = JSON.parse(readFileSync(filePath, 'utf-8'));
+  const countryDir = join(DATA_DIR, countryId);
+  const meta = JSON.parse(readFileSync(join(countryDir, 'meta.json'), 'utf-8'));
+  const divisions: CountryDivisionRow[] = JSON.parse(readFileSync(join(countryDir, 'divisions.json'), 'utf-8'));
+  const teams: CountryTeamRow[] = JSON.parse(readFileSync(join(countryDir, 'teams.json'), 'utf-8'));
   const generator = new PlayerGenerator('female', countryId as NameCountry);
 
-  for (const division of data.divisions) {
+  const players: PlayerJson[] = [];
+  for (const division of divisions) {
     const ovr = targetOvr(countryId, division.level);
-    for (const team of division.teams) {
-      team.players = SQUAD_POSITIONS.map(pos =>
-        buildPlayer(generator, pos, ovr, data.nationality),
-      );
+    const divisionTeams = teams.filter(t => t.divisionId === division.id);
+    for (const team of divisionTeams) {
+      for (const pos of SQUAD_POSITIONS) {
+        players.push(buildPlayer(generator, pos, ovr, meta.nationality, team.id));
+      }
       totalTeams++;
     }
-    console.log(`  ${data.country} · ${division.name} (L${division.level}, ~${ovr} OVR) — ${division.teams.length} teams`);
+    console.log(`  ${meta.country} · ${division.name} (L${division.level}, ~${ovr} OVR) — ${divisionTeams.length} teams`);
   }
 
-  writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
-  console.log(`✓ Wrote ${countryId}.json\n`);
+  writeFileSync(join(countryDir, 'players.json'), JSON.stringify(players, null, 2) + '\n');
+  console.log(`✓ Wrote ${countryId}/players.json\n`);
 }
 
 console.log(`Done. Populated ${totalTeams} teams with ${SQUAD_POSITIONS.length} players each.`);

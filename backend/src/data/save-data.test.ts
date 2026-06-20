@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
-import type { ClubPlayer, ClubState, LeagueState, Player, PlayerAttributes, TeamTactics } from '@fm2k/engine';
-import type { EditableCountry } from '../domain/editable-country.ts';
+import type { ClubPlayer, ClubState, LeagueState, Player, PlayerAttributes, Team, TeamTactics } from '@fm2k/engine';
+import type { WorldCountry, WorldDivision } from '../domain/world.ts';
 
-// In-memory localforage stand-in so the codec can be round-tripped without IndexedDB.
+// In-memory localforage stand-in so saves can be round-tripped without IndexedDB.
 vi.mock('localforage', () => {
   const store = new Map<string, unknown>();
   return {
@@ -17,7 +17,9 @@ vi.mock('localforage', () => {
   };
 });
 
-import { writeSave, deleteSave, readAllSaves, saveKey, checkSaveCompatibility, SaveData, SAVE_VERSION } from './save-data';
+import {
+  writeSave, deleteSave, readAllSaves, saveKey, checkSaveCompatibility, SaveData, SAVE_VERSION, MIN_LOADABLE_VERSION,
+} from './save-data';
 
 function attrs(v: number): PlayerAttributes {
   return {
@@ -37,18 +39,26 @@ function clubPlayer(id: string, extra: Partial<ClubPlayer> = {}): ClubPlayer {
   return { ...player(id), fitness: 95, ...extra } as ClubPlayer;
 }
 
-function country(): EditableCountry {
+/** A flat single-country/single-division/single-team world, for save fixtures. */
+function flatWorld(teamId = 't1', tactics?: TeamTactics) {
   const team = {
-    id: 't1', name: 'Team One', formation: '4-4-2' as const,
-    squad: [player('s1'), player('s2', { position: 'ST', attributes: attrs(88) }), player('b1', { position: 'GK' })],
+    id: teamId, name: 'Team One', formation: '4-4-2' as const,
+    squad: [], // squad lives in `players`, not on Team, in the flat save shape
     colors: { primary: '#ff0000', secondary: '#00ff00' },
-  };
+    ...(tactics && { tactics }),
+  } as Team;
+  const squadPlayers = [
+    player('s1'), player('s2', { position: 'ST', attributes: attrs(88) }), player('b1', { position: 'GK' }),
+  ].map(p => ({ ...p, clubId: teamId }));
+  const division: WorldDivision = { id: 'd1', name: 'Eliteserien', level: 1, countryId: 'norway' };
+  const country: WorldCountry = { id: 'norway', name: 'Norway', nationality: 'norwegian' };
   return {
-    id: 'norway' as EditableCountry['id'],
-    name: 'Norway',
-    nationality: 'norwegian',
-    divisions: [{ id: 'd1', name: 'Eliteserien', level: 1, teams: [team] }],
-  } as EditableCountry;
+    players: squadPlayers,
+    teams: [team],
+    teamDivision: { [teamId]: division.id },
+    divisions: [division],
+    countries: [country],
+  };
 }
 
 function makeSave(overrides: Partial<SaveData> = {}): SaveData {
@@ -65,7 +75,7 @@ function makeSave(overrides: Partial<SaveData> = {}): SaveData {
     matchday: 5,
     playerTeamId: 't1',
     selectedLeagueIds: ['norway'],
-    editableCountries: [country()],
+    ...flatWorld(),
     currentMatchday: 5,
     seasonComplete: false,
     activeTab: 'squad',
@@ -85,13 +95,16 @@ beforeEach(async () => {
   lf.__store.clear();
 });
 
-describe('save-data codec round-trip:', () => {
+describe('save-data round-trip:', () => {
   it('given a save when written and read back then player-bearing data is preserved', async () => {
     const original = makeSave();
     await writeSave(original);
     const [loaded] = await readAllSaves();
 
-    expect(loaded.editableCountries).toEqual(original.editableCountries);
+    expect(loaded.players).toEqual(original.players);
+    expect(loaded.teams).toEqual(original.teams);
+    expect(loaded.divisions).toEqual(original.divisions);
+    expect(loaded.countries).toEqual(original.countries);
     expect(loaded.clubState.squad).toEqual(original.clubState.squad);
     expect(loaded.transferListings).toEqual(original.transferListings);
   });
@@ -187,11 +200,14 @@ describe('checkSaveCompatibility:', () => {
   });
 
   it('given a version below the minimum loadable then incompatible', () => {
-    expect(checkSaveCompatibility(withVersion(0))).toBe('incompatible');
+    expect(checkSaveCompatibility(withVersion(MIN_LOADABLE_VERSION - 1))).toBe('incompatible');
   });
 
-  it('given the oldest still-loadable version then outdated', () => {
-    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('outdated');
+  it('given the oldest still-loadable version below the current one then outdated', () => {
+    // Only meaningful while MIN_LOADABLE_VERSION trails SAVE_VERSION; right after a breaking
+    // bump (MIN === SAVE_VERSION, as now) there's no "outdated but loadable" version to test.
+    if (MIN_LOADABLE_VERSION >= SAVE_VERSION) { return; }
+    expect(checkSaveCompatibility(withVersion(MIN_LOADABLE_VERSION))).toBe('outdated');
   });
 
   it('given the current version then ok', () => {
@@ -203,29 +219,18 @@ describe('save-data tactics round-trip:', () => {
   const tactics: TeamTactics = { attackingMentality: 'attacking', passingStyle: 'short', tempo: 'fast', width: 'wide' };
 
   function saveWithTeam(extra: { tactics?: TeamTactics }): SaveData {
-    const team = {
-      id: 'tt', name: 'Tactics FC', formation: '4-4-2' as const,
-      squad: [player('s1'), player('b1', { position: 'GK' })],
-      colors: { primary: '#000', secondary: '#fff' },
-      ...extra,
-    };
-    return makeSave({
-      editableCountries: [{
-        id: 'norway' as EditableCountry['id'], name: 'Norway', nationality: 'norwegian',
-        divisions: [{ id: 'd1', name: 'Eliteserien', level: 1, teams: [team] }],
-      } as EditableCountry],
-    });
+    return makeSave({ ...flatWorld('tt', extra.tactics) });
   }
 
   it('given a team with tactics then they survive the round-trip', async () => {
     await writeSave(saveWithTeam({ tactics }));
     const [loaded] = await readAllSaves();
-    expect(loaded.editableCountries[0].divisions[0].teams[0].tactics).toEqual(tactics);
+    expect(loaded.teams[0].tactics).toEqual(tactics);
   });
 
   it('given a team without tactics then none are present after the round-trip', async () => {
     await writeSave(saveWithTeam({}));
     const [loaded] = await readAllSaves();
-    expect(loaded.editableCountries[0].divisions[0].teams[0].tactics).toBeUndefined();
+    expect(loaded.teams[0].tactics).toBeUndefined();
   });
 });

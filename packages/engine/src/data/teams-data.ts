@@ -1,20 +1,46 @@
-import norwayData from './norway.json';
-import englandData from './england.json';
-import germanyData from './germany.json';
-import franceData from './france.json';
-import spainData from './spain.json';
-import italyData from './italy.json';
-import swedenData from './sweden.json';
-import denmarkData from './denmark.json';
+import norwayMeta from './norway/meta.json';
+import norwayDivisions from './norway/divisions.json';
+import norwayTeams from './norway/teams.json';
+import norwayPlayers from './norway/players.json';
+import englandMeta from './england/meta.json';
+import englandDivisions from './england/divisions.json';
+import englandTeams from './england/teams.json';
+import englandPlayers from './england/players.json';
+import germanyMeta from './germany/meta.json';
+import germanyDivisions from './germany/divisions.json';
+import germanyTeams from './germany/teams.json';
+import germanyPlayers from './germany/players.json';
+import franceMeta from './france/meta.json';
+import franceDivisions from './france/divisions.json';
+import franceTeams from './france/teams.json';
+import francePlayers from './france/players.json';
+import spainMeta from './spain/meta.json';
+import spainDivisions from './spain/divisions.json';
+import spainTeams from './spain/teams.json';
+import spainPlayers from './spain/players.json';
+import italyMeta from './italy/meta.json';
+import italyDivisions from './italy/divisions.json';
+import italyTeams from './italy/teams.json';
+import italyPlayers from './italy/players.json';
+import swedenMeta from './sweden/meta.json';
+import swedenDivisions from './sweden/divisions.json';
+import swedenTeams from './sweden/teams.json';
+import swedenPlayers from './sweden/players.json';
+import denmarkMeta from './denmark/meta.json';
+import denmarkDivisions from './denmark/divisions.json';
+import denmarkTeams from './denmark/teams.json';
+import denmarkPlayers from './denmark/players.json';
 import { getAllTeams, getDivisionTeams } from './country-data.ts';
-import type { CountryData } from './country-data.ts';
+import type { CountryData, CountryDivisionRow, CountryTeamRow, CountryPlayerRow } from './country-data.ts';
 import type { CountryKey } from '@fm2k/names';
 
 export { getAllTeams, getDivisionTeams };
 
 // ── country registry ──────────────────────────────────────────────────────────
-// To add a new country: import its JSON above, add the country name here,
-// and add it to COUNTRY_DATA below. Everything else derives from this registry.
+// To add a new country: import its meta/divisions/teams/players JSON above, add the
+// country name here, and add it to COUNTRY_DATA below. Everything else derives from
+// this registry. Each country's static data lives in its own `<country>/` folder as
+// flat, id-linked files (divisions/teams/players), not nested — see country-data.ts.
 
 export const COUNTRY_IDS: readonly CountryKey[] = [
   'norway',
@@ -27,15 +53,24 @@ export const COUNTRY_IDS: readonly CountryKey[] = [
   'denmark',
 ];
 
+function loadCountry(
+  meta: { country: string; nationality: string },
+  divisions: CountryDivisionRow[],
+  teams: CountryTeamRow[],
+  players: CountryPlayerRow[],
+): CountryData {
+  return { country: meta.country, nationality: meta.nationality, divisions, teams, players };
+}
+
 export const COUNTRY_DATA: Record<CountryKey, CountryData> = {
-  norway:   norwayData   as unknown as CountryData,
-  england:  englandData  as unknown as CountryData,
-  germany:  germanyData  as unknown as CountryData,
-  france:   franceData   as unknown as CountryData,
-  spain:    spainData    as unknown as CountryData,
-  italy:    italyData    as unknown as CountryData,
-  sweden:   swedenData   as unknown as CountryData,
-  denmark:  denmarkData  as unknown as CountryData,
+  norway: loadCountry(norwayMeta, norwayDivisions, norwayTeams, norwayPlayers as CountryPlayerRow[]),
+  england: loadCountry(englandMeta, englandDivisions, englandTeams, englandPlayers as CountryPlayerRow[]),
+  germany: loadCountry(germanyMeta, germanyDivisions, germanyTeams, germanyPlayers as CountryPlayerRow[]),
+  france: loadCountry(franceMeta, franceDivisions, franceTeams, francePlayers as CountryPlayerRow[]),
+  spain: loadCountry(spainMeta, spainDivisions, spainTeams, spainPlayers as CountryPlayerRow[]),
+  italy: loadCountry(italyMeta, italyDivisions, italyTeams, italyPlayers as CountryPlayerRow[]),
+  sweden: loadCountry(swedenMeta, swedenDivisions, swedenTeams, swedenPlayers as CountryPlayerRow[]),
+  denmark: loadCountry(denmarkMeta, denmarkDivisions, denmarkTeams, denmarkPlayers as CountryPlayerRow[]),
 };
 
 export const ALL_COUNTRIES: CountryData[] = COUNTRY_IDS.map(id => COUNTRY_DATA[id]);

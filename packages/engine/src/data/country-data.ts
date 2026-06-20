@@ -1,9 +1,10 @@
 import { calculateBestFormation } from '@fm2k/lineup';
 import type { Team, Player, PlayerPosition } from '@fm2k/match';
 
-export interface CountryPlayerData {
+export interface CountryPlayerRow {
   id: string;
   name: string;
+  clubId: string;
   nationality?: string;
   age?: number;
   position: string;
@@ -22,28 +23,31 @@ export interface CountryPlayerData {
   };
 }
 
-export interface CountryTeamData {
+export interface CountryTeamRow {
   id: string;
   name: string;
+  divisionId: string;
   primaryColor?: string;
   secondaryColor?: string;
-  players: CountryPlayerData[];
 }
 
-export interface CountryDivisionData {
+export interface CountryDivisionRow {
   id: string;
   name: string;
   level: number;
-  teams: CountryTeamData[];
 }
 
+/** Flat, id-linked country data: divisions/teams/players are independent arrays,
+ *  joined by `teams[].divisionId` and `players[].clubId` — not nested. */
 export interface CountryData {
   country: string;
   nationality: string;
-  divisions: CountryDivisionData[];
+  divisions: CountryDivisionRow[];
+  teams: CountryTeamRow[];
+  players: CountryPlayerRow[];
 }
 
-function toPlayer(p: CountryPlayerData, countryNationality: string): Player {
+function toPlayer(p: CountryPlayerRow, countryNationality: string): Player {
   return {
     id: p.id,
     name: p.name,
@@ -55,24 +59,27 @@ function toPlayer(p: CountryPlayerData, countryNationality: string): Player {
   };
 }
 
-function toTeam(t: CountryTeamData, nationality: string): Team {
-  const players = t.players.map(p => toPlayer(p, nationality));
+function toTeam(t: CountryTeamRow, players: CountryPlayerRow[], nationality: string): Team {
+  const squad = players.filter(p => p.clubId === t.id).map(p => toPlayer(p, nationality));
   return {
     id: t.id,
     name: t.name,
-    formation: calculateBestFormation(players),
-    squad: players,
+    formation: calculateBestFormation(squad),
+    squad,
     colors: { primary: t.primaryColor ?? '#FFFFFF', secondary: t.secondaryColor ?? '#000000' },
   };
 }
 
 export function getDivisionTeams(data: CountryData, level: number): Team[] {
   const division = data.divisions.find(d => d.level === level);
-  return division ? division.teams.map(t => toTeam(t, data.nationality)) : [];
+  if (!division) { return []; }
+  return data.teams
+    .filter(t => t.divisionId === division.id)
+    .map(t => toTeam(t, data.players, data.nationality));
 }
 
 export function getAllTeams(data: CountryData): Team[] {
-  return data.divisions.flatMap(d => d.teams.map(t => toTeam(t, data.nationality)));
+  return data.teams.map(t => toTeam(t, data.players, data.nationality));
 }
 
 export interface StructuredDivision {
@@ -87,6 +94,8 @@ export function getAllDivisions(data: CountryData): StructuredDivision[] {
     id: div.id,
     name: div.name,
     level: div.level,
-    teams: div.teams.map(t => toTeam(t, data.nationality)),
+    teams: data.teams
+      .filter(t => t.divisionId === div.id)
+      .map(t => toTeam(t, data.players, data.nationality)),
   }));
 }

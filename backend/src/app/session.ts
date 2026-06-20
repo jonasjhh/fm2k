@@ -13,10 +13,14 @@ import type {
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
 } from '@fm2k/engine';
+import { buildEditableCountries, mapTeam, findCountryForTeam } from '../domain/editable-country.ts';
+import type { EditableCountry } from '../domain/editable-country.ts';
 import {
-  buildEditableCountries, mapTeam, findTeamById, findDivisionForTeam, findCountryForTeam,
-} from '../domain/editable-country.ts';
-import type { EditableCountry, EditableDivision } from '../domain/editable-country.ts';
+  buildWorld, worldToEditableCountries, teamById, divisionForTeam, countryForTeam,
+  teamsInDivision, teamsInCountry, divisionsInCountry,
+  removePlayerFromWorld, addPlayerToWorld, setTeamSquad, worldToFlat, worldFromFlat,
+} from '../domain/world.ts';
+import type { World, WorldDivision } from '../domain/world.ts';
 import { applyPromotionRelegation } from '../domain/promotion.ts';
 import type { QualifierResult } from '../domain/promotion.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
@@ -149,7 +153,14 @@ export class GameSession {
   private squadTargets = new Map<string, number>();
   /** The player's live Team object inside the divisions (same reference the sim uses). */
   private playerTeam: Team | null = null;
+  /** Pre-game team-editor state only (`TeamEditor.tsx`) — read/written by
+   *  `getEditableCountries`/`setEditableCountries`/the `editTeam` family below. Once a
+   *  game starts, `this.world` is the live source of truth and this goes stale/unused;
+   *  `snapshot()` switches over accordingly. */
   private editableCountries: EditableCountry[] = buildEditableCountries();
+  /** The live, flat, mutable game world — built once a game starts (`buildManagers`)
+   *  and mutated in place from then on (signings, churn, promotion/relegation). */
+  private world: World | null = null;
   private readonly listeners = new Set<() => void>();
 
   /** `rng` is injectable so generated players (position + attributes) are deterministic in tests. */
@@ -206,7 +217,7 @@ export class GameSession {
     return {
       playerTeamId: this.playerTeamId,
       selectedLeagueIds: this.selectedLeagueIds,
-      editableCountries: this.editableCountries,
+      editableCountries: this.world ? worldToEditableCountries(this.world) : this.editableCountries,
       currentMatchday: this.currentMatchday,
       seasonComplete: this.seasonComplete,
       now: this.now,
@@ -234,26 +245,22 @@ export class GameSession {
    * simulator) pick them up when they schedule the season.
    */
   private stampTeamTactics(
-    countries: EditableCountry[],
+    world: World,
     playerTeamId: string,
     playerIntent: TeamTacticsIntent,
   ): void {
-    for (const c of countries) {
-      for (const d of c.divisions) {
-        for (const t of d.teams) {
-          const teamIntent = t.id === playerTeamId ? playerIntent : aiIntent(t.formation);
-          t.tacticsIntent = teamIntent;
-          // A rough season-start approximation — ClubManager doesn't exist yet at this point
-          // for the player's own team. syncPlayerTeam() resolves the real per-match XI later.
-          t.tacticsParams = resolveMatchParameters(teamIntent, selectStartingXIWithSlots(t.squad, t.formation).starters);
-        }
-      }
+    for (const t of world.teams.values()) {
+      const teamIntent = t.id === playerTeamId ? playerIntent : aiIntent(t.formation);
+      t.tacticsIntent = teamIntent;
+      // A rough season-start approximation — ClubManager doesn't exist yet at this point
+      // for the player's own team. syncPlayerTeam() resolves the real per-match XI later.
+      t.tacticsParams = resolveMatchParameters(teamIntent, selectStartingXIWithSlots(t.squad, t.formation).starters);
     }
   }
 
   /** Always include the player's own nation, even if the caller's `leagueIds` omitted it. */
-  private resolveLeagueIds(editableCountries: EditableCountry[], teamId: string, leagueIds: string[]): string[] {
-    const playerCountryId = findCountryForTeam(editableCountries, teamId)?.id;
+  private resolveLeagueIds(world: World, teamId: string, leagueIds: string[]): string[] {
+    const playerCountryId = countryForTeam(world, teamId)?.id;
     return playerCountryId && !leagueIds.includes(playerCountryId)
       ? [...leagueIds, playerCountryId]
       : leagueIds;
@@ -263,7 +270,7 @@ export class GameSession {
    *  lastMatchInsight. Used whenever the competition layer is rebuilt (new game or season
    *  rollover) since the old bus's subscriptions are tied to the CompetitionManagers being
    *  discarded. */
-  private rewireEventBus(editableCountries: EditableCountry[]): EventBus<GameEvents> {
+  private rewireEventBus(world: World): EventBus<GameEvents> {
     this.eventBusCleanup?.();
     const eventBus = new EventBus<GameEvents>();
     this.eventBus = eventBus;
@@ -298,8 +305,8 @@ export class GameSession {
 
       // Feedback hook (logic deferred — buildMatchInsight currently returns null).
       // Wired now so the insight feature drops in with no plumbing changes.
-      const homeParams = findTeamById(editableCountries, payload.homeTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
-      const awayParams = findTeamById(editableCountries, payload.awayTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
+      const homeParams = teamById(world, payload.homeTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
+      const awayParams = teamById(world, payload.awayTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
       this.lastMatchInsight = buildMatchInsight({
         playerSide: isHome ? 'home' : 'away',
         homeScore: payload.homeScore,
@@ -319,28 +326,29 @@ export class GameSession {
    *  `cupManagers`/`leagueManager`/`playerCupManager`. Identical for a new game and a season
    *  rollover — only the inputs (post-promotion/relegation membership) differ. */
   private buildCompetitions(
-    editableCountries: EditableCountry[],
+    world: World,
     allLeagueIds: string[],
     teamId: string,
-    division: EditableDivision,
+    division: WorldDivision,
     eventBus: EventBus<GameEvents>,
   ): CompetitionManager {
-    const playerCountry = findCountryForTeam(editableCountries, teamId);
+    const playerCountry = countryForTeam(world, teamId);
     const seasons: Record<string, Season> = {};
     const leagueManagers: Record<string, CompetitionManager> = {};
     const cupManagers: Record<string, CompetitionManager> = {};
 
     for (const countryId of allLeagueIds) {
-      const country = editableCountries.find(c => c.id === countryId);
+      const country = world.countries.get(countryId);
       if (!country) { continue; }
       const isPlayerNation = country.id === playerCountry?.id;
       const competitions: CompetitionManager[] = [];
+      const countryDivisions = divisionsInCountry(world, countryId);
 
-      for (const div of country.divisions) {
+      for (const div of countryDivisions) {
         const isPlayerDivision = div.id === division.id;
         const lm = new CompetitionManager({
           format: new LeagueFormat(),
-          teams: div.teams,
+          teams: teamsInDivision(world, div.id),
           startDate: SEASON_START,
           seasonStart: SEASON_START,
           competitionId: div.id,
@@ -354,10 +362,10 @@ export class GameSession {
         competitions.push(lm);
       }
 
-      const allTeams = country.divisions.flatMap(d => d.teams);
+      const allTeams = teamsInCountry(world, countryId);
       const levelByTeamId = new Map<string, number>();
-      for (const div of country.divisions) {
-        for (const t of div.teams) { levelByTeamId.set(t.id, div.level); }
+      for (const div of countryDivisions) {
+        for (const t of teamsInDivision(world, div.id)) { levelByTeamId.set(t.id, div.level); }
       }
       const cupId = cupCompetitionId(country.id);
       const cup = new CompetitionManager({
@@ -397,9 +405,10 @@ export class GameSession {
    *  one week after the last matchday). Idempotent per boundary per season — relies on
    *  `this.now` already sitting at the moment the regular season just finished. */
   private scheduleQualifiersIfNeeded(): void {
-    for (const country of this.editableCountries) {
+    if (!this.world) { return; }
+    for (const country of this.world.countries.values()) {
       if (!this.selectedLeagueIds.includes(country.id)) { continue; }
-      const ordered = [...country.divisions].sort((a, b) => a.level - b.level);
+      const ordered = divisionsInCountry(this.world, country.id);
       for (let i = 0; i < ordered.length - 1; i++) {
         const upperDiv = ordered[i];
         const lowerDiv = ordered[i + 1];
@@ -414,8 +423,8 @@ export class GameSession {
         if (upperStandings.length < 3 || lowerStandings.length < 3) { continue; }
         const upperTeamId = upperStandings[upperStandings.length - 3].teamId;
         const lowerTeamId = lowerStandings[2].teamId;
-        const upperTeam = findTeamById(this.editableCountries, upperTeamId);
-        const lowerTeam = findTeamById(this.editableCountries, lowerTeamId);
+        const upperTeam = teamById(this.world, upperTeamId);
+        const lowerTeam = teamById(this.world, lowerTeamId);
         if (!upperTeam || !lowerTeam) { continue; }
 
         const isPlayerMatch = upperTeamId === this.playerTeamId || lowerTeamId === this.playerTeamId;
@@ -479,14 +488,10 @@ export class GameSession {
   }
 
   /** Seed AI refill targets from current squad sizes (clamped to the cap). */
-  private seedSquadTargets(editableCountries: EditableCountry[]): void {
+  private seedSquadTargets(world: World): void {
     this.squadTargets.clear();
-    for (const country of editableCountries) {
-      for (const div of country.divisions) {
-        for (const t of div.teams) {
-          this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.squad.length));
-        }
-      }
+    for (const t of world.teams.values()) {
+      this.squadTargets.set(t.id, Math.min(MAX_SQUAD_SIZE, t.squad.length));
     }
   }
 
@@ -501,23 +506,25 @@ export class GameSession {
     leagueIds: string[],
     playerIntent?: TeamTacticsIntent,
   ): BuildManagersResult {
-    const team = findTeamById(editableCountries, teamId);
-    const division = findDivisionForTeam(editableCountries, teamId);
+    const world = buildWorld(editableCountries);
+    const team = teamById(world, teamId);
+    const division = divisionForTeam(world, teamId);
     if (!team || !division) { return { ok: false, reason: `unknown team or division for teamId "${teamId}"` }; }
+    this.world = world;
 
     // Resolve tactical parameters onto every team's live object BEFORE the
     // competition managers (which capture these references when scheduling the
     // season). The player uses their chosen intent; AI teams get a style derived
     // from their formation so opponents vary.
     const intent = playerIntent ?? defaultIntent(team.formation);
-    this.stampTeamTactics(editableCountries, teamId, intent);
+    this.stampTeamTactics(world, teamId, intent);
     this.playerTeam = team;
 
-    const allLeagueIds = this.resolveLeagueIds(editableCountries, teamId, leagueIds);
-    const eventBus = this.rewireEventBus(editableCountries);
-    const leagueManager = this.buildCompetitions(editableCountries, allLeagueIds, teamId, division, eventBus);
+    const allLeagueIds = this.resolveLeagueIds(world, teamId, leagueIds);
+    const eventBus = this.rewireEventBus(world);
+    const leagueManager = this.buildCompetitions(world, allLeagueIds, teamId, division, eventBus);
 
-    const playerCountry = findCountryForTeam(editableCountries, teamId);
+    const playerCountry = countryForTeam(world, teamId);
     // The player's initial pick: their own deliberate choice takes over from here via
     // ClubState (setStartingXI/setBench) — Team itself never tracks a starters split again.
     const initialXI = selectStartingXIWithSlots(team.squad, team.formation);
@@ -543,7 +550,9 @@ export class GameSession {
     // nation (so the pool scales with how many leagues are in play), each with that nation's
     // nationality. (On load this is immediately replaced by the saved pool via loadState.)
     const seededFreeAgents: Player[] = [];
-    for (const country of editableCountries.filter(c => allLeagueIds.includes(c.id))) {
+    for (const countryId of allLeagueIds) {
+      const country = world.countries.get(countryId);
+      if (!country) { continue; }
       for (let i = 0; i < INITIAL_FREE_AGENTS_PER_NATION; i++) {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
         const overall = 42 + Math.floor(this.rng() * 28); // 42–69: released players + the odd gem
@@ -559,7 +568,7 @@ export class GameSession {
       initialFreeAgents: seededFreeAgents,
     });
 
-    this.seedSquadTargets(editableCountries);
+    this.seedSquadTargets(world);
     return { ok: true, clubManager: this.clubManager, transferManager: this.transferManager, leagueManager };
   }
 
@@ -590,7 +599,7 @@ export class GameSession {
    * pool is sourced from the previous season's churn, never a fresh random seed.
    */
   startNewSeason(): boolean {
-    if (!this.playerTeamId || !this.clubManager || !this.transferManager) { return false; }
+    if (!this.playerTeamId || !this.clubManager || !this.transferManager || !this.world) { return false; }
     const teamId = this.playerTeamId;
     const ranked: Record<string, string[]> = {};
     for (const [divId, lm] of Object.entries(this.leagueManagers)) {
@@ -600,31 +609,31 @@ export class GameSession {
 
     // Capture the just-finished league placement + cup run before promotion/relegation and
     // the competition rebuild below make this season's standings/bracket unreachable.
-    const oldDivision = findDivisionForTeam(this.editableCountries, teamId);
+    const oldDivision = divisionForTeam(this.world, teamId);
     const oldDivisionStandings = oldDivision ? ranked[oldDivision.id] : undefined;
     const leaguePosition = oldDivisionStandings ? oldDivisionStandings.indexOf(teamId) + 1 : 0;
     const cupPrize = this.determineCupPrize(teamId);
 
-    this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked, qualifierResults);
+    applyPromotionRelegation(this.world, ranked, qualifierResults);
     this.qualifierManagers = {};
     this.scheduledQualifierBoundaries = new Set();
 
-    const team = findTeamById(this.editableCountries, teamId);
-    const division = findDivisionForTeam(this.editableCountries, teamId);
+    const team = teamById(this.world, teamId);
+    const division = divisionForTeam(this.world, teamId);
     if (!team || !division) { return false; }
 
     const prevClub = this.clubManager.getState();
     const prevTransfer = this.transferManager.getState();
 
     const intent = prevClub.tactics;
-    this.stampTeamTactics(this.editableCountries, teamId, intent);
+    this.stampTeamTactics(this.world, teamId, intent);
     this.playerTeam = team;
 
-    const allLeagueIds = this.resolveLeagueIds(this.editableCountries, teamId, this.selectedLeagueIds);
-    const eventBus = this.rewireEventBus(this.editableCountries);
-    this.buildCompetitions(this.editableCountries, allLeagueIds, teamId, division, eventBus);
+    const allLeagueIds = this.resolveLeagueIds(this.world, teamId, this.selectedLeagueIds);
+    const eventBus = this.rewireEventBus(this.world);
+    this.buildCompetitions(this.world, allLeagueIds, teamId, division, eventBus);
 
-    const playerCountry = findCountryForTeam(this.editableCountries, teamId);
+    const playerCountry = countryForTeam(this.world, teamId);
     const { startingXI, benchPlayers } = carryOverLineup(
       prevClub.startingXI, prevClub.benchPlayers, team.squad, team.formation,
     );
@@ -668,7 +677,7 @@ export class GameSession {
       initialFreeAgents: prevTransfer.freeAgents,
     });
 
-    this.seedSquadTargets(this.editableCountries);
+    this.seedSquadTargets(this.world);
 
     this.currentMatchday = 0;
     this.seasonComplete = false;
@@ -681,11 +690,13 @@ export class GameSession {
 
   buildSaveData(type: SaveType, activeTab = 'squad'): SaveData | null {
     const snap = this.snapshot();
-    if (!this.playerTeamId || !snap.leagueState || !snap.clubState) { return null; }
+    if (!this.playerTeamId || !snap.leagueState || !snap.clubState || !this.world) { return null; }
     const keep = new Set(this.selectedLeagueIds);
-    const playerCountry = findCountryForTeam(this.editableCountries, this.playerTeamId);
+    const playerCountry = countryForTeam(this.world, this.playerTeamId);
     if (playerCountry) { keep.add(playerCountry.id); }
+    const flat = worldToFlat(this.world, keep);
     return {
+      ...flat,
       version: SAVE_VERSION,
       type,
       savedAt: new Date().toISOString(),
@@ -693,7 +704,6 @@ export class GameSession {
       matchday: this.currentMatchday,
       playerTeamId: this.playerTeamId,
       selectedLeagueIds: this.selectedLeagueIds,
-      editableCountries: this.editableCountries.filter(c => keep.has(c.id)),
       currentMatchday: this.currentMatchday,
       seasonComplete: this.seasonComplete,
       now: this.now,
@@ -717,11 +727,22 @@ export class GameSession {
   }
 
   loadGame(save: SaveData): boolean {
-    // Merge the saved (partial) countries with fresh defaults so all are available.
-    const savedCountryMap = new Map(save.editableCountries.map(c => [c.id, c]));
-    const mergedCountries = buildEditableCountries().map(c => savedCountryMap.get(c.id) ?? c);
+    // Merge the saved (partial) world with fresh defaults so every league is available,
+    // even ones the save didn't include.
+    const freshWorld = buildWorld(buildEditableCountries());
+    const savedCountryIds = new Set<string>(save.countries.map(c => c.id));
+    const missingCountryIds = [...freshWorld.countries.keys()].filter(id => !savedCountryIds.has(id));
+    const freshOnly = worldToFlat(freshWorld, missingCountryIds);
+    const mergedWorld = worldFromFlat({
+      players: [...save.players, ...freshOnly.players],
+      teams: [...save.teams, ...freshOnly.teams],
+      teamDivision: { ...save.teamDivision, ...freshOnly.teamDivision },
+      divisions: [...save.divisions, ...freshOnly.divisions],
+      countries: [...save.countries, ...freshOnly.countries],
+    });
+    const mergedCountries = worldToEditableCountries(mergedWorld);
     const leagueIds = save.selectedLeagueIds
-      ?? [findCountryForTeam(mergedCountries, save.playerTeamId)?.id].filter(Boolean) as string[];
+      ?? [countryForTeam(mergedWorld, save.playerTeamId)?.id].filter(Boolean) as string[];
 
     const savedTactics = save.clubState.tactics ?? defaultIntent(save.clubState.formation);
     const built = this.buildManagers(mergedCountries, save.playerTeamId, leagueIds, savedTactics);
@@ -729,7 +750,7 @@ export class GameSession {
 
     built.leagueManager.loadState(save.leagueState);
     if (save.leagueStates) {
-      const playerDivId = findDivisionForTeam(mergedCountries, save.playerTeamId)?.id;
+      const playerDivId = this.world ? divisionForTeam(this.world, save.playerTeamId)?.id : undefined;
       for (const [id, state] of Object.entries(save.leagueStates)) {
         if (id !== playerDivId && this.leagueManagers[id]) {
           this.leagueManagers[id].loadState(state);
@@ -900,63 +921,43 @@ export class GameSession {
 
   /** Write the player's (developed/churned) squad back into its Team so a rollover doesn't lose it. */
   private reconcilePlayerSquad(): void {
-    if (!this.clubManager || !this.playerTeamId) { return; }
+    if (!this.clubManager || !this.playerTeamId || !this.world) { return; }
     const cs = this.clubManager.getState();
-    this.editableCountries = mapTeam(this.editableCountries, this.playerTeamId, t => ({ ...t, squad: cs.squad }));
+    setTeamSquad(this.world, this.playerTeamId, cs.squad);
   }
 
   /**
    * Age/retire every AI squad (small direct intake only), gathering each squad's overflow + the
    * player's, then churn the free-agent pool — which replaces its own retirees 1:1 and mints all the
    * overflow as fresh youth. Conserves world population; clubs rebuild from the pool during windows.
+   * Mutates each team's squad in place via `setTeamSquad`, so not-yet-played fixtures (which hold the
+   * same `Team` reference) see the post-churn squad with no separate push step needed.
    */
   private churnWorld(playerOverflow: PlayerPosition[]): void {
+    if (!this.world) { return; }
     const overflow: OverflowSpec[] = [];
-    const playerNationality = findCountryForTeam(this.editableCountries, this.playerTeamId ?? '')?.nationality ?? 'unknown';
+    const playerNationality = countryForTeam(this.world, this.playerTeamId ?? '')?.nationality ?? 'unknown';
     for (const pos of playerOverflow) { overflow.push({ position: pos, nationality: playerNationality }); }
 
-    const churnedTeamIds: string[] = [];
-    this.editableCountries = this.editableCountries.map(country => {
-      if (!this.selectedLeagueIds.includes(country.id)) { return country; }
-      return {
-        ...country,
-        divisions: country.divisions.map(d => ({
-          ...d,
-          teams: d.teams.map(team => {
-            if (team.id === this.playerTeamId) { return team; } // already churned via ClubManager
-            const level = this.facilityForLevel(d.level);
-            const res = churnSquad(team.squad, {
-              rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
-              trainingLevel: level, academyLevel: level,
-            });
-            for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
-            this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, team.squad.length));
-            churnedTeamIds.push(team.id);
-            return { ...team, squad: res.squad };
-          }),
-        })),
-      };
-    });
-    this.pushTeamUpdates(churnedTeamIds);
+    for (const team of this.world.teams.values()) {
+      if (team.id === this.playerTeamId) { continue; } // already churned via ClubManager
+      const division = divisionForTeam(this.world, team.id);
+      const country = countryForTeam(this.world, team.id);
+      if (!division || !country || !this.selectedLeagueIds.includes(country.id)) { continue; }
+      const level = this.facilityForLevel(division.level);
+      const res = churnSquad(team.squad, {
+        rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
+        trainingLevel: level, academyLevel: level,
+      });
+      for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
+      this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, res.squad.length));
+      setTeamSquad(this.world, team.id, res.squad);
+    }
 
     if (this.transferManager) {
       this.transferManager.setFreeAgents(churnFreeAgents(this.transferManager.getFreeAgents(), {
         rng: this.rng, youthFactory: this.youthFactory, overflow,
       }));
-    }
-  }
-
-  /** Push freshly-resolved Teams into the league/cup CompetitionManagers that scheduled them,
-   *  so not-yet-played fixtures see the post-churn/post-market squad rather than a stale copy
-   *  captured at CompetitionManager construction time. */
-  private pushTeamUpdates(teamIds: Iterable<string>): void {
-    for (const teamId of teamIds) {
-      const team = findTeamById(this.editableCountries, teamId);
-      if (!team) { continue; }
-      const division = findDivisionForTeam(this.editableCountries, teamId);
-      if (division) { this.leagueManagers[division.id]?.updateTeam(teamId, team); }
-      const country = findCountryForTeam(this.editableCountries, teamId);
-      if (country) { this.cupManagers[cupCompetitionId(country.id)]?.updateTeam(teamId, team); }
     }
   }
 
@@ -1184,9 +1185,9 @@ export class GameSession {
    * paid, and the selling club backfills the vacated position with an academy prospect.
    */
   bidForPlayer(teamId: string, playerId: string, amount: number): boolean {
-    if (!this.clubManager || !this.playerTeamId || teamId === this.playerTeamId) { return false; }
+    if (!this.clubManager || !this.playerTeamId || !this.world || teamId === this.playerTeamId) { return false; }
     if (!this.getTransferWindow().open) { return false; }
-    const team = findTeamById(this.editableCountries, teamId);
+    const team = teamById(this.world, teamId);
     if (!team) { return false; }
     const target = team.squad.find(p => p.id === playerId);
     if (!target) { return false; }
@@ -1196,13 +1197,11 @@ export class GameSession {
     if (!acceptBid(target, role, amount, this.rng)) { return false; }
     if (!this.clubManager.buyPlayer(target, amount)) { return false; } // budget check
 
-    const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const level = findDivisionForTeam(this.editableCountries, teamId)?.level ?? 3;
+    const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+    const level = divisionForTeam(this.world, teamId)?.level ?? 3;
     const replacement = makeYouth(target.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
-    this.editableCountries = mapTeam(this.editableCountries, teamId, t => ({
-      ...t,
-      squad: [...t.squad.filter(p => p.id !== playerId), replacement],
-    }));
+    removePlayerFromWorld(this.world, playerId);
+    addPlayerToWorld(this.world, replacement, teamId);
 
     this.eventBus?.emit('player.transferred', {
       playerId, playerName: target.name, fromTeamId: teamId, toTeamId: this.playerTeamId, fee: amount,
@@ -1216,41 +1215,25 @@ export class GameSession {
   /**
    * Mimic AI clubs trading the free-agent pool during a window: each (except the manager's) may
    * upgrade its weakest slot from the pool, releasing the cast-off back into it. Writes the reshuffled
-   * squads back into `editableCountries` and the pool back into the transfer manager.
+   * squads back into the world (in place, so scheduled fixtures see them) and the pool back into the
+   * transfer manager.
    */
   private runAiMarketWindow(): void {
-    if (!this.transferManager) { return; }
+    if (!this.transferManager || !this.world) { return; }
     // Flatten every AI team (skip the manager's) into {id, squad}.
     const aiTeams: { id: string; squad: Player[] }[] = [];
-    for (const country of this.editableCountries) {
-      if (!this.selectedLeagueIds.includes(country.id)) { continue; }
-      for (const division of country.divisions) {
-        for (const team of division.teams) {
-          if (team.id === this.playerTeamId) { continue; }
-          aiTeams.push({ id: team.id, squad: team.squad });
-        }
-      }
+    for (const team of this.world.teams.values()) {
+      if (team.id === this.playerTeamId) { continue; }
+      const country = countryForTeam(this.world, team.id);
+      if (!country || !this.selectedLeagueIds.includes(country.id)) { continue; }
+      aiTeams.push({ id: team.id, squad: team.squad });
     }
 
     const targetSizes = Object.fromEntries(this.squadTargets);
     const result = runAiMarket(aiTeams, this.transferManager.getFreeAgents(), { rng: this.rng, targetSizes });
     if (result.moves === 0) { return; }
 
-    const byId = new Map(result.teams.map(t => [t.id, t.squad]));
-    const tradedTeamIds: string[] = [];
-    this.editableCountries = this.editableCountries.map(c => ({
-      ...c,
-      divisions: c.divisions.map(d => ({
-        ...d,
-        teams: d.teams.map(t => {
-          const squad = byId.get(t.id);
-          if (!squad) { return t; }
-          tradedTeamIds.push(t.id);
-          return { ...t, squad };
-        }),
-      })),
-    }));
-    this.pushTeamUpdates(tradedTeamIds);
+    for (const t of result.teams) { setTeamSquad(this.world, t.id, t.squad); }
     this.transferManager.setFreeAgents(result.freeAgents);
   }
 
@@ -1285,18 +1268,16 @@ export class GameSession {
 
     // Otherwise a club player → buy at the asking price; the seller backfills with youth.
     const located = this.findClubPlayer(playerId);
-    if (!located) { return false; }
+    if (!located || !this.world) { return false; }
     const { team, player, isStarter } = located;
     const fee = valuePlayer(player, { role: isStarter ? 'starter' : 'bench' });
     if (!this.clubManager.buyPlayer(player, fee)) { return false; }
 
-    const nationality = findCountryForTeam(this.editableCountries, team.id)?.nationality ?? 'unknown';
-    const level = findDivisionForTeam(this.editableCountries, team.id)?.level ?? 3;
+    const nationality = countryForTeam(this.world, team.id)?.nationality ?? 'unknown';
+    const level = divisionForTeam(this.world, team.id)?.level ?? 3;
     const replacement = makeYouth(player.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
-    this.editableCountries = mapTeam(this.editableCountries, team.id, t => ({
-      ...t,
-      squad: [...t.squad.filter(p => p.id !== playerId), replacement],
-    }));
+    removePlayerFromWorld(this.world, playerId);
+    addPlayerToWorld(this.world, replacement, team.id);
     this.eventBus?.emit('player.transferred', {
       playerId, playerName: player.name, fromTeamId: team.id, toTeamId: this.playerTeamId, fee,
     });
@@ -1308,24 +1289,23 @@ export class GameSession {
 
   /** Locate a player within a selected-league club (excluding the manager's own). */
   private findClubPlayer(playerId: string): { team: Team; player: Player; isStarter: boolean } | null {
-    for (const country of this.editableCountries) {
-      if (!this.selectedLeagueIds.includes(country.id)) { continue; }
-      for (const division of country.divisions) {
-        for (const team of division.teams) {
-          if (team.id === this.playerTeamId) { continue; }
-          const player = team.squad.find(p => p.id === playerId);
-          if (!player) { continue; }
-          const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
-          return { team, player, isStarter };
-        }
-      }
+    if (!this.world) { return null; }
+    for (const team of this.world.teams.values()) {
+      if (team.id === this.playerTeamId) { continue; }
+      const country = countryForTeam(this.world, team.id);
+      if (!country || !this.selectedLeagueIds.includes(country.id)) { continue; }
+      const player = team.squad.find(p => p.id === playerId);
+      if (!player) { continue; }
+      const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
+      return { team, player, isStarter };
     }
     return null;
   }
 
   /** The fee another club would demand for a player (surfaced so the manager can frame a bid). */
   askingPriceFor(teamId: string, playerId: string): number | null {
-    const team = findTeamById(this.editableCountries, teamId);
+    if (!this.world) { return null; }
+    const team = teamById(this.world, teamId);
     if (!team) { return null; }
     const target = team.squad.find(p => p.id === playerId);
     if (!target) { return null; }

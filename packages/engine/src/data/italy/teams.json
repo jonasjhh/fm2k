@@ -1,0 +1,338 @@
+[
+  {
+    "id": "ita-01",
+    "name": "Juventus",
+    "divisionId": "ita-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-02",
+    "name": "AC Milan",
+    "divisionId": "ita-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-03",
+    "name": "Inter Milan",
+    "divisionId": "ita-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-04",
+    "name": "AS Roma",
+    "divisionId": "ita-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFD700"
+  },
+  {
+    "id": "ita-05",
+    "name": "Lazio",
+    "divisionId": "ita-d1",
+    "primaryColor": "#6CABDD",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-06",
+    "name": "Napoli",
+    "divisionId": "ita-d1",
+    "primaryColor": "#6CABDD",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-07",
+    "name": "Fiorentina",
+    "divisionId": "ita-d1",
+    "primaryColor": "#800080",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-08",
+    "name": "Parma",
+    "divisionId": "ita-d1",
+    "primaryColor": "#FFD700",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-09",
+    "name": "Sampdoria",
+    "divisionId": "ita-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-10",
+    "name": "Torino",
+    "divisionId": "ita-d1",
+    "primaryColor": "#8B0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-11",
+    "name": "Atalanta",
+    "divisionId": "ita-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-12",
+    "name": "Bologna",
+    "divisionId": "ita-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-13",
+    "name": "Udinese",
+    "divisionId": "ita-d1",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-14",
+    "name": "Cagliari",
+    "divisionId": "ita-d1",
+    "primaryColor": "#003399",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "ita-15",
+    "name": "Palermo",
+    "divisionId": "ita-d1",
+    "primaryColor": "#FF69B4",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-16",
+    "name": "Genoa",
+    "divisionId": "ita-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-17",
+    "name": "Hellas Verona",
+    "divisionId": "ita-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-18",
+    "name": "Bari",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-19",
+    "name": "Lecce",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "ita-20",
+    "name": "Catania",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-21",
+    "name": "Chievo Verona",
+    "divisionId": "ita-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-22",
+    "name": "Empoli",
+    "divisionId": "ita-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-23",
+    "name": "Sassuolo",
+    "divisionId": "ita-d2",
+    "primaryColor": "#000000",
+    "secondaryColor": "#006633"
+  },
+  {
+    "id": "ita-24",
+    "name": "Venezia",
+    "divisionId": "ita-d2",
+    "primaryColor": "#000000",
+    "secondaryColor": "#006633"
+  },
+  {
+    "id": "ita-25",
+    "name": "Monza",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-26",
+    "name": "Reggina",
+    "divisionId": "ita-d2",
+    "primaryColor": "#FF6600",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-27",
+    "name": "Brescia",
+    "divisionId": "ita-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-28",
+    "name": "Perugia",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-29",
+    "name": "Livorno",
+    "divisionId": "ita-d2",
+    "primaryColor": "#8B0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-30",
+    "name": "Vicenza",
+    "divisionId": "ita-d2",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-31",
+    "name": "Frosinone",
+    "divisionId": "ita-d2",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-32",
+    "name": "Pisa",
+    "divisionId": "ita-d2",
+    "primaryColor": "#000000",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-33",
+    "name": "Modena",
+    "divisionId": "ita-d3",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-34",
+    "name": "Salernitana",
+    "divisionId": "ita-d3",
+    "primaryColor": "#8B0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-35",
+    "name": "Cremonese",
+    "divisionId": "ita-d3",
+    "primaryColor": "#C0C0C0",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "ita-36",
+    "name": "Como",
+    "divisionId": "ita-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-37",
+    "name": "SPAL",
+    "divisionId": "ita-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "ita-38",
+    "name": "Ternana",
+    "divisionId": "ita-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#006633"
+  },
+  {
+    "id": "ita-39",
+    "name": "Padova",
+    "divisionId": "ita-d3",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "ita-40",
+    "name": "Triestina",
+    "divisionId": "ita-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-41",
+    "name": "Avellino",
+    "divisionId": "ita-d3",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-42",
+    "name": "Ascoli",
+    "divisionId": "ita-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-43",
+    "name": "Pescara",
+    "divisionId": "ita-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-44",
+    "name": "Mantova",
+    "divisionId": "ita-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-45",
+    "name": "Catanzaro",
+    "divisionId": "ita-d3",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#CC0000"
+  },
+  {
+    "id": "ita-46",
+    "name": "Cesena",
+    "divisionId": "ita-d3",
+    "primaryColor": "#000000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "ita-47",
+    "name": "Reggiana",
+    "divisionId": "ita-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "ita-48",
+    "name": "Cosenza",
+    "divisionId": "ita-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#003399"
+  }
+]

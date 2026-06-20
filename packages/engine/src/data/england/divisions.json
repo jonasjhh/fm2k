@@ -1,0 +1,17 @@
+[
+  {
+    "id": "eng-d1",
+    "name": "Premier League",
+    "level": 1
+  },
+  {
+    "id": "eng-d2",
+    "name": "Championship",
+    "level": 2
+  },
+  {
+    "id": "eng-d3",
+    "name": "League One",
+    "level": 3
+  }
+]

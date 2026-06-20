@@ -1,0 +1,338 @@
+[
+  {
+    "id": "nor-01",
+    "name": "Aalesund",
+    "divisionId": "nor-d1",
+    "primaryColor": "#FF8300",
+    "secondaryColor": "#0075BF"
+  },
+  {
+    "id": "nor-02",
+    "name": "Brann",
+    "divisionId": "nor-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-03",
+    "name": "Bodø/Glimt",
+    "divisionId": "nor-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-04",
+    "name": "Fredrikstad",
+    "divisionId": "nor-d1",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-05",
+    "name": "HamKam",
+    "divisionId": "nor-d1",
+    "primaryColor": "#006633",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-06",
+    "name": "Lillestrøm",
+    "divisionId": "nor-d1",
+    "primaryColor": "#FFED00",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-07",
+    "name": "Molde",
+    "divisionId": "nor-d1",
+    "primaryColor": "#2173B9",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-08",
+    "name": "Odd",
+    "divisionId": "nor-d1",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-09",
+    "name": "Rosenborg",
+    "divisionId": "nor-d1",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-10",
+    "name": "Sandefjord",
+    "divisionId": "nor-d1",
+    "primaryColor": "#005EB8",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-11",
+    "name": "Sarpsborg 08",
+    "divisionId": "nor-d1",
+    "primaryColor": "#002B59",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-12",
+    "name": "Start",
+    "divisionId": "nor-d1",
+    "primaryColor": "#F3D000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-13",
+    "name": "Strømsgodset",
+    "divisionId": "nor-d1",
+    "primaryColor": "#002145",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-14",
+    "name": "Tromsø",
+    "divisionId": "nor-d1",
+    "primaryColor": "#C40009",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-15",
+    "name": "Viking",
+    "divisionId": "nor-d1",
+    "primaryColor": "#132847",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-16",
+    "name": "Vålerenga",
+    "divisionId": "nor-d1",
+    "primaryColor": "#024DA1",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-17",
+    "name": "Alta",
+    "divisionId": "nor-d2",
+    "primaryColor": "#005AA1",
+    "secondaryColor": "#FFED00"
+  },
+  {
+    "id": "nor-18",
+    "name": "Bryne",
+    "divisionId": "nor-d2",
+    "primaryColor": "#CE3A3A",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-19",
+    "name": "Egersund",
+    "divisionId": "nor-d2",
+    "primaryColor": "#FFDD00",
+    "secondaryColor": "#1D1D1B"
+  },
+  {
+    "id": "nor-20",
+    "name": "Hønefoss",
+    "divisionId": "nor-d2",
+    "primaryColor": "#076B00",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-21",
+    "name": "Jerv",
+    "divisionId": "nor-d2",
+    "primaryColor": "#FFCE00",
+    "secondaryColor": "#005CB9"
+  },
+  {
+    "id": "nor-22",
+    "name": "KFUM Oslo",
+    "divisionId": "nor-d2",
+    "primaryColor": "#D91C23",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-23",
+    "name": "Kongsvinger",
+    "divisionId": "nor-d2",
+    "primaryColor": "#D42027",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-24",
+    "name": "Lyn",
+    "divisionId": "nor-d2",
+    "primaryColor": "#A30013",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-25",
+    "name": "Mjøndalen",
+    "divisionId": "nor-d2",
+    "primaryColor": "#5C1F09",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-26",
+    "name": "Moss",
+    "divisionId": "nor-d2",
+    "primaryColor": "#FFE500",
+    "secondaryColor": "#010101"
+  },
+  {
+    "id": "nor-27",
+    "name": "Ranheim",
+    "divisionId": "nor-d2",
+    "primaryColor": "#213479",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-28",
+    "name": "Raufoss",
+    "divisionId": "nor-d2",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-29",
+    "name": "Sandnes Ulf",
+    "divisionId": "nor-d2",
+    "primaryColor": "#397AAC",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-30",
+    "name": "Sogndal",
+    "divisionId": "nor-d2",
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-31",
+    "name": "Stabæk",
+    "divisionId": "nor-d2",
+    "primaryColor": "#1660C9",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-32",
+    "name": "Åsane",
+    "divisionId": "nor-d2",
+    "primaryColor": "#F44601",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-33",
+    "name": "Arendal",
+    "divisionId": "nor-d3",
+    "primaryColor": "#002D56",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-34",
+    "name": "Brattvåg",
+    "divisionId": "nor-d3",
+    "primaryColor": "#0066FF",
+    "secondaryColor": "#FFEE00"
+  },
+  {
+    "id": "nor-35",
+    "name": "Bærum",
+    "divisionId": "nor-d3",
+    "primaryColor": "#FFE300",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-36",
+    "name": "Flekkerøy",
+    "divisionId": "nor-d3",
+    "primaryColor": "#26358C",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-37",
+    "name": "Florø",
+    "divisionId": "nor-d3",
+    "primaryColor": "#111111",
+    "secondaryColor": "#2F59A0"
+  },
+  {
+    "id": "nor-38",
+    "name": "Gjøvik-Lyn",
+    "divisionId": "nor-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-39",
+    "name": "Grorud",
+    "divisionId": "nor-d3",
+    "primaryColor": "#feec02",
+    "secondaryColor": "#024999"
+  },
+  {
+    "id": "nor-40",
+    "name": "Hødd",
+    "divisionId": "nor-d3",
+    "primaryColor": "#1D4278",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-41",
+    "name": "Kjelsås",
+    "divisionId": "nor-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-42",
+    "name": "Levanger",
+    "divisionId": "nor-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-43",
+    "name": "Nest-Sotra",
+    "divisionId": "nor-d3",
+    "primaryColor": "#317664",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-44",
+    "name": "Notodden",
+    "divisionId": "nor-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFFFFF"
+  },
+  {
+    "id": "nor-45",
+    "name": "Skeid",
+    "divisionId": "nor-d3",
+    "primaryColor": "#FF3300",
+    "secondaryColor": "#003399"
+  },
+  {
+    "id": "nor-46",
+    "name": "Stjørdals-Blink",
+    "divisionId": "nor-d3",
+    "primaryColor": "#CC0000",
+    "secondaryColor": "#000000"
+  },
+  {
+    "id": "nor-47",
+    "name": "Tromsdalen",
+    "divisionId": "nor-d3",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FF3300"
+  },
+  {
+    "id": "nor-48",
+    "name": "Ull/Kisa",
+    "divisionId": "nor-d3",
+    "primaryColor": "#FCD434",
+    "secondaryColor": "#025C3A"
+  }
+]

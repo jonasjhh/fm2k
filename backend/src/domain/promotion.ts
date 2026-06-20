@@ -1,6 +1,5 @@
 import { computeLadderMovements, type LadderDivision } from '@fm2k/engine';
-import type { Team } from '@fm2k/engine';
-import type { EditableCountry } from './editable-country.ts';
+import { divisionsInCountry, moveTeamToDivision, type World } from './world.ts';
 import { qualifierCompetitionId } from '../app/config.ts';
 
 /** Teams swapped at each adjacent-division boundary (bottom-N ⇄ top-N). */
@@ -16,13 +15,15 @@ export interface QualifierResult {
 }
 
 /**
- * Apply end-of-season promotion/relegation to each country's division ladder.
+ * Apply end-of-season promotion/relegation to each country's division ladder, in
+ * place on `world.teamDivision` (squads/players are untouched — only which division
+ * each team belongs to changes).
  *
  * For a country to roll over, every one of its divisions must have final standings in
  * `rankedTeamIdsByDivision` (i.e. it was simulated this season). The bottom
  * `PROMOTION_RELEGATION_SWAP` teams of each division swap places with the top
  * `PROMOTION_RELEGATION_SWAP` teams of the division below it. Countries lacking
- * standings are returned unchanged.
+ * standings are left unchanged.
  *
  * `qualifierResults` (keyed by `qualifierCompetitionId(upperDivisionId, lowerDivisionId)`)
  * additionally moves the challenger up (and the defender down) wherever the lower-division
@@ -30,13 +31,13 @@ export interface QualifierResult {
  * no extra move is needed since both sides are already in their default division.
  */
 export function applyPromotionRelegation(
-  countries: EditableCountry[],
+  world: World,
   rankedTeamIdsByDivision: Record<string, string[]>,
   qualifierResults: Record<string, QualifierResult> = {},
-): EditableCountry[] {
-  return countries.map(country => {
-    const ordered = [...country.divisions].sort((a, b) => a.level - b.level);
-    if (!ordered.every(d => rankedTeamIdsByDivision[d.id])) { return country; }
+): void {
+  for (const country of world.countries.values()) {
+    const ordered = divisionsInCountry(world, country.id);
+    if (!ordered.every(d => rankedTeamIdsByDivision[d.id])) { continue; }
 
     const ladder: LadderDivision[] = ordered.map(d => ({
       id: d.id,
@@ -53,22 +54,9 @@ export function applyPromotionRelegation(
         moves.set(result.upperTeamId, lowerDiv.id);
       }
     }
-    if (moves.size === 0) { return country; }
 
-    const teamById = new Map<string, Team>(
-      country.divisions.flatMap(d => d.teams).map(t => [t.id, t]),
-    );
-
-    return {
-      ...country,
-      divisions: country.divisions.map(d => {
-        const staying = d.teams.filter(t => (moves.get(t.id) ?? d.id) === d.id);
-        const arriving = [...moves]
-          .filter(([, newDivId]) => newDivId === d.id)
-          .map(([teamId]) => teamById.get(teamId))
-          .filter((t): t is Team => t !== undefined);
-        return { ...d, teams: [...staying, ...arriving] };
-      }),
-    };
-  });
+    for (const [teamId, newDivisionId] of moves) {
+      moveTeamToDivision(world, teamId, newDivisionId);
+    }
+  }
 }
