@@ -64,7 +64,12 @@ export function buildWorld(countries: EditableCountry[]): World {
     }
   }
 
-  return { players, teams, teamDivision, divisions, countries: worldCountries };
+  const world: World = { players, teams, teamDivision, divisions, countries: worldCountries };
+  // `players` was populated with spread copies, not the original `team.squad` elements —
+  // resync now so `team.squad` shares references with `world.players` from the start,
+  // the invariant every other mutator in this module relies on.
+  for (const teamId of teams.keys()) { resyncSquad(world, teamId); }
+  return world;
 }
 
 /** Project the World back into the nested `EditableCountry[]` shape the snapshot/
@@ -150,6 +155,26 @@ export function setTeamSquad(world: World, teamId: string, squad: Player[]): voi
   }
   for (const player of squad) { world.players.set(player.id, { ...player, clubId: teamId }); }
   resyncSquad(world, teamId);
+}
+
+/** Patch a team's non-squad fields (name, colors, formation, ...) in place — for squad
+ *  changes use `setTeamSquad`/`addPlayerToWorld`/`removePlayerFromWorld` instead. */
+export function updateTeam(world: World, teamId: string, patch: Partial<Team>): void {
+  const team = world.teams.get(teamId);
+  if (!team) { return; }
+  Object.assign(team, patch);
+}
+
+/** Patch a player's fields (pre-game editor edits, regeneration). Replaces the player
+ *  record — same convention as `addPlayerToWorld`/`setTeamSquad` — and resyncs their
+ *  team's squad so the new reference replaces the old one there too. Doesn't touch
+ *  `clubId`; use `removePlayerFromWorld`/`addPlayerToWorld` to move a player between
+ *  teams. */
+export function updatePlayer(world: World, playerId: string, patch: Partial<Player>): void {
+  const player = world.players.get(playerId);
+  if (!player) { return; }
+  world.players.set(playerId, { ...player, ...patch, clubId: player.clubId });
+  resyncSquad(world, player.clubId);
 }
 
 // ── save/load (flat round-trip) ───────────────────────────────────────────────────

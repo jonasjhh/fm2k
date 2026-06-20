@@ -26,21 +26,6 @@ export function buildEditableCountries(): EditableCountry[] {
   });
 }
 
-/** Return a copy of the hierarchy with `fn` applied to the team matching `teamId`. */
-export function mapTeam(
-  countries: EditableCountry[],
-  teamId: string,
-  fn: (t: Team) => Team,
-): EditableCountry[] {
-  return countries.map(c => ({
-    ...c,
-    divisions: c.divisions.map(d => ({
-      ...d,
-      teams: d.teams.map(t => t.id === teamId ? fn(t) : t),
-    })),
-  }));
-}
-
 export function findTeamById(countries: EditableCountry[], teamId: string): Team | null {
   for (const c of countries) {
     for (const d of c.divisions) {

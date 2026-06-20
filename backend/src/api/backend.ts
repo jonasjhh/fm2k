@@ -16,6 +16,9 @@ export interface BackendCommands {
   startNewSeason(): boolean;
   saveGame(type: SaveType, activeTab?: string): Promise<void>;
   loadGame(save: SaveData): boolean;
+  /** Discard the current game (if any) and any pre-game edits, returning to a fresh
+   *  default world — call when the player returns to the main menu. */
+  resetSession(): void;
   // simulation (the game clock)
   advanceToNextStop(): Promise<AdvanceResult>;
   skipToFullTime(): Promise<AdvanceResult>;
@@ -95,6 +98,7 @@ export function createBackend(): Backend {
     startNewSeason: () => s.startNewSeason(),
     saveGame: (type, activeTab) => s.saveGame(type, activeTab),
     loadGame: (save) => s.loadGame(save),
+    resetSession: () => s.resetSession(),
     advanceToNextStop: () => s.advanceToNextStop(),
     skipToFullTime: () => s.skipToFullTime(),
     nextMatch: () => s.nextMatch(),

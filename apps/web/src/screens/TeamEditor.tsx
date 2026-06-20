@@ -115,11 +115,12 @@ export default function TeamEditor() {
   const [, startTransition] = useTransition();
 
   const {
-    setScreen, editableCountries, editingTeamId, setEditingTeamId,
+    setScreen, goToMainMenu, editableCountries, editingTeamId, setEditingTeamId,
     updateTeamName, updatePlayerData, regeneratePlayer, removePlayer,
     addPlayer, generateFullTeam,
   } = useGameStore(useShallow(s => ({
     setScreen: s.setScreen,
+    goToMainMenu: s.goToMainMenu,
     editableCountries: s.editableCountries,
     editingTeamId: s.editingTeamId,
     setEditingTeamId: s.setEditingTeamId,
@@ -154,7 +155,7 @@ export default function TeamEditor() {
   function goBack() {
     if (view === 'team-editor') { setEditingTeamId(null); }
     else if (view === 'teams') { setSelectedCountry(null); }
-    else { setScreen('main-menu'); }
+    else { goToMainMenu(); }
   }
 
   const view = editingTeamId ? 'team-editor' : selectedCountry ? 'teams' : 'nations';

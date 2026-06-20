@@ -28,8 +28,9 @@ export default function TeamSelection() {
   const [selectedLeagueIds, setSelectedLeagueIds] = useState<Set<string>>(new Set());
   const [selectedNation, setSelectedNation] = useState<EditableCountry | null>(null);
 
-  const { setScreen, editableCountries, startGame } = useGameStore(useShallow(s => ({
+  const { setScreen, goToMainMenu, editableCountries, startGame } = useGameStore(useShallow(s => ({
     setScreen: s.setScreen,
+    goToMainMenu: s.goToMainMenu,
     editableCountries: s.editableCountries,
     startGame: s.startGame,
   })));
@@ -43,7 +44,7 @@ export default function TeamSelection() {
   }
 
   function goBack() {
-    if (step === 'leagues') { setScreen('main-menu'); }
+    if (step === 'leagues') { goToMainMenu(); }
     else if (step === 'nation') { setStep('leagues'); setSelectedNation(null); }
     else { setStep('nation'); }
   }

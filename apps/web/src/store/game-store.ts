@@ -95,6 +95,9 @@ interface GameStore {
   // navigation
   setScreen: (s: Screen) => void;
   setActiveTab: (t: TabId) => void;
+  /** Return to the main menu, discarding the current game (if any) and any pre-game
+   *  edits — the menu always implies fresh default data. */
+  goToMainMenu: () => void;
 
   // editor
   setEditingTeamId: (id: string | null) => void;
@@ -228,6 +231,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     // ── navigation ────────────────────────────────────────────────────────────
     setScreen: (screen) => set({ screen }),
     setActiveTab: (activeTab) => set({ activeTab }),
+    goToMainMenu: () => {
+      backend.commands.resetSession();
+      set({ screen: 'main-menu' });
+      refresh();
+    },
 
     // ── editor ──────────────────────────────────────────────────────────────────
     setEditingTeamId: (id) => set({ editingTeamId: id }),

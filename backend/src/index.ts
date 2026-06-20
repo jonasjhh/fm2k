@@ -7,7 +7,7 @@ export type { SaveType, SaveCompatibility, SaveData } from './data/save-data.ts'
 
 // Domain view-models + helpers
 export {
-  buildEditableCountries, mapTeam,
+  buildEditableCountries,
   findTeamById, findDivisionForTeam, findCountryForTeam,
 } from './domain/editable-country.ts';
 export type { EditableCountry, EditableDivision } from './domain/editable-country.ts';

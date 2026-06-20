@@ -1,6 +1,5 @@
 import {
   buildEditableCountries,
-  mapTeam,
   findTeamById,
   findDivisionForTeam,
   findCountryForTeam,
@@ -58,29 +57,6 @@ describe('editable-country:', () => {
     test('given an unknown team id then returns null', () => {
       const countries = buildEditableCountries();
       expect(findCountryForTeam(countries, 'no-such-team')).toBeNull();
-    });
-  });
-
-  describe('mapTeam', () => {
-    test('applies the function only to the matching team and leaves others untouched', () => {
-      const countries = buildEditableCountries();
-      const target = countries[0].divisions[0].teams[0];
-      const other = countries[0].divisions[0].teams[1];
-
-      const result = mapTeam(countries, target.id, t => ({ ...t, name: 'RENAMED' }));
-
-      expect(findTeamById(result, target.id)?.name).toBe('RENAMED');
-      expect(findTeamById(result, other.id)?.name).toBe(other.name); // unchanged
-    });
-
-    test('returns a new hierarchy without mutating the original', () => {
-      const countries = buildEditableCountries();
-      const target = countries[0].divisions[0].teams[0];
-      const originalName = target.name;
-
-      mapTeam(countries, target.id, t => ({ ...t, name: 'RENAMED' }));
-
-      expect(countries[0].divisions[0].teams[0].name).toBe(originalName);
     });
   });
 });

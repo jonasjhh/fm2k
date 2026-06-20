@@ -18,12 +18,12 @@ import { sfx } from '../utils/formatting';
 import { leagueRowBg, useStatusColors } from '../utils/colors';
 
 export default function SeasonEndModal() {
-  const { seasonComplete, leagueState, playerTeamId, editableCountries, setScreen, startNewSeason } = useGameStore(useShallow((s) => ({
+  const { seasonComplete, leagueState, playerTeamId, editableCountries, goToMainMenu, startNewSeason } = useGameStore(useShallow((s) => ({
     seasonComplete: s.seasonComplete,
     leagueState: s.leagueState,
     playerTeamId: s.playerTeamId,
     editableCountries: s.editableCountries,
-    setScreen: s.setScreen,
+    goToMainMenu: s.goToMainMenu,
     startNewSeason: s.startNewSeason,
   })));
 
@@ -113,7 +113,7 @@ export default function SeasonEndModal() {
         </Table>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button variant="outlined" onClick={() => setScreen('main-menu')}>
+        <Button variant="outlined" onClick={() => goToMainMenu()}>
           Main Menu
         </Button>
         <Button variant="contained" onClick={startNewSeason}>

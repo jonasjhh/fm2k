@@ -13,12 +13,13 @@ import type {
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
 } from '@fm2k/engine';
-import { buildEditableCountries, mapTeam, findCountryForTeam } from '../domain/editable-country.ts';
+import { buildEditableCountries } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
 import {
   buildWorld, worldToEditableCountries, teamById, divisionForTeam, countryForTeam,
   teamsInDivision, teamsInCountry, divisionsInCountry,
-  removePlayerFromWorld, addPlayerToWorld, setTeamSquad, worldToFlat, worldFromFlat,
+  removePlayerFromWorld, addPlayerToWorld, setTeamSquad, updateTeam, updatePlayer,
+  worldToFlat, worldFromFlat,
 } from '../domain/world.ts';
 import type { World, WorldDivision } from '../domain/world.ts';
 import { applyPromotionRelegation } from '../domain/promotion.ts';
@@ -124,43 +125,42 @@ export class GameSession {
   private readonly rng: () => number;
   private readonly playerGenerator: PlayerGenerator;
   private readonly youthFactory: YouthFactory;
-  private seasons: Record<string, Season> = {};
-  private leagueManagers: Record<string, CompetitionManager> = {};
-  private cupManagers: Record<string, CompetitionManager> = {};
+  private seasons!: Record<string, Season>;
+  private leagueManagers!: Record<string, CompetitionManager>;
+  private cupManagers!: Record<string, CompetitionManager>;
   /** Promotion/relegation playoffs, keyed by boundary id — created mid-season once both
    *  adjacent divisions finish their regular season (see `scheduleQualifiersIfNeeded`). */
-  private qualifierManagers: Record<string, CompetitionManager> = {};
+  private qualifierManagers!: Record<string, CompetitionManager>;
   /** Boundary ids already scheduled this season, so `scheduleQualifiersIfNeeded` is idempotent. */
-  private scheduledQualifierBoundaries: Set<string> = new Set();
-  private leagueManager: CompetitionManager | null = null;
-  private playerCupManager: CompetitionManager | null = null;
-  private clubManager: ClubManager | null = null;
-  private transferManager: TransferManager | null = null;
-  private eventBus: EventBus<GameEvents> | null = null;
-  private eventBusCleanup: (() => void) | null = null;
+  private scheduledQualifierBoundaries!: Set<string>;
+  private leagueManager!: CompetitionManager | null;
+  private playerCupManager!: CompetitionManager | null;
+  private clubManager!: ClubManager | null;
+  private transferManager!: TransferManager | null;
+  private eventBus!: EventBus<GameEvents> | null;
+  private eventBusCleanup!: (() => void) | null;
 
-  private playerTeamId: string | null = null;
-  private selectedLeagueIds: string[] = [];
-  private currentMatchday = 0;
-  private seasonComplete = false;
-  private now: GameDateTime = SEASON_START;
-  private focusFixtureId: string | null = null;
-  private lastMatchResult: LastMatchResult | null = null;
-  private lastMatchInsight: MatchInsight | null = null;
-  private notifications: GameNotification[] = [];
-  private nextNotificationId = 1;
+  private playerTeamId!: string | null;
+  private selectedLeagueIds!: string[];
+  private currentMatchday!: number;
+  private seasonComplete!: boolean;
+  private now!: GameDateTime;
+  private focusFixtureId!: string | null;
+  private lastMatchResult!: LastMatchResult | null;
+  private lastMatchInsight!: MatchInsight | null;
+  private notifications!: GameNotification[];
+  private nextNotificationId!: number;
   /** Per-team squad sizes AI clubs refill toward during windows (captured pre-churn). */
-  private squadTargets = new Map<string, number>();
+  private squadTargets!: Map<string, number>;
   /** The player's live Team object inside the divisions (same reference the sim uses). */
-  private playerTeam: Team | null = null;
-  /** Pre-game team-editor state only (`TeamEditor.tsx`) — read/written by
-   *  `getEditableCountries`/`setEditableCountries`/the `editTeam` family below. Once a
-   *  game starts, `this.world` is the live source of truth and this goes stale/unused;
-   *  `snapshot()` switches over accordingly. */
-  private editableCountries: EditableCountry[] = buildEditableCountries();
-  /** The live, flat, mutable game world — built once a game starts (`buildManagers`)
-   *  and mutated in place from then on (signings, churn, promotion/relegation). */
-  private world: World | null = null;
+  private playerTeam!: Team | null;
+  /** The live, flat, mutable game world. Exists for the whole session lifetime — built
+   *  fresh from static defaults at construction and on `resetSession()`, mutated in
+   *  place by the pre-game editor before a game starts and by signings/churn/
+   *  promotion-relegation once one is running. There's deliberately no separate
+   *  pre-game data model: `snapshot()`/`getEditableCountries()` always project
+   *  whatever `this.world` currently holds. */
+  private world!: World;
   private readonly listeners = new Set<() => void>();
 
   /** `rng` is injectable so generated players (position + attributes) are deterministic in tests. */
@@ -168,6 +168,47 @@ export class GameSession {
     this.rng = rng;
     this.playerGenerator = new PlayerGenerator('female', 'all', rng);
     this.youthFactory = generatorYouthFactory(rng);
+    this.resetState();
+  }
+
+  /** Reset every piece of session state — including a fresh `World` built from static
+   *  defaults — back to a just-constructed game's defaults. Used by the constructor and
+   *  by `resetSession()` (returning to the main menu), so both stay in lockstep. */
+  private resetState(): void {
+    this.eventBusCleanup?.();
+    this.seasons = {};
+    this.leagueManagers = {};
+    this.cupManagers = {};
+    this.qualifierManagers = {};
+    this.scheduledQualifierBoundaries = new Set();
+    this.leagueManager = null;
+    this.playerCupManager = null;
+    this.clubManager = null;
+    this.transferManager = null;
+    this.eventBus = null;
+    this.eventBusCleanup = null;
+    this.playerTeamId = null;
+    this.selectedLeagueIds = [];
+    this.currentMatchday = 0;
+    this.seasonComplete = false;
+    this.now = SEASON_START;
+    this.focusFixtureId = null;
+    this.lastMatchResult = null;
+    this.lastMatchInsight = null;
+    this.notifications = [];
+    this.nextNotificationId = 1;
+    this.squadTargets = new Map();
+    this.playerTeam = null;
+    this.world = buildWorld(buildEditableCountries());
+  }
+
+  /** Discard the current game (if any) and any pre-game edits, returning to a fresh
+   *  default world — call when the player returns to the main menu, so re-entering the
+   *  team editor or starting a new game always begins from clean defaults rather than
+   *  whatever the last game left behind (e.g. post-season promotion/relegation). */
+  resetSession(): void {
+    this.resetState();
+    this.notify();
   }
 
   /** AI clubs have no facility levels; approximate them from division tier (top tier = best). */
@@ -217,7 +258,7 @@ export class GameSession {
     return {
       playerTeamId: this.playerTeamId,
       selectedLeagueIds: this.selectedLeagueIds,
-      editableCountries: this.world ? worldToEditableCountries(this.world) : this.editableCountries,
+      editableCountries: worldToEditableCountries(this.world),
       currentMatchday: this.currentMatchday,
       seasonComplete: this.seasonComplete,
       now: this.now,
@@ -405,7 +446,6 @@ export class GameSession {
    *  one week after the last matchday). Idempotent per boundary per season — relies on
    *  `this.now` already sitting at the moment the regular season just finished. */
   private scheduleQualifiersIfNeeded(): void {
-    if (!this.world) { return; }
     for (const country of this.world.countries.values()) {
       if (!this.selectedLeagueIds.includes(country.id)) { continue; }
       const ordered = divisionsInCountry(this.world, country.id);
@@ -501,16 +541,14 @@ export class GameSession {
    *  `loadState()`. Season rollovers use `startNewSeason()`'s own independent body instead —
    *  see its doc comment for why this fresh-defaults construction is wrong for that case. */
   private buildManagers(
-    editableCountries: EditableCountry[],
     teamId: string,
     leagueIds: string[],
     playerIntent?: TeamTacticsIntent,
   ): BuildManagersResult {
-    const world = buildWorld(editableCountries);
+    const world = this.world;
     const team = teamById(world, teamId);
     const division = divisionForTeam(world, teamId);
     if (!team || !division) { return { ok: false, reason: `unknown team or division for teamId "${teamId}"` }; }
-    this.world = world;
 
     // Resolve tactical parameters onto every team's live object BEFORE the
     // competition managers (which capture these references when scheduling the
@@ -575,7 +613,7 @@ export class GameSession {
   // ── lifecycle ───────────────────────────────────────────────────────────────
 
   startGame(teamId: string, leagueIds: string[], playerIntent?: TeamTacticsIntent): boolean {
-    if (!this.buildManagers(this.editableCountries, teamId, leagueIds, playerIntent).ok) { return false; }
+    if (!this.buildManagers(teamId, leagueIds, playerIntent).ok) { return false; }
     this.qualifierManagers = {};
     this.scheduledQualifierBoundaries = new Set();
     this.playerTeamId = teamId;
@@ -599,7 +637,7 @@ export class GameSession {
    * pool is sourced from the previous season's churn, never a fresh random seed.
    */
   startNewSeason(): boolean {
-    if (!this.playerTeamId || !this.clubManager || !this.transferManager || !this.world) { return false; }
+    if (!this.playerTeamId || !this.clubManager || !this.transferManager) { return false; }
     const teamId = this.playerTeamId;
     const ranked: Record<string, string[]> = {};
     for (const [divId, lm] of Object.entries(this.leagueManagers)) {
@@ -690,7 +728,7 @@ export class GameSession {
 
   buildSaveData(type: SaveType, activeTab = 'squad'): SaveData | null {
     const snap = this.snapshot();
-    if (!this.playerTeamId || !snap.leagueState || !snap.clubState || !this.world) { return null; }
+    if (!this.playerTeamId || !snap.leagueState || !snap.clubState) { return null; }
     const keep = new Set(this.selectedLeagueIds);
     const playerCountry = countryForTeam(this.world, this.playerTeamId);
     if (playerCountry) { keep.add(playerCountry.id); }
@@ -728,29 +766,30 @@ export class GameSession {
 
   loadGame(save: SaveData): boolean {
     // Merge the saved (partial) world with fresh defaults so every league is available,
-    // even ones the save didn't include.
+    // even ones the save didn't include. Must merge against FRESH defaults, not
+    // whatever `this.world` currently holds (e.g. pre-game edits) — same care as
+    // `resetState()` takes.
     const freshWorld = buildWorld(buildEditableCountries());
     const savedCountryIds = new Set<string>(save.countries.map(c => c.id));
     const missingCountryIds = [...freshWorld.countries.keys()].filter(id => !savedCountryIds.has(id));
     const freshOnly = worldToFlat(freshWorld, missingCountryIds);
-    const mergedWorld = worldFromFlat({
+    this.world = worldFromFlat({
       players: [...save.players, ...freshOnly.players],
       teams: [...save.teams, ...freshOnly.teams],
       teamDivision: { ...save.teamDivision, ...freshOnly.teamDivision },
       divisions: [...save.divisions, ...freshOnly.divisions],
       countries: [...save.countries, ...freshOnly.countries],
     });
-    const mergedCountries = worldToEditableCountries(mergedWorld);
     const leagueIds = save.selectedLeagueIds
-      ?? [countryForTeam(mergedWorld, save.playerTeamId)?.id].filter(Boolean) as string[];
+      ?? [countryForTeam(this.world, save.playerTeamId)?.id].filter(Boolean) as string[];
 
     const savedTactics = save.clubState.tactics ?? defaultIntent(save.clubState.formation);
-    const built = this.buildManagers(mergedCountries, save.playerTeamId, leagueIds, savedTactics);
+    const built = this.buildManagers(save.playerTeamId, leagueIds, savedTactics);
     if (!built.ok) { return false; }
 
     built.leagueManager.loadState(save.leagueState);
     if (save.leagueStates) {
-      const playerDivId = this.world ? divisionForTeam(this.world, save.playerTeamId)?.id : undefined;
+      const playerDivId = divisionForTeam(this.world, save.playerTeamId)?.id;
       for (const [id, state] of Object.entries(save.leagueStates)) {
         if (id !== playerDivId && this.leagueManagers[id]) {
           this.leagueManagers[id].loadState(state);
@@ -779,7 +818,6 @@ export class GameSession {
     };
     built.transferManager.loadState(transferState);
 
-    this.editableCountries = mergedCountries;
     this.playerTeamId = save.playerTeamId;
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = save.currentMatchday;
@@ -921,7 +959,7 @@ export class GameSession {
 
   /** Write the player's (developed/churned) squad back into its Team so a rollover doesn't lose it. */
   private reconcilePlayerSquad(): void {
-    if (!this.clubManager || !this.playerTeamId || !this.world) { return; }
+    if (!this.clubManager || !this.playerTeamId) { return; }
     const cs = this.clubManager.getState();
     setTeamSquad(this.world, this.playerTeamId, cs.squad);
   }
@@ -934,7 +972,6 @@ export class GameSession {
    * same `Team` reference) see the post-churn squad with no separate push step needed.
    */
   private churnWorld(playerOverflow: PlayerPosition[]): void {
-    if (!this.world) { return; }
     const overflow: OverflowSpec[] = [];
     const playerNationality = countryForTeam(this.world, this.playerTeamId ?? '')?.nationality ?? 'unknown';
     for (const pos of playerOverflow) { overflow.push({ position: pos, nationality: playerNationality }); }
@@ -1185,7 +1222,7 @@ export class GameSession {
    * paid, and the selling club backfills the vacated position with an academy prospect.
    */
   bidForPlayer(teamId: string, playerId: string, amount: number): boolean {
-    if (!this.clubManager || !this.playerTeamId || !this.world || teamId === this.playerTeamId) { return false; }
+    if (!this.clubManager || !this.playerTeamId || teamId === this.playerTeamId) { return false; }
     if (!this.getTransferWindow().open) { return false; }
     const team = teamById(this.world, teamId);
     if (!team) { return false; }
@@ -1219,7 +1256,7 @@ export class GameSession {
    * transfer manager.
    */
   private runAiMarketWindow(): void {
-    if (!this.transferManager || !this.world) { return; }
+    if (!this.transferManager) { return; }
     // Flatten every AI team (skip the manager's) into {id, squad}.
     const aiTeams: { id: string; squad: Player[] }[] = [];
     for (const team of this.world.teams.values()) {
@@ -1268,7 +1305,7 @@ export class GameSession {
 
     // Otherwise a club player → buy at the asking price; the seller backfills with youth.
     const located = this.findClubPlayer(playerId);
-    if (!located || !this.world) { return false; }
+    if (!located) { return false; }
     const { team, player, isStarter } = located;
     const fee = valuePlayer(player, { role: isStarter ? 'starter' : 'bench' });
     if (!this.clubManager.buyPlayer(player, fee)) { return false; }
@@ -1289,7 +1326,6 @@ export class GameSession {
 
   /** Locate a player within a selected-league club (excluding the manager's own). */
   private findClubPlayer(playerId: string): { team: Team; player: Player; isStarter: boolean } | null {
-    if (!this.world) { return null; }
     for (const team of this.world.teams.values()) {
       if (team.id === this.playerTeamId) { continue; }
       const country = countryForTeam(this.world, team.id);
@@ -1304,7 +1340,6 @@ export class GameSession {
 
   /** The fee another club would demand for a player (surfaced so the manager can frame a bid). */
   askingPriceFor(teamId: string, playerId: string): number | null {
-    if (!this.world) { return null; }
     const team = teamById(this.world, teamId);
     if (!team) { return null; }
     const target = team.squad.find(p => p.id === playerId);
@@ -1336,21 +1371,18 @@ export class GameSession {
     return ok;
   }
 
-  // ── pre-game team editor (operates on editableCountries) ────────────────────
+  // ── pre-game team editor (operates on the live World) ───────────────────────
+  // There's no separate pre-game data model: every method here mutates `this.world`
+  // directly (the same World a started game runs on) and returns a fresh
+  // `worldToEditableCountries()` projection — the nested shape `TeamEditor.tsx` expects.
 
   getEditableCountries(): EditableCountry[] {
-    return this.editableCountries;
+    return worldToEditableCountries(this.world);
   }
 
   setEditableCountries(countries: EditableCountry[]): void {
-    this.editableCountries = countries;
+    this.world = buildWorld(countries);
     this.notify();
-  }
-
-  private editTeam(teamId: string, fn: (t: Team) => Team): EditableCountry[] {
-    this.editableCountries = mapTeam(this.editableCountries, teamId, fn);
-    this.notify();
-    return this.editableCountries;
   }
 
   private makePlayer(position: PlayerPosition, quality: number, nationality: string): Player {
@@ -1358,60 +1390,75 @@ export class GameSession {
   }
 
   updateTeamName(teamId: string, name: string): EditableCountry[] {
-    return this.editTeam(teamId, t => ({ ...t, name: name.trim() || t.name }));
+    const team = teamById(this.world, teamId);
+    if (team) { updateTeam(this.world, teamId, { name: name.trim() || team.name }); }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   updateTeamColors(teamId: string, colors: TeamColors): EditableCountry[] {
-    return this.editTeam(teamId, t => ({ ...t, colors }));
+    updateTeam(this.world, teamId, { colors });
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   updateTeamFormation(teamId: string, formation: Formation): EditableCountry[] {
-    return this.editTeam(teamId, t => ({ ...t, formation }));
+    updateTeam(this.world, teamId, { formation });
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   updatePlayerData(teamId: string, playerId: string, data: Partial<Player>): EditableCountry[] {
-    return this.editTeam(teamId, t => ({
-      ...t,
-      squad: t.squad.map(p => p.id === playerId ? { ...p, ...data } : p),
-    }));
+    const player = this.world.players.get(playerId);
+    if (player && player.clubId === teamId) { updatePlayer(this.world, playerId, data); }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   regeneratePlayer(teamId: string, playerId: string): EditableCountry[] {
-    return this.editTeam(teamId, t => ({
-      ...t,
-      squad: t.squad.map(p => {
-        if (p.id !== playerId) { return p; }
-        const q = Math.round(calculateOverall(p.attributes));
-        const gen = this.playerGenerator.generatePlayer(p.position, { overall: q });
-        return { ...p, name: gen.name, attributes: gen.attributes };
-      }),
-    }));
+    const player = this.world.players.get(playerId);
+    if (player && player.clubId === teamId) {
+      const q = Math.round(calculateOverall(player.attributes));
+      const gen = this.playerGenerator.generatePlayer(player.position, { overall: q });
+      updatePlayer(this.world, playerId, { name: gen.name, attributes: gen.attributes });
+    }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   removePlayer(teamId: string, playerId: string): EditableCountry[] {
-    return this.editTeam(teamId, t => ({
-      ...t,
-      squad: t.squad.filter(p => p.id !== playerId),
-    }));
+    const player = this.world.players.get(playerId);
+    if (player && player.clubId === teamId) { removePlayerFromWorld(this.world, playerId); }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   addGeneratedPlayer(teamId: string): EditableCountry[] {
-    const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
-    const newPlayer = this.makePlayer(pos, 70, nationality);
-    return this.editTeam(teamId, t => ({ ...t, squad: [...t.squad, newPlayer] }));
+    if (teamById(this.world, teamId)) {
+      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+      const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
+      addPlayerToWorld(this.world, this.makePlayer(pos, 70, nationality), teamId);
+    }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   addPlayer(teamId: string, player: Omit<Player, 'id'>): EditableCountry[] {
-    return this.editTeam(teamId, t => ({ ...t, squad: [...t.squad, { ...player, id: uuidv4() }] }));
+    if (teamById(this.world, teamId)) { addPlayerToWorld(this.world, { ...player, id: uuidv4() }, teamId); }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 
   generateFullTeam(teamId: string): EditableCountry[] {
-    const nationality = findCountryForTeam(this.editableCountries, teamId)?.nationality ?? 'unknown';
-    const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as PlayerPosition[])
-      .map(pos => this.makePlayer(pos, 70, nationality));
-    const bench = (['GK', 'CB', 'CM', 'ST'] as PlayerPosition[])
-      .map(pos => this.makePlayer(pos, 60, nationality));
-    return this.editTeam(teamId, t => ({ ...t, squad: [...starters, ...bench] }));
+    if (teamById(this.world, teamId)) {
+      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+      const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as PlayerPosition[])
+        .map(pos => this.makePlayer(pos, 70, nationality));
+      const bench = (['GK', 'CB', 'CM', 'ST'] as PlayerPosition[])
+        .map(pos => this.makePlayer(pos, 60, nationality));
+      setTeamSquad(this.world, teamId, [...starters, ...bench]);
+    }
+    this.notify();
+    return worldToEditableCountries(this.world);
   }
 }

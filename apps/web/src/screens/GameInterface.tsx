@@ -40,10 +40,10 @@ const TABS: { id: TabId; label: string }[] = [
 import { useClubColors } from '../hooks/useClubColors';
 
 export default function GameInterface() {
-  const { activeTab, setActiveTab, setScreen, saveGame, clubState } = useGameStore(useShallow((s) => ({
+  const { activeTab, setActiveTab, goToMainMenu, saveGame, clubState } = useGameStore(useShallow((s) => ({
     activeTab: s.activeTab,
     setActiveTab: s.setActiveTab,
-    setScreen: s.setScreen,
+    goToMainMenu: s.goToMainMenu,
     saveGame: s.saveGame,
     clubState: s.clubState,
   })));
@@ -99,7 +99,7 @@ export default function GameInterface() {
           </IconButton>
           <Button
             size="small"
-            onClick={async () => { await saveGame('AUTO'); setScreen('main-menu'); }}
+            onClick={async () => { await saveGame('AUTO'); goToMainMenu(); }}
             sx={{
               color: 'inherit',
               borderColor: `${textColor}40`,
