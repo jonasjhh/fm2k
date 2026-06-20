@@ -26,3 +26,7 @@ export const CUP_ROUND_NAMES = [
 
 /** Competition id for a nation's cup, derived from its country id. */
 export const cupCompetitionId = (countryId: string): string => `${countryId}-cup`;
+
+/** Competition id for the promotion/relegation qualifier between two adjacent divisions. */
+export const qualifierCompetitionId = (upperDivisionId: string, lowerDivisionId: string): string =>
+  `${upperDivisionId}-vs-${lowerDivisionId}-qualifier`;

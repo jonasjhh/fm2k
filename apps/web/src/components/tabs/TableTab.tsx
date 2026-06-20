@@ -148,6 +148,12 @@ export default function TableTab() {
         {isLive && <Chip size="small" color="success" label="● LIVE — provisional" sx={{ fontWeight: 700 }} />}
         {!hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.champion }} label="Champion" />}
         {hasDivisionAbove && <Chip size="small" sx={{ bgcolor: statusColors.promotion }} label="Promotion" />}
+        {hasDivisionAbove && (
+          <Chip size="small" sx={{ bgcolor: statusColors.promotionQualifier }} label="Qualifier" />
+        )}
+        {hasDivisionBelow && (
+          <Chip size="small" sx={{ bgcolor: statusColors.relegationQualifier }} label="Qualifier" />
+        )}
         {hasDivisionBelow && <Chip size="small" sx={{ bgcolor: statusColors.relegation }} label="Relegation" />}
         <Chip size="small" sx={{ bgcolor: statusColors.playerTeam }} label="Your club" />
       </Box>

@@ -298,6 +298,14 @@ export class ClubManager {
     });
   }
 
+  /** Credit end-of-season prize money (league placement or cup run) to the budget. */
+  recordPrizeMoney(type: 'league_prize' | 'cup_prize', amount: number, description: string, timestamp: GameDateTime): void {
+    this.stateManager.updateState(state => {
+      state.budget += amount;
+      state.financialLog.push({ type, amount, description, timestamp });
+    });
+  }
+
   private processMatchResult(payload: GameEvents['match.completed']): void {
     const clubId = this.stateManager.getState().clubId;
     const isOurMatch = payload.homeTeamId === clubId || payload.awayTeamId === clubId;

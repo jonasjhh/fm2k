@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Select from '@mui/material/Select';
@@ -8,6 +8,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
 import Typography from '@mui/material/Typography';
 import {
   calculateOverall, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
@@ -17,11 +18,47 @@ import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/game-store';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
+import PlayerDetailModal from '../ui/PlayerDetailModal';
 
 const ATTR_SHORT: Record<keyof PlayerAttributes, string> = {
   speed: 'SPD', strength: 'STR', agility: 'AGI', passing: 'PAS', finishing: 'FIN',
   technique: 'TEC', defending: 'DEF', stamina: 'STA', awareness: 'AWA', composure: 'COM',
 };
+
+// ─── sorting ──────────────────────────────────────────────────────────────────
+
+type SortCol = 'position' | 'name' | 'age' | 'overall' | 'training' | 'development';
+type SortDir = 'asc' | 'desc';
+
+const POSITION_ORDER: Record<string, number> = {
+  GK: 0, LB: 1, CB: 2, RB: 3, LM: 4, CM: 5, RM: 6, LW: 7, RW: 8, ST: 9,
+};
+
+function netDelta(delta: PlayerDelta | undefined): number {
+  if (!delta) { return 0; }
+  return Object.values(delta.deltas).reduce((sum, d) => sum + d, 0);
+}
+
+function sortSquad(
+  squad: ClubPlayer[],
+  col: SortCol,
+  dir: SortDir,
+  deltaByPlayerId: Map<string, PlayerDelta>,
+): ClubPlayer[] {
+  return [...squad].sort((a, b) => {
+    let cmp = 0;
+    if (col === 'position') { cmp = (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99); }
+    else if (col === 'name') { cmp = a.name.localeCompare(b.name); }
+    else if (col === 'age') { cmp = a.age - b.age; }
+    else if (col === 'overall') { cmp = calculateOverall(a.attributes) - calculateOverall(b.attributes); }
+    else if (col === 'training') {
+      cmp = REGIMENT_LABELS[a.training ?? DEFAULT_REGIMENT].localeCompare(REGIMENT_LABELS[b.training ?? DEFAULT_REGIMENT]);
+    } else if (col === 'development') {
+      cmp = netDelta(deltaByPlayerId.get(a.id)) - netDelta(deltaByPlayerId.get(b.id));
+    }
+    return dir === 'asc' ? cmp : -cmp;
+  });
+}
 
 function DevelopmentCell({ delta }: { delta: PlayerDelta | undefined }) {
   if (!delta || Object.keys(delta.deltas).length === 0) {
@@ -48,6 +85,9 @@ export default function TrainingTab() {
     setTraining: s.setTraining,
   })));
 
+  const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
+  const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'position', dir: 'asc' });
+
   const deltaByPlayerId = useMemo(
     () => new Map((clubState?.recentDevelopment ?? []).map(d => [d.playerId, d])),
     [clubState],
@@ -62,9 +102,24 @@ export default function TrainingTab() {
     return counts;
   }, [clubState]);
 
+  const sorted = useMemo(
+    () => clubState ? sortSquad(clubState.squad, sort.col, sort.dir, deltaByPlayerId) : [],
+    [clubState, sort, deltaByPlayerId],
+  );
+
   if (!clubState) { return null; }
 
-  const squad: ClubPlayer[] = clubState.squad;
+  function handleSort(col: SortCol) {
+    setSort((s) => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
+  }
+
+  function sortLabel(col: SortCol, label: string) {
+    return (
+      <TableSortLabel active={sort.col === col} direction={sort.col === col ? sort.dir : 'asc'} onClick={() => handleSort(col)}>
+        {label}
+      </TableSortLabel>
+    );
+  }
 
   return (
     <Box>
@@ -84,22 +139,34 @@ export default function TrainingTab() {
       <ScrollableTable>
         <TableHead>
           <TableRow>
-            <TableCell align="center">Pos</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell align="center">Age</TableCell>
-            <TableCell align="center">OVR</TableCell>
-            <TableCell sx={{ minWidth: 160 }}>Training focus</TableCell>
-            <TableCell sx={{ minWidth: 200 }}>Recent development</TableCell>
+            <TableCell align="center" sortDirection={sort.col === 'position' ? sort.dir : false}>
+              {sortLabel('position', 'Pos')}
+            </TableCell>
+            <TableCell sortDirection={sort.col === 'name' ? sort.dir : false}>
+              {sortLabel('name', 'Name')}
+            </TableCell>
+            <TableCell align="center" sortDirection={sort.col === 'age' ? sort.dir : false}>
+              {sortLabel('age', 'Age')}
+            </TableCell>
+            <TableCell align="center" sortDirection={sort.col === 'overall' ? sort.dir : false}>
+              {sortLabel('overall', 'OVR')}
+            </TableCell>
+            <TableCell sx={{ minWidth: 160 }} sortDirection={sort.col === 'training' ? sort.dir : false}>
+              {sortLabel('training', 'Training focus')}
+            </TableCell>
+            <TableCell sx={{ minWidth: 200 }} sortDirection={sort.col === 'development' ? sort.dir : false}>
+              {sortLabel('development', 'Recent development')}
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {squad.map(p => (
-            <TableRow key={p.id} hover>
+          {sorted.map(p => (
+            <TableRow key={p.id} hover onClick={() => setSelectedPlayer(p)} sx={{ cursor: 'pointer' }}>
               <TableCell align="center"><Chip label={p.position} size="small" variant="outlined" /></TableCell>
               <TableCell>{p.name}</TableCell>
               <TableCell align="center">{p.age}</TableCell>
               <TableCell align="center"><strong>{Math.round(calculateOverall(p.attributes))}</strong></TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Select
                   size="small"
                   fullWidth
@@ -119,6 +186,8 @@ export default function TrainingTab() {
           ))}
         </TableBody>
       </ScrollableTable>
+
+      <PlayerDetailModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
     </Box>
   );
 }

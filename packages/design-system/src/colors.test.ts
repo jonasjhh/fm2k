@@ -14,6 +14,8 @@ describe('getContrastColor:', () => {
 
 describe('status tokens:', () => {
   it('exposes the semantic status variants', () => {
-    expect(Object.keys(STATUS_COLORS)).toEqual(['playerTeam', 'champion', 'promotion', 'relegation', 'caution']);
+    expect(Object.keys(STATUS_COLORS)).toEqual(
+      ['playerTeam', 'champion', 'promotion', 'promotionQualifier', 'relegation', 'relegationQualifier', 'caution'],
+    );
   });
 });

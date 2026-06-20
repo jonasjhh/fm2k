@@ -1,11 +1,12 @@
 import {
-  CompetitionManager, LeagueFormat, KnockoutFormat, Season,
+  CompetitionManager, LeagueFormat, KnockoutFormat, QualifierFormat, Season,
   ClubManager, TransferManager, PlayerGenerator, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
+  prizeMoneyFor, CUP_PRIZE,
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
@@ -17,6 +18,7 @@ import {
 } from '../domain/editable-country.ts';
 import type { EditableCountry, EditableDivision } from '../domain/editable-country.ts';
 import { applyPromotionRelegation } from '../domain/promotion.ts';
+import type { QualifierResult } from '../domain/promotion.ts';
 import type { LastMatchResult } from '../domain/match-result.ts';
 import {
   writeSave, SAVE_VERSION, type SaveData, type SaveType,
@@ -24,10 +26,22 @@ import {
 import {
   BUDGET_START, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
   MARKET_REFRESH_INTERVAL, ALL_PLAYER_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
+  qualifierCompetitionId,
 } from './config.ts';
 
 /** Significant match events the UI animates (goals, cards, saves, phase changes). */
 const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'half_time', 'full_time']);
+
+/** Ordinal suffix for a 1-based position ("1st", "2nd", "3rd", "4th"...). */
+function ordinalSuffix(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) { return 'th'; }
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
 
 /** Minutes added to a kickoff to be sure a match (incl. extra time) has finished. */
 const MATCH_MAX_MINUTES = 130;
@@ -109,6 +123,11 @@ export class GameSession {
   private seasons: Record<string, Season> = {};
   private leagueManagers: Record<string, CompetitionManager> = {};
   private cupManagers: Record<string, CompetitionManager> = {};
+  /** Promotion/relegation playoffs, keyed by boundary id — created mid-season once both
+   *  adjacent divisions finish their regular season (see `scheduleQualifiersIfNeeded`). */
+  private qualifierManagers: Record<string, CompetitionManager> = {};
+  /** Boundary ids already scheduled this season, so `scheduleQualifiersIfNeeded` is idempotent. */
+  private scheduledQualifierBoundaries: Set<string> = new Set();
   private leagueManager: CompetitionManager | null = null;
   private playerCupManager: CompetitionManager | null = null;
   private clubManager: ClubManager | null = null;
@@ -372,6 +391,93 @@ export class GameSession {
     return this.leagueManager;
   }
 
+  /** Once both divisions on either side of a boundary have finished their regular season,
+   *  schedule the single promotion/relegation playoff between the upper division's
+   *  3rd-from-bottom team and the lower division's 3rd-place team (lower division at home,
+   *  one week after the last matchday). Idempotent per boundary per season — relies on
+   *  `this.now` already sitting at the moment the regular season just finished. */
+  private scheduleQualifiersIfNeeded(): void {
+    for (const country of this.editableCountries) {
+      if (!this.selectedLeagueIds.includes(country.id)) { continue; }
+      const ordered = [...country.divisions].sort((a, b) => a.level - b.level);
+      for (let i = 0; i < ordered.length - 1; i++) {
+        const upperDiv = ordered[i];
+        const lowerDiv = ordered[i + 1];
+        const boundaryKey = qualifierCompetitionId(upperDiv.id, lowerDiv.id);
+        if (this.scheduledQualifierBoundaries.has(boundaryKey)) { continue; }
+        const upperLm = this.leagueManagers[upperDiv.id];
+        const lowerLm = this.leagueManagers[lowerDiv.id];
+        if (!upperLm || !lowerLm || upperLm.hasNext() || lowerLm.hasNext()) { continue; }
+
+        const upperStandings = upperLm.getState().standings;
+        const lowerStandings = lowerLm.getState().standings;
+        if (upperStandings.length < 3 || lowerStandings.length < 3) { continue; }
+        const upperTeamId = upperStandings[upperStandings.length - 3].teamId;
+        const lowerTeamId = lowerStandings[2].teamId;
+        const upperTeam = findTeamById(this.editableCountries, upperTeamId);
+        const lowerTeam = findTeamById(this.editableCountries, lowerTeamId);
+        if (!upperTeam || !lowerTeam) { continue; }
+
+        const isPlayerMatch = upperTeamId === this.playerTeamId || lowerTeamId === this.playerTeamId;
+        const qm = new CompetitionManager({
+          format: new QualifierFormat({
+            homeTeam: lowerTeam, awayTeam: upperTeam, scheduledTime: addDays(this.now, 7),
+          }),
+          teams: [lowerTeam, upperTeam],
+          startDate: this.now,
+          seasonStart: SEASON_START,
+          competitionId: boundaryKey,
+          name: `${upperDiv.name} / ${lowerDiv.name} Qualifier`,
+          eventsPerMinute: EVENTS_PER_MINUTE,
+          eventBus: isPlayerMatch ? this.eventBus ?? undefined : undefined,
+          playerTeamId: isPlayerMatch ? this.playerTeamId ?? undefined : undefined,
+          getPlayerStarters: isPlayerMatch ? () => this.resolvePlayerStarters() : undefined,
+        });
+        this.qualifierManagers[boundaryKey] = qm;
+        this.scheduledQualifierBoundaries.add(boundaryKey);
+        this.seasons[country.id]?.addCompetition(qm);
+      }
+    }
+  }
+
+  /** Read the outcome of every completed qualifier into the shape `applyPromotionRelegation`
+   *  needs: the lower-division challenger (home), the upper-division defender (away), and who
+   *  won — "winner gets promoted/keeps their spot". */
+  private collectQualifierResults(): Record<string, QualifierResult> {
+    const results: Record<string, QualifierResult> = {};
+    for (const [boundaryKey, qm] of Object.entries(this.qualifierManagers)) {
+      const fixture = qm.getState().fixtures[0];
+      const winnerTeamId = fixture?.result?.winnerTeamId;
+      if (!fixture || !winnerTeamId) { continue; }
+      results[boundaryKey] = {
+        winnerTeamId, lowerTeamId: fixture.homeTeamId, upperTeamId: fixture.awayTeamId,
+      };
+    }
+    return results;
+  }
+
+  /** The player's cup prize for the just-finished season, if their club reached at least
+   *  the semi-final — read from the bracket's full history (nothing is discarded as ties
+   *  resolve), so winner/runner-up/semifinalist are all derivable after the fact. */
+  private determineCupPrize(teamId: string): { amount: number; description: string } | null {
+    const bracket = this.playerCupManager?.getState().bracket;
+    if (!bracket) { return null; }
+    if (bracket.championTeamId === teamId) {
+      return { amount: CUP_PRIZE.winner, description: 'Won the cup!' };
+    }
+    const final = bracket.slots.find(s => s.round === bracket.rounds);
+    if (final && (final.homeTeamId === teamId || final.awayTeamId === teamId)) {
+      return { amount: CUP_PRIZE.runnerUp, description: 'Runner-up in the cup' };
+    }
+    const lostSemi = bracket.slots
+      .filter(s => s.round === bracket.rounds - 1)
+      .some(s => (s.homeTeamId === teamId || s.awayTeamId === teamId) && s.winnerTeamId !== teamId);
+    if (lostSemi) {
+      return { amount: CUP_PRIZE.semifinalist, description: 'Reached the cup semi-final' };
+    }
+    return null;
+  }
+
   /** Seed AI refill targets from current squad sizes (clamped to the cap). */
   private seedSquadTargets(editableCountries: EditableCountry[]): void {
     this.squadTargets.clear();
@@ -461,6 +567,8 @@ export class GameSession {
 
   startGame(teamId: string, leagueIds: string[], playerIntent?: TeamTacticsIntent): boolean {
     if (!this.buildManagers(this.editableCountries, teamId, leagueIds, playerIntent).ok) { return false; }
+    this.qualifierManagers = {};
+    this.scheduledQualifierBoundaries = new Set();
     this.playerTeamId = teamId;
     this.selectedLeagueIds = leagueIds;
     this.currentMatchday = 0;
@@ -483,13 +591,24 @@ export class GameSession {
    */
   startNewSeason(): boolean {
     if (!this.playerTeamId || !this.clubManager || !this.transferManager) { return false; }
+    const teamId = this.playerTeamId;
     const ranked: Record<string, string[]> = {};
     for (const [divId, lm] of Object.entries(this.leagueManagers)) {
       ranked[divId] = lm.getState().standings.map(s => s.teamId);
     }
-    this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked);
+    const qualifierResults = this.collectQualifierResults();
 
-    const teamId = this.playerTeamId;
+    // Capture the just-finished league placement + cup run before promotion/relegation and
+    // the competition rebuild below make this season's standings/bracket unreachable.
+    const oldDivision = findDivisionForTeam(this.editableCountries, teamId);
+    const oldDivisionStandings = oldDivision ? ranked[oldDivision.id] : undefined;
+    const leaguePosition = oldDivisionStandings ? oldDivisionStandings.indexOf(teamId) + 1 : 0;
+    const cupPrize = this.determineCupPrize(teamId);
+
+    this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked, qualifierResults);
+    this.qualifierManagers = {};
+    this.scheduledQualifierBoundaries = new Set();
+
     const team = findTeamById(this.editableCountries, teamId);
     const division = findDivisionForTeam(this.editableCountries, teamId);
     if (!team || !division) { return false; }
@@ -528,6 +647,17 @@ export class GameSession {
       financialLog: prevClub.financialLog,
       recentDevelopment: prevClub.recentDevelopment,
     });
+
+    if (oldDivision && leaguePosition > 0) {
+      const amount = prizeMoneyFor(oldDivision.level, leaguePosition);
+      const description = `Finished ${leaguePosition}${ordinalSuffix(leaguePosition)} in ${oldDivision.name}`;
+      this.clubManager.recordPrizeMoney('league_prize', amount, description, this.now);
+      this.pushNotification(`${description} — £${amount.toLocaleString()} prize money!`, 'success');
+    }
+    if (cupPrize) {
+      this.clubManager.recordPrizeMoney('cup_prize', cupPrize.amount, cupPrize.description, this.now);
+      this.pushNotification(`${cupPrize.description} — £${cupPrize.amount.toLocaleString()} prize money!`, 'success');
+    }
 
     this.transferManager = new TransferManager({
       marketSize: MARKET_SIZE,
@@ -648,7 +778,10 @@ export class GameSession {
   getNow(): GameDateTime { return this.now; }
 
   private allManagers(): CompetitionManager[] {
-    return [...Object.values(this.leagueManagers), ...Object.values(this.cupManagers)];
+    return [
+      ...Object.values(this.leagueManagers), ...Object.values(this.cupManagers),
+      ...Object.values(this.qualifierManagers),
+    ];
   }
 
   /** Every in-progress match across all nations/competitions. */
@@ -665,7 +798,9 @@ export class GameSession {
   /** The player's earliest still-scheduled fixture across their league and cup. */
   private playerNextFixture(): CompetitionFixture | null {
     if (!this.playerTeamId) { return null; }
-    const managers = [this.leagueManager, this.playerCupManager].filter(Boolean) as CompetitionManager[];
+    const managers = [
+      this.leagueManager, this.playerCupManager, ...Object.values(this.qualifierManagers),
+    ].filter(Boolean) as CompetitionManager[];
     let next: CompetitionFixture | null = null;
     for (const mgr of managers) {
       for (const f of mgr.getState().fixtures) {
@@ -741,6 +876,7 @@ export class GameSession {
         if (nextWindow.open) { this.runAiMarketWindow(); } // AI clubs shop when a window opens
       }
     }
+    this.scheduleQualifiersIfNeeded();
     if (!Object.values(this.seasons).some(s => s.hasNext())) {
       this.completeSeason();
     } else {

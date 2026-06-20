@@ -1,6 +1,7 @@
 export { ClubManager } from './club/club-manager.ts';
 export type { ClubManagerConfig } from './club/club-manager.ts';
 export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction } from './club/club-types.ts';
+export { prizeMoneyFor, CUP_PRIZE } from './club/prize-money.ts';
 
 export { generateFixtures } from './league/fixture-generator.ts';
 export { LeagueManager } from './league/league-manager.ts';
@@ -14,6 +15,8 @@ export type { SeasonConfig } from './competition/season.ts';
 export { LeagueFormat } from './competition/league-format.ts';
 export { KnockoutFormat } from './competition/knockout-format.ts';
 export type { KnockoutFormatOptions } from './competition/knockout-format.ts';
+export { QualifierFormat } from './competition/qualifier-format.ts';
+export type { QualifierFormatOptions } from './competition/qualifier-format.ts';
 export { drawBracket, recordWinner, roundComplete, roundTieCounts } from './competition/knockout-bracket.ts';
 export { cupRoundMatchdays, cupRoundDate, cupRoundDates } from './competition/cup-scheduling.ts';
 export type {

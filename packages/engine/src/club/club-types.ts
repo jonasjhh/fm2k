@@ -24,7 +24,7 @@ export interface FacilityLevels {
 }
 
 export interface FinancialTransaction {
-  type: 'gate_receipt' | 'transfer_in' | 'transfer_out' | 'facility_upgrade' | 'wages'
+  type: 'gate_receipt' | 'transfer_in' | 'transfer_out' | 'facility_upgrade' | 'wages' | 'league_prize' | 'cup_prize'
   amount: number
   description: string
   timestamp?: GameDateTime

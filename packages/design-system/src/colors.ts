@@ -2,20 +2,24 @@ import { useTheme } from '@mui/material/styles';
 
 /** Semantic status background tokens (light mode). */
 export const STATUS_COLORS = {
-  playerTeam: '#BBDEFB',
-  champion:   '#FFE082',
-  promotion:  '#C8E6C9',
-  relegation: '#FFCDD2',
-  caution:    '#FFF9C4',
+  playerTeam:         '#BBDEFB',
+  champion:           '#FFE082',
+  promotion:          '#C8E6C9',
+  promotionQualifier: '#A5D6A7',
+  relegation:         '#FFCDD2',
+  relegationQualifier: '#EF9A9A',
+  caution:            '#FFF9C4',
 } as const;
 
 /** Semantic status background tokens (dark mode). */
 export const STATUS_COLORS_DARK = {
-  playerTeam: 'rgba(33, 150, 243, 0.25)',
-  champion:   'rgba(255, 215, 0, 0.30)',
-  promotion:  'rgba(76, 175, 80, 0.25)',
-  relegation: 'rgba(244, 67, 54, 0.25)',
-  caution:    'rgba(255, 193, 7, 0.25)',
+  playerTeam:         'rgba(33, 150, 243, 0.25)',
+  champion:           'rgba(255, 215, 0, 0.30)',
+  promotion:          'rgba(76, 175, 80, 0.25)',
+  promotionQualifier: 'rgba(76, 175, 80, 0.40)',
+  relegation:         'rgba(244, 67, 54, 0.25)',
+  relegationQualifier: 'rgba(244, 67, 54, 0.40)',
+  caution:            'rgba(255, 193, 7, 0.25)',
 } as const;
 
 export type StatusVariant = keyof typeof STATUS_COLORS;

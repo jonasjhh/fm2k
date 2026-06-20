@@ -21,18 +21,22 @@ export function recentForm(fixtures: readonly Fixture[], teamId: string, count =
 
 /**
  * Which league zone a 1-based table position falls in, given the division size.
- * Top 2 promote and bottom 2 relegate — but a division only has a promotion zone
- * when there is a division above it, and a relegation zone when there is one below.
- * In the top division (no division above) first place is the champion instead.
+ * Top 2 promote and bottom 2 relegate automatically — but a division only has a
+ * promotion zone when there is a division above it, and a relegation zone when there
+ * is one below. 3rd place (lower division) contests a promotion qualifier; 3rd-from-bottom
+ * (upper division) contests a relegation qualifier. In the top division (no division
+ * above) first place is the champion instead.
  */
 export function leagueZone(
   pos: number,
   total: number,
   opts: { hasDivisionAbove?: boolean; hasDivisionBelow?: boolean } = {},
-): 'champion' | 'promotion' | 'relegation' | null {
+): 'champion' | 'promotion' | 'relegation' | 'promotionQualifier' | 'relegationQualifier' | null {
   const { hasDivisionAbove = true, hasDivisionBelow = true } = opts;
   if (!hasDivisionAbove && pos === 1) { return 'champion'; }
   if (hasDivisionAbove && pos <= 2) { return 'promotion'; }
+  if (hasDivisionAbove && pos === 3) { return 'promotionQualifier'; }
   if (hasDivisionBelow && pos >= total - 1) { return 'relegation'; }
+  if (hasDivisionBelow && pos === total - 2) { return 'relegationQualifier'; }
   return null;
 }

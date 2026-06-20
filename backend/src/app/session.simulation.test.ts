@@ -100,9 +100,10 @@ describe('GameSession clock:', () => {
     session.startNewSeason();
 
     const after = assertDefined(session.snapshot().clubState, 'clubState missing');
-    // Finances + facilities carried across the rollover.
+    // Facilities carry across the rollover; the budget carries plus this season's prize money
+    // (every finishing position earns at least something, so it's strictly more, never equal).
     expect(after.facilities.training).toBe(trainingAtRollover);
-    expect(after.budget).toBe(budgetAtRollover);
+    expect(after.budget).toBeGreaterThan(budgetAtRollover);
     // The player's developed squad survived (a surviving player aged by a year).
     const survivor = after.squad.find(p => p.id === someSquadId);
     if (survivor) { expect(survivor.age).toBe(ageBefore + 1); }

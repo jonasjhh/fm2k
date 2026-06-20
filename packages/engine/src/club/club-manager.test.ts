@@ -443,6 +443,26 @@ describe('ClubManager:', () => {
     });
   });
 
+  describe('recordPrizeMoney:', () => {
+    test('adds amount to budget and logs the given transaction type/description', () => {
+      const manager = new ClubManager(makeConfig());
+      manager.recordPrizeMoney('league_prize', 120_000, 'Finished 1st in Eliteserien', NOW);
+      expect(manager.getState().budget).toBe(620_000);
+      const log = manager.getState().financialLog;
+      expect(log).toHaveLength(1);
+      expect(log[0].type).toBe('league_prize');
+      expect(log[0].amount).toBe(120_000);
+      expect(log[0].description).toBe('Finished 1st in Eliteserien');
+      expect(log[0].timestamp).toEqual(NOW);
+    });
+
+    test('logs a cup_prize transaction distinctly from a league_prize one', () => {
+      const manager = new ClubManager(makeConfig());
+      manager.recordPrizeMoney('cup_prize', 50_000, 'Reached the cup semi-final', NOW);
+      expect(manager.getState().financialLog[0].type).toBe('cup_prize');
+    });
+  });
+
   describe('match event processing (via EventBus):', () => {
     test('ignores events for other clubs', () => {
       const bus = new EventBus<GameEvents>();

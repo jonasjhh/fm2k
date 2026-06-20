@@ -46,10 +46,14 @@ export default function SeasonEndModal() {
 
   const promoted = hasDivisionAbove && pos <= 2;
   const relegated = hasDivisionBelow && pos >= n - 1;
+  const promotionQualifier = hasDivisionAbove && pos === 3;
+  const relegationQualifier = hasDivisionBelow && pos === n - 2;
   const verdict =
     pos === 1 ? '🏆 CHAMPIONS! You won the league!' :
     promoted ? `🥈 ${pos}${sfx(pos)} place — Promoted!` :
     relegated ? `⚠️ ${pos}${sfx(pos)} place — Relegated!` :
+    promotionQualifier ? `⚽ ${pos}${sfx(pos)} place — Promotion playoff!` :
+    relegationQualifier ? `⚽ ${pos}${sfx(pos)} place — Relegation playoff!` :
     `👍 ${pos}${sfx(pos)} place — Mid-table finish.`;
 
   const severity = pos === 1 ? 'success' : promoted ? 'info' : relegated ? 'error' : 'warning';

@@ -18,7 +18,7 @@ export interface SeasonConfig {
 export class Season {
   readonly nationId: string;
   readonly startDate: GameDateTime;
-  private readonly comps: CompetitionManager[];
+  private comps: CompetitionManager[];
 
   constructor(config: SeasonConfig) {
     this.nationId = config.nationId;
@@ -27,6 +27,12 @@ export class Season {
   }
 
   competitions(): readonly CompetitionManager[] { return this.comps; }
+
+  /** Append a competition created after the season started (e.g. a qualifier,
+   *  whose participants are only known once the league standings are final). */
+  addCompetition(comp: CompetitionManager): void {
+    this.comps = [...this.comps, comp];
+  }
 
   byId(competitionId: string): CompetitionManager | undefined {
     return this.comps.find(c => c.getState().competitionId === competitionId);
