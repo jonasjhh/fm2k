@@ -4,7 +4,7 @@ import {
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
-  makeYouth, generatorYouthFactory, acceptBid, directTransferPrice, playerValue, transferWindow, runAiMarket,
+  makeYouth, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
 } from '@fm2k/engine';
 import type {
@@ -1151,7 +1151,7 @@ export class GameSession {
     const located = this.findClubPlayer(playerId);
     if (!located) { return false; }
     const { team, player, isStarter } = located;
-    const fee = directTransferPrice(player, isStarter ? 'starter' : 'bench');
+    const fee = valuePlayer(player, { role: isStarter ? 'starter' : 'bench' });
     if (!this.clubManager.buyPlayer(player, fee)) { return false; }
 
     const nationality = findCountryForTeam(this.editableCountries, team.id)?.nationality ?? 'unknown';
@@ -1194,7 +1194,7 @@ export class GameSession {
     const target = team.squad.find(p => p.id === playerId);
     if (!target) { return null; }
     const isStarter = selectStartingXIWithSlots(team.squad, team.formation).starters.some(p => p.id === playerId);
-    return directTransferPrice(target, isStarter ? 'starter' : 'bench');
+    return valuePlayer(target, { role: isStarter ? 'starter' : 'bench' });
   }
 
   refreshTransfers(): TransferListing[] {

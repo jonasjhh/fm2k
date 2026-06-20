@@ -1,5 +1,5 @@
 import { acceptBid } from './bid.ts';
-import { directTransferPrice } from '../valuation/valuation.ts';
+import { valuePlayer } from '@fm2k/valuation';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 
 function attrs(v: number): PlayerAttributes {
@@ -8,7 +8,7 @@ function attrs(v: number): PlayerAttributes {
 const player: Player = { id: 'p', name: 'P', nationality: 'n', age: 26, position: 'CM', potential: 75, attributes: attrs(70) };
 
 describe('acceptBid:', () => {
-  const price = directTransferPrice(player, 'starter');
+  const price = valuePlayer(player, { role: 'starter' });
 
   it('rejects an offer well below the asking price', () => {
     expect(acceptBid(player, 'starter', price * 0.5, () => 0.5)).toBe(false);
@@ -25,7 +25,7 @@ describe('acceptBid:', () => {
   });
 
   it('a bench player is cheaper to sign than a starter', () => {
-    const offer = directTransferPrice(player, 'bench');
+    const offer = valuePlayer(player, { role: 'bench' });
     expect(acceptBid(player, 'bench', offer, () => 0.5)).toBe(true);
     expect(acceptBid(player, 'starter', offer, () => 0.5)).toBe(false);
   });

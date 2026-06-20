@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type React from 'react';
-import { useGameStore } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_LINES, buildSlotAssignments } from '@fm2k/engine';
 import type { Formation } from '@fm2k/engine';

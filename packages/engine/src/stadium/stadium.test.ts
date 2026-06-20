@@ -6,7 +6,7 @@ import {
   hasSectorChanged,
   DEFAULT_STADIUM_SECTORS,
 } from './stadium.ts';
-import type { StadiumSectorConfig } from '../club/club-types.ts';
+import type { StadiumSectorConfig } from './stadium.ts';
 
 const none = (density = 36): StadiumSectorConfig => ({ type: 'none', densityValue: density });
 const open = (density = 36): StadiumSectorConfig => ({ type: 'open-bleacher', densityValue: density });

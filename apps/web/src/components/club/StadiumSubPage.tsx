@@ -2,7 +2,7 @@ import type { StadiumSectorConfig } from '@fm2k/engine';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmt } from '../../utils/formatting';
 import StadiumPlanner from '../StadiumPlanner';

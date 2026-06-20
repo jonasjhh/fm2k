@@ -7,7 +7,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
 import { COUNTRY_FLAG } from '@fm2k/engine';
-import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
+import { useGameStore, findDivisionForTeam, findCountryForTeam } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors, leagueRowBg } from '../../utils/colors';
 import { ScrollableTable } from '@fm2k/design-system';

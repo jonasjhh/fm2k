@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useGameStore, findTeamById } from '../store/game-store';
+import { useGameStore, findTeamById } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { getContrastColor } from '../utils/colors';
 

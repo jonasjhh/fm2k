@@ -7,7 +7,7 @@ import TableRow from '@mui/material/TableRow';
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { fmt, fmtDate } from '../../utils/formatting';
 import { ScrollableTable } from '@fm2k/design-system';
 

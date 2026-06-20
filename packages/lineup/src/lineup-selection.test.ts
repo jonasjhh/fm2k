@@ -1,5 +1,6 @@
 import {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
+  carryOverLineup,
 } from './lineup-selection.ts';
 import { FORMATION_LINES } from '@fm2k/match';
 import type { Player, PlayerAttributes, Position } from '@fm2k/match';
@@ -141,6 +142,60 @@ describe('calculateBestFormation:', () => {
   it('given an empty squad then it falls back to the first formation (strict > tiebreak)', () => {
     // Every formation scores 0, so the first one encountered must win, not the last.
     expect(calculateBestFormation([])).toBe('4-4-2');
+  });
+});
+
+describe('carryOverLineup:', () => {
+  it('given an unchanged squad then the previous XI and bench are preserved exactly', () => {
+    const squad = balancedSquad();
+    const prevStartingXI = squad.slice(0, 11).map(p => p.id);
+    const prevBenchPlayers = squad.slice(11, 14).map(p => p.id);
+    const { startingXI, benchPlayers } = carryOverLineup(prevStartingXI, prevBenchPlayers, squad, '4-4-2');
+    expect(startingXI).toEqual(prevStartingXI);
+    expect(benchPlayers).toEqual(prevBenchPlayers);
+  });
+
+  it('given a starter who left the squad then they are dropped and backfilled to 11', () => {
+    const squad = balancedSquad();
+    const prevStartingXI = squad.slice(0, 11).map(p => p.id);
+    const departedId = prevStartingXI[0];
+    const remainingSquad = squad.filter(p => p.id !== departedId);
+    const { startingXI } = carryOverLineup(prevStartingXI, [], remainingSquad, '4-4-2');
+    expect(startingXI).not.toContain(departedId);
+    expect(startingXI).toHaveLength(11);
+  });
+
+  it('given a bench player who left the squad then bench is backfilled to its previous size', () => {
+    const squad = balancedSquad();
+    const prevStartingXI = squad.slice(0, 11).map(p => p.id);
+    const prevBenchPlayers = squad.slice(11, 14).map(p => p.id);
+    const departedId = prevBenchPlayers[0];
+    const remainingSquad = squad.filter(p => p.id !== departedId);
+    const { benchPlayers } = carryOverLineup(prevStartingXI, prevBenchPlayers, remainingSquad, '4-4-2');
+    expect(benchPlayers).not.toContain(departedId);
+    expect(benchPlayers).toHaveLength(prevBenchPlayers.length);
+  });
+
+  it('backfilling never duplicates an id already used elsewhere in the XI or bench', () => {
+    const squad = balancedSquad();
+    const prevStartingXI = squad.slice(0, 10).map(p => p.id); // one short — needs 1 backfilled
+    const prevBenchPlayers = squad.slice(10, 14).map(p => p.id);
+    const { startingXI, benchPlayers } = carryOverLineup(prevStartingXI, prevBenchPlayers, squad, '4-4-2');
+    const all = [...startingXI, ...benchPlayers];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('given a squad too small to refill to 11 then the starting XI stays short', () => {
+    const squad = [makePlayer('gk', 'GK', 70), makePlayer('st', 'ST', 70)];
+    const { startingXI } = carryOverLineup([], [], squad, '4-4-2');
+    expect(startingXI.length).toBeLessThan(11);
+    expect(startingXI.length).toBe(squad.length);
+  });
+
+  it('given no previous bench then no bench is backfilled (target stays 0)', () => {
+    const squad = balancedSquad();
+    const { benchPlayers } = carryOverLineup([], [], squad, '4-4-2');
+    expect(benchPlayers).toHaveLength(0);
   });
 });
 

@@ -10,7 +10,7 @@ import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import type { ClubPlayer } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { playerValue } from '@fm2k/engine';

@@ -14,9 +14,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import { COUNTRY_COLORS } from '@fm2k/engine';
 import type { CountryId } from '@fm2k/engine';
 import FlagIcon from '../components/FlagIcon';
-import { useGameStore } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import type { EditableCountry } from '../store/game-store';
+import type { EditableCountry } from '@/store/game-store';
 
 
 import { getContrastColor } from '../utils/colors';

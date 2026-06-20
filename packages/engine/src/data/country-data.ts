@@ -1,4 +1,4 @@
-import { calculateBestFormation } from '../squad/lineup-selection.ts';
+import { calculateBestFormation } from '@fm2k/lineup';
 import type { Team, Player, Position } from '@fm2k/match';
 
 export interface CountryPlayerData {

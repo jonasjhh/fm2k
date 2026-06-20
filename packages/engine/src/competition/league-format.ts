@@ -1,6 +1,6 @@
 import { assertDefined } from '@fm2k/state';
 import { generateFixtures } from '../league/fixture-generator.ts';
-import { selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
+import { selectStartingXIWithSlots } from '@fm2k/lineup';
 import type { Player, Team } from '@fm2k/match';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,

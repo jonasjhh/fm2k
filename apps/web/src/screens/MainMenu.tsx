@@ -11,7 +11,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Link from 'next/link';
-import { useGameStore } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import SettingsDialog from '../components/ui/SettingsDialog';
 import LoadGameDialog from '../components/ui/LoadGameDialog';
 import { readAllSaves } from '@fm2k/backend';

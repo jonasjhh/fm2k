@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import { useGameStore } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { TOTAL_MATCHDAYS } from '../constants';
 import { sfx, fmtDate } from '../utils/formatting';

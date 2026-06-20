@@ -17,7 +17,7 @@ import { calculateOverall, playerValue, getTeamOVR } from '@fm2k/engine';
 import type { Player } from '@fm2k/engine';
 import { ScrollableTable } from '@fm2k/design-system';
 import { useShallow } from 'zustand/react/shallow';
-import { useGameStore, findTeamById } from '../store/game-store';
+import { useGameStore, findTeamById } from '@/store/game-store';
 import { fmt } from '../utils/formatting';
 import ScoutedPlayerModal from './ui/ScoutedPlayerModal';
 

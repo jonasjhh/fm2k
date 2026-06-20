@@ -2,7 +2,7 @@
 import Button from '@mui/material/Button';
 import type { Player } from '@fm2k/engine';
 import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { fmt } from '../../utils/formatting';
 import { buyPlayerWithConfirm } from '../../utils/transfers';
 import PlayerDetailModal from './PlayerDetailModal';

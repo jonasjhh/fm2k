@@ -2,7 +2,7 @@ import type { Player, PlayerAttributes, Position } from '@fm2k/match';
 import { calculateOverall } from '@fm2k/match';
 import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
 import { PlayerGenerator } from '../player/player-generator.ts';
-import { playerValue } from '../valuation/valuation.ts';
+import { playerValue } from '@fm2k/valuation';
 
 /**
  * World churn — the season-boundary lifecycle for the **shared player pool**: every squad develops

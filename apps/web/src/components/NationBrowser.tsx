@@ -13,7 +13,7 @@ import { COUNTRY_COLORS } from '@fm2k/engine';
 import { getTeamOVR } from '@fm2k/engine';
 import type { Team, CountryId } from '@fm2k/engine';
 import FlagIcon from './FlagIcon';
-import type { EditableCountry, EditableDivision } from '../store/game-store';
+import type { EditableCountry, EditableDivision } from '@/store/game-store';
 
 interface NationBrowserProps {
   countries: EditableCountry[];

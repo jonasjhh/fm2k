@@ -3,6 +3,9 @@ import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { RegimentId } from '../player/progression.ts';
 import type { PlayerDelta } from '../world/world-churn.ts';
+import type { StadiumSectorConfig } from '../stadium/stadium.ts';
+
+export type { StadiumSectorConfig };
 
 export interface ClubPlayer extends Player {
   fitness: number  // 0–100
@@ -30,11 +33,6 @@ export interface FinancialTransaction {
 export interface SubstitutionRequest {
   playerOutId: string
   playerInId: string
-}
-
-export interface StadiumSectorConfig {
-  type: string         // stand type key e.g. 'double-tier', 'open-bleacher'
-  densityValue: number // seat spacing; lower = more seats (range 10–50)
 }
 
 export interface ClubState {

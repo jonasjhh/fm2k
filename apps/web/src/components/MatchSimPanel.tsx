@@ -7,8 +7,8 @@ import Alert from '@mui/material/Alert';
 import FastForwardIcon from '@mui/icons-material/FastForward';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
-import { useGameStore } from '../store/game-store';
-import type { SimEvent } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
+import type { SimEvent } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors } from '../utils/colors';
 

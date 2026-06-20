@@ -5,7 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createAppTheme } from '@fm2k/design-system';
 import { ToastHost } from '@fm2k/toast';
-import { useGameStore } from './store/game-store';
+import { useGameStore } from '@/store/game-store';
 import MainMenu from './screens/MainMenu';
 import TeamSelection from './screens/TeamSelection';
 import TeamEditor from './screens/TeamEditor';

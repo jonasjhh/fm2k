@@ -1,6 +1,6 @@
 export { ClubManager } from './club/club-manager.ts';
 export type { ClubManagerConfig } from './club/club-manager.ts';
-export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction, StadiumSectorConfig } from './club/club-types.ts';
+export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction } from './club/club-types.ts';
 
 export { generateFixtures } from './league/fixture-generator.ts';
 export { LeagueManager } from './league/league-manager.ts';
@@ -81,8 +81,8 @@ export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
-export { getTeamOVR, playerValue, directTransferPrice } from './valuation/valuation.ts';
-export type { LineupRole } from './valuation/valuation.ts';
+export { getTeamOVR, playerValue, valuePlayer } from '@fm2k/valuation';
+export type { LineupRole, ValuationContext } from '@fm2k/valuation';
 export { acceptBid } from './transfer/bid.ts';
 export {
   transferWindow, PRE_SEASON_WINDOW_LENGTH, MID_SEASON_WINDOW_LENGTH,
@@ -94,14 +94,14 @@ export {
   getSectorCapacity, calculateTotalCapacity, calculateSectorChangeCost,
   calculateTotalChangeCost, hasSectorChanged,
 } from './stadium/stadium.ts';
-export type { SectorKey } from './stadium/stadium.ts';
+export type { SectorKey, StadiumSectorConfig } from './stadium/stadium.ts';
 export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from '@fm2k/match';
 export type { FieldedPositions } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
   carryOverLineup,
-} from './squad/lineup-selection.ts';
-export type { SelectionOptions } from './squad/lineup-selection.ts';
+} from '@fm2k/lineup';
+export type { SelectionOptions } from '@fm2k/lineup';
 export { recentForm, leagueZone } from './league/form.ts';
 export { computeLadderMovements } from './season/promotion.ts';
 export type { LadderDivision } from './season/promotion.ts';

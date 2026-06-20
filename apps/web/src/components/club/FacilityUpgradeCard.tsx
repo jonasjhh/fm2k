@@ -10,7 +10,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SchoolIcon from '@mui/icons-material/School';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { FACILITY_NAMES, FACILITY_DESCS, FACILITY_COSTS, FACILITY_LEVELS } from '../../constants';
 import { fmt } from '../../utils/formatting';

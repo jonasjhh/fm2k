@@ -14,7 +14,7 @@ import {
 } from '@fm2k/engine';
 import type { ClubPlayer, PlayerDelta, RegimentId, PlayerAttributes } from '@fm2k/engine';
 import { useShallow } from 'zustand/react/shallow';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 

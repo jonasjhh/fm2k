@@ -3,7 +3,7 @@ import type { Player, Team } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import { cupRoundDates } from './cup-scheduling.ts';
 import { drawBracket, recordWinner, roundComplete, slotsInRound } from './knockout-bracket.ts';
-import { selectStartingXIWithSlots } from '../squad/lineup-selection.ts';
+import { selectStartingXIWithSlots } from '@fm2k/lineup';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
 } from './competition-format.ts';

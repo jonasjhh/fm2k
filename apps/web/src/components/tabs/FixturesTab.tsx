@@ -8,7 +8,7 @@ import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { COUNTRY_FLAG } from '@fm2k/engine';
-import { useGameStore, findDivisionForTeam, findCountryForTeam } from '../../store/game-store';
+import { useGameStore, findDivisionForTeam, findCountryForTeam } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtDate } from '../../utils/formatting';
 import { SectionHeader } from '@fm2k/design-system';

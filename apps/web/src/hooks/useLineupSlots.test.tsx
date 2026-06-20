@@ -8,7 +8,7 @@ const setStartingXI = vi.fn();
 const setBench = vi.fn();
 let storeState: Record<string, unknown>;
 
-vi.mock('../store/game-store', () => ({
+vi.mock('@/store/game-store', () => ({
   useGameStore: (selector: (s: Record<string, unknown>) => unknown) => selector(storeState),
 }));
 

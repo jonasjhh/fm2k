@@ -48,9 +48,19 @@ const ROLE_PREMIUM: Record<LineupRole, number> = {
   reserve: 1.05,
 };
 
-/** The fee another club will demand to release `player`, given their role in that club's lineup. */
-export function directTransferPrice(player: Player, role: LineupRole): number {
+export interface ValuationContext {
+  /** Squad role at valuation time — affects the premium a buying club must pay. */
+  readonly role?: LineupRole;
+}
+
+/**
+ * The fee another club will demand to release `player`, given the external context at
+ * valuation time (currently: their role in that club's lineup). Without a role, this is just
+ * the open-market `playerValue`.
+ */
+export function valuePlayer(player: Player, context: ValuationContext = {}): number {
+  if (!context.role) { return playerValue(player); }
   // Clubs especially resist selling young players who could still become stars.
   const prospectPremium = player.age <= 23 && player.potential >= 85 ? 1.3 : 1;
-  return Math.max(1_000, Math.round(playerValue(player) * ROLE_PREMIUM[role] * prospectPremium));
+  return Math.max(1_000, Math.round(playerValue(player) * ROLE_PREMIUM[context.role] * prospectPremium));
 }

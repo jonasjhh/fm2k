@@ -10,7 +10,7 @@ import Slider from '@mui/material/Slider';
 import { useTheme } from '@mui/material/styles';
 import { useShallow } from 'zustand/react/shallow';
 import { ColorModeContext } from '../../App';
-import { useGameStore, SIM_DELAY_MIN, SIM_DELAY_MAX } from '../../store/game-store';
+import { useGameStore, SIM_DELAY_MIN, SIM_DELAY_MAX } from '@/store/game-store';
 
 interface Props { open: boolean; onClose: () => void; }
 

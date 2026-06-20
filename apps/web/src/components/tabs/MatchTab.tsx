@@ -3,7 +3,7 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
-import { useGameStore, findTeamById } from '../../store/game-store';
+import { useGameStore, findTeamById } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
 import { getContrastColor } from '../../utils/colors';

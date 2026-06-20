@@ -19,9 +19,9 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { calculateOverall, playerValue, directTransferPrice, selectStartingXIWithSlots } from '@fm2k/engine';
+import { calculateOverall, playerValue, valuePlayer, selectStartingXIWithSlots } from '@fm2k/engine';
 import type { Player, Position } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { buyPlayerWithConfirm } from '../../utils/transfers';
@@ -140,7 +140,7 @@ export default function TransfersTab() {
           const starterIds = new Set(starters.map(p => p.id));
           for (const p of t.squad) {
             const role = starterIds.has(p.id) ? 'starter' : 'bench';
-            rows.push({ player: p, club: t.name, isFreeAgent: false, price: directTransferPrice(p, role), ovr: Math.round(calculateOverall(p.attributes)) });
+            rows.push({ player: p, club: t.name, isFreeAgent: false, price: valuePlayer(p, { role }), ovr: Math.round(calculateOverall(p.attributes)) });
           }
         }
       }

@@ -31,13 +31,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CasinoIcon from '@mui/icons-material/Casino';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import { useGameStore } from '../store/game-store';
+import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateOverall, NameGenerator, COUNTRY_COLORS } from '@fm2k/engine';
 
 import type { CountryId } from '@fm2k/engine';
 import type { Player, Position, PlayerAttributes } from '@fm2k/engine';
-import type { EditableCountry } from '../store/game-store';
+import type { EditableCountry } from '@/store/game-store';
 import { ALL_POSITIONS } from '../constants';
 import FlagIcon from '../components/FlagIcon';
 

@@ -15,7 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BlockIcon from '@mui/icons-material/Block';
 import { deleteSave, readAllSaves, checkSaveCompatibility, type SaveData } from '@fm2k/backend';
-import { useGameStore } from '../../store/game-store';
+import { useGameStore } from '@/store/game-store';
 
 function formatSaveDate(iso: string): string {
   const d = new Date(iso);

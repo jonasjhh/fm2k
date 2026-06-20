@@ -11,7 +11,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import { useGameStore, findCountryForTeam, findDivisionForTeam } from '../store/game-store';
+import { useGameStore, findCountryForTeam, findDivisionForTeam } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 
 import { sfx } from '../utils/formatting';

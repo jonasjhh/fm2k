@@ -1,4 +1,7 @@
-import type { StadiumSectorConfig } from '../club/club-types.ts';
+export interface StadiumSectorConfig {
+  type: string         // stand type key e.g. 'double-tier', 'open-bleacher'
+  densityValue: number // seat spacing; lower = more seats (range 10–50)
+}
 
 export type SectorKey = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
 export const SECTOR_KEYS: SectorKey[] = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
