@@ -102,7 +102,7 @@ export default function MatchTab() {
           px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1,
           border: '1px solid', borderColor: 'divider', borderBottom: 'none',
         }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, flex: 1, minWidth: 0 }} noWrap>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, flex: 1, minWidth: 0, color: colors.secondary }} noWrap>
             {view.team.name}{teamId === playerTeamId ? ' (You)' : ''}
           </Typography>
           <Chip size="small" label={view.formation} sx={{ bgcolor: headerText, color: colors.primary, fontWeight: 700 }} />
