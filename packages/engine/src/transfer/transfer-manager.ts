@@ -2,13 +2,10 @@ import { StateManager } from '@fm2k/state';
 import { PlayerGenerator } from '../player/player-generator.ts';
 import { v4 as uuidv4 } from '@fm2k/state';
 import type { Player, PlayerAttributes } from '@fm2k/match';
-import { calculateOverall, OVERALL_WEIGHTS, ALL_PLAYER_POSITIONS } from '@fm2k/match';
+import { calculateOverall, ALL_PLAYER_POSITIONS } from '@fm2k/match';
 import type { ClubPlayer } from '../club/club-types.ts';
 import type { ClubManager } from '../club/club-manager.ts';
 import type { TransferState, TransferListing } from './transfer-types.ts';
-
-// Re-exported for back-compat: ratings now live in @fm2k/match.
-export { calculateOverall, OVERALL_WEIGHTS };
 
 function calculateAskingPrice(attrs: PlayerAttributes): number {
   const overall = calculateOverall(attrs);

@@ -1,5 +1,5 @@
 import { assertDefined } from '@fm2k/state';
-import { TransferManager, calculateOverall, OVERALL_WEIGHTS } from './transfer-manager.ts';
+import { TransferManager } from './transfer-manager.ts';
 import type { TransferManagerConfig } from './transfer-manager.ts';
 import { ClubManager } from '../club/club-manager.ts';
 import type { Player, PlayerAttributes, Formation } from '@fm2k/match';
@@ -60,49 +60,6 @@ function makeClubManager(budget: number): ClubManager {
     stadiumSectors: {},
   });
 }
-
-// ── calculateOverall ──────────────────────────────────────────────────────────
-
-describe('calculateOverall:', () => {
-  // Weights: finishing + technique = 0.15 each, remaining 8 = 0.1 each → sum = 1.1
-  // So all-10 overall = 11, all-20 overall = 22
-  test('all attributes 10 gives overall 11', () => {
-    expect(calculateOverall(makeAttrs())).toBeCloseTo(11);
-  });
-
-  test('all attributes 20 gives overall 22', () => {
-    expect(calculateOverall(makeAttrs({
-      speed: 20, strength: 20, agility: 20, passing: 20, finishing: 20,
-      technique: 20, defending: 20, stamina: 20, awareness: 20, composure: 20,
-    }))).toBeCloseTo(22);
-  });
-
-  test('all attributes 0 gives overall 0', () => {
-    expect(calculateOverall(makeAttrs({
-      speed: 0, strength: 0, agility: 0, passing: 0, finishing: 0,
-      technique: 0, defending: 0, stamina: 0, awareness: 0, composure: 0,
-    }))).toBeCloseTo(0);
-  });
-
-  test('weights sum to 1.1 (finishing and technique weighted higher)', () => {
-    const total = Object.values(OVERALL_WEIGHTS).reduce((a, b) => a + b, 0);
-    expect(total).toBeCloseTo(1.1);
-  });
-
-  test('finishing weight is 0.15', () => {
-    expect(OVERALL_WEIGHTS.finishing).toBe(0.15);
-  });
-
-  test('technique weight is 0.15', () => {
-    expect(OVERALL_WEIGHTS.technique).toBe(0.15);
-  });
-
-  test('higher-rated player has higher overall', () => {
-    const low = calculateOverall(makeAttrs({ finishing: 5, technique: 5 }));
-    const high = calculateOverall(makeAttrs({ finishing: 18, technique: 18 }));
-    expect(high).toBeGreaterThan(low);
-  });
-});
 
 // ── TransferManager initial state ─────────────────────────────────────────────
 

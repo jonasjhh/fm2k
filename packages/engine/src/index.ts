@@ -82,8 +82,10 @@ export type { GameEvents } from './game-events.ts';
 export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore, isAfter } from '@fm2k/timeline';
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
-export { calculateOverall, TransferManager } from './transfer/transfer-manager.ts';
-export { getTeamOVR, playerValue, valuePlayer } from '@fm2k/valuation';
+export { calculateOverall } from '@fm2k/match';
+export { TransferManager } from './transfer/transfer-manager.ts';
+export { getTeamOVR } from '@fm2k/match';
+export { playerValue, valuePlayer } from '@fm2k/valuation';
 export type { LineupRole, ValuationContext } from '@fm2k/valuation';
 export { acceptBid } from './transfer/bid.ts';
 export {

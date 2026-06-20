@@ -1,8 +1,5 @@
-import { calculateOverall, getTeamOVR } from '@fm2k/match';
+import { calculateOverall } from '@fm2k/match';
 import type { Player } from '@fm2k/match';
-
-// getTeamOVR now lives in @fm2k/match; re-exported here for back-compat.
-export { getTeamOVR };
 
 // ── market value ────────────────────────────────────────────────────────────────
 // A player's transfer value rises steeply with skill, peaks in the mid-20s, fades with age, and

@@ -13,7 +13,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fm2k/backend": "workspace:*",
@@ -24,7 +23,6 @@
     "@mui/material": "^9.1.1",
     "@mui/material-nextjs": "^9.1.1",
     "flag-icons": "^7.5.0",
-    "localforage": "^1.10.0",
     "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
