@@ -5,7 +5,7 @@ import {
   isBefore, addMinutes, addDays,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, directTransferPrice, playerValue, transferWindow, runAiMarket,
-  churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots,
+  churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
 } from '@fm2k/engine';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
@@ -446,8 +446,11 @@ export class GameSession {
       ranked[divId] = lm.getState().standings.map(s => s.teamId);
     }
     this.editableCountries = applyPromotionRelegation(this.editableCountries, ranked);
-    // Carry the player's tactical intent — and their finances/facilities/stadium — across seasons.
+    // Carry the player's tactical intent, finances/facilities/stadium, development history, and
+    // free-agent pool across the ClubManager/TransferManager rebuild — none of that is re-derivable
+    // from the fresh squad the way e.g. seasonStartSnapshot is.
     const prev = this.clubManager?.getState();
+    const prevFreeAgents = this.transferManager?.getFreeAgents() ?? [];
     const ok = this.startGame(this.playerTeamId, this.selectedLeagueIds, prev?.tactics);
     if (ok && prev && this.clubManager) {
       this.clubManager.applySeasonCarryover({
@@ -455,7 +458,16 @@ export class GameSession {
         facilities: prev.facilities,
         stadiumSectors: prev.stadiumSectors,
         stadiumCapacity: prev.stadiumCapacity,
+        financialLog: prev.financialLog,
+        recentDevelopment: prev.recentDevelopment,
       });
+      const newSquad = this.clubManager.getState();
+      const { startingXI, benchPlayers } = carryOverLineup(
+        prev.startingXI, prev.benchPlayers, newSquad.squad, newSquad.formation,
+      );
+      this.clubManager.setStartingXI(startingXI);
+      this.clubManager.setBenchPlayers(benchPlayers);
+      this.transferManager?.setFreeAgents(prevFreeAgents);
     }
     return ok;
   }
@@ -528,6 +540,8 @@ export class GameSession {
     if (!savedClubState.tactics) {
       savedClubState.tactics = defaultIntent(savedClubState.formation);
     }
+    savedClubState.recentDevelopment ??= [];
+    savedClubState.seasonStartSnapshot ??= {};
     this.clubManager!.loadState(savedClubState);
     const transferState: TransferState = {
       listings: save.transferListings,

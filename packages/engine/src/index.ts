@@ -99,6 +99,7 @@ export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from '@
 export type { FieldedPositions } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
+  carryOverLineup,
 } from './squad/lineup-selection.ts';
 export type { SelectionOptions } from './squad/lineup-selection.ts';
 export { recentForm, leagueZone } from './league/form.ts';

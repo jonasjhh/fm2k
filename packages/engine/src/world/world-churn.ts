@@ -119,7 +119,8 @@ export interface SquadChurnResult {
   overflow: Position[];
 }
 
-function deltaOf(before: PlayerAttributes, after: PlayerAttributes): Partial<Record<AttrKey, number>> {
+/** Per-attribute net change between two attribute snapshots (only non-zero entries). */
+export function attributeDelta(before: PlayerAttributes, after: PlayerAttributes): Partial<Record<AttrKey, number>> {
   const deltas: Partial<Record<AttrKey, number>> = {};
   for (const key of Object.keys(after) as AttrKey[]) {
     const d = after[key] - before[key];
@@ -145,7 +146,7 @@ export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurn
   for (const player of squad) {
     const dev = developOverSeason(player, regimentOf(player), opts.trainingLevel, opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
-    const deltas = deltaOf(player.attributes, dev.attributes);
+    const deltas = attributeDelta(player.attributes, dev.attributes);
     if (Object.keys(deltas).length > 0) {
       developed.push({ playerId: grown.id, playerName: grown.name, age: grown.age, deltas });
     }

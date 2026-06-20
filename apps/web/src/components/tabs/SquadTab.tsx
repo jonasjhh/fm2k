@@ -204,7 +204,6 @@ export default function SquadTab() {
       <PlayerDetailModal
         player={selectedPlayer}
         onClose={() => setSelectedPlayer(null)}
-        showTraining
         actions={
           selectedPlayer && (
             <Button

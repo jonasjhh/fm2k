@@ -40,7 +40,6 @@ export default function ScoutedPlayerModal({ squad, playerId, onClose, teamId, i
     <PlayerDetailModal
       player={player}
       onClose={onClose}
-      showTraining={false}
       actions={
         price !== null && (
           <Button variant="contained" disabled={!transferWindow.open || !canAfford} onClick={handleBuy}>

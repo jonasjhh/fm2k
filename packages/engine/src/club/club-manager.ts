@@ -17,7 +17,9 @@ import type { GameEvents } from '../game-events.ts';
 import {
   trainOnMatch, DEFAULT_REGIMENT, type RegimentId,
 } from '../player/progression.ts';
-import { churnSquad, generatorYouthFactory, type YouthFactory } from '../world/world-churn.ts';
+import {
+  churnSquad, attributeDelta, generatorYouthFactory, type YouthFactory, type PlayerDelta,
+} from '../world/world-churn.ts';
 
 const FACILITY_UPGRADE_COSTS: Record<number, number> = {
   1: 50_000,
@@ -77,6 +79,8 @@ export class ClubManager {
       stadiumCapacity: config.stadiumCapacity,
       stadiumSectors: config.stadiumSectors,
       financialLog: [],
+      recentDevelopment: [],
+      seasonStartSnapshot: Object.fromEntries(squad.map(p => [p.id, p.attributes])),
     });
   }
 
@@ -84,18 +88,23 @@ export class ClubManager {
     this.stateManager.setState(state);
   }
 
-  /** Carry finances, facilities, and stadium across a season rollover (squad comes from the Team). */
+  /** Carry finances, facilities, stadium, and development history across a season rollover
+   *  (squad comes from the Team; lineup/free-agent carryover is handled by the caller). */
   applySeasonCarryover(c: {
     budget: number;
     facilities: FacilityLevels;
     stadiumSectors: Record<string, StadiumSectorConfig>;
     stadiumCapacity: number;
+    financialLog: FinancialTransaction[];
+    recentDevelopment: PlayerDelta[];
   }): void {
     this.stateManager.updateState(s => {
       s.budget = c.budget;
       s.facilities = c.facilities;
       s.stadiumSectors = c.stadiumSectors;
       s.stadiumCapacity = c.stadiumCapacity;
+      s.financialLog = c.financialLog;
+      s.recentDevelopment = c.recentDevelopment;
     });
   }
 
@@ -415,13 +424,28 @@ export class ClubManager {
       return existing ? { ...existing, attributes: p.attributes, age: p.age } : { ...p, fitness: 100 };
     });
 
+    // The full season's development: per-match training (already baked into `state.squad` by
+    // `processMatchResult` throughout the season) plus this season-end batch — diffed against the
+    // snapshot taken at the start of the season, not just churnSquad's narrower pre-batch delta.
+    const fullSeasonDevelopment: PlayerDelta[] = [];
+    for (const p of result.squad) {
+      const before = state.seasonStartSnapshot[p.id];
+      if (!before) { continue; } // joined mid-season (transfer/youth intake) — no baseline to diff against
+      const deltas = attributeDelta(before, p.attributes);
+      if (Object.keys(deltas).length > 0) {
+        fullSeasonDevelopment.push({ playerId: p.id, playerName: p.name, age: p.age, deltas });
+      }
+    }
+
     this.stateManager.updateState(s => {
       s.squad = newSquad;
       s.startingXI = s.startingXI.filter(id => !retiredIds.has(id));
       s.benchPlayers = s.benchPlayers.filter(id => !retiredIds.has(id));
+      s.recentDevelopment = fullSeasonDevelopment;
+      s.seasonStartSnapshot = Object.fromEntries(newSquad.map(p => [p.id, p.attributes]));
     });
 
-    for (const ev of result.developed) {
+    for (const ev of fullSeasonDevelopment) {
       this.eventBus?.emit('player.developed', ev);
     }
     for (const r of result.retired) {

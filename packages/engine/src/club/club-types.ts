@@ -1,7 +1,8 @@
-import type { Player, Formation } from '@fm2k/match';
+import type { Player, Formation, PlayerAttributes } from '@fm2k/match';
 import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { RegimentId } from '../player/progression.ts';
+import type { PlayerDelta } from '../world/world-churn.ts';
 
 export interface ClubPlayer extends Player {
   fitness: number  // 0–100
@@ -51,4 +52,10 @@ export interface ClubState {
   stadiumCapacity: number
   stadiumSectors: Record<string, StadiumSectorConfig>
   financialLog: FinancialTransaction[]
+  /** Net attribute deltas from the most recent season-end rollover (replaced wholesale each season).
+   *  Reflects the full season's change — in-season per-match training plus the season-end batch. */
+  recentDevelopment: PlayerDelta[]
+  /** Each squad player's attributes as of the start of the current season — the baseline
+   *  `recentDevelopment` is diffed against; reseeded wholesale each season-end rollover. */
+  seasonStartSnapshot: Record<string, PlayerAttributes>
 }

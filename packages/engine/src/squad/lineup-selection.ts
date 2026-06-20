@@ -124,6 +124,45 @@ export function selectStartingXIWithSlots(
 }
 
 /**
+ * Carry a previously-chosen starting XI/bench across a squad change (e.g. a season rollover),
+ * preserving the manager's actual picks rather than replacing them with a fresh auto-selection.
+ * Players no longer in `squad` (retired/sold) are dropped, then any resulting gaps — in the XI
+ * (back up to 11) and the bench (back up to its previous size) — are backfilled from the
+ * best-fit selection, skipping ids already in use.
+ */
+export function carryOverLineup(
+  prevStartingXI: string[],
+  prevBenchPlayers: string[],
+  squad: Player[],
+  formation: Formation,
+): { startingXI: string[]; benchPlayers: string[] } {
+  const squadIds = new Set(squad.map(p => p.id));
+  const startingXI = prevStartingXI.filter(id => squadIds.has(id));
+  const benchPlayers = prevBenchPlayers.filter(id => squadIds.has(id));
+  const used = new Set([...startingXI, ...benchPlayers]);
+
+  const fallback = selectStartingXIWithSlots(squad, formation);
+  const fallbackOrder = [...fallback.starters, ...fallback.substitutes].map(p => p.id);
+
+  for (const id of fallbackOrder) {
+    if (startingXI.length >= 11) { break; }
+    if (used.has(id)) { continue; }
+    startingXI.push(id);
+    used.add(id);
+  }
+
+  const benchTarget = prevBenchPlayers.length;
+  for (const id of fallbackOrder) {
+    if (benchPlayers.length >= benchTarget) { break; }
+    if (used.has(id)) { continue; }
+    benchPlayers.push(id);
+    used.add(id);
+  }
+
+  return { startingXI, benchPlayers };
+}
+
+/**
  * The formation that best suits a squad, assuming every player is fit. Scores each
  * formation by its optimal assignment and returns the highest-scoring one.
  */

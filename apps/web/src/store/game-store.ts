@@ -15,9 +15,9 @@ export type { EditableCountry, EditableDivision, LastMatchResult };
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export type Screen = 'main-menu' | 'team-selection' | 'editor' | 'game';
-export type TabId = 'squad' | 'tactics' | 'match' | 'table' | 'fixtures' | 'transfers' | 'club' | 'finances';
+export type TabId = 'squad' | 'tactics' | 'training' | 'match' | 'table' | 'fixtures' | 'transfers' | 'club' | 'finances';
 
-const TAB_IDS: readonly TabId[] = ['squad', 'tactics', 'match', 'table', 'fixtures', 'transfers', 'club', 'finances'];
+const TAB_IDS: readonly TabId[] = ['squad', 'tactics', 'training', 'match', 'table', 'fixtures', 'transfers', 'club', 'finances'];
 const toTabId = (s: string): TabId => (TAB_IDS as readonly string[]).includes(s) ? s as TabId : 'squad';
 
 export interface SimEvent {

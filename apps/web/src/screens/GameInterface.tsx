@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { TabId } from '../store/game-store';
 import SquadTab from '../components/tabs/SquadTab';
 import TacticsTab from '../components/tabs/TacticsTab';
+import TrainingTab from '../components/tabs/TrainingTab';
 import MatchTab from '../components/tabs/MatchTab';
 import TableTab from '../components/tabs/TableTab';
 import FixturesTab from '../components/tabs/FixturesTab';
@@ -27,6 +28,7 @@ import SettingsDialog from '../components/ui/SettingsDialog';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'squad', label: 'Squad' },
   { id: 'tactics', label: 'Tactics' },
+  { id: 'training', label: 'Training' },
   { id: 'match', label: 'Match' },
   { id: 'table', label: 'Competitions' },
   { id: 'fixtures', label: 'Fixtures' },
@@ -131,6 +133,7 @@ export default function GameInterface() {
       <Box sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 }, maxWidth: 1200, width: '100%', mx: 'auto' }}>
         {activeTab === 'squad' && <SquadTab />}
         {activeTab === 'tactics' && <TacticsTab />}
+        {activeTab === 'training' && <TrainingTab />}
         {activeTab === 'match' && <MatchTab />}
         {activeTab === 'table' && <TableTab />}
         {activeTab === 'fixtures' && <FixturesTab />}

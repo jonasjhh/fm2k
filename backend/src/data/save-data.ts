@@ -19,7 +19,9 @@ export type SaveType = 'QUICK' | 'AUTO';
 // v8 added `transferFreeAgents` (the shared free-agent pool behind the transfer market).
 // v9 collapsed Team's starters/substitutes split into a single `squad` — the starting XI
 // is no longer persisted on Team at all, so old saves can't be migrated (MIN bumped too).
-export const SAVE_VERSION = 9;
+// v10 added `clubState.recentDevelopment` (last season's per-player attribute deltas).
+// v11 added `clubState.seasonStartSnapshot` (baseline `recentDevelopment` is diffed against).
+export const SAVE_VERSION = 11;
 export const MIN_LOADABLE_VERSION = 9;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';

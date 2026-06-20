@@ -1,5 +1,5 @@
-import type { ClubPlayer, Player, RegimentId } from '@fm2k/engine';
-import { playerValue, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT } from '@fm2k/engine';
+import type { ClubPlayer, Player } from '@fm2k/engine';
+import { playerValue } from '@fm2k/engine';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
@@ -9,11 +9,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
-import { useGameStore } from '../../store/game-store';
 import { fmt } from '../../utils/formatting';
 import PlayerStatusChip from './PlayerStatusChip';
 
@@ -66,19 +63,17 @@ export function AttrBar({ label, value }: { label: string; value: number }) {
 
 // ─── modal ────────────────────────────────────────────────────────────────────
 
-/** A scouted player from another club is a plain `Player` — fitness/injury/suspension/training
+/** A scouted player from another club is a plain `Player` — fitness/injury/suspension
  *  only exist on the manager's own `ClubPlayer` squad. */
-type ViewablePlayer = Player & Partial<Pick<ClubPlayer, 'fitness' | 'injury' | 'suspension' | 'training'>>;
+type ViewablePlayer = Player & Partial<Pick<ClubPlayer, 'fitness' | 'injury' | 'suspension'>>;
 
 interface PlayerDetailModalProps {
   player: ViewablePlayer | null;
   onClose: () => void;
-  showTraining?: boolean;
   actions?: React.ReactNode;
 }
 
-export default function PlayerDetailModal({ player, onClose, showTraining, actions }: PlayerDetailModalProps) {
-  const setTraining = useGameStore((s) => s.setTraining);
+export default function PlayerDetailModal({ player, onClose, actions }: PlayerDetailModalProps) {
   const value = player ? playerValue(player) : 0;
 
   return (
@@ -130,24 +125,6 @@ export default function PlayerDetailModal({ player, onClose, showTraining, actio
               <Box sx={{ px: 2.5, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="caption" color="text.secondary">Status</Typography>
                 <PlayerStatusChip player={player} />
-              </Box>
-            )}
-
-            {/* Training */}
-            {showTraining && (
-              <Box sx={{ px: 2.5, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>Training</Typography>
-                <Select
-                  size="small"
-                  fullWidth
-                  value={player.training ?? DEFAULT_REGIMENT}
-                  onChange={(e) => setTraining(player.id, e.target.value as RegimentId)}
-                  sx={{ '& .MuiSelect-select': { py: 0.5 } }}
-                >
-                  {REGIMENT_IDS.map((id) => (
-                    <MenuItem key={id} value={id}>{REGIMENT_LABELS[id]}</MenuItem>
-                  ))}
-                </Select>
               </Box>
             )}
 

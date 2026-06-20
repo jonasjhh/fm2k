@@ -190,8 +190,8 @@ describe('checkSaveCompatibility:', () => {
     expect(checkSaveCompatibility(withVersion(0))).toBe('incompatible');
   });
 
-  it('given any version older than current (no migration path) then incompatible', () => {
-    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('incompatible');
+  it('given the oldest still-loadable version then outdated', () => {
+    expect(checkSaveCompatibility(withVersion(SAVE_VERSION - 1))).toBe('outdated');
   });
 
   it('given the current version then ok', () => {
