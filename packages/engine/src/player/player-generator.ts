@@ -4,14 +4,14 @@ import { v4 as uuidv4 } from '@fm2k/state';
 import type { CountryKey } from '@fm2k/names';
 
 const COUNTRY_NATIONALITY: Record<CountryKey, string> = {
-  norway:  'norwegian',
-  england: 'english',
-  germany: 'german',
-  france:  'french',
-  spain:   'spanish',
-  italy:   'italian',
-  sweden:  'swedish',
-  denmark: 'danish',
+  norway:  'Norwegian',
+  england: 'English',
+  germany: 'German',
+  france:  'French',
+  spain:   'Spanish',
+  italy:   'Italian',
+  sweden:  'Swedish',
+  denmark: 'Danish',
 };
 
 /** Default target overall when none is supplied. */
@@ -60,7 +60,7 @@ export class PlayerGenerator {
     private readonly rng: () => number = Math.random,
   ) {
     this.nameGenerator = new NameGenerator(gender, country, rng);
-    this.nationality = country === 'all' ? 'unknown' : COUNTRY_NATIONALITY[country];
+    this.nationality = country === 'all' ? 'Unknown' : COUNTRY_NATIONALITY[country];
   }
 
   /**

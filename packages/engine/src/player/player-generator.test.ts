@@ -90,22 +90,22 @@ describe('PlayerGenerator:', () => {
 
   describe('nationality:', () => {
     test.each([
-      ['norway', 'norwegian'],
-      ['england', 'english'],
-      ['germany', 'german'],
-      ['france', 'french'],
-      ['spain', 'spanish'],
-      ['italy', 'italian'],
-      ['sweden', 'swedish'],
-      ['denmark', 'danish'],
+      ['norway', 'Norwegian'],
+      ['england', 'English'],
+      ['germany', 'German'],
+      ['france', 'French'],
+      ['spain', 'Spanish'],
+      ['italy', 'Italian'],
+      ['sweden', 'Swedish'],
+      ['denmark', 'Danish'],
     ] as const)('maps country %s to nationality %s', (country, nationality) => {
       const player = new PlayerGenerator('female', country).generatePlayer('ST');
       expect(player.nationality).toBe(nationality);
     });
 
-    test('uses "unknown" nationality for the "all" country', () => {
+    test('uses "Unknown" nationality for the "all" country', () => {
       const player = new PlayerGenerator('female', 'all').generatePlayer('ST');
-      expect(player.nationality).toBe('unknown');
+      expect(player.nationality).toBe('Unknown');
     });
   });
 });

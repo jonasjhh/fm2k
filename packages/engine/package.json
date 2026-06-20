@@ -16,7 +16,6 @@
     "lint": "eslint src/**/*.ts",
     "generate-players": "tsx scripts/generate-players.ts",
     "populate-teams": "tsx scripts/populate-teams.ts",
-    "migrate-country-data": "tsx scripts/migrate-country-data.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

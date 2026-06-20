@@ -580,7 +580,7 @@ export class GameSession {
       stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
       stadiumSectors: defaultSectors,
       eventBus,
-      nationality: playerCountry?.nationality ?? 'unknown',
+      nationality: playerCountry?.nationality ?? 'Unknown',
       youthFactory: this.youthFactory,
     });
 
@@ -688,7 +688,7 @@ export class GameSession {
       stadiumCapacity: prevClub.stadiumCapacity,
       stadiumSectors: prevClub.stadiumSectors,
       eventBus,
-      nationality: playerCountry?.nationality ?? 'unknown',
+      nationality: playerCountry?.nationality ?? 'Unknown',
       youthFactory: this.youthFactory,
       facilities: prevClub.facilities,
       financialLog: prevClub.financialLog,
@@ -973,7 +973,7 @@ export class GameSession {
    */
   private churnWorld(playerOverflow: PlayerPosition[]): void {
     const overflow: OverflowSpec[] = [];
-    const playerNationality = countryForTeam(this.world, this.playerTeamId ?? '')?.nationality ?? 'unknown';
+    const playerNationality = countryForTeam(this.world, this.playerTeamId ?? '')?.nationality ?? 'Unknown';
     for (const pos of playerOverflow) { overflow.push({ position: pos, nationality: playerNationality }); }
 
     for (const team of this.world.teams.values()) {
@@ -1234,7 +1234,7 @@ export class GameSession {
     if (!acceptBid(target, role, amount, this.rng)) { return false; }
     if (!this.clubManager.buyPlayer(target, amount)) { return false; } // budget check
 
-    const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+    const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, teamId)?.level ?? 3;
     const replacement = makeYouth(target.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
@@ -1310,7 +1310,7 @@ export class GameSession {
     const fee = valuePlayer(player, { role: isStarter ? 'starter' : 'bench' });
     if (!this.clubManager.buyPlayer(player, fee)) { return false; }
 
-    const nationality = countryForTeam(this.world, team.id)?.nationality ?? 'unknown';
+    const nationality = countryForTeam(this.world, team.id)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, team.id)?.level ?? 3;
     const replacement = makeYouth(player.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
@@ -1435,7 +1435,7 @@ export class GameSession {
 
   addGeneratedPlayer(teamId: string): EditableCountry[] {
     if (teamById(this.world, teamId)) {
-      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'Unknown';
       const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
       addPlayerToWorld(this.world, this.makePlayer(pos, 70, nationality), teamId);
     }
@@ -1451,7 +1451,7 @@ export class GameSession {
 
   generateFullTeam(teamId: string): EditableCountry[] {
     if (teamById(this.world, teamId)) {
-      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'unknown';
+      const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'Unknown';
       const starters = (['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'] as PlayerPosition[])
         .map(pos => this.makePlayer(pos, 70, nationality));
       const bench = (['GK', 'CB', 'CM', 'ST'] as PlayerPosition[])

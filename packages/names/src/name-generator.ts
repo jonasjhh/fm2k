@@ -1,4 +1,7 @@
-import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name-data.ts';
+import {
+  NORWEGIAN_NAMES, ENGLISH_NAMES, SWEDISH_NAMES, DANISH_NAMES,
+  FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES,
+} from './name-data.ts';
 
 export type Gender = 'male' | 'female' | 'all';
 export type CountryKey = 'norway' | 'england' | 'germany' | 'france' | 'spain' | 'italy' | 'sweden' | 'denmark';
@@ -15,6 +18,12 @@ interface CountryNames {
 export interface NameData {
     norwegian: CountryNames;
     english: CountryNames;
+    swedish: CountryNames;
+    danish: CountryNames;
+    french: CountryNames;
+    german: CountryNames;
+    italian: CountryNames;
+    spanish: CountryNames;
 }
 
 export class NameGenerator {
@@ -27,6 +36,12 @@ export class NameGenerator {
         private readonly nameData: NameData = {
           norwegian: NORWEGIAN_NAMES as CountryNames,
           english: ENGLISH_NAMES as CountryNames,
+          swedish: SWEDISH_NAMES as CountryNames,
+          danish: DANISH_NAMES as CountryNames,
+          french: FRENCH_NAMES as CountryNames,
+          german: GERMAN_NAMES as CountryNames,
+          italian: ITALIAN_NAMES as CountryNames,
+          spanish: SPANISH_NAMES as CountryNames,
         },
   ) {
     this.availableCountries = this.getAvailableCountries();
@@ -60,22 +75,18 @@ export class NameGenerator {
   }
 
   private getAvailableCountries(): CountryNames[] {
-    const NOR = this.nameData.norwegian;
-    const ENG = this.nameData.english;
+    const { norwegian, english, swedish, danish, french, german, italian, spanish } = this.nameData;
     const mapping: Record<Country, CountryNames[]> = {
-      // Countries with dedicated name data
-      norway:   [NOR],
-      england:  [ENG],
-      // Scandinavian neighbours share the Norwegian pool until dedicated data is added
-      sweden:   [NOR],
-      denmark:  [NOR],
-      // Germanic / Romance languages share the English pool until dedicated data is added
-      germany:  [ENG],
-      france:   [ENG],
-      spain:    [ENG],
-      italy:    [ENG],
+      norway:   [norwegian],
+      england:  [english],
+      sweden:   [swedish],
+      denmark:  [danish],
+      germany:  [german],
+      france:   [french],
+      spain:    [spanish],
+      italy:    [italian],
       // 'all' draws from every available pool
-      all:      [NOR, ENG],
+      all:      [norwegian, english, swedish, danish, french, german, italian, spanish],
     };
 
     const result = mapping[this.country];

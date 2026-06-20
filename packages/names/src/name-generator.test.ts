@@ -1,5 +1,8 @@
 import { NameGenerator, Country, NameData } from './name-generator';
-import { NORWEGIAN_NAMES, ENGLISH_NAMES } from './name-data';
+import {
+  NORWEGIAN_NAMES, ENGLISH_NAMES, SWEDISH_NAMES, DANISH_NAMES,
+  FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES,
+} from './name-data';
 
 // Builds a small, fully-controlled name-data set so behaviour can be asserted
 // exactly (selection, validation guards) instead of probabilistically.
@@ -7,9 +10,16 @@ function makeData(overrides: {
   norwegian?: Partial<NameData['norwegian']>;
   english?: Partial<NameData['english']>;
 } = {}): NameData {
+  const empty = { male: [], female: [], last: [] };
   return {
     norwegian: { male: ['Nor'], female: ['Nora'], last: ['Norsen'], ...overrides.norwegian },
     english: { male: ['Eng'], female: ['Enga'], last: ['Engson'], ...overrides.english },
+    swedish: empty,
+    danish: empty,
+    french: empty,
+    german: empty,
+    italian: empty,
+    spanish: empty,
   };
 }
 
@@ -18,14 +28,21 @@ function flattenNameEntries(entries: (string | string[])[]): string[] {
   return entries.flatMap(entry => Array.isArray(entry) ? entry : [entry]);
 }
 
+// Longest-suffix match against every known surname, since a few (e.g. Italian
+// "De Luca") are multi-word — a naive last-word split would mis-parse those.
+const ALL_LAST_NAMES = [
+  NORWEGIAN_NAMES, ENGLISH_NAMES, SWEDISH_NAMES, DANISH_NAMES,
+  FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES,
+].flatMap(pool => flattenNameEntries(pool.last)).sort((a, b) => b.length - a.length);
+
 // Helper function to extract first and last name from full name
 function parseFullName(fullName: string): { firstName: string, lastName: string } {
-  const parts = fullName.trim().split(' ');
-  return {
-    firstName: parts[0],
-    lastName: parts[parts.length - 1],
-  };
+  const trimmed = fullName.trim();
+  const lastName = ALL_LAST_NAMES.find(n => trimmed.endsWith(n)) ?? trimmed.slice(trimmed.lastIndexOf(' ') + 1);
+  const firstName = trimmed.slice(0, trimmed.length - lastName.length).trim();
+  return { firstName, lastName };
 }
+
 
 describe('NameGenerator:', () => {
   describe('.generateName()', () => {
@@ -78,22 +95,21 @@ describe('NameGenerator:', () => {
   });
 
   describe('.generateNames()', () => {
-    test('given a male name generator with all countries when generating names then should use names from both Norwegian and English data', () => {
+    test('given a male name generator with all countries when generating names then should use names from any country\'s pool', () => {
       const generator = new NameGenerator('male', 'all');
       const names = generator.generateNames(20);
 
+      const allFirstNames = [SWEDISH_NAMES, DANISH_NAMES, FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES]
+        .reduce((acc, pool) => [...acc, ...flattenNameEntries(pool.male)],
+          [...flattenNameEntries(NORWEGIAN_NAMES.male), ...flattenNameEntries(ENGLISH_NAMES.male)]);
+      const allLastNames = [SWEDISH_NAMES, DANISH_NAMES, FRENCH_NAMES, GERMAN_NAMES, ITALIAN_NAMES, SPANISH_NAMES]
+        .reduce((acc, pool) => [...acc, ...flattenNameEntries(pool.last)],
+          [...flattenNameEntries(NORWEGIAN_NAMES.last), ...flattenNameEntries(ENGLISH_NAMES.last)]);
+
       names.forEach(name => {
         const { firstName, lastName } = parseFullName(name);
-        const norwayFirstNames = flattenNameEntries(NORWEGIAN_NAMES.male);
-        const englishFirstNames = flattenNameEntries(ENGLISH_NAMES.male);
-        const norwayLastNames = flattenNameEntries(NORWEGIAN_NAMES.last);
-        const englishLastNames = flattenNameEntries(ENGLISH_NAMES.last);
-
-        const isValidFirstName = norwayFirstNames.includes(firstName) || englishFirstNames.includes(firstName);
-        const isValidLastName = norwayLastNames.includes(lastName) || englishLastNames.includes(lastName);
-
-        expect(isValidFirstName).toBe(true);
-        expect(isValidLastName).toBe(true);
+        expect(allFirstNames).toContain(firstName);
+        expect(allLastNames).toContain(lastName);
       });
     });
   });
@@ -194,17 +210,6 @@ describe('NameGenerator:', () => {
       const generator = new NameGenerator('male', 'norway', () => 0, data);
 
       expect(() => generator.generateName()).toThrow('Cannot select from empty array');
-    });
-  });
-
-  describe('generate 25 names', () => {
-    test.skip('female names for each country', () => {
-      const countries: Country[] = ['norway', 'england', 'all'];
-      for (const country of countries) {
-        process.stdout.write(`\n--- ${country} ---\n`);
-        const names = new NameGenerator('female', country).generateNames(25);
-        names.forEach(name => process.stdout.write(name + '\n'));
-      }
     });
   });
 });

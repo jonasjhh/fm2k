@@ -66,7 +66,7 @@ export class ClubManager {
   constructor(config: ClubManagerConfig) {
     this.rng = config.rng ?? Math.random.bind(Math);
     this.eventBus = config.eventBus;
-    this.nationality = config.nationality ?? 'unknown';
+    this.nationality = config.nationality ?? 'Unknown';
     this.youthFactory = config.youthFactory ?? generatorYouthFactory(this.rng);
     config.eventBus?.on('match.completed', payload => this.processMatchResult(payload));
     const squad: ClubPlayer[] = config.squad.map(p => ({ ...p, fitness: 100 }));
