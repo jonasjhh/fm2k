@@ -18,6 +18,11 @@ export * from './tactics/index.ts';
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
 export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from './lineup/lineup.ts';
 
+// Position attribute importance (derived from the simulator's own formulas)
+export { positionAttributeImportance } from './match/position-importance.ts';
+export { SKILL_WEIGHTS, type Skill } from './match/action-generators.ts';
+export { ACTION_TYPE_SKILL, type ActionType } from './match/action-selector.ts';
+
 // Match simulation
 export { MatchSimulator, isTerminalPhase } from './match/match-simulator.ts';
 export type { MatchConfig } from './match/match-simulator.ts';

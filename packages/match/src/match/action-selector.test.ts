@@ -320,8 +320,6 @@ describe('getPositionPreference:', () => {
     expect(getPositionPreference('dribble', 'LW')).toBe(1.4);
     expect(getPositionPreference('shot', 'ST')).toBe(1.5);
     expect(getPositionPreference('cross', 'LW')).toBe(1.5);
-    expect(getPositionPreference('tackle', 'CB')).toBe(1.3);
-    expect(getPositionPreference('clearance', 'GK')).toBe(1.2);
   });
   it('falls back to 1.0 for unknown action or position', () => {
     expect(getPositionPreference('shot', 'GK')).toBe(1.0);
@@ -332,7 +330,7 @@ describe('getPositionPreference:', () => {
 describe('getSkillRequired:', () => {
   it('returns the table requirement', () => {
     expect(getSkillRequired('through_ball')).toBe(80);
-    expect(getSkillRequired('clearance')).toBe(50);
+    expect(getSkillRequired('short_pass')).toBe(60);
     expect(getSkillRequired('shot')).toBe(65);
   });
   it('falls back to 60 for an unknown action', () => {
@@ -343,9 +341,7 @@ describe('getSkillRequired:', () => {
 describe('getRiskLevel:', () => {
   it('returns the table risk level', () => {
     expect(getRiskLevel('through_ball')).toBe('high');
-    expect(getRiskLevel('tackle')).toBe('high');
     expect(getRiskLevel('short_pass')).toBe('low');
-    expect(getRiskLevel('clearance')).toBe('low');
     expect(getRiskLevel('dribble')).toBe('medium');
   });
   it('falls back to medium for an unknown action', () => {

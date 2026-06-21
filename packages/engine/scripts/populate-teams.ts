@@ -12,7 +12,7 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
-import { PlayerGenerator } from '@fm2k/players';
+import { PlayerGenerator, POSITION_ARCHETYPES } from '@fm2k/players';
 import { divisionOverallDistribution, divisionCategoryBias } from '../src/player/generation-profile.ts';
 import { attrToJson } from '../src/data/country-data.ts';
 import type { CountryDivisionRow, CountryTeamRow, CountryPlayerRow } from '../src/data/country-data.ts';
@@ -49,6 +49,13 @@ const SQUAD_POSITIONS: PlayerPosition[] = [
 
 // ── player builder ────────────────────────────────────────────────────────────
 
+/** Picks uniformly among the position's named archetypes — every player gets a random identity
+ *  (poacher, sweeper, playmaker, ...) rather than always 'balanced'. */
+function randomArchetype(position: PlayerPosition): string {
+  const names = Object.keys(POSITION_ARCHETYPES[position]);
+  return names[Math.floor(Math.random() * names.length)];
+}
+
 function buildPlayer(
   generator: PlayerGenerator,
   position: PlayerPosition,
@@ -59,7 +66,8 @@ function buildPlayer(
 ): CountryPlayerRow {
   const overallDistribution = divisionOverallDistribution(nationalityKey, divisionLevel);
   const categoryBias = divisionCategoryBias(divisionLevel);
-  const player = generator.generatePlayer(position, { overallDistribution, categoryBias });
+  const archetype = randomArchetype(position);
+  const player = generator.generatePlayer(position, { overallDistribution, categoryBias, archetype });
 
   return {
     id: player.id,

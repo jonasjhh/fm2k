@@ -1,81 +1,106 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
-import { Player, type FormationPosition } from '../shared/types.ts';
+import { Player, type FormationPosition, type PlayerAttributes } from '../shared/types.ts';
 import type { ActionGenerator } from './action-selector.ts';
 import { getEffectiveAttributes } from '../shared/position-rules.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 
+/** A named component skill, each backed by a weighted sum of base attributes in `SKILL_WEIGHTS`. */
+export type Skill =
+  | 'dribbling' | 'finishing' | 'heading' | 'penalties' | 'throughBall' | 'longShot'
+  | 'crossing' | 'tackling' | 'interception' | 'gkSaving' | 'shortPassing' | 'longPassing';
+
 /**
- * Match skills are **composites** of the 10 base attributes. Each method below is the
- * single source of truth for one skill: the component attributes and their weights are
- * visible here (weights sum to 1, so the result stays on the 1..99 scale). Weights are
- * chosen deliberately to reflect what actually drives the skill — they are NOT assumed
- * equal. When reading a generator, look here to see what a skill is made of.
+ * The single source of truth for every skill's component attributes and their weights
+ * (each entry sums to 1, so a skill's result stays on the 1..99 scale). Weights are chosen
+ * deliberately to reflect what actually drives the skill — they are NOT assumed equal.
  */
-export class SkillCalculator {
+export const SKILL_WEIGHTS: Record<Skill, Partial<Record<keyof PlayerAttributes, number>>> = {
+  dribbling:    { technique: 0.4, speed: 0.3, agility: 0.3 },
+  finishing:    { finishing: 0.7, composure: 0.2, technique: 0.1 },
+  heading:      { strength: 0.4, agility: 0.35, finishing: 0.25 },
+  penalties:    { finishing: 0.55, composure: 0.35, technique: 0.1 },
+  throughBall:  { awareness: 0.5, passing: 0.4, technique: 0.1 },
+  longShot:     { finishing: 0.5, technique: 0.3, composure: 0.2 },
+  crossing:     { passing: 0.6, technique: 0.3, awareness: 0.1 },
+  tackling:     { defending: 0.6, awareness: 0.2, strength: 0.2 },
+  interception: { awareness: 0.5, defending: 0.3, agility: 0.2 },
+  gkSaving:     { agility: 0.55, awareness: 0.25, composure: 0.2 },
+  shortPassing: { passing: 0.6, technique: 0.4 },
+  longPassing:  { passing: 0.7, strength: 0.3 },
+};
+
+function weightedSkill(attrs: PlayerAttributes, weights: Partial<Record<keyof PlayerAttributes, number>>): number {
+  let total = 0;
+  for (const key of Object.keys(weights) as (keyof PlayerAttributes)[]) {
+    total += attrs[key] * (weights[key] ?? 0);
+  }
+  return total;
+}
+
+/**
+ * Computes a player's rating for a given in-engine action or action-outcome, each a weighted
+ * sum of the 10 base attributes per `SKILL_WEIGHTS`. When reading a generator, look here to see
+ * what an action is made of.
+ */
+export class ActionCalculator {
   /** Close control while running: technique-led, helped by pace and balance. */
   static dribbling(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.technique * 0.4 + a.speed * 0.3 + a.agility * 0.3);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.dribbling);
   }
 
   /** Putting the ball away: dominated by finishing, steadied by composure. */
   static finishing(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.finishing * 0.7 + a.composure * 0.2 + a.technique * 0.1);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.finishing);
   }
 
   /** Aerial duel / header: chiefly strength + jumping (agility); finishing matters least. */
   static heading(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.strength * 0.4 + a.agility * 0.35 + a.finishing * 0.25);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.heading);
   }
 
   /** Spot kick: a composure test as much as a finishing one. */
   static penalties(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.finishing * 0.55 + a.composure * 0.35 + a.technique * 0.1);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.penalties);
   }
 
   /** Defence-splitting pass: vision (awareness) first, then passing weight. */
   static throughBall(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.awareness * 0.5 + a.passing * 0.4 + a.technique * 0.1);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.throughBall);
   }
 
   /** Shot from distance: finishing + technique, with some composure. */
   static longShot(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.finishing * 0.5 + a.technique * 0.3 + a.composure * 0.2);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.longShot);
   }
 
   /** Delivery from wide: a passing skill above all. */
   static crossing(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.passing * 0.6 + a.technique * 0.3 + a.awareness * 0.1);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.crossing);
   }
 
   /** Winning the ball in a challenge: defending-led, with reading and power. */
   static tackling(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.defending * 0.6 + a.awareness * 0.2 + a.strength * 0.2);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.tackling);
   }
 
   /** Reading and cutting out a pass: awareness first, then defending. */
   static interception(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.awareness * 0.5 + a.defending * 0.3 + a.agility * 0.2);
-  }
-
-  /** Hoofing the ball clear: power and defending. */
-  static clearing(player: Player, fieldedPosition: FormationPosition = player.position): number {
-    const a = getEffectiveAttributes(player, fieldedPosition);
-    return (a.defending * 0.5 + a.strength * 0.4 + a.awareness * 0.1);
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.interception);
   }
 
   /** Shot-stopping (GK): reflexes (agility) first, then positioning and nerve. */
   static gkSaving(gk: Player): number {
-    const a = gk.attributes;
-    return (a.agility * 0.55 + a.awareness * 0.25 + a.composure * 0.2);
+    return weightedSkill(gk.attributes, SKILL_WEIGHTS.gkSaving);
+  }
+
+  /** Short pass: accuracy (passing) led, helped by close control (technique). */
+  static shortPassing(player: Player, fieldedPosition: FormationPosition = player.position): number {
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.shortPassing);
+  }
+
+  /** Long pass: accuracy (passing) led, helped by the power to drive it (strength). */
+  static longPassing(player: Player, fieldedPosition: FormationPosition = player.position): number {
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.longPassing);
   }
 }
 
@@ -283,7 +308,7 @@ export class ShortPassGenerator implements ActionGenerator {
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (a propensity, not the outcome — turnovers are resolved by the
     // contest). Centred so a stronger passer vs a weaker defence is favoured.
-    const atk = player.attributes.passing * 0.6 + player.attributes.technique * 0.4;
+    const atk = ActionCalculator.shortPassing(player, fielded(state, state.possession, player));
     const diff = atk - defLineStrength(state);
     const w = clamp(0.4, 0.94, PASS_RETAIN_PARITY + diff / PASS_RETAIN_SPREAD);
     return Math.min(w * this.getPositionModifier(state.ballPosition), 0.95);
@@ -336,7 +361,7 @@ export class DribbleGenerator implements ActionGenerator {
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (a propensity, not the outcome — being tackled is resolved by
     // the contest). A better dribbler vs a weaker defence is more likely to try it on.
-    const diff = SkillCalculator.dribbling(player, fielded(state, state.possession, player)) - defLineStrength(state);
+    const diff = ActionCalculator.dribbling(player, fielded(state, state.possession, player)) - defLineStrength(state);
     const base = clamp(0.2, 0.85, 0.5 + diff / 300);
     return Math.min(base * this.getZoneModifier(state.ballPosition), 0.85);
   }
@@ -399,20 +424,20 @@ export class ShotGenerator implements ActionGenerator {
     // (tier-flat), but a defence that outclasses the attack denies clean looks, so
     // a poor attacker is shut down rather than merely missing the chances it gets.
     const zoneModifier = state.ballPosition.zone === 'away_box' ? 1.2 : 0.8;
-    const diff = SkillCalculator.finishing(player, fielded(state, state.possession, player)) - defLineStrength(state);
+    const diff = ActionCalculator.finishing(player, fielded(state, state.possession, player)) - defLineStrength(state);
     const take = clamp(0.12, 0.6, SHOT_TAKE_PARITY + diff / SHOT_TAKE_SPREAD);
     return Math.min(take * zoneModifier, 0.9);
   }
 
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
     const gk = getGK(state);
-    const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
+    const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
     const zoneMultiplier = state.ballPosition.zone === 'away_box' ? 1.0 : 0.4;
 
     // Conversion is the finisher vs the keeper, parity-centred (so even matches at
     // any tier convert similarly) then scaled by zone and the tactical chance
     // quality (attacker) vs defensive compactness (defender).
-    const conv = clamp(0.02, 0.6, CONV_PARITY + (SkillCalculator.finishing(player, fielded(state, state.possession, player)) - gkSkill) / CONV_SPREAD);
+    const conv = clamp(0.02, 0.6, CONV_PARITY + (ActionCalculator.finishing(player, fielded(state, state.possession, player)) - gkSkill) / CONV_SPREAD);
     const goalProb = Math.max(0.01, Math.min(0.6, conv * zoneMultiplier * momentumQuality(state)));
     const isGoal = this.rng() < goalProb;
 
@@ -482,7 +507,7 @@ function possPlayers(state: MatchState): Player[] { return state.currentPlayers[
 /** Average aerial ability of a group (for header duels). */
 function avgHeadingOf(state: MatchState, side: 'home' | 'away', players: Player[]): number {
   if (players.length === 0) { return 50; }
-  return players.reduce((s, p) => s + SkillCalculator.heading(p, fielded(state, side, p)), 0) / players.length;
+  return players.reduce((s, p) => s + ActionCalculator.heading(p, fielded(state, side, p)), 0) / players.length;
 }
 
 /** State after a shot/header: ball back to the keeper's side, possession turned over. */
@@ -523,7 +548,7 @@ export class LongPassGenerator implements ActionGenerator {
 
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (propensity) — being cut out is resolved by the contest.
-    const atk = player.attributes.passing * 0.7 + player.attributes.strength * 0.3;
+    const atk = ActionCalculator.longPassing(player, fielded(state, state.possession, player));
     const diff = atk - defLineStrength(state);
     return clamp(0.3, 0.85, 0.58 + diff / PASS_RETAIN_SPREAD);
   }
@@ -561,7 +586,7 @@ export class ThroughBallGenerator implements ActionGenerator {
 
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (propensity) — being intercepted is resolved by the contest.
-    const diff = SkillCalculator.throughBall(player, fielded(state, state.possession, player)) - defLineStrength(state);
+    const diff = ActionCalculator.throughBall(player, fielded(state, state.possession, player)) - defLineStrength(state);
     return clamp(0.18, 0.7, 0.45 + diff / 280);
   }
 
@@ -596,7 +621,7 @@ export class CrossGenerator implements ActionGenerator {
   calculateProbability(player: Player, state: MatchState): number {
     // Selection weight (propensity) — a cleared cross is resolved by the contest
     // (which also handles the cross-cleared-behind-for-a-corner outcome).
-    const diff = SkillCalculator.crossing(player, fielded(state, state.possession, player)) - defLineStrength(state);
+    const diff = ActionCalculator.crossing(player, fielded(state, state.possession, player)) - defLineStrength(state);
     return clamp(0.2, 0.8, 0.5 + diff / 300);
   }
 
@@ -619,9 +644,9 @@ function headerAttempt(state: MatchState, rng: () => number): MatchEvent {
     ?? possPlayers(state)[0];
 
   const gk = getGK(state);
-  const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
+  const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
   const defAerial = avgHeadingOf(state, defTeamSide(state), getDefenders(state));
-  const attackerHead = SkillCalculator.heading(target, fielded(state, state.possession, target));
+  const attackerHead = ActionCalculator.heading(target, fielded(state, state.possession, target));
 
   // Win the aerial duel, then beat the keeper. Parity-centred on both contests.
   const conv = clamp(0.03, 0.5,
@@ -724,11 +749,11 @@ function buildSetPiece(state: MatchState, zone: BallPosition['zone'], rng: () =>
 }
 
 function penaltyEvent(state: MatchState, rng: () => number): MatchEvent {
-  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.penalties(p, fielded(state, state.possession, p)))
+  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => ActionCalculator.penalties(p, fielded(state, state.possession, p)))
     ?? possPlayers(state)[0];
   const gk = getGK(state);
-  const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.55, 0.92, 0.78 + (SkillCalculator.penalties(taker, fielded(state, state.possession, taker)) - gkSkill) / 400);
+  const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
+  const conv = clamp(0.55, 0.92, 0.78 + (ActionCalculator.penalties(taker, fielded(state, state.possession, taker)) - gkSkill) / 400);
   const isGoal = rng() < conv;
   return {
     id: makeId(), type: 'penalty', minute: state.minute, team: state.possession, playerId: taker.id,
@@ -739,11 +764,11 @@ function penaltyEvent(state: MatchState, rng: () => number): MatchEvent {
 }
 
 function freeKickShot(state: MatchState, rng: () => number): MatchEvent {
-  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => SkillCalculator.longShot(p, fielded(state, state.possession, p)))
+  const taker = bestBy(possPlayers(state).filter(p => p.position !== 'GK'), p => ActionCalculator.longShot(p, fielded(state, state.possession, p)))
     ?? possPlayers(state)[0];
   const gk = getGK(state);
-  const gkSkill = gk ? SkillCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.02, 0.3, 0.06 + (SkillCalculator.longShot(taker, fielded(state, state.possession, taker)) - gkSkill) / 500);
+  const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
+  const conv = clamp(0.02, 0.3, 0.06 + (ActionCalculator.longShot(taker, fielded(state, state.possession, taker)) - gkSkill) / 500);
   const goalProb = clamp(0.01, 0.3, conv * momentumQuality(state));
   const isGoal = rng() < goalProb;
   return {
@@ -775,11 +800,11 @@ function cornerEvent(state: MatchState, rng: () => number): MatchEvent {
 function attackerSkillForAction(actionType: string, player: Player, state: MatchState): number {
   const fp = fielded(state, state.possession, player);
   switch (actionType) {
-  case 'dribble':      return SkillCalculator.dribbling(player, fp);
-  case 'through_ball': return SkillCalculator.throughBall(player, fp);
-  case 'cross':        return SkillCalculator.crossing(player, fp);
-  case 'long_pass':    return player.attributes.passing * 0.7 + player.attributes.strength * 0.3;
-  default:             return player.attributes.passing * 0.6 + player.attributes.technique * 0.4; // short_pass
+  case 'dribble':      return ActionCalculator.dribbling(player, fp);
+  case 'through_ball': return ActionCalculator.throughBall(player, fp);
+  case 'cross':        return ActionCalculator.crossing(player, fp);
+  case 'long_pass':    return ActionCalculator.longPassing(player, fp);
+  default:             return ActionCalculator.shortPassing(player, fp); // short_pass
   }
 }
 
@@ -787,8 +812,8 @@ function attackerSkillForAction(actionType: string, player: Player, state: Match
 function defenderSkillForAction(actionType: string, defender: Player, state: MatchState): number {
   const fp = fielded(state, defTeamSide(state), defender);
   return actionType === 'dribble'
-    ? SkillCalculator.tackling(defender, fp)
-    : SkillCalculator.interception(defender, fp);
+    ? ActionCalculator.tackling(defender, fp)
+    : ActionCalculator.interception(defender, fp);
 }
 
 /** Chance the defender wins the ball (= the turnover chance) — parity-centred, press-scaled. */

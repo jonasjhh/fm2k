@@ -1,5 +1,7 @@
 import { NameGenerator, type Gender, type Country } from '@fm2k/names';
-import { type Player, type PlayerAttributes, type PlayerPosition, calculateOverall } from '@fm2k/match';
+import {
+  type Player, type PlayerAttributes, type PlayerPosition, calculateOverall, positionAttributeImportance,
+} from '@fm2k/match';
 import { v4 as uuidv4 } from '@fm2k/state';
 import type { CountryKey } from '@fm2k/names';
 
@@ -22,18 +24,84 @@ const ATTR_SPREAD = 16;
 const MAX_POTENTIAL_MARGIN = 20;
 /** Age at which the default potential margin has tapered to 0 — no upside left. */
 const POTENTIAL_MARGIN_ZERO_AGE = 35;
-/** Position emphasis on the 1–99 scale (a striker finishes better than they defend, etc.). */
-const POSITION_BOOSTS: Partial<Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, number>>>> = {
-  GK:  { agility: 14, composure: 10, awareness: 10 },
-  CB:  { defending: 18, strength: 10, awareness: 10 },
-  LB:  { defending: 10, speed: 10, stamina: 10 },
-  RB:  { defending: 10, speed: 10, stamina: 10 },
-  CM:  { passing: 14, stamina: 14, technique: 10 },
-  LM:  { speed: 14, passing: 10, stamina: 14 },
-  RM:  { speed: 14, passing: 10, stamina: 14 },
-  LW:  { speed: 18, technique: 10, agility: 10 },
-  RW:  { speed: 18, technique: 10, agility: 10 },
-  ST:  { finishing: 18, speed: 10, composure: 10 },
+/** Point budget a position's `'balanced'` archetype distributes across attributes, in proportion
+ *  to `positionAttributeImportance` — chosen close to the old `POSITION_BOOSTS`' typical total
+ *  (its values clustered around 10–18) so `'balanced'` keeps roughly the same overall strength,
+ *  just correctly distributed instead of hand-picked. */
+const ARCHETYPE_BUDGET = 40;
+
+function balancedArchetype(position: PlayerPosition): Partial<Record<keyof PlayerAttributes, number>> {
+  const importance = positionAttributeImportance(position);
+  const result: Partial<Record<keyof PlayerAttributes, number>> = {};
+  for (const key of Object.keys(importance) as (keyof PlayerAttributes)[]) {
+    result[key] = Math.round((importance[key] ?? 0) * ARCHETYPE_BUDGET);
+  }
+  return result;
+}
+
+/**
+ * Named attribute modifier sets per position — values may be negative (modifiers, not just
+ * boosts). `'balanced'` is generated from `positionAttributeImportance` (what the simulation
+ * itself rewards most); the named alternates are deliberate departures from that baseline toward
+ * a specific identity (a targetman trades speed for strength/aerial presence, etc.). An archetype
+ * is never stored on the player — it only ever shows up through how the resulting attributes play
+ * out in a real match (more aerial duels won, more chances created from the back, and so on).
+ */
+export const POSITION_ARCHETYPES: Record<PlayerPosition, Record<string, Partial<Record<keyof PlayerAttributes, number>>>> = {
+  GK: {
+    balanced: balancedArchetype('GK'),
+    shot_stopper: { agility: 18, composure: -4, awareness: -2 },
+    commanding: { awareness: 14, composure: 10, agility: -6 },
+  },
+  CB: {
+    balanced: balancedArchetype('CB'),
+    stopper: { strength: 16, defending: 14, agility: -6 },
+    sweeper: { awareness: 14, agility: 12, strength: -4 },
+    libero: { passing: 14, technique: 12, defending: -6 },
+  },
+  LB: {
+    balanced: balancedArchetype('LB'),
+    wingback: { speed: 14, technique: 8, passing: 8, defending: -6 },
+    fullback: { defending: 14, strength: 8, awareness: 8, speed: -6 },
+  },
+  RB: {
+    balanced: balancedArchetype('RB'),
+    wingback: { speed: 14, technique: 8, passing: 8, defending: -6 },
+    fullback: { defending: 14, strength: 8, awareness: 8, speed: -6 },
+  },
+  CM: {
+    balanced: balancedArchetype('CM'),
+    playmaker: { passing: 14, technique: 12, awareness: 8 },
+    terrier: { defending: 14, strength: 10, stamina: 10, technique: -6 },
+    long_shooter: { technique: 10, finishing: 12, composure: 10 },
+  },
+  LM: {
+    balanced: balancedArchetype('LM'),
+    offensive: { speed: 14, passing: 10, defending: -8 },
+    defensive: { defending: 14, stamina: 10, awareness: 8, speed: -6, technique: -4 },
+  },
+  RM: {
+    balanced: balancedArchetype('RM'),
+    offensive: { speed: 14, passing: 10, defending: -8 },
+    defensive: { defending: 14, stamina: 10, awareness: 8, speed: -6, technique: -4 },
+  },
+  LW: {
+    balanced: balancedArchetype('LW'),
+    inverted: { finishing: 14, composure: 10, technique: 8, passing: -6 },
+    touchline: { speed: 14, passing: 10, finishing: -6 },
+  },
+  RW: {
+    balanced: balancedArchetype('RW'),
+    inverted: { finishing: 14, composure: 10, technique: 8, passing: -6 },
+    touchline: { speed: 14, passing: 10, finishing: -6 },
+  },
+  ST: {
+    balanced: balancedArchetype('ST'),
+    targetman: { strength: 16, agility: 10, speed: -8 },
+    poacher: { speed: 14, composure: 10, strength: -8 },
+    technical: { technique: 14, agility: 8, passing: 6 },
+    finisher: { finishing: 16, composure: 10 },
+  },
 };
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
@@ -83,6 +151,8 @@ export interface PlayerInstruction {
   potential?: number;
   /** Flat per-category offset applied alongside the position boost, before the rescale-to-target step. */
   categoryBias?: Partial<Record<AttributeCategory, number>>;
+  /** Named modifier set from `POSITION_ARCHETYPES[position]`; falls back to `'balanced'` if omitted or unrecognized. */
+  archetype?: string;
 }
 
 export class PlayerGenerator {
@@ -105,7 +175,7 @@ export class PlayerGenerator {
    */
   generatePlayer(position: PlayerPosition, instruction: PlayerInstruction = {}): Player {
     const target = clamp(1, 99, this.resolveTarget(instruction));
-    const attributes = this.generateAttributes(position, target, instruction.categoryBias ?? {});
+    const attributes = this.generateAttributes(position, target, instruction.categoryBias ?? {}, instruction.archetype);
     const overall = Math.round(calculateOverall(attributes));
     const age = instruction.age ?? 17 + Math.floor(this.rng() * 19);
     const potential = instruction.potential ?? Math.min(99, overall + Math.floor(this.rng() * (this.maxPotentialMargin(age) + 1)));
@@ -135,9 +205,11 @@ export class PlayerGenerator {
     position: PlayerPosition,
     target: number,
     categoryBias: Partial<Record<AttributeCategory, number>>,
+    archetype?: string,
   ): PlayerAttributes {
     const raw = {} as PlayerAttributes;
-    const boosts = POSITION_BOOSTS[position] ?? {};
+    const archetypes = POSITION_ARCHETYPES[position];
+    const boosts = (archetype ? archetypes[archetype] : undefined) ?? archetypes.balanced;
     const biasFor = (key: keyof PlayerAttributes): number => {
       const category = (Object.keys(ATTRIBUTE_CATEGORIES) as AttributeCategory[])
         .find(c => ATTRIBUTE_CATEGORIES[c].includes(key));

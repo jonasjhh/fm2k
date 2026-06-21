@@ -1,7 +1,7 @@
 import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, type FormationPosition, type FieldedPositions } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
-import { resolveContest, mirrorBall } from './action-generators.ts';
+import { resolveContest, mirrorBall, type Skill } from './action-generators.ts';
 
 // ── active-player weighting ─────────────────────────────────────────────────────
 // Picks who is "on the ball" based on where the ball is. Follows the engine
@@ -32,7 +32,7 @@ const ZONE_INDEX: Record<BallPosition['zone'], number> = {
 };
 
 // per-line weight at each zone index
-const LINE_ZONE_WEIGHT: Record<FieldLine, [number, number, number, number, number]> = {
+export const LINE_ZONE_WEIGHT: Record<FieldLine, [number, number, number, number, number]> = {
   GK:  [0.8, 0,   0,   0,   0],   // only own box
   DEF: [5,   4.5, 2,   0.8, 0.4],
   MID: [1.5, 2.5, 4,   2.5, 1.5],
@@ -91,49 +91,60 @@ export interface ActionGenerator {
 // Pure decision-weighting helpers, exported like activePlayerWeight above so each
 // table/branch is directly testable (decoupled from the argmax in makeDecision).
 
-const POSITION_PREFERENCE: Record<string, Record<string, number>> = {
+/** The 6 action types ever registered via `registerAction` (see `match-simulator.ts`) —
+ *  the only kinds of action a player can actually choose to perform. */
+export type ActionType = 'short_pass' | 'long_pass' | 'through_ball' | 'cross' | 'dribble' | 'shot';
+
+export const POSITION_PREFERENCE: Record<ActionType, Partial<Record<FormationPosition, number>>> = {
   'short_pass': { 'CB': 1.2, 'CM': 1.3, 'CDM': 1.4 },
   'long_pass': { 'CB': 1.1, 'CM': 1.2 },
   'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
   'cross': { 'LW': 1.5, 'RW': 1.5, 'LB': 1.2, 'RB': 1.2 },
   'dribble': { 'LW': 1.4, 'RW': 1.4, 'CAM': 1.2 },
   'shot': { 'ST': 1.5, 'CAM': 1.2 },
-  'tackle': { 'CB': 1.3, 'CDM': 1.2, 'LB': 1.1, 'RB': 1.1 },
-  'clearance': { 'CB': 1.4, 'GK': 1.2 },
 };
 
-const SKILL_REQUIREMENT: Record<string, number> = {
+const SKILL_REQUIREMENT: Record<ActionType, number> = {
   'short_pass': 60,
   'long_pass': 75,
   'through_ball': 80,
   'cross': 70,
   'dribble': 75,
   'shot': 65,
-  'tackle': 70,
-  'clearance': 50,
 };
 
-const RISK_LEVEL: Record<string, 'low' | 'medium' | 'high'> = {
+const RISK_LEVEL: Record<ActionType, 'low' | 'medium' | 'high'> = {
   'short_pass': 'low',
   'long_pass': 'medium',
   'through_ball': 'high',
   'cross': 'medium',
   'dribble': 'medium',
   'shot': 'medium',
-  'tackle': 'high',
-  'clearance': 'low',
 };
 
+/** Which `Skill` (from `action-generators.ts`) an attacker draws on for each selectable action. */
+export const ACTION_TYPE_SKILL: Record<ActionType, Skill> = {
+  'short_pass': 'shortPassing',
+  'long_pass': 'longPassing',
+  'through_ball': 'throughBall',
+  'cross': 'crossing',
+  'dribble': 'dribbling',
+  'shot': 'finishing',
+};
+
+// `actionType`/`position` stay loosely typed here (callers pass `PlayerAction.type: string`,
+// including deliberately-unknown values in tests) — the tables above are the strongly-typed
+// source; this lookup just falls back to the neutral default for anything outside them.
 export function getPositionPreference(actionType: string, position: string): number {
-  return POSITION_PREFERENCE[actionType]?.[position] ?? 1.0;
+  return (POSITION_PREFERENCE as Record<string, Record<string, number>>)[actionType]?.[position] ?? 1.0;
 }
 
 export function getSkillRequired(actionType: string): number {
-  return SKILL_REQUIREMENT[actionType] ?? 60;
+  return (SKILL_REQUIREMENT as Record<string, number>)[actionType] ?? 60;
 }
 
 export function getRiskLevel(actionType: string): 'low' | 'medium' | 'high' {
-  return RISK_LEVEL[actionType] ?? 'medium';
+  return (RISK_LEVEL as Record<string, 'low' | 'medium' | 'high'>)[actionType] ?? 'medium';
 }
 
 export function getSituationalModifier(action: PlayerAction, state: MatchState): number {

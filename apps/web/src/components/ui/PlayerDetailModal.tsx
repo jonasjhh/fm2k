@@ -12,37 +12,8 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import { fmt } from '../../utils/formatting';
+import { ATTR_GROUPS } from '../../lib/attribute-labels';
 import PlayerStatusChip from './PlayerStatusChip';
-
-// ─── shared attribute config ──────────────────────────────────────────────────
-
-export const ATTR_GROUPS = [
-  {
-    label: 'Physical',
-    attrs: [
-      { key: 'speed', label: 'Speed' },
-      { key: 'strength', label: 'Strength' },
-      { key: 'agility', label: 'Agility' },
-      { key: 'stamina', label: 'Stamina' },
-    ],
-  },
-  {
-    label: 'Technical',
-    attrs: [
-      { key: 'passing', label: 'Passing' },
-      { key: 'finishing', label: 'Finishing' },
-      { key: 'technique', label: 'Technique' },
-      { key: 'defending', label: 'Defending' },
-    ],
-  },
-  {
-    label: 'Mental',
-    attrs: [
-      { key: 'awareness', label: 'Awareness' },
-      { key: 'composure', label: 'Composure' },
-    ],
-  },
-] as const;
 
 export function AttrBar({ label, value }: { label: string; value: number }) {
   const color = value >= 80 ? 'success.main' : value >= 65 ? 'warning.main' : 'error.light';

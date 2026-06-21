@@ -1,5 +1,5 @@
 import {
-  SkillCalculator,
+  ActionCalculator,
   ShortPassGenerator,
   DribbleGenerator,
   LongPassGenerator,
@@ -80,9 +80,9 @@ function seq(values: number[]): () => number {
   return () => values[Math.min(i++, values.length - 1)];
 }
 
-// ── SkillCalculator: pin each formula so arithmetic mutants are killed ─────────
+// ── ActionCalculator: pin each formula so arithmetic mutants are killed ─────────
 
-describe('SkillCalculator:', () => {
+describe('ActionCalculator:', () => {
   // For a player at their natural position the effective attributes equal the
   // raw attributes (modifier 1.0), so we can assert the exact weighted sum.
   // Distinct non-zero values per term so every coefficient *and* the additions
@@ -95,37 +95,40 @@ describe('SkillCalculator:', () => {
     expected: number;
   }> = [
     { name: 'dribbling = technique*0.4 + speed*0.3 + agility*0.3',
-      calc: p => SkillCalculator.dribbling(p), pos: 'ST',
+      calc: p => ActionCalculator.dribbling(p), pos: 'ST',
       a: { speed: 10, technique: 20, agility: 30 }, expected: 20 }, // 8 + 3 + 9
     { name: 'finishing = finishing*0.7 + composure*0.2 + technique*0.1',
-      calc: p => SkillCalculator.finishing(p), pos: 'ST',
+      calc: p => ActionCalculator.finishing(p), pos: 'ST',
       a: { finishing: 10, composure: 20, technique: 30 }, expected: 14 }, // 7 + 4 + 3
     { name: 'heading = strength*0.4 + agility*0.35 + finishing*0.25',
-      calc: p => SkillCalculator.heading(p), pos: 'ST',
+      calc: p => ActionCalculator.heading(p), pos: 'ST',
       a: { finishing: 10, agility: 20, strength: 30 }, expected: 21.5 }, // 12 + 7 + 2.5
     { name: 'penalties = finishing*0.55 + composure*0.35 + technique*0.1',
-      calc: p => SkillCalculator.penalties(p), pos: 'ST',
+      calc: p => ActionCalculator.penalties(p), pos: 'ST',
       a: { finishing: 10, composure: 20, technique: 30 }, expected: 15.5 }, // 5.5 + 7 + 3
     { name: 'throughBall = awareness*0.5 + passing*0.4 + technique*0.1',
-      calc: p => SkillCalculator.throughBall(p), pos: 'CM',
+      calc: p => ActionCalculator.throughBall(p), pos: 'CM',
       a: { awareness: 10, passing: 20, technique: 30 }, expected: 16 }, // 5 + 8 + 3
     { name: 'longShot = finishing*0.5 + technique*0.3 + composure*0.2',
-      calc: p => SkillCalculator.longShot(p), pos: 'ST',
+      calc: p => ActionCalculator.longShot(p), pos: 'ST',
       a: { finishing: 10, technique: 20, composure: 30 }, expected: 17 }, // 5 + 6 + 6
     { name: 'crossing = passing*0.6 + technique*0.3 + awareness*0.1',
-      calc: p => SkillCalculator.crossing(p), pos: 'LM',
+      calc: p => ActionCalculator.crossing(p), pos: 'LM',
       a: { passing: 10, technique: 20, awareness: 30 }, expected: 15 }, // 6 + 6 + 3
-    { name: 'clearing = defending*0.5 + strength*0.4 + awareness*0.1',
-      calc: p => SkillCalculator.clearing(p), pos: 'CB',
-      a: { defending: 10, strength: 20, awareness: 30 }, expected: 16 }, // 5 + 8 + 3
+    { name: 'shortPassing = passing*0.6 + technique*0.4',
+      calc: p => ActionCalculator.shortPassing(p), pos: 'CM',
+      a: { passing: 10, technique: 20 }, expected: 14 }, // 6 + 8
+    { name: 'longPassing = passing*0.7 + strength*0.3',
+      calc: p => ActionCalculator.longPassing(p), pos: 'CM',
+      a: { passing: 10, strength: 20 }, expected: 13 }, // 7 + 6
     { name: 'tackling = defending*0.6 + awareness*0.2 + strength*0.2',
-      calc: p => SkillCalculator.tackling(p), pos: 'CB',
+      calc: p => ActionCalculator.tackling(p), pos: 'CB',
       a: { defending: 10, awareness: 20, strength: 30 }, expected: 16 }, // 6 + 4 + 6
     { name: 'interception = awareness*0.5 + defending*0.3 + agility*0.2',
-      calc: p => SkillCalculator.interception(p), pos: 'CB',
+      calc: p => ActionCalculator.interception(p), pos: 'CB',
       a: { awareness: 10, defending: 20, agility: 30 }, expected: 17 }, // 5 + 6 + 6
     { name: 'gkSaving = agility*0.55 + awareness*0.25 + composure*0.2',
-      calc: p => SkillCalculator.gkSaving(p), pos: 'GK',
+      calc: p => ActionCalculator.gkSaving(p), pos: 'GK',
       a: { agility: 10, composure: 20, awareness: 30 }, expected: 17 }, // 5.5 + 7.5 + 4
   ];
 
@@ -140,8 +143,8 @@ describe('SkillCalculator:', () => {
     const onPosition = player('st', 'ST', { finishing: 100 });
     const outOfPosition = player('cb', 'CB', { finishing: 100 });
     // A striker's finishing is reduced when fielded as a centre-back.
-    expect(SkillCalculator.finishing(outOfPosition, 'ST'))
-      .toBeLessThan(SkillCalculator.finishing(onPosition, 'ST'));
+    expect(ActionCalculator.finishing(outOfPosition, 'ST'))
+      .toBeLessThan(ActionCalculator.finishing(onPosition, 'ST'));
   });
 });
 

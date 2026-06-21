@@ -1,12 +1,25 @@
 import { useMemo } from 'react';
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import type { Player } from '@fm2k/engine';
+import type { Player, FormationPosition, PlayerAttributes } from '@fm2k/engine';
+import { positionAttributeImportance } from '@fm2k/engine';
+import { ATTR_LABELS } from '../../lib/attribute-labels';
 
 /** Short display name: "John Smith" → "J. Smith". */
 function shortName(name: string): string {
   const parts = name.split(' ');
   return parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : parts[0];
+}
+
+/** The position's top 3 attributes by importance, as a short tooltip line. */
+function keyAttributesTooltip(pos: string): string {
+  const importance = positionAttributeImportance(pos as FormationPosition);
+  const top = Object.entries(importance)
+    .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+    .slice(0, 3)
+    .map(([key]) => ATTR_LABELS[key as keyof PlayerAttributes]);
+  return `${pos} — key attributes: ${top.join(', ')}`;
 }
 
 /** Football pitch visual: formation lines back-to-front with player circles per slot. */
@@ -65,20 +78,22 @@ export function FormationGrid({
                   } : {})}
                   style={player && onPlayerClick ? { cursor: 'pointer' } : undefined}
                 >
-                  <Box sx={{
-                    width: sz.circle, height: sz.circle, borderRadius: '50%',
-                    bgcolor: player ? teamColors.primary : 'rgba(255,255,255,0.15)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2px solid',
-                    borderColor: player ? teamColors.secondary : 'rgba(255,255,255,0.3)',
-                    flexShrink: 0,
-                    transition: player && onPlayerClick ? 'transform 0.1s' : undefined,
-                    '&:hover': player && onPlayerClick ? { transform: 'scale(1.08)' } : undefined,
-                  }}>
-                    <Typography sx={{ fontSize: sz.posFont, fontWeight: 800, color: teamColors.secondary, lineHeight: 1, textAlign: 'center' }}>
-                      {pos}
-                    </Typography>
-                  </Box>
+                  <Tooltip title={keyAttributesTooltip(pos)} arrow>
+                    <Box sx={{
+                      width: sz.circle, height: sz.circle, borderRadius: '50%',
+                      bgcolor: player ? teamColors.primary : 'rgba(255,255,255,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '2px solid',
+                      borderColor: player ? teamColors.secondary : 'rgba(255,255,255,0.3)',
+                      flexShrink: 0,
+                      transition: player && onPlayerClick ? 'transform 0.1s' : undefined,
+                      '&:hover': player && onPlayerClick ? { transform: 'scale(1.08)' } : undefined,
+                    }}>
+                      <Typography sx={{ fontSize: sz.posFont, fontWeight: 800, color: teamColors.secondary, lineHeight: 1, textAlign: 'center' }}>
+                        {pos}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
                   <Typography sx={{
                     fontSize: sz.nameFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center',
                     lineHeight: 1, fontWeight: 600,

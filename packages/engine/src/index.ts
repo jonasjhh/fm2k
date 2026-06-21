@@ -33,6 +33,7 @@ export type {
 } from './data/country-data.ts';
 export { getAllDivisions, attrToJson, attrFromJson } from './data/country-data.ts';
 
+export { positionAttributeImportance } from '@fm2k/match';
 export { MatchOccurrence } from '@fm2k/match';
 export { MatchSimulator, isTerminalPhase } from '@fm2k/match';
 export { simulateShootout } from '@fm2k/match';
