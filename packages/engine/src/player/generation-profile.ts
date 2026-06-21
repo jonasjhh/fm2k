@@ -21,13 +21,21 @@ const NATION_BASE_OVR: Record<CountryKey, number> = {
 // Penalty per division level below 1 (so level 2 = -9, level 3 = -18).
 const DIVISION_PENALTY = 9;
 
-/** Target-overall distribution for a division, shifted down per level — no min/max floor, so the
- *  tails go where the bell curve puts them (a division 3's best can brush division 1 quality;
- *  its worst can fall to true amateur level). */
+// Spread widens per division below the top flight, so lower divisions get a believable bottom
+// tail (a fixed stdDev of 8 left division 3's worst player at P(<=20) ~= 0.1% — practically never
+// — while still keeping the top flight's P(>=90) rare, as intended).
+const BASE_STDDEV = 7;
+const STDDEV_PER_TIER = 4;
+
+/** Target-overall distribution for a division, shifted down and widened per level below the top
+ *  flight — no min/max floor, so the tails go where the bell curve puts them (a division 3's best
+ *  can brush division 1 quality; its worst can fall to true amateur level). */
 export function divisionOverallDistribution(nationality: CountryKey, divisionLevel: number): OverallDistribution {
   const base = NATION_BASE_OVR[nationality] ?? 60;
-  const mean = Math.max(20, base - (divisionLevel - 1) * DIVISION_PENALTY);
-  return { mean, stdDev: 8 };
+  const tier = divisionLevel - 1; // 0 at the top flight
+  const mean = Math.max(20, base - tier * DIVISION_PENALTY);
+  const stdDev = BASE_STDDEV + tier * STDDEV_PER_TIER;
+  return { mean, stdDev };
 }
 
 /** Lower divisions' technical/mental game falls off faster than their physical game — a

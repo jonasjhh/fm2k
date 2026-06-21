@@ -98,6 +98,29 @@ describe('PlayerGenerator:', () => {
       expect(biased).toBeGreaterThan(control);
     });
 
+    test('a high target striker\'s finishing differentiates rather than saturating at 99', () => {
+      // Before the unclamped-rescale fix, position-boosted attributes for a striker would clip
+      // at 99 well before the overall target did, so an 85 and a 95 target looked identical.
+      const gen = new PlayerGenerator('female', 'all');
+      const sample = (target: number) => {
+        const vals = Array.from({ length: 40 }, () => gen.generatePlayer('ST', { overall: target }).attributes.finishing);
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      };
+      expect(sample(95)).toBeGreaterThan(sample(85));
+    });
+
+    test('the default potential margin shrinks for older players', () => {
+      const gen = new PlayerGenerator('female', 'all');
+      const margin = (age: number) => {
+        const vals = Array.from({ length: 40 }, () => {
+          const p = gen.generatePlayer('CM', { overall: 60, age });
+          return p.potential - Math.round(calculateOverall(p.attributes));
+        });
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      };
+      expect(margin(34)).toBeLessThan(margin(18));
+    });
+
     test('categoryBias still lands the overall near the target after rescaling', () => {
       const gen = new PlayerGenerator('female', 'all');
       const overalls = Array.from(

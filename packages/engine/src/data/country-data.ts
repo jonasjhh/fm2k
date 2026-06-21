@@ -1,5 +1,52 @@
 import { calculateBestFormation } from '@fm2k/lineup';
-import type { Team, Player, PlayerPosition } from '@fm2k/match';
+import type { Team, Player, PlayerPosition, PlayerAttributes } from '@fm2k/match';
+
+/** On-disk shape of a player's attributes — short keys purely to cut down file size.
+ *  `ATTR_KEY_MAP` is the single source of truth mapping these back to `PlayerAttributes`'
+ *  full names; nothing outside this file deals with the short keys. */
+export interface PlayerAttributesJson {
+  spd: number;
+  str: number;
+  agi: number;
+  pas: number;
+  fin: number;
+  tec: number;
+  def: number;
+  sta: number;
+  awr: number;
+  cmp: number;
+}
+
+const ATTR_KEY_MAP: Record<keyof PlayerAttributes, keyof PlayerAttributesJson> = {
+  speed: 'spd',
+  strength: 'str',
+  agility: 'agi',
+  passing: 'pas',
+  finishing: 'fin',
+  technique: 'tec',
+  defending: 'def',
+  stamina: 'sta',
+  awareness: 'awr',
+  composure: 'cmp',
+};
+
+/** Maps a short-key on-disk row to the runtime `PlayerAttributes` shape. */
+export function attrFromJson(a: PlayerAttributesJson): PlayerAttributes {
+  const result = {} as PlayerAttributes;
+  for (const fullKey of Object.keys(ATTR_KEY_MAP) as (keyof PlayerAttributes)[]) {
+    result[fullKey] = a[ATTR_KEY_MAP[fullKey]];
+  }
+  return result;
+}
+
+/** Maps runtime `PlayerAttributes` to the short-key on-disk shape. */
+export function attrToJson(a: PlayerAttributes): PlayerAttributesJson {
+  const result = {} as PlayerAttributesJson;
+  for (const fullKey of Object.keys(ATTR_KEY_MAP) as (keyof PlayerAttributes)[]) {
+    result[ATTR_KEY_MAP[fullKey]] = a[fullKey];
+  }
+  return result;
+}
 
 export interface CountryPlayerRow {
   id: string;
@@ -7,20 +54,9 @@ export interface CountryPlayerRow {
   clubId: string;
   nationality?: string;
   age?: number;
-  position: string;
-  potential?: number;
-  attributes: {
-    speed: number;
-    strength: number;
-    agility: number;
-    passing: number;
-    finishing: number;
-    technique: number;
-    defending: number;
-    stamina: number;
-    awareness: number;
-    composure: number;
-  };
+  pos: string;
+  pot?: number;
+  attr: PlayerAttributesJson;
 }
 
 export interface CountryTeamRow {
@@ -53,9 +89,9 @@ function toPlayer(p: CountryPlayerRow, countryNationality: string): Player {
     name: p.name,
     nationality: p.nationality ?? countryNationality,
     age: p.age ?? 25,
-    position: p.position as PlayerPosition,
-    potential: p.potential ?? 70,
-    attributes: p.attributes,
+    position: p.pos as PlayerPosition,
+    potential: p.pot ?? 70,
+    attributes: attrFromJson(p.attr),
   };
 }
 

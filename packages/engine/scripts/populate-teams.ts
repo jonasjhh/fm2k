@@ -9,15 +9,22 @@
  * Safe to re-run — regenerates all players from scratch each time.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
-import {
-  PlayerGenerator, COUNTRY_IDS, divisionOverallDistribution, divisionCategoryBias,
-} from '../src/index.ts';
-import type { PlayerPosition } from '../src/index.ts';
-import type { CountryDivisionRow, CountryTeamRow } from '../src/index.ts';
+import { PlayerGenerator } from '@fm2k/players';
+import { divisionOverallDistribution, divisionCategoryBias } from '../src/player/generation-profile.ts';
+import { attrToJson } from '../src/data/country-data.ts';
+import type { CountryDivisionRow, CountryTeamRow, CountryPlayerRow } from '../src/data/country-data.ts';
+import type { PlayerPosition } from '@fm2k/match';
 import type { NameCountry, CountryKey } from '@fm2k/names';
+
+// Deliberately not imported from `../src/index.ts`/`teams-data.ts`: that barrel eagerly loads and
+// parses every country's real `players.json` at import time (`DIVISION_TEAMS`), so it can't be
+// relied on by the very script that (re)generates that data — this script bypasses it entirely.
+const COUNTRY_IDS: readonly CountryKey[] = [
+  'norway', 'england', 'germany', 'france', 'spain', 'italy', 'sweden', 'denmark',
+];
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '../src/data');
 
@@ -42,17 +49,6 @@ const SQUAD_POSITIONS: PlayerPosition[] = [
 
 // ── player builder ────────────────────────────────────────────────────────────
 
-interface PlayerJson {
-  id: string;
-  name: string;
-  clubId: string;
-  nationality: string;
-  age: number;
-  position: string;
-  potential: number;
-  attributes: Record<string, number>;
-}
-
 function buildPlayer(
   generator: PlayerGenerator,
   position: PlayerPosition,
@@ -60,7 +56,7 @@ function buildPlayer(
   nationalityKey: CountryKey,
   nationality: string,
   clubId: string,
-): PlayerJson {
+): CountryPlayerRow {
   const overallDistribution = divisionOverallDistribution(nationalityKey, divisionLevel);
   const categoryBias = divisionCategoryBias(divisionLevel);
   const player = generator.generatePlayer(position, { overallDistribution, categoryBias });
@@ -71,9 +67,9 @@ function buildPlayer(
     clubId,
     nationality,
     age: player.age,
-    position,
-    potential: player.potential,
-    attributes: player.attributes,
+    pos: position,
+    pot: player.potential,
+    attr: attrToJson(player.attributes),
   };
 }
 
@@ -88,7 +84,7 @@ for (const countryId of COUNTRY_IDS) {
   const teams: CountryTeamRow[] = JSON.parse(readFileSync(join(countryDir, 'teams.json'), 'utf-8'));
   const generator = new PlayerGenerator('female', countryId as NameCountry);
 
-  const players: PlayerJson[] = [];
+  const players: CountryPlayerRow[] = [];
   for (const division of divisions) {
     const dist = divisionOverallDistribution(countryId as CountryKey, division.level);
     const divisionTeams = teams.filter(t => t.divisionId === division.id);
@@ -101,7 +97,9 @@ for (const countryId of COUNTRY_IDS) {
     console.log(`  ${meta.country} · ${division.name} (L${division.level}, ~${dist.mean} OVR) — ${divisionTeams.length} teams`);
   }
 
-  writeFileSync(join(countryDir, 'players.json'), JSON.stringify(players, null, 2) + '\n');
+  const playersPath = join(countryDir, 'players.json');
+  if (existsSync(playersPath)) { unlinkSync(playersPath); }
+  writeFileSync(playersPath, JSON.stringify(players, null, 2) + '\n');
   console.log(`✓ Wrote ${countryId}/players.json\n`);
 }
 

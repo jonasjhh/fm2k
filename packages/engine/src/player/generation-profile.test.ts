@@ -20,6 +20,12 @@ describe('divisionOverallDistribution:', () => {
     expect(dist.min).toBeUndefined();
     expect(dist.max).toBeUndefined();
   });
+
+  test('widens stdDev with each division below the top, for a believable bottom tail', () => {
+    expect(divisionOverallDistribution('england', 1).stdDev).toBe(7);
+    expect(divisionOverallDistribution('england', 2).stdDev).toBe(11);
+    expect(divisionOverallDistribution('england', 3).stdDev).toBe(15);
+  });
 });
 
 describe('divisionCategoryBias:', () => {

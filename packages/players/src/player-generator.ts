@@ -18,6 +18,10 @@ const COUNTRY_NATIONALITY: Record<CountryKey, string> = {
 const DEFAULT_OVERALL = 60;
 /** Per-attribute spread around the target overall (before position/category shaping). */
 const ATTR_SPREAD = 16;
+/** Widest possible default potential margin above overall, for the youngest players. */
+const MAX_POTENTIAL_MARGIN = 20;
+/** Age at which the default potential margin has tapered to 0 — no upside left. */
+const POTENTIAL_MARGIN_ZERO_AGE = 35;
 /** Position emphasis on the 1–99 scale (a striker finishes better than they defend, etc.). */
 const POSITION_BOOSTS: Partial<Record<PlayerPosition, Partial<Record<keyof PlayerAttributes, number>>>> = {
   GK:  { agility: 14, composure: 10, awareness: 10 },
@@ -104,7 +108,7 @@ export class PlayerGenerator {
     const attributes = this.generateAttributes(position, target, instruction.categoryBias ?? {});
     const overall = Math.round(calculateOverall(attributes));
     const age = instruction.age ?? 17 + Math.floor(this.rng() * 19);
-    const potential = instruction.potential ?? Math.min(99, overall + Math.floor(this.rng() * 20));
+    const potential = instruction.potential ?? Math.min(99, overall + Math.floor(this.rng() * (this.maxPotentialMargin(age) + 1)));
     return {
       id: uuidv4(),
       name: this.nameGenerator.generateName(),
@@ -122,6 +126,11 @@ export class PlayerGenerator {
     return DEFAULT_OVERALL;
   }
 
+  /** Younger players have more room left to grow; the ceiling tapers to 0 by age 35. */
+  private maxPotentialMargin(age: number): number {
+    return Math.round(MAX_POTENTIAL_MARGIN * clamp(0, 1, (POTENTIAL_MARGIN_ZERO_AGE - age) / (POTENTIAL_MARGIN_ZERO_AGE - 17)));
+  }
+
   private generateAttributes(
     position: PlayerPosition,
     target: number,
@@ -136,7 +145,11 @@ export class PlayerGenerator {
     };
     for (const key of ATTR_KEYS) {
       const spread = (this.rng() - 0.5) * 2 * ATTR_SPREAD;
-      raw[key] = clamp(1, 99, target + spread + (boosts[key] ?? 0) + biasFor(key));
+      // Deliberately unclamped here — clamping before the rescale below would pre-clip the very
+      // attribute a position boost or category bias is meant to emphasize (most visible at high
+      // targets, where e.g. a striker's finishing would saturate at 99 regardless of how far past
+      // it the true target sits). The only clamp is on the final, rescaled result.
+      raw[key] = target + spread + (boosts[key] ?? 0) + biasFor(key);
     }
     // Rescale so the weighted overall lands on `target`, preserving the positional/category shape.
     const current = calculateOverall(raw);

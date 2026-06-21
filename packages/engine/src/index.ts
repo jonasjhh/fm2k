@@ -28,8 +28,10 @@ export type {
 } from './competition/competition-types.ts';
 export { TBD_TEAM_ID, TBD_TEAM_NAME } from './competition/competition-types.ts';
 export { DIVISION_TEAMS, ALL_COUNTRIES, COUNTRY_IDS, COUNTRY_DATA, COUNTRY_FLAG, COUNTRY_COLORS, getAllTeams, getDivisionTeams } from './data/teams-data.ts';
-export type { CountryData, CountryDivisionRow, CountryTeamRow, CountryPlayerRow, StructuredDivision } from './data/country-data.ts';
-export { getAllDivisions } from './data/country-data.ts';
+export type {
+  CountryData, CountryDivisionRow, CountryTeamRow, CountryPlayerRow, StructuredDivision, PlayerAttributesJson,
+} from './data/country-data.ts';
+export { getAllDivisions, attrToJson, attrFromJson } from './data/country-data.ts';
 
 export { MatchOccurrence } from '@fm2k/match';
 export { MatchSimulator, isTerminalPhase } from '@fm2k/match';
