@@ -46,4 +46,17 @@ describe('positionAttributeImportance:', () => {
     expect(cb.defending).toBeGreaterThan(cb.finishing ?? 0);
     expect(cb.defending).toBeGreaterThan(cb.composure ?? 0);
   });
+
+  it('a wing-back (LWB/RWB) carries a real identity distinct from a plain full-back: more speed/technique (higher cross+dribble preference), less defending', () => {
+    const lb = positionAttributeImportance('LB');
+    const lwb = positionAttributeImportance('LWB');
+    expect(lwb.speed).toBeGreaterThan(lb.speed ?? 0);
+    expect(lwb.technique).toBeGreaterThan(lb.technique ?? 0);
+    expect(lwb.defending ?? 0).toBeLessThan(lb.defending ?? 0);
+
+    const rb = positionAttributeImportance('RB');
+    const rwb = positionAttributeImportance('RWB');
+    expect(rwb.speed).toBeGreaterThan(rb.speed ?? 0);
+    expect(rwb.technique).toBeGreaterThan(rb.technique ?? 0);
+  });
 });

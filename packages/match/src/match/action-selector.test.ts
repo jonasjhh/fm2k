@@ -321,6 +321,11 @@ describe('getPositionPreference:', () => {
     expect(getPositionPreference('shot', 'ST')).toBe(1.5);
     expect(getPositionPreference('cross', 'LW')).toBe(1.5);
   });
+  it('gives a wing-back (LWB/RWB) a higher cross/dribble preference than a plain full-back', () => {
+    expect(getPositionPreference('cross', 'LWB')).toBeGreaterThan(getPositionPreference('cross', 'LB'));
+    expect(getPositionPreference('dribble', 'LWB')).toBeGreaterThan(getPositionPreference('dribble', 'LB'));
+    expect(getPositionPreference('cross', 'RWB')).toBeGreaterThan(getPositionPreference('cross', 'RB'));
+  });
   it('falls back to 1.0 for unknown action or position', () => {
     expect(getPositionPreference('shot', 'GK')).toBe(1.0);
     expect(getPositionPreference('teleport', 'ST')).toBe(1.0);

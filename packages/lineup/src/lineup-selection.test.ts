@@ -47,6 +47,12 @@ describe('positionFit:', () => {
   it('given the fit is symmetric then order does not matter', () => {
     expect(positionFit('LM', 'LW')).toBe(positionFit('LW', 'LM'));
   });
+
+  it('given a wing-back slot then a full-back fits it better than any other position', () => {
+    expect(positionFit('LB', 'LWB')).toBeGreaterThan(positionFit('LM', 'LWB'));
+    expect(positionFit('LB', 'LWB')).toBeGreaterThan(positionFit('CB', 'LWB'));
+    expect(positionFit('RB', 'RWB')).toBeGreaterThan(positionFit('RM', 'RWB'));
+  });
 });
 
 describe('selectStartingXI:', () => {

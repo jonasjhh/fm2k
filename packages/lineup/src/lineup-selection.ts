@@ -18,6 +18,12 @@ const FIT_PAIRS: [FormationPosition, FormationPosition, number][] = [
   ['LB', 'CB', 0.7], ['RB', 'CB', 0.7],
   ['LB', 'LM', 0.7], ['RB', 'RM', 0.7],
   ['LB', 'LW', 0.6], ['RB', 'RW', 0.6],
+  // wing-backs (LWB/RWB) — closest to the full-back they're drawn from
+  ['LWB', 'RWB', 0.85],
+  ['LWB', 'LB', 0.9], ['RWB', 'RB', 0.9],
+  ['LWB', 'LM', 0.75], ['RWB', 'RM', 0.75],
+  ['LWB', 'LW', 0.65], ['RWB', 'RW', 0.65],
+  ['LWB', 'CB', 0.65], ['RWB', 'CB', 0.65],
   // centre-backs / holding
   ['CB', 'CDM', 0.7],
   // central midfield chain

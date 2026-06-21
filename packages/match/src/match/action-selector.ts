@@ -13,14 +13,14 @@ export type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
 
 export const FIELD_LINE: Record<FormationPosition, FieldLine> = {
   GK: 'GK',
-  CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF',
+  CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF', LWB: 'DEF', RWB: 'DEF',
   CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
   LW: 'ATT', RW: 'ATT', ST: 'ATT',
 };
 
 const FLANK: Record<FormationPosition, 'left' | 'right' | 'center'> = {
-  LB: 'left', LM: 'left', LW: 'left',
-  RB: 'right', RM: 'right', RW: 'right',
+  LB: 'left', LM: 'left', LW: 'left', LWB: 'left',
+  RB: 'right', RM: 'right', RW: 'right', RWB: 'right',
   GK: 'center', CB: 'center', CDM: 'center',
   CM: 'center', CAM: 'center', ST: 'center',
 };
@@ -99,8 +99,10 @@ export const POSITION_PREFERENCE: Record<ActionType, Partial<Record<FormationPos
   'short_pass': { 'CB': 1.2, 'CM': 1.3, 'CDM': 1.4 },
   'long_pass': { 'CB': 1.1, 'CM': 1.2 },
   'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
-  'cross': { 'LW': 1.5, 'RW': 1.5, 'LB': 1.2, 'RB': 1.2 },
-  'dribble': { 'LW': 1.4, 'RW': 1.4, 'CAM': 1.2 },
+  // Wing-backs (LWB/RWB) sit between a winger and a plain full-back: more advanced and more
+  // involved in crossing/carrying than an LB/RB, since a back-5 frees them to push forward.
+  'cross': { 'LW': 1.5, 'RW': 1.5, 'LWB': 1.4, 'RWB': 1.4, 'LB': 1.2, 'RB': 1.2 },
+  'dribble': { 'LW': 1.4, 'RW': 1.4, 'LWB': 1.2, 'RWB': 1.2, 'CAM': 1.2 },
   'shot': { 'ST': 1.5, 'CAM': 1.2 },
 };
 
