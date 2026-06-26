@@ -40,13 +40,20 @@ const TABS: { id: TabId; label: string }[] = [
 import { useClubColors } from '../hooks/useClubColors';
 
 export default function GameInterface() {
-  const { activeTab, setActiveTab, goToMainMenu, saveGame, clubState } = useGameStore(useShallow((s) => ({
+  const { activeTab, setActiveTab, goToMainMenu, saveGame, clubState, liveMatches, playerTeamId } = useGameStore(useShallow((s) => ({
     activeTab: s.activeTab,
     setActiveTab: s.setActiveTab,
     goToMainMenu: s.goToMainMenu,
     saveGame: s.saveGame,
     clubState: s.clubState,
+    liveMatches: s.liveMatches,
+    playerTeamId: s.playerTeamId,
   })));
+
+  // While the player's own match is in progress, lineup/tactics edits can't be made safely —
+  // lock navigation to the Match tab so a player can't queue a startingXI change mid-match.
+  const isOwnMatchLive = liveMatches.some(m =>
+    (m.homeTeamId === playerTeamId || m.awayTeamId === playerTeamId) && m.phase !== 'full_time');
 
   const [snackOpen, setSnackOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -112,7 +119,7 @@ export default function GameInterface() {
         </Toolbar>
         <Tabs
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v as TabId)}
+          onChange={(_, v) => { if (!isOwnMatchLive || v === 'match') { setActiveTab(v as TabId); } }}
           variant="scrollable"
           scrollButtons="auto"
           textColor="inherit"
@@ -123,7 +130,7 @@ export default function GameInterface() {
           }}
         >
           {TABS.map((t) => (
-            <Tab key={t.id} value={t.id} label={t.label} />
+            <Tab key={t.id} value={t.id} label={t.label} disabled={isOwnMatchLive && t.id !== 'match'} />
           ))}
         </Tabs>
       </Box>
