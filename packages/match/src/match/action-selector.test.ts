@@ -1,5 +1,9 @@
-import { activePlayerWeight, selectActivePlayer } from './action-selector.ts';
+import {
+  activePlayerWeight, selectActivePlayer, FIELD_LINE, BAND_OF_ROLE, ROLE_OPTIONS_BY_BAND,
+  ROLE_FAMILY_OF_BAND, rankInBand, eligibleRoles, preferredRole,
+} from './action-selector.ts';
 import { BallPosition } from './types.ts';
+import type { Band } from '../shared/types.ts';
 import { Player, PlayerPosition } from '../shared/types.ts';
 
 function createTestPlayer(id: string, position: PlayerPosition): Player {
@@ -17,7 +21,7 @@ function createTestPlayer(id: string, position: PlayerPosition): Player {
       passing: 70,
       finishing: position === 'GK' ? 30 : 70,
       technique: 70,
-      defending: ['CB', 'LB', 'RB', 'CDM'].includes(position) ? 85 : 50,
+      defending: ['CB', 'LB', 'RB', 'DM'].includes(position) ? 85 : 50,
       stamina: 75,
       awareness: 70,
       composure: 70,
@@ -69,6 +73,25 @@ describe('activePlayerWeight:', () => {
     const ball: BallPosition = { zone: 'middle_third', side: 'left' };
     expect(activePlayerWeight(lm, ball)).toBeGreaterThan(activePlayerWeight(cm, ball));
     expect(activePlayerWeight(cm, ball)).toBeGreaterThan(activePlayerWeight(rm, ball));
+  });
+
+  it('treats a holding midfielder (DM) as a MID-line player, not a DEF-line one', () => {
+    // DM is a flavor of midfielder for zone-weighting purposes, distinct from the back
+    // line it screens — it should be weighted like a CM, not a CB, when picking who's on
+    // the ball in each third.
+    expect(FIELD_LINE.DM).toBe('MID');
+    const dm = createTestPlayer('dm', 'CM'); // native position irrelevant; fieldedPosition drives this
+    const ball: BallPosition = { zone: 'middle_third', side: 'center' };
+    expect(activePlayerWeight(dm, ball, 'DM')).toBe(activePlayerWeight(dm, ball, 'CM'));
+  });
+
+  it('lets an explicit geometry override take precedence over the role-derived line/flank', () => {
+    const player = createTestPlayer('p', 'CB');
+    const ball: BallPosition = { zone: 'away_box', side: 'right' };
+    // CB's role-derived line/flank (DEF, center) would score 0.4 here; override to ATT/right.
+    const overridden = activePlayerWeight(player, ball, 'CB', { line: 'ATT', flank: 'right' });
+    const roleDerived = activePlayerWeight(player, ball, 'RW', undefined);
+    expect(overridden).toBe(roleDerived);
   });
 });
 
@@ -314,9 +337,9 @@ function stateAt(zone: BallPosition['zone'], over: Partial<MatchState> = {}): Ma
 
 describe('getPositionPreference:', () => {
   it('returns the table value for a known action+position', () => {
-    expect(getPositionPreference('short_pass', 'CDM')).toBe(1.4);
+    expect(getPositionPreference('short_pass', 'DM')).toBe(1.4);
     expect(getPositionPreference('long_pass', 'CM')).toBe(1.2);
-    expect(getPositionPreference('through_ball', 'CAM')).toBe(1.5);
+    expect(getPositionPreference('through_ball', 'AM')).toBe(1.5);
     expect(getPositionPreference('dribble', 'LW')).toBe(1.4);
     expect(getPositionPreference('shot', 'ST')).toBe(1.5);
     expect(getPositionPreference('cross', 'LW')).toBe(1.5);
@@ -427,5 +450,118 @@ describe('calculateActionWeight:', () => {
     const state = stateAt('away_box', { possession: 'home', homeScore: 1, awayScore: 0 });
     const w = calculateActionWeight(a, st, state, 0.4);
     expect(w).toBeCloseTo(0.5 * 1.5 * 1.3 * 1.2 * (0.5 + 0.4 * 0.5), 10);
+  });
+});
+
+describe('ROLE_OPTIONS_BY_BAND:', () => {
+  const BANDS: Exclude<Band, 'GK'>[] = ['DEF', 'DM', 'MID', 'AM', 'ATT'];
+
+  it('stays consistent with BAND_OF_ROLE — every non-GK role appears in exactly its own band\'s list', () => {
+    for (const role of Object.keys(BAND_OF_ROLE) as (keyof typeof BAND_OF_ROLE)[]) {
+      const band = BAND_OF_ROLE[role];
+      if (band === 'GK') { continue; }
+      for (const candidate of BANDS) {
+        expect(ROLE_OPTIONS_BY_BAND[candidate].includes(role)).toBe(candidate === band);
+      }
+    }
+  });
+
+  it('covers every band with at least one role', () => {
+    for (const band of BANDS) { expect(ROLE_OPTIONS_BY_BAND[band].length).toBeGreaterThan(0); }
+  });
+});
+
+describe('ROLE_FAMILY_OF_BAND:', () => {
+  const BANDS: Exclude<Band, 'GK'>[] = ['DEF', 'DM', 'MID', 'AM', 'ATT'];
+
+  it('the union of left+center+right matches ROLE_OPTIONS_BY_BAND for every band', () => {
+    for (const band of BANDS) {
+      const fam = ROLE_FAMILY_OF_BAND[band];
+      const union = [...fam.left, ...fam.center, ...fam.right].sort();
+      expect(union).toEqual([...ROLE_OPTIONS_BY_BAND[band]].sort());
+    }
+  });
+
+  it('every band has exactly one center role', () => {
+    for (const band of BANDS) { expect(ROLE_FAMILY_OF_BAND[band].center).toHaveLength(1); }
+  });
+
+  it('DM and AM have no left/right family at all', () => {
+    expect(ROLE_FAMILY_OF_BAND.DM.left).toEqual([]);
+    expect(ROLE_FAMILY_OF_BAND.DM.right).toEqual([]);
+    expect(ROLE_FAMILY_OF_BAND.AM.left).toEqual([]);
+    expect(ROLE_FAMILY_OF_BAND.AM.right).toEqual([]);
+  });
+});
+
+describe('rankInBand:', () => {
+  it('returns "only" for a band with a single member', () => {
+    expect(rankInBand('a', [{ id: 'a', lateral: 0 }])).toBe('only');
+  });
+
+  it('ranks by lateral order: leftmost, inner, rightmost', () => {
+    const members = [{ id: 'a', lateral: -1 }, { id: 'b', lateral: 0 }, { id: 'c', lateral: 1 }];
+    expect(rankInBand('a', members)).toBe('leftmost');
+    expect(rankInBand('b', members)).toBe('inner');
+    expect(rankInBand('c', members)).toBe('rightmost');
+  });
+
+  it('does not depend on input order', () => {
+    const members = [{ id: 'c', lateral: 1 }, { id: 'a', lateral: -1 }, { id: 'b', lateral: 0 }];
+    expect(rankInBand('a', members)).toBe('leftmost');
+    expect(rankInBand('c', members)).toBe('rightmost');
+  });
+
+  it('breaks lateral ties deterministically by id', () => {
+    const members = [{ id: 'b', lateral: 0 }, { id: 'a', lateral: 0 }];
+    expect(rankInBand('a', members)).toBe('leftmost');
+    expect(rankInBand('b', members)).toBe('rightmost');
+  });
+});
+
+describe('eligibleRoles:', () => {
+  it('a lone member (rank "only") gets the full band set, unconstrained', () => {
+    expect(eligibleRoles('DEF', 'only', 1).sort()).toEqual([...ROLE_OPTIONS_BY_BAND.DEF].sort());
+  });
+
+  it('an inner member is always forced to the center role, regardless of count', () => {
+    expect(eligibleRoles('DEF', 'inner', 3)).toEqual(['CB']);
+    expect(eligibleRoles('DEF', 'inner', 5)).toEqual(['CB']);
+  });
+
+  it('with 3 members, the ends get their family plus center (the 4 user-described shapes)', () => {
+    expect(eligibleRoles('DEF', 'leftmost', 3)).toEqual(['LB', 'LWB', 'CB']);
+    expect(eligibleRoles('DEF', 'rightmost', 3)).toEqual(['RB', 'RWB', 'CB']);
+  });
+
+  it('with 4 or 5 members, the ends are forced to their family only (no center)', () => {
+    expect(eligibleRoles('DEF', 'leftmost', 4)).toEqual(['LB', 'LWB']);
+    expect(eligibleRoles('DEF', 'rightmost', 4)).toEqual(['RB', 'RWB']);
+    expect(eligibleRoles('DEF', 'leftmost', 5)).toEqual(['LB', 'LWB']);
+    expect(eligibleRoles('MID', 'leftmost', 4)).toEqual(['LM']);
+    expect(eligibleRoles('ATT', 'rightmost', 5)).toEqual(['RW']);
+  });
+
+  it('DM/AM ends are never forced wide — they have no left/right family to force into', () => {
+    expect(eligibleRoles('DM', 'leftmost', 5)).toEqual(['DM']);
+    expect(eligibleRoles('AM', 'rightmost', 4)).toEqual(['AM']);
+  });
+});
+
+describe('preferredRole:', () => {
+  it('prefers the center role whenever it is eligible', () => {
+    expect(preferredRole('DEF', 'inner', 3)).toBe('CB');
+    expect(preferredRole('DEF', 'leftmost', 3)).toBe('CB');
+    expect(preferredRole('DEF', 'only', 1)).toBe('CB');
+  });
+
+  it('falls back to the first family role when a forced-wide end has no center option', () => {
+    expect(preferredRole('DEF', 'leftmost', 4)).toBe('LB');
+    expect(preferredRole('DEF', 'rightmost', 5)).toBe('RB');
+  });
+
+  it('always resolves to the single role for DM/AM', () => {
+    expect(preferredRole('DM', 'only', 1)).toBe('DM');
+    expect(preferredRole('AM', 'leftmost', 4)).toBe('AM');
   });
 });

@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type React from 'react';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_LINES, buildSlotAssignments } from '@fm2k/engine';
-import type { Formation } from '@fm2k/engine';
+import { FORMATION_LINES, effectiveRole, effectiveDisplayOrder } from '@fm2k/engine';
+import type { Formation, FormationPosition } from '@fm2k/engine';
+
+function padBenchTo4(benchPlayers: string[]): (string | null)[] {
+  return [...benchPlayers, ...Array(4).fill(null)].slice(0, 4);
+}
 
 export function useLineupSlots() {
   const { clubState, setStartingXI, setBench } = useGameStore(useShallow((s) => ({
@@ -13,37 +17,21 @@ export function useLineupSlots() {
   })));
 
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
-  const xiKey = clubState?.startingXI?.join(',') ?? '';
-  const benchKey = clubState?.benchPlayers?.join(',') ?? '';
+  const customSlots = clubState?.customSlots ?? null;
+  const emptySlotRoles = clubState?.emptySlotRoles ?? null;
   const lines = useMemo(() => FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2'], [formation]);
   const starterSlots = useMemo(() => lines.flat(), [lines]);
 
-  const [slotAssignments, setSlotAssignments] = useState<(string | null)[]>(() => {
-    if (!clubState) {return Array(15).fill(null);}
-    return buildSlotAssignments(clubState.startingXI, clubState.benchPlayers, clubState.squad, formation);
-  });
+  // `clubState.startingXI` is itself the canonical, slot-ordered, hole-preserving 11-array —
+  // no local copy or resync effect needed; deriving directly here means there's nothing left
+  // for a stale re-derivation to clobber (the bug this hook used to have).
+  const slotAssignments = useMemo(() => [
+    ...(clubState?.startingXI ?? Array(11).fill(null)),
+    ...padBenchTo4(clubState?.benchPlayers ?? []),
+  ], [clubState?.startingXI, clubState?.benchPlayers]);
+
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-
-  const ourXiKeyRef = useRef(xiKey);
-  const ourBenchKeyRef = useRef(benchKey);
-  const ourFormationRef = useRef(formation);
-
-  useEffect(() => {
-    const sameXi = xiKey === ourXiKeyRef.current;
-    const sameBench = benchKey === ourBenchKeyRef.current;
-    const sameFormation = formation === ourFormationRef.current;
-    if (sameXi && sameBench && sameFormation) {return;}
-    ourXiKeyRef.current = xiKey;
-    ourBenchKeyRef.current = benchKey;
-    ourFormationRef.current = formation;
-    if (!clubState) { setSlotAssignments(Array(15).fill(null)); return; }
-    setSlotAssignments(buildSlotAssignments(
-      clubState.startingXI, clubState.benchPlayers, clubState.squad, formation,
-    ));
-  // clubState intentionally omitted — xiKey/benchKey capture the relevant change signals
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xiKey, benchKey, formation]);
 
   const playerSlotMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -52,18 +40,25 @@ export function useLineupSlots() {
   }, [slotAssignments]);
 
   const allSlots = useMemo(() => [
-    ...starterSlots.map((pos, i) => ({ pos, idx: i, isSub: false })),
+    ...starterSlots.map((templatePos, i) => (
+      { pos: effectiveRole(slotAssignments[i], templatePos as FormationPosition, customSlots, emptySlotRoles?.[i]?.role), idx: i, isSub: false }
+    )),
     ...(['SUB', 'SUB', 'SUB', 'SUB'] as const).map((pos, i) => ({ pos: pos as string, idx: 11 + i, isSub: true })),
-  ], [starterSlots]);
+  ], [starterSlots, slotAssignments, customSlots, emptySlotRoles]);
+
+  // Display-only ordering for pills/table rows — derived from customSlots (the live
+  // free-positioning geometry) when set, so a player who's been dragged to a new band shows
+  // up in the right place in the list, not just under the right label. Never read by
+  // handleSlotClick/handlePlayerDrop/commitAssignments below, which keep addressing slots by
+  // their original index regardless of display order.
+  const displayOrder = useMemo(
+    () => effectiveDisplayOrder(slotAssignments, customSlots, formation, emptySlotRoles),
+    [slotAssignments, customSlots, formation, emptySlotRoles],
+  );
 
   const commitAssignments = (newAssignments: (string | null)[]) => {
-    const newXi = newAssignments.slice(0, 11).filter(Boolean) as string[];
-    const newBench = newAssignments.slice(11).filter(Boolean) as string[];
-    ourXiKeyRef.current = newXi.join(',');
-    ourBenchKeyRef.current = newBench.join(',');
-    setSlotAssignments(newAssignments);
-    setStartingXI(newXi);
-    setBench(newBench);
+    setStartingXI(newAssignments.slice(0, 11));
+    setBench(newAssignments.slice(11).filter(Boolean) as string[]);
   };
 
   const handleSlotClick = (slotIdx: number) => {
@@ -99,6 +94,7 @@ export function useLineupSlots() {
     lines,
     starterSlots,
     allSlots,
+    displayOrder,
     slotAssignments,
     playerSlotMap,
     draggingSlot,

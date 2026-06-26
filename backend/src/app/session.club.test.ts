@@ -12,26 +12,28 @@ function newGame() {
 const club = (s: GameSession) => assertDefined(s.snapshot().clubState, 'clubState missing');
 const benchedSquadId = (s: GameSession) => {
   const cs = club(s);
-  return assertDefined(cs.squad.find(p => !cs.startingXI.includes(p.id)), 'no benched player found').id;
+  return assertDefined(cs.squad.find(p => !cs.startingXI.some(id => id === p.id)), 'no benched player found').id;
 };
 
 describe('GameSession squad selection:', () => {
   describe('toggleXI', () => {
-    test('removes a player who is already in the starting XI', () => {
+    test('removes a player who is already in the starting XI, leaving their slot null', () => {
       const { session } = newGame();
-      const inXI = club(session).startingXI[0];
+      const inXI = assertDefined(club(session).startingXI[0], 'expected a filled slot');
       const result = assertDefined(session.toggleXI(inXI), 'toggleXI failed');
       expect(result.startingXI).not.toContain(inXI);
-      expect(result.startingXI).toHaveLength(10);
+      expect(result.startingXI).toHaveLength(11); // hole preserved, not compacted
+      expect(result.startingXI[0]).toBeNull();
     });
 
-    test('adds a benched player when there is room', () => {
+    test('adds a benched player into the first empty slot when there is room', () => {
       const { session } = newGame();
-      const inXI = club(session).startingXI[0];
-      session.toggleXI(inXI);                 // drop to 10
+      const inXI = assertDefined(club(session).startingXI[0], 'expected a filled slot');
+      session.toggleXI(inXI);                 // open up slot 0
       const benchId = benchedSquadId(session);
       const result = assertDefined(session.toggleXI(benchId), 'toggleXI failed');
       expect(result.startingXI).toContain(benchId);
+      expect(result.startingXI[0]).toBe(benchId);
       expect(result.startingXI).toHaveLength(11);
     });
 
@@ -54,7 +56,7 @@ describe('GameSession squad selection:', () => {
     test('setBench replaces the bench', () => {
       const { session } = newGame();
       const cs = club(session);
-      const benchIds = cs.squad.filter(p => !cs.startingXI.includes(p.id)).slice(0, 5).map(p => p.id);
+      const benchIds = cs.squad.filter(p => !cs.startingXI.some(id => id === p.id)).slice(0, 5).map(p => p.id);
       expect(assertDefined(session.setBench(benchIds), 'setBench failed').benchPlayers).toEqual(benchIds);
     });
 

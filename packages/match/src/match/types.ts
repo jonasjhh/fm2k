@@ -1,6 +1,7 @@
 import { Player, Team, type FieldedPositions } from '../shared/types';
 import type { MatchParameterSet } from '../tactics/match-parameters.ts';
 import type { InjuryReport } from './injury.ts';
+import type { FieldedGeometry } from './action-selector.ts';
 
 export type EventType =
   | 'kickoff'
@@ -66,6 +67,13 @@ export interface MatchState {
   fieldedPositions?: {
     home: FieldedPositions;
     away: FieldedPositions;
+  };
+  /** Per-player zone-weighting geometry, per side — overrides the geometry that would
+   *  otherwise be derived from fieldedPositions' role label (FIELD_LINE/FLANK). Absent for
+   *  every predefined-formation match today; populated once free-positioning lands. */
+  fieldedGeometry?: {
+    home: FieldedGeometry;
+    away: FieldedGeometry;
   };
   bookings: {
     yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;

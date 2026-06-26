@@ -62,18 +62,67 @@ describe('useLineupSlots:', () => {
     expect(result.current.slotAssignments.slice(11)).toEqual(['sub1', 'sub2', null, null]);
   });
 
-  it('given a cleared slot then it commits the reduced XI to the store', () => {
+  it('given a cleared slot then it commits an 11-length array with that slot null, others untouched', () => {
     const { result } = renderHook(() => useLineupSlots());
     act(() => result.current.handleSlotClick(10)); // remove second striker
     expect(setStartingXI).toHaveBeenCalledTimes(1);
-    const committedXi = setStartingXI.mock.calls[0][0] as string[];
-    expect(committedXi).not.toContain('st2');
-    expect(committedXi).toHaveLength(10);
+    const committedXi = setStartingXI.mock.calls[0][0] as (string | null)[];
+    expect(committedXi).toHaveLength(11);
+    expect(committedXi[10]).toBeNull();
+    expect(committedXi.slice(0, 10)).toEqual(['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1']);
+  });
+
+  it('clearing the GK slot does not shift any other slot\'s player (regression)', () => {
+    const { result } = renderHook(() => useLineupSlots());
+    act(() => result.current.handleSlotClick(0)); // remove the GK
+    const committedXi = setStartingXI.mock.calls[0][0] as (string | null)[];
+    expect(committedXi[0]).toBeNull();
+    expect(committedXi.slice(1)).toEqual(['lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2']);
   });
 
   it('exposes the formation lines for the active formation', () => {
     const { result } = renderHook(() => useLineupSlots());
     expect(result.current.lines[0]).toEqual(['GK']);
     expect(result.current.starterSlots).toHaveLength(11);
+  });
+
+  it('without customSlots, displayOrder matches today\'s slot-index order (delegates to effectiveDisplayOrder)', () => {
+    const { result } = renderHook(() => useLineupSlots());
+    result.current.slotAssignments.forEach((id, i) => {
+      if (id) { expect(result.current.displayOrder.get(id)).toBe(i); }
+    });
+  });
+
+  it('with customSlots set, a player\'s effective role overrides the template label in allSlots', () => {
+    storeState.clubState = {
+      ...(storeState.clubState as Record<string, unknown>),
+      customSlots: { cb1: { band: 'ATT', lateral: 0, role: 'ST' } },
+    };
+    const { result } = renderHook(() => useLineupSlots());
+    const cbSlotIdx = result.current.slotAssignments.indexOf('cb1');
+    expect(result.current.allSlots[cbSlotIdx].pos).toBe('ST');
+  });
+
+  it('with emptySlotRoles set, an unassigned slot\'s pos shows the captured role, not the template one (regression)', () => {
+    storeState.clubState = {
+      ...(storeState.clubState as Record<string, unknown>),
+      startingXI: [SQUAD[0].id, null, ...SQUAD.slice(2, 11).map(p => p.id)], // lb (index 1) unassigned
+      emptySlotRoles: { 1: { band: 'DEF', lateral: -1, role: 'LWB' } },
+    };
+    const { result } = renderHook(() => useLineupSlots());
+    expect(result.current.allSlots[1].pos).toBe('LWB');
+  });
+
+  it('an empty slot captured from a non-canonical band sorts among that band\'s pills, not its template band (regression)', () => {
+    storeState.clubState = {
+      ...(storeState.clubState as Record<string, unknown>),
+      startingXI: [SQUAD[0].id, null, ...SQUAD.slice(2, 11).map(p => p.id)], // lb (index 1) unassigned
+      customSlots: {}, // something has been customized (required for band-aware ordering)
+      emptySlotRoles: { 1: { band: 'ATT', lateral: 0, role: 'ST' } }, // captured: lb had moved to ATT
+    };
+    const { result } = renderHook(() => useLineupSlots());
+    const lmRank = result.current.displayOrder.get('lm') as number;
+    const emptySlotRank = result.current.displayOrder.get('__empty-1') as number;
+    expect(lmRank).toBeLessThan(emptySlotRank); // ranks after MID (lm), not among it
   });
 });

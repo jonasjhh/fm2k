@@ -18,7 +18,7 @@ const HOME_ADVANTAGE_CQ = 16;
 function withHomeAdvantage(p: MatchParameters): MatchParameters {
   return { ...p, chanceQuality: clampParam(p.chanceQuality + HOME_ADVANTAGE_CQ) };
 }
-import { deriveFieldedPositions } from '../lineup/lineup.ts';
+import { deriveFieldedPositions, deriveCustomFieldedPositions } from '../lineup/lineup.ts';
 import { ActionSelector } from './action-selector.ts';
 import {
   ShortPassGenerator,
@@ -98,6 +98,12 @@ export class MatchSimulator {
   private createInitialState(): MatchState {
     const homePlayers = this.config.homeStarters;
     const awayPlayers = this.config.awayStarters;
+    // A team's customSlots (manager-chosen free positioning) takes precedence over the
+    // formation template when present; AI/opponent teams never set it.
+    const homeCustom = this.config.homeTeam.customSlots
+      ? deriveCustomFieldedPositions(this.config.homeTeam.customSlots) : undefined;
+    const awayCustom = this.config.awayTeam.customSlots
+      ? deriveCustomFieldedPositions(this.config.awayTeam.customSlots) : undefined;
     return {
       minute: 0,
       homeScore: 0,
@@ -112,9 +118,15 @@ export class MatchSimulator {
         away: awayPlayers,
       },
       fieldedPositions: {
-        home: deriveFieldedPositions(homePlayers, this.config.homeTeam.formation),
-        away: deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation),
+        home: homeCustom?.fieldedPositions ?? deriveFieldedPositions(homePlayers, this.config.homeTeam.formation),
+        away: awayCustom?.fieldedPositions ?? deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation),
       },
+      ...(homeCustom || awayCustom ? {
+        fieldedGeometry: {
+          home: homeCustom?.fieldedGeometry ?? {},
+          away: awayCustom?.fieldedGeometry ?? {},
+        },
+      } : {}),
       params: {
         // Home advantage: a modest, realistic edge applied as a chance-quality bump on the
         // home side (crowd/familiarity) — lifts home win rate and trims draws. Kept on the

@@ -285,7 +285,7 @@ function getGK(state: MatchState): Player | null {
 }
 
 function getDefenders(state: MatchState): Player[] {
-  return defPlayers(state).filter(p => ['CB', 'LB', 'RB', 'CDM'].includes(p.position));
+  return defPlayers(state).filter(p => ['CB', 'LB', 'RB', 'DM'].includes(p.position));
 }
 
 function pickRandom<T>(arr: T[], rng: () => number): T | null {

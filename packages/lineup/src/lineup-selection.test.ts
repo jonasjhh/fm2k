@@ -41,7 +41,7 @@ describe('positionFit:', () => {
   });
 
   it('given related positions then the fit beats unrelated positions', () => {
-    expect(positionFit('CM', 'CDM')).toBeGreaterThan(positionFit('CB', 'ST'));
+    expect(positionFit('CM', 'DM')).toBeGreaterThan(positionFit('CB', 'ST'));
   });
 
   it('given the fit is symmetric then order does not matter', () => {

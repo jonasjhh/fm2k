@@ -25,10 +25,10 @@ const FIT_PAIRS: [FormationPosition, FormationPosition, number][] = [
   ['LWB', 'LW', 0.65], ['RWB', 'RW', 0.65],
   ['LWB', 'CB', 0.65], ['RWB', 'CB', 0.65],
   // centre-backs / holding
-  ['CB', 'CDM', 0.7],
+  ['CB', 'DM', 0.7],
   // central midfield chain
-  ['CDM', 'CM', 0.8],
-  ['CM', 'CAM', 0.8],
+  ['DM', 'CM', 0.8],
+  ['CM', 'AM', 0.8],
   ['LM', 'CM', 0.7], ['RM', 'CM', 0.7],
   // wide players
   ['LM', 'RM', 0.85],
@@ -36,8 +36,8 @@ const FIT_PAIRS: [FormationPosition, FormationPosition, number][] = [
   ['LM', 'RW', 0.6], ['RM', 'LW', 0.6],
   ['LW', 'RW', 0.8],
   // attacking transitions
-  ['CAM', 'LW', 0.7], ['CAM', 'RW', 0.7],
-  ['CAM', 'ST', 0.75],
+  ['AM', 'LW', 0.7], ['AM', 'RW', 0.7],
+  ['AM', 'ST', 0.75],
   ['LW', 'ST', 0.7], ['RW', 'ST', 0.7],
 ];
 

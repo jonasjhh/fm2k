@@ -9,7 +9,7 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import CloseIcon from '@mui/icons-material/Close';
-import { FORMATION_LINES, buildXISlotAssignments, buildSlotAssignments, getTeamOVR } from '@fm2k/engine';
+import { FORMATION_LINES, buildXISlotAssignments, getTeamOVR } from '@fm2k/engine';
 import type { Player } from '@fm2k/engine';
 import { getContrastColor } from '@fm2k/design-system';
 import { useShallow } from 'zustand/react/shallow';
@@ -45,8 +45,9 @@ export default function TeamLineupDialog({ teamId, onClose }: Props) {
   const squad: Player[] = ownClub ? ownClub.squad : team?.squad ?? [];
   const formation = ownClub ? ownClub.formation : team?.formation ?? '4-4-2';
   const lines = FORMATION_LINES[formation];
+  // ownClub.startingXI is itself slot-ordered (and hole-preserving) — no need to re-derive it.
   const slotAssignments = ownClub
-    ? buildSlotAssignments(ownClub.startingXI, ownClub.benchPlayers, ownClub.squad, ownClub.formation)
+    ? [...ownClub.startingXI, ...ownClub.benchPlayers.slice(0, 4)]
     : buildXISlotAssignments(squad, formation);
 
   const xi = slotAssignments.slice(0, 11)
@@ -80,6 +81,8 @@ export default function TeamLineupDialog({ teamId, onClose }: Props) {
                 slotAssignments={slotAssignments}
                 squad={squad}
                 teamColors={team.colors}
+                customSlots={ownClub?.customSlots ?? null}
+                emptySlotRoles={ownClub?.emptySlotRoles ?? null}
                 onPlayerClick={setClickedPlayerId}
               />
               {!isPlayerTeam && (

@@ -13,12 +13,12 @@ import { useGameStore } from '@/store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
-import { FORMATION_LINES } from '@fm2k/engine';
+import { FORMATION_LINES, effectiveFormationLabel, emptySlotKey } from '@fm2k/engine';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
 import SlotLabel from '../ui/SlotLabel';
-import { FormationGrid } from '../ui/FormationGrid';
+import { TacticsPitch } from '../ui/TacticsPitch';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
@@ -47,13 +47,16 @@ const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation, setPlayerGeometry, setPlayerRole, setEmptySlotRole } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
+    setPlayerGeometry: s.setPlayerGeometry,
+    setPlayerRole: s.setPlayerRole,
+    setEmptySlotRole: s.setEmptySlotRole,
   })));
 
   const {
-    lines, starterSlots, allSlots, slotAssignments,
+    allSlots, displayOrder, slotAssignments,
     playerSlotMap, draggingSlot, dropTargetId,
     setDraggingSlot, setDropTargetId,
     handleSlotClick, handleDragEnd,
@@ -65,10 +68,21 @@ export default function TacticsTab() {
 
   const teamColors = useClubColors();
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
+  const effectiveLabel = clubState
+    ? effectiveFormationLabel(clubState.formation, clubState.startingXI, clubState.customSlots)
+    : formation;
 
   const sorted = useMemo(
-    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, playerSlotMap) : [],
-    [clubState, sort, playerSlotMap],
+    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, displayOrder) : [],
+    [clubState, sort, displayOrder],
+  );
+
+  const orderedSlots = useMemo(
+    () => [...allSlots].sort((a, b) => (
+      (displayOrder.get(slotAssignments[a.idx] ?? emptySlotKey(a.idx)) ?? a.idx)
+      - (displayOrder.get(slotAssignments[b.idx] ?? emptySlotKey(b.idx)) ?? b.idx)
+    )),
+    [allSlots, displayOrder, slotAssignments],
   );
 
   if (!clubState) {return null;}
@@ -86,18 +100,26 @@ export default function TacticsTab() {
         {FORMATIONS_QUICK.map((f) => (
           <Button
             key={f}
-            variant={formation === f ? 'contained' : 'outlined'}
+            variant={effectiveLabel === f ? 'contained' : 'outlined'}
             onClick={() => setFormation(f)}
             sx={{ px: 1.5, py: 0.75, minWidth: 54, fontSize: 12, fontWeight: 700, lineHeight: 1 }}
           >
             {f}
           </Button>
         ))}
+        {/* Status-only — there's no "switch to custom" action; dragging a circle on the
+            pitch below is what gets you here, this pill just reflects that it happened. */}
+        <Chip
+          label="Custom"
+          color={effectiveLabel === 'custom' ? 'secondary' : 'default'}
+          variant={effectiveLabel === 'custom' ? 'filled' : 'outlined'}
+          sx={{ fontSize: 12, fontWeight: 700 }}
+        />
       </Box>
 
       {/* Position pills */}
       <Box sx={{ display: 'flex', gap: 0.75, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-        {allSlots.map(({ pos, idx, isSub }) => {
+        {orderedSlots.map(({ pos, idx, isSub }) => {
           const playerId = slotAssignments[idx] ?? null;
           const player = playerId ? (playerById.get(playerId) ?? null) : null;
           return (
@@ -139,9 +161,7 @@ export default function TacticsTab() {
             <TableBody>
               {sorted.map(p => {
                 const slotIdx = playerSlotMap.get(p.id);
-                const slotPos = slotIdx !== undefined
-                  ? (slotIdx < starterSlots.length ? starterSlots[slotIdx] : 'SUB')
-                  : null;
+                const slotPos = slotIdx !== undefined ? (allSlots[slotIdx]?.pos ?? 'SUB') : null;
                 const isDropTarget = p.id === dropTargetId;
                 return (
                   <TableRow
@@ -186,7 +206,17 @@ export default function TacticsTab() {
 
         {/* Formation pitch */}
         <Box sx={{ width: 380, flexShrink: 0 }}>
-          <FormationGrid lines={lines} slotAssignments={slotAssignments} squad={clubState.squad} teamColors={teamColors} />
+          <TacticsPitch
+            formation={formation}
+            startingXI={clubState.startingXI}
+            customSlots={clubState.customSlots}
+            emptySlotRoles={clubState.emptySlotRoles}
+            squad={clubState.squad}
+            teamColors={teamColors}
+            onPlayerMove={setPlayerGeometry}
+            onPlayerRoleChange={setPlayerRole}
+            onEmptySlotRoleChange={setEmptySlotRole}
+          />
         </Box>
 
       </Box>

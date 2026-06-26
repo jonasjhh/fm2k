@@ -70,8 +70,10 @@ export default function MatchSimPanel() {
     : live ? `${minute}' · ${PHASE_LABEL[live.phase] ?? ''}`
     : 'Not started';
 
+  const xiIncomplete = !!clubState && clubState.startingXI.some(id => id === null);
   const xiInvalid = !!clubState
     && clubState.startingXI.some(id => clubState.squad.find(p => p.id === id)?.suspension);
+  const xiBlocked = xiInvalid || xiIncomplete;
 
   const controls = isStreaming ? (
     <Button variant="contained" color="inherit" size="small" disabled>Playing…</Button>
@@ -97,15 +99,15 @@ export default function MatchSimPanel() {
   ) : (
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
       <Button variant="contained" color="secondary" size="small" startIcon={<PlayArrowIcon />}
-        disabled={xiInvalid} onClick={advanceMatch}>
+        disabled={xiBlocked} onClick={advanceMatch}>
         Play Match
       </Button>
       <Button variant="contained" color="success" size="small" startIcon={<FastForwardIcon />}
-        disabled={xiInvalid} onClick={skipMatch}>
+        disabled={xiBlocked} onClick={skipMatch}>
         Simulate
       </Button>
       <Button variant="contained" color="success" size="small" startIcon={<FastForwardIcon />}
-        disabled={xiInvalid}
+        disabled={xiBlocked}
         onClick={() => { if (confirm('Simulate all remaining matches?')) { simulateToEnd(); } }}>
         Sim. Season
       </Button>
@@ -124,9 +126,11 @@ export default function MatchSimPanel() {
         {controls}
       </Box>
 
-      {xiInvalid && !live && !completed && (
+      {xiBlocked && !live && !completed && (
         <Alert severity="warning" square sx={{ borderRadius: 0 }}>
-          Your starting XI includes a suspended player. Fix your lineup in the Tactics tab before playing.
+          {xiIncomplete
+            ? 'Your starting XI is incomplete. Fill all 11 slots in the Tactics tab before playing.'
+            : 'Your starting XI includes a suspended player. Fix your lineup in the Tactics tab before playing.'}
         </Alert>
       )}
 

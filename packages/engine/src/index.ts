@@ -107,8 +107,13 @@ export {
   calculateTotalChangeCost, hasSectorChanged,
 } from './stadium/stadium.ts';
 export type { SectorKey, StadiumSectorConfig } from './stadium/stadium.ts';
-export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from '@fm2k/match';
-export type { FieldedPositions } from '@fm2k/match';
+export {
+  FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
+  canonicalGeometry, seedGeometryFromFormation, effectiveFormationLabel, SECONDARY_POSITIONS,
+  ROLE_OPTIONS_BY_BAND, ROLE_FAMILY_OF_BAND, MAX_BAND_SIZE, BAND_ORDER, BAND_OF_ROLE, rankInBand, eligibleRoles, preferredRole,
+  effectiveRole, effectiveDisplayOrder, emptySlotKey,
+} from '@fm2k/match';
+export type { FieldedPositions, PlayerGeometry, Band, RoleFamily, BandRank } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
   carryOverLineup,

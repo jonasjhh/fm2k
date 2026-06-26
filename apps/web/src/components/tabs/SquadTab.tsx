@@ -13,7 +13,7 @@ import Button from '@mui/material/Button';
 import { useGameStore } from '@/store/game-store';
 import type { ClubPlayer } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { playerValue } from '@fm2k/engine';
+import { playerValue, emptySlotKey } from '@fm2k/engine';
 import { StatsCard } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
@@ -59,7 +59,7 @@ export default function SquadTab() {
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
   const {
-    starterSlots, allSlots, slotAssignments,
+    allSlots, displayOrder, slotAssignments,
     playerSlotMap, draggingSlot, dropTargetId,
     setDraggingSlot, setDropTargetId,
     handleSlotClick, handleDragEnd,
@@ -67,8 +67,16 @@ export default function SquadTab() {
   } = useLineupSlots();
 
   const sorted = useMemo(
-    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, playerSlotMap) : [],
-    [clubState, sort, playerSlotMap],
+    () => clubState ? sortPlayers(clubState.squad, sort.col, sort.dir, displayOrder) : [],
+    [clubState, sort, displayOrder],
+  );
+
+  const orderedSlots = useMemo(
+    () => [...allSlots].sort((a, b) => (
+      (displayOrder.get(slotAssignments[a.idx] ?? emptySlotKey(a.idx)) ?? a.idx)
+      - (displayOrder.get(slotAssignments[b.idx] ?? emptySlotKey(b.idx)) ?? b.idx)
+    )),
+    [allSlots, displayOrder, slotAssignments],
   );
 
   if (!clubState) {return null;}
@@ -103,7 +111,7 @@ export default function SquadTab() {
 
       {/* Position pills */}
       <Box sx={{ display: 'flex', gap: 0.75, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-        {allSlots.map(({ pos, idx, isSub }) => {
+        {orderedSlots.map(({ pos, idx, isSub }) => {
           const playerId = slotAssignments[idx] ?? null;
           const player = playerId ? (playerById.get(playerId) ?? null) : null;
           return (
@@ -160,9 +168,7 @@ export default function SquadTab() {
         <TableBody>
           {sorted.map((p) => {
             const slotIdx = playerSlotMap.get(p.id);
-            const slotPos = slotIdx !== undefined
-              ? (slotIdx < starterSlots.length ? starterSlots[slotIdx] : 'SUB')
-              : null;
+            const slotPos = slotIdx !== undefined ? (allSlots[slotIdx]?.pos ?? 'SUB') : null;
             const isDropTarget = p.id === dropTargetId;
             return (
               <TableRow

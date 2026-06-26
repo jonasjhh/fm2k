@@ -65,7 +65,7 @@ function lineWeightSum(position: FormationPosition, zones: readonly number[]): n
 }
 
 /** Accepts any `FormationPosition` (not just the 10-value `PlayerPosition`) so it also covers
- *  CDM/CAM, which appear in some formations (`4-2-3-1`, `4-1-4-1`, ...) but aren't a player's
+ *  DM/AM, which appear in some formations (`4-2-3-1`, `4-1-4-1`, ...) but aren't a player's
  *  card position — `FIELD_LINE`/`getPositionPreference` already key on the wider set. */
 export function positionAttributeImportance(position: FormationPosition): Partial<Record<keyof PlayerAttributes, number>> {
   const totals: Partial<Record<keyof PlayerAttributes, number>> = {};

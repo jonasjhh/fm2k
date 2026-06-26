@@ -4,10 +4,10 @@
 // Domain model
 export type {
   Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors,
-  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy,
+  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, Band,
 } from './shared/types.ts';
 export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts';
-export { getEffectiveAttributes, getPositionModifier } from './shared/position-rules.ts';
+export { getEffectiveAttributes, getPositionModifier, SECONDARY_POSITIONS } from './shared/position-rules.ts';
 
 // Ratings
 export { calculateOverall, getTeamOVR, OVERALL_WEIGHTS } from './ratings.ts';
@@ -16,7 +16,16 @@ export { calculateOverall, getTeamOVR, OVERALL_WEIGHTS } from './ratings.ts';
 export * from './tactics/index.ts';
 
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
-export { FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions } from './lineup/lineup.ts';
+export {
+  FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
+  deriveCustomFieldedPositions, canonicalGeometry, seedGeometryFromFormation, effectiveFormationLabel,
+  effectiveRole, effectiveDisplayOrder, emptySlotKey,
+} from './lineup/lineup.ts';
+export {
+  BAND_OF_ROLE, BAND_TO_FIELD_LINE, flankOfLateral, ROLE_OPTIONS_BY_BAND,
+  ROLE_FAMILY_OF_BAND, MAX_BAND_SIZE, BAND_ORDER, rankInBand, eligibleRoles, preferredRole,
+} from './match/action-selector.ts';
+export type { RoleFamily, BandRank } from './match/action-selector.ts';
 
 // Position attribute importance (derived from the simulator's own formulas)
 export { positionAttributeImportance } from './match/position-importance.ts';

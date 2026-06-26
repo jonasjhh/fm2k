@@ -1,5 +1,7 @@
 import type { MatchParameters } from '../tactics/match-parameters.ts';
 import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
+import type { Band } from '../match/action-selector.ts';
+export type { Band };
 
 export type Formation =
   | '4-4-2' | '4-3-3' | '4-5-1' | '4-2-3-1' | '4-1-4-1' | '4-4-1-1' | '4-2-4'
@@ -11,14 +13,14 @@ export type Formation =
 export type MatchOutcomeDecidedBy = 'normal' | 'extra_time' | 'penalties';
 
 /** A player's native/card position — what they're scouted, generated, and recruited as.
- *  Excludes CDM/CAM: those are formation slots a CM plays, not a position a player has. */
+ *  Excludes DM/AM: those are formation slots a CM plays, not a position a player has. */
 export type PlayerPosition = 'GK' | 'CB' | 'LB' | 'RB' | 'CM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
 /** A formation slot / in-match role a player can be fielded at — a superset of
- *  PlayerPosition that also includes CDM and CAM (always filled by a CM), and LWB/RWB
+ *  PlayerPosition that also includes DM and AM (always filled by a CM), and LWB/RWB
  *  (always filled by an LB/RB, in back-5 formations like 5-3-2/5-4-1) — never a player's
  *  own PlayerPosition. */
-export type FormationPosition = PlayerPosition | 'CDM' | 'CAM' | 'LWB' | 'RWB';
+export type FormationPosition = PlayerPosition | 'DM' | 'AM' | 'LWB' | 'RWB';
 
 /** Single source of truth for all PlayerPosition values — a Record keyed by the full
  *  union, so TypeScript refuses to compile if a position is ever added without an entry
@@ -43,6 +45,17 @@ export const ALL_PLAYER_POSITIONS: readonly PlayerPosition[] =
 /** playerId -> the FormationPosition they're fielded at right now (formation slot), as
  *  opposed to Player.position (card/generation-time PlayerPosition). */
 export type FieldedPositions = Record<string, FormationPosition>;
+
+/** A manager-chosen position for one player, free of any predefined formation template:
+ *  `band` is which line they play in (zone-weighting), `lateral` is where on that line
+ *  (-1 far left .. 1 far right — a sort key/flank-bucket source, not a fixed column), and
+ *  `role` is the instruction (e.g. LB vs LWB) that drives action preference and attribute
+ *  scaling. See deriveCustomFieldedPositions/canonicalGeometry in lineup.ts. */
+export interface PlayerGeometry {
+  band: Exclude<Band, 'GK'>;
+  lateral: number;
+  role: FormationPosition;
+}
 
 export interface Player {
   id: string;
@@ -93,6 +106,9 @@ export interface Team {
   tacticsParams?: MatchParameters;
   /** Per-player starting energy 0..100 (seeded from ClubPlayer.fitness) for this match. */
   fitness?: Record<string, number>;
+  /** Manager-chosen free-positioning override, keyed by player id — when present, the
+   *  match build uses this instead of deriving slots from `formation`/FORMATION_LINES. */
+  customSlots?: Record<string, PlayerGeometry>;
 }
 
 /** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */

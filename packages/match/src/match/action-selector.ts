@@ -11,19 +11,139 @@ import { resolveContest, mirrorBall, type Skill } from './action-generators.ts';
 
 export type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
 
-export const FIELD_LINE: Record<FormationPosition, FieldLine> = {
-  GK: 'GK',
-  CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'DEF', LWB: 'DEF', RWB: 'DEF',
-  CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID',
-  LW: 'ATT', RW: 'ATT', ST: 'ATT',
+/** Finer-grained band a role sits in before collapsing to the engine's 4 zone-weighting
+ *  lines — kept distinct from FieldLine so a future free-positioning mode can place a
+ *  player in, say, the DM/AM band independently of which FieldLine that band collapses to. */
+export type Band = 'GK' | 'DEF' | 'DM' | 'MID' | 'AM' | 'ATT';
+
+/** A band's roles split into left/center/right families — every band has exactly one
+ *  center role; DM/AM have no left/right family at all (their one role is always center,
+ *  regardless of rank or how many players share the band). The single authoritative
+ *  source for which roles belong to which band: BAND_OF_ROLE and ROLE_OPTIONS_BY_BAND
+ *  below are both derived from it, so there's nothing else to keep in sync. */
+export interface RoleFamily {
+  left: FormationPosition[];
+  center: FormationPosition[];
+  right: FormationPosition[];
+}
+
+export const ROLE_FAMILY_OF_BAND: Record<Exclude<Band, 'GK'>, RoleFamily> = {
+  DEF: { left: ['LB', 'LWB'], center: ['CB'], right: ['RB', 'RWB'] },
+  DM:  { left: [], center: ['DM'], right: [] },
+  MID: { left: ['LM'], center: ['CM'], right: ['RM'] },
+  AM:  { left: [], center: ['AM'], right: [] },
+  ATT: { left: ['LW'], center: ['ST'], right: ['RW'] },
 };
+
+/** Every FormationPosition belonging to a band, grouped — flattened from
+ *  ROLE_FAMILY_OF_BAND. The instruction-picker's candidate set for a player standing in
+ *  that band (free-positioning: see TacticsPitch/setPlayerRole). */
+export const ROLE_OPTIONS_BY_BAND: Record<Exclude<Band, 'GK'>, FormationPosition[]> = Object.fromEntries(
+  (Object.keys(ROLE_FAMILY_OF_BAND) as Exclude<Band, 'GK'>[]).map(band => {
+    const fam = ROLE_FAMILY_OF_BAND[band];
+    return [band, [...fam.left, ...fam.center, ...fam.right]];
+  }),
+) as Record<Exclude<Band, 'GK'>, FormationPosition[]>;
+
+export const BAND_OF_ROLE: Record<FormationPosition, Band> = {
+  GK: 'GK',
+  ...Object.fromEntries(
+    (Object.keys(ROLE_OPTIONS_BY_BAND) as Exclude<Band, 'GK'>[])
+      .flatMap(band => ROLE_OPTIONS_BY_BAND[band].map(role => [role, band])),
+  ),
+} as Record<FormationPosition, Band>;
+
+// Defenders behave as defenders; every flavor of midfielder (holding, central, wide,
+// attacking) behaves as a midfielder; strikers and wingers behave as attackers.
+export const BAND_TO_FIELD_LINE: Record<Band, FieldLine> = {
+  GK: 'GK', DEF: 'DEF', DM: 'MID', MID: 'MID', AM: 'MID', ATT: 'ATT',
+};
+
+export const FIELD_LINE: Record<FormationPosition, FieldLine> = Object.fromEntries(
+  (Object.keys(BAND_OF_ROLE) as FormationPosition[]).map(
+    role => [role, BAND_TO_FIELD_LINE[BAND_OF_ROLE[role]]],
+  ),
+) as Record<FormationPosition, FieldLine>;
+
+/** Maximum number of players a single band may hold at once (free-positioning). */
+export const MAX_BAND_SIZE = 5;
+
+/** Bands in attack-to-defense order — the canonical "how advanced is this role" ranking,
+ *  shared by every UI that needs to lay players out by band (the free-positioning pitch view,
+ *  and the table/pill display order in effectiveDisplayOrder). */
+export const BAND_ORDER: Exclude<Band, 'GK'>[] = ['ATT', 'AM', 'MID', 'DM', 'DEF'];
+
+/** A player's position within their band, by lateral order — drives which role family
+ *  they're allowed to pick from (see eligibleRoles). `'only'` covers a band with a single
+ *  member, who is unconstrained (both ends and the middle at once). */
+export type BandRank = 'leftmost' | 'rightmost' | 'inner' | 'only';
+
+/** Rank a player by lateral order among their band-mates (ties broken by id, so it's
+ *  deterministic regardless of object/array iteration order). `members` need not be
+ *  pre-sorted, and may or may not include `playerId` itself (it's only used to find rank). */
+export function rankInBand(playerId: string, members: { id: string; lateral: number }[]): BandRank {
+  if (members.length <= 1) { return 'only'; }
+  const sorted = [...members].sort((a, b) => a.lateral - b.lateral || a.id.localeCompare(b.id));
+  if (sorted[0].id === playerId) { return 'leftmost'; }
+  if (sorted[sorted.length - 1].id === playerId) { return 'rightmost'; }
+  return 'inner';
+}
+
+/** The roles a player may be assigned, given which band they're in, their rank within it
+ *  (rankInBand), and how many players share that band. A lone member gets the full set;
+ *  an inner member (only possible when count >= 3) is always forced to the center role;
+ *  the two ends get their side's family plus center, *except* once a band reaches 4+
+ *  members, where the ends are forced to their side's family (no center) — this is what
+ *  makes a 4-or-5-wide band always have an L-type role on the left end and an R-type on
+ *  the right, matching how every predefined formation is already shaped. */
+export function eligibleRoles(band: Exclude<Band, 'GK'>, rank: BandRank, count: number): FormationPosition[] {
+  const fam = ROLE_FAMILY_OF_BAND[band];
+  if (rank === 'only') { return [...fam.left, ...fam.center, ...fam.right]; }
+  if (rank === 'inner') { return fam.center; }
+  const side = rank === 'leftmost' ? fam.left : fam.right;
+  if (count >= 4 && side.length > 0) { return side; }
+  return [...side, ...fam.center];
+}
+
+/** The preferred role among a rank's eligible set — center if it's eligible (the common
+ *  case for an inner slot or a band that isn't yet forced wide), else the first eligible
+ *  family role (e.g. a forced-wide end with no center option). Used to default a player's
+ *  role when their previous one no longer fits their new band/rank. */
+export function preferredRole(band: Exclude<Band, 'GK'>, rank: BandRank, count: number): FormationPosition {
+  const eligible = eligibleRoles(band, rank, count);
+  const center = ROLE_FAMILY_OF_BAND[band].center[0];
+  return center && eligible.includes(center) ? center : eligible[0];
+}
 
 const FLANK: Record<FormationPosition, 'left' | 'right' | 'center'> = {
   LB: 'left', LM: 'left', LW: 'left', LWB: 'left',
   RB: 'right', RM: 'right', RW: 'right', RWB: 'right',
-  GK: 'center', CB: 'center', CDM: 'center',
-  CM: 'center', CAM: 'center', ST: 'center',
+  GK: 'center', CB: 'center', DM: 'center',
+  CM: 'center', AM: 'center', ST: 'center',
 };
+
+/** A player's zone-weighting geometry, decoupled from their role label — lets a future
+ *  free-positioning mode place a player anywhere regardless of which role/instruction
+ *  (LB, LWB, ...) they're assigned. Absent for predefined formations, where geometry is
+ *  still derived from the role via FIELD_LINE/FLANK above. */
+export interface FieldGeometry {
+  line: FieldLine;
+  flank: 'left' | 'right' | 'center';
+}
+
+export type FieldedGeometry = Record<string, FieldGeometry>;
+
+// Anything within this band of dead-center counts as "center" rather than a flank —
+// matches the existing left/center/right granularity FLANK already uses per-role.
+const LATERAL_CENTER_THRESHOLD = 0.34;
+
+/** Bucket a continuous lateral position (-1 far left .. 1 far right) into the same
+ *  left/center/right granularity FLANK uses for predefined formations. */
+export function flankOfLateral(lateral: number): 'left' | 'right' | 'center' {
+  if (lateral <= -LATERAL_CENTER_THRESHOLD) { return 'left'; }
+  if (lateral >= LATERAL_CENTER_THRESHOLD) { return 'right'; }
+  return 'center';
+}
 
 // zone index 0..4 = home_box, home_third, middle_third, away_third, away_box
 // (home_box = possessor's own/defensive end; away_box = attacking end)
@@ -46,11 +166,13 @@ export function activePlayerWeight(
   player: Player,
   ball: BallPosition,
   fieldedPosition: FormationPosition = player.position,
+  geometry?: FieldGeometry,
 ): number {
-  let w = LINE_ZONE_WEIGHT[FIELD_LINE[fieldedPosition]][ZONE_INDEX[ball.zone]];
+  const line = geometry?.line ?? FIELD_LINE[fieldedPosition];
+  const flank = geometry?.flank ?? FLANK[fieldedPosition];
+  let w = LINE_ZONE_WEIGHT[line][ZONE_INDEX[ball.zone]];
   if (w === 0) { return 0; }
   if (ball.side === 'left' || ball.side === 'right') {
-    const flank = FLANK[fieldedPosition];
     if (flank === ball.side) { w *= SIDE_MATCH; }
     else if (flank !== 'center') { w *= SIDE_OPPOSITE; }
   }
@@ -62,9 +184,10 @@ export function selectActivePlayer(
   ball: BallPosition,
   rng: () => number = Math.random,
   fieldedPositions?: FieldedPositions,
+  fieldedGeometry?: FieldedGeometry,
 ): Player | null {
   const weighted = players
-    .map(p => ({ p, w: activePlayerWeight(p, ball, fieldedPositions?.[p.id]) }))
+    .map(p => ({ p, w: activePlayerWeight(p, ball, fieldedPositions?.[p.id], fieldedGeometry?.[p.id]) }))
     .filter(x => x.w > 0);
   if (weighted.length === 0) { return null; }
   const total = weighted.reduce((s, x) => s + x.w, 0);
@@ -96,14 +219,14 @@ export interface ActionGenerator {
 export type ActionType = 'short_pass' | 'long_pass' | 'through_ball' | 'cross' | 'dribble' | 'shot';
 
 export const POSITION_PREFERENCE: Record<ActionType, Partial<Record<FormationPosition, number>>> = {
-  'short_pass': { 'CB': 1.2, 'CM': 1.3, 'CDM': 1.4 },
+  'short_pass': { 'CB': 1.2, 'CM': 1.3, 'DM': 1.4 },
   'long_pass': { 'CB': 1.1, 'CM': 1.2 },
-  'through_ball': { 'CAM': 1.5, 'CM': 1.2 },
+  'through_ball': { 'AM': 1.5, 'CM': 1.2 },
   // Wing-backs (LWB/RWB) sit between a winger and a plain full-back: more advanced and more
   // involved in crossing/carrying than an LB/RB, since a back-5 frees them to push forward.
   'cross': { 'LW': 1.5, 'RW': 1.5, 'LWB': 1.4, 'RWB': 1.4, 'LB': 1.2, 'RB': 1.2 },
-  'dribble': { 'LW': 1.4, 'RW': 1.4, 'LWB': 1.2, 'RWB': 1.2, 'CAM': 1.2 },
-  'shot': { 'ST': 1.5, 'CAM': 1.2 },
+  'dribble': { 'LW': 1.4, 'RW': 1.4, 'LWB': 1.2, 'RWB': 1.2, 'AM': 1.2 },
+  'shot': { 'ST': 1.5, 'AM': 1.2 },
 };
 
 const SKILL_REQUIREMENT: Record<ActionType, number> = {
@@ -265,7 +388,10 @@ export class ActionSelector {
     const team = state.possession === 'home'
       ? state.currentPlayers.home
       : state.currentPlayers.away;
-    return selectActivePlayer(team, state.ballPosition, this.rng, state.fieldedPositions?.[state.possession]);
+    return selectActivePlayer(
+      team, state.ballPosition, this.rng,
+      state.fieldedPositions?.[state.possession], state.fieldedGeometry?.[state.possession],
+    );
   }
 
   // The defender who contests the action: nearest defending outfielder to the ball. The
@@ -274,7 +400,10 @@ export class ActionSelector {
   private selectContestingDefender(state: MatchState): Player | null {
     const defSide = state.possession === 'home' ? 'away' : 'home';
     const defRoster = state.currentPlayers[defSide].filter(p => p.position !== 'GK');
-    return selectActivePlayer(defRoster, mirrorBall(state.ballPosition), this.rng, state.fieldedPositions?.[defSide]);
+    return selectActivePlayer(
+      defRoster, mirrorBall(state.ballPosition), this.rng,
+      state.fieldedPositions?.[defSide], state.fieldedGeometry?.[defSide],
+    );
   }
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {

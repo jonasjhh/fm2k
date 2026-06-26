@@ -27,7 +27,7 @@ function createTestPlayer(id: string, name: string, position: any): Player {
       passing: 70,
       finishing: position === 'GK' ? 30 : 70,
       technique: 70,
-      defending: ['CB', 'LB', 'RB', 'CDM'].includes(position) ? 85 : 50,
+      defending: ['CB', 'LB', 'RB', 'DM'].includes(position) ? 85 : 50,
       stamina: 75,
       awareness: 70,
       composure: 70,

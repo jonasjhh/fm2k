@@ -6,7 +6,7 @@ import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
   StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
-  TransferWindow,
+  TransferWindow, FormationPosition, Band,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -26,11 +26,18 @@ export interface BackendCommands {
   simulateToEnd(): Promise<void>;
   // tactics
   toggleXI(id: string): ClubState | null;
-  setStartingXI(ids: string[]): ClubState | null;
+  setStartingXI(slots: (string | null)[]): ClubState | null;
   setBench(ids: string[]): ClubState | null;
   setFormation(formation: Formation): ClubState | null;
   setTactics(intent: TeamTacticsIntent): ClubState | null;
   setTraining(playerId: string, regiment: RegimentId): ClubState | null;
+  /** Move a starting-XI player to a new band/lateral position (free positioning). */
+  setPlayerGeometry(playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }): ClubState | null;
+  /** Set a starting-XI player's instruction (e.g. LB vs LWB) without moving them. */
+  setPlayerRole(playerId: string, role: FormationPosition): ClubState | null;
+  /** Set a manager's pending role choice for a currently-empty outfield slot (1-10) — takes
+   *  effect once a player is assigned there. */
+  setEmptySlotRole(slotIndex: number, role: FormationPosition): ClubState | null;
   // transfers
   buyPlayer(listingId: string): boolean;
   sellPlayer(playerId: string): boolean;
@@ -104,11 +111,14 @@ export function createBackend(): Backend {
     nextMatch: () => s.nextMatch(),
     simulateToEnd: () => s.simulateToEnd(),
     toggleXI: (id) => s.toggleXI(id),
-    setStartingXI: (ids) => s.setStartingXI(ids),
+    setStartingXI: (slots) => s.setStartingXI(slots),
     setBench: (ids) => s.setBench(ids),
     setFormation: (f) => s.setFormation(f),
     setTactics: (intent) => s.setTactics(intent),
     setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
+    setPlayerGeometry: (playerId, geometry) => s.setPlayerGeometry(playerId, geometry),
+    setPlayerRole: (playerId, role) => s.setPlayerRole(playerId, role),
+    setEmptySlotRole: (slotIndex, role) => s.setEmptySlotRole(slotIndex, role),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),
     bidForPlayer: (teamId, playerId, amount) => s.bidForPlayer(teamId, playerId, amount),

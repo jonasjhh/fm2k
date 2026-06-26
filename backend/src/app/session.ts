@@ -6,13 +6,14 @@ import {
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
-  prizeMoneyFor, CUP_PRIZE,
+  prizeMoneyFor, CUP_PRIZE, buildSlotAssignments,
 } from '@fm2k/engine';
 import { PlayerGenerator } from '@fm2k/players';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
+  FormationPosition, Band,
 } from '@fm2k/engine';
 import { buildEditableCountries } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
@@ -673,9 +674,13 @@ export class GameSession {
     this.buildCompetitions(this.world, allLeagueIds, teamId, division, eventBus);
 
     const playerCountry = countryForTeam(this.world, teamId);
-    const { startingXI, benchPlayers } = carryOverLineup(
-      prevClub.startingXI, prevClub.benchPlayers, team.squad, team.formation,
+    const { startingXI: carriedXI, benchPlayers } = carryOverLineup(
+      prevClub.startingXI.filter((id): id is string => id !== null), prevClub.benchPlayers, team.squad, team.formation,
     );
+    // carryOverLineup returns a flat, complete (11-id) roster with no positional guarantee —
+    // slot-order it for the new season, the same way a brand-new club's initial XI already is.
+    // carriedXI always has exactly 11 real ids, so this never leaves a null hole.
+    const startingXI = buildSlotAssignments(carriedXI, benchPlayers, team.squad, team.formation).slice(0, 11) as string[];
     this.clubManager = new ClubManager({
       clubId: team.id,
       clubName: team.name,
@@ -1138,6 +1143,7 @@ export class GameSession {
     this.playerTeam.formation = cs.formation;
     this.playerTeam.tacticsIntent = cs.tactics;
     this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.resolvePlayerStarters());
+    this.playerTeam.customSlots = cs.customSlots ?? undefined;
     // Seed in-match starting energy from each player's current fitness, so a tired
     // squad (fixture congestion) starts and tires flatter.
     this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness]));
@@ -1150,24 +1156,43 @@ export class GameSession {
     const cs = this.clubManager?.getState();
     if (!cs) { return []; }
     const byId = new Map(cs.squad.map(p => [p.id, p]));
-    return cs.startingXI.map(id => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
+    return cs.startingXI
+      .filter((id): id is string => id !== null)
+      .map(id => byId.get(id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
   }
 
+  /** Toggle whether `id` is a starter, preserving every other slot's position: dropping a
+   *  starter leaves their slot `null` rather than compacting the array; adding a bench player
+   *  fills the first empty slot rather than appending past the 11-slot bound. No-op (returns
+   *  the unchanged state) if there's no empty slot to add them into. */
   toggleXI(id: string): ClubState | null {
     const cs = this.clubManager?.getState();
     if (!this.clubManager || !cs) { return null; }
-    if (cs.startingXI.includes(id)) {
-      this.clubManager.setStartingXI(cs.startingXI.filter(x => x !== id));
+    const idx = cs.startingXI.indexOf(id);
+    if (idx !== -1) {
+      const next = [...cs.startingXI];
+      next[idx] = null;
+      this.clubManager.setStartingXI(next);
     } else {
-      if (cs.startingXI.length >= 11) { return cs; }
-      this.clubManager.setStartingXI([...cs.startingXI, id]);
+      const emptyIdx = cs.startingXI.indexOf(null);
+      if (emptyIdx === -1) { return cs; }
+      const next = [...cs.startingXI];
+      next[emptyIdx] = id;
+      this.clubManager.setStartingXI(next);
     }
     return this.clubChanged();
   }
 
-  setStartingXI(ids: string[]): ClubState | null {
+  setStartingXI(slots: (string | null)[]): ClubState | null {
     if (!this.clubManager) { return null; }
-    this.clubManager.setStartingXI(ids);
+    this.clubManager.setStartingXI(slots);
+    return this.clubChanged();
+  }
+
+  setEmptySlotRole(slotIndex: number, role: FormationPosition): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setEmptySlotRole(slotIndex, role);
     return this.clubChanged();
   }
 
@@ -1192,6 +1217,18 @@ export class GameSession {
   setTactics(intent: TeamTacticsIntent): ClubState | null {
     if (!this.clubManager) { return null; }
     this.clubManager.setTactics(intent);
+    return this.clubChanged();
+  }
+
+  setPlayerGeometry(playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setPlayerGeometry(playerId, geometry);
+    return this.clubChanged();
+  }
+
+  setPlayerRole(playerId: string, role: FormationPosition): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setPlayerRole(playerId, role);
     return this.clubChanged();
   }
 

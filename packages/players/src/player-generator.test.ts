@@ -168,8 +168,8 @@ describe('PlayerGenerator:', () => {
       ['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2],
     ];
 
-    function buildSquad(id: string, striker: { gen: PlayerGenerator; archetype: string }): Player[] {
-      const otherGen = new PlayerGenerator('female', 'all');
+    function buildSquad(otherSeed: number, striker: { gen: PlayerGenerator; archetype: string }): Player[] {
+      const otherGen = new PlayerGenerator('female', 'all', mulberry32(otherSeed));
       const squad: Player[] = [];
       FORMATION.forEach(([position, count]) => {
         for (let i = 0; i < count; i++) {
@@ -187,9 +187,9 @@ describe('PlayerGenerator:', () => {
 
     function headedGoalShare(strikerArchetype: string): number {
       const strikerGen = new PlayerGenerator('female', 'all', mulberry32(1));
-      const squad = buildSquad('h', { gen: strikerGen, archetype: strikerArchetype });
+      const squad = buildSquad(101, { gen: strikerGen, archetype: strikerArchetype });
       const home = team('h', squad);
-      const awaySquad = buildSquad('a', { gen: new PlayerGenerator('female', 'all', mulberry32(2)), archetype: 'balanced' });
+      const awaySquad = buildSquad(102, { gen: new PlayerGenerator('female', 'all', mulberry32(2)), archetype: 'balanced' });
       const away = team('a', awaySquad);
 
       let headed = 0;

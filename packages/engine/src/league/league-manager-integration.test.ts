@@ -163,7 +163,7 @@ describe('ClubManager wired to LeagueManager:', () => {
     await leagueManager.simulateNextMatchday();
 
     const state = clubManager.getState();
-    const starters = state.squad.filter(p => state.startingXI.includes(p.id));
+    const starters = state.squad.filter(p => state.startingXI.some(id => id === p.id));
     const anyDrained = starters.some(p => p.fitness < 100);
     expect(anyDrained).toBe(true);
   }, 30000);

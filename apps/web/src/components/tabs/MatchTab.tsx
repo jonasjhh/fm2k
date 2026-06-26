@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
 import { getContrastColor } from '../../utils/colors';
 import {
-  getTeamOVR, recentForm, FORMATION_LINES, buildSlotAssignments, buildXISlotAssignments,
+  getTeamOVR, recentForm, FORMATION_LINES, buildXISlotAssignments,
 } from '@fm2k/engine';
 import type { Player, Formation } from '@fm2k/engine';
 import { FormationGrid } from '../ui/FormationGrid';
@@ -74,13 +74,21 @@ export default function MatchTab() {
       return {
         team, formation,
         lines: FORMATION_LINES[formation],
-        slotAssignments: buildSlotAssignments(clubState.startingXI, clubState.benchPlayers, clubState.squad, formation),
+        // clubState.startingXI is itself slot-ordered (and hole-preserving) — no need to
+        // re-derive it via buildSlotAssignments.
+        slotAssignments: [...clubState.startingXI, ...clubState.benchPlayers.slice(0, 4)],
         squad: clubState.squad as Player[],
+        customSlots: clubState.customSlots,
+        emptySlotRoles: clubState.emptySlotRoles,
       };
     }
     const squad: Player[] = team ? team.squad : [];
     const formation = (team?.formation ?? '4-4-2') as Formation;
-    return { team, formation, lines: FORMATION_LINES[formation], slotAssignments: buildXISlotAssignments(squad, formation), squad };
+    return {
+      team, formation, lines: FORMATION_LINES[formation],
+      slotAssignments: buildXISlotAssignments(squad, formation), squad, customSlots: null,
+      emptySlotRoles: null,
+    };
   };
 
   const renderTeam = (teamId: string, showStats: boolean) => {
@@ -109,7 +117,10 @@ export default function MatchTab() {
           <Chip size="small" label={`OVR ${ovr}`} sx={{ bgcolor: `${headerText}22`, color: headerText }} />
         </Box>
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderTop: 'none', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, p: 1 }}>
-          <FormationGrid lines={view.lines} slotAssignments={view.slotAssignments} squad={view.squad} teamColors={colors} compact />
+          <FormationGrid
+            lines={view.lines} slotAssignments={view.slotAssignments} squad={view.squad}
+            teamColors={colors} customSlots={view.customSlots} emptySlotRoles={view.emptySlotRoles} compact
+          />
           {showStats && pos > 0 && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>

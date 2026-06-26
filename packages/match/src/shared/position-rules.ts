@@ -1,11 +1,14 @@
 import type { PlayerPosition, FormationPosition, PlayerAttributes, Player } from './types.ts';
 
-const SECONDARY_POSITIONS: Record<PlayerPosition, FormationPosition[]> = {
+/** Which FormationPosition instructions a native PlayerPosition can plausibly take on
+ *  (secondary-modifier roles), plus their own natural position — the candidate set for a
+ *  free-positioning role picker (see PlayerGeometry/canonicalGeometry in lineup.ts). */
+export const SECONDARY_POSITIONS: Record<PlayerPosition, FormationPosition[]> = {
   GK:  [],
-  CB:  ['CDM'],
+  CB:  ['DM'],
   LB:  ['LM', 'LW', 'LWB'],
   RB:  ['RM', 'RW', 'RWB'],
-  CM:  ['CAM', 'CDM'],
+  CM:  ['AM', 'DM'],
   LM:  ['LW', 'LB'],
   RM:  ['RW', 'RB'],
   LW:  ['LM', 'ST'],

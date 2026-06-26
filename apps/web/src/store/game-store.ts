@@ -6,6 +6,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
+  FormationPosition, Band,
 } from '@fm2k/engine';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
@@ -126,13 +127,16 @@ interface GameStore {
 
   // tactics
   toggleXI: (id: string) => void;
-  setStartingXI: (ids: string[]) => void;
+  setStartingXI: (slots: (string | null)[]) => void;
   setBench: (ids: string[]) => void;
   setFormation: (formation: Formation) => void;
   setTactics: (intent: TeamTacticsIntent) => void;
   setStyle: (style: TacticalStyleId) => void;
   setSliders: (sliders: Partial<TacticalSliders>) => void;
   setTraining: (playerId: string, regiment: RegimentId) => void;
+  setPlayerGeometry: (playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }) => void;
+  setPlayerRole: (playerId: string, role: FormationPosition) => void;
+  setEmptySlotRole: (slotIndex: number, role: FormationPosition) => void;
 
   // transfers
   buyPlayer: (listingId: string) => boolean;
@@ -312,10 +316,13 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     // ── tactics ─────────────────────────────────────────────────────────────────
     toggleXI: (id) => { backend.commands.toggleXI(id); },
-    setStartingXI: (ids) => { backend.commands.setStartingXI(ids); },
+    setStartingXI: (slots) => { backend.commands.setStartingXI(slots); },
     setBench: (ids) => { backend.commands.setBench(ids); },
     setFormation: (formation) => { backend.commands.setFormation(formation); },
     setTactics: (intent) => { backend.commands.setTactics(intent); },
+    setPlayerGeometry: (playerId, geometry) => { backend.commands.setPlayerGeometry(playerId, geometry); },
+    setPlayerRole: (playerId, role) => { backend.commands.setPlayerRole(playerId, role); },
+    setEmptySlotRole: (slotIndex, role) => { backend.commands.setEmptySlotRole(slotIndex, role); },
     setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {
       const cs = get().clubState;
