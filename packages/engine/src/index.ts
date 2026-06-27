@@ -60,7 +60,7 @@ export {
 } from './world/world-churn.ts';
 export type {
   YouthFactory, PlayerDelta, SquadChurnOptions, SquadChurnResult, PoolChurnOptions, OverflowSpec,
-  AiMarketTeam, AiMarketOptions, AiMarketResult,
+  AiMarketTeam, AiMarketOptions, AiMarketResult, AiMarketMove,
 } from './world/world-churn.ts';
 
 export { SeasonManager } from './season/season-manager.ts';

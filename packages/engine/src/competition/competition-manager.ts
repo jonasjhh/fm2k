@@ -3,7 +3,7 @@ import { TickEngine, EventLog } from '@fm2k/timeline';
 import type { GameDateTime, OccurrenceEvent } from '@fm2k/timeline';
 import type { EventBus } from '@fm2k/state';
 import { MatchOccurrence } from '@fm2k/match';
-import type { Player, Team } from '@fm2k/match';
+import type { Player, Team, InjuryReport } from '@fm2k/match';
 import type { GameEvents } from '../game-events.ts';
 import type {
   CompetitionFormat, FormatContext, MatchOutcome, ScheduledMatch,
@@ -41,6 +41,11 @@ interface CompletedPayload {
   decidedBy?: DecidedBy;
   shootout?: { home: number; away: number };
   winnerTeamId?: string;
+  // Final per-player in-match energy/injuries — see GameEvents['match.completed'].
+  homeEnergy?: Record<string, number>;
+  awayEnergy?: Record<string, number>;
+  homeInjuries?: InjuryReport[];
+  awayInjuries?: InjuryReport[];
 }
 
 /**
@@ -241,6 +246,10 @@ export class CompetitionManager {
           decidedBy: p.decidedBy,
           shootout: p.shootout,
           winnerTeamId: p.winnerTeamId,
+          homeEnergy: p.homeEnergy,
+          awayEnergy: p.awayEnergy,
+          homeInjuries: p.homeInjuries,
+          awayInjuries: p.awayInjuries,
           homeStanding: state.standings.find(s => s.teamId === p.homeTeamId),
           awayStanding: state.standings.find(s => s.teamId === p.awayTeamId),
           homePosition: state.standings.findIndex(s => s.teamId === p.homeTeamId) >= 0 ? state.standings.findIndex(s => s.teamId === p.homeTeamId) + 1 : undefined,

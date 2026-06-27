@@ -8,6 +8,7 @@ import type {
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
   FormationPosition, Band,
 } from '@fm2k/engine';
+import type { Article } from '@fm2k/newspaper';
 
 // Re-exported so existing '../store/game-store' imports keep resolving.
 export { findTeamById, findDivisionForTeam, findCountryForTeam };
@@ -16,9 +17,9 @@ export type { EditableCountry, EditableDivision, LastMatchResult };
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export type Screen = 'main-menu' | 'team-selection' | 'editor' | 'game';
-export type TabId = 'squad' | 'tactics' | 'training' | 'match' | 'table' | 'fixtures' | 'transfers' | 'club' | 'finances';
+export type TabId = 'squad' | 'tactics' | 'training' | 'match' | 'table' | 'fixtures' | 'transfers' | 'club' | 'finances' | 'newspaper';
 
-const TAB_IDS: readonly TabId[] = ['squad', 'tactics', 'training', 'match', 'table', 'fixtures', 'transfers', 'club', 'finances'];
+const TAB_IDS: readonly TabId[] = ['squad', 'tactics', 'training', 'match', 'table', 'fixtures', 'transfers', 'club', 'finances', 'newspaper'];
 const toTabId = (s: string): TabId => (TAB_IDS as readonly string[]).includes(s) ? s as TabId : 'squad';
 
 export interface SimEvent {
@@ -84,6 +85,8 @@ interface GameStore {
   currentMatchday: number;
   lastMatchResult: LastMatchResult | null;
   seasonComplete: boolean;
+  /** Newspaper articles still within their retention window (the backend already prunes expired ones). */
+  headlines: Article[];
 
   // match centre (pure UI)
   matchEvents: SimEvent[];        // newest-first ticker for the focus match
@@ -182,6 +185,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       currentMatchday: s.currentMatchday,
       lastMatchResult: s.lastMatchResult,
       seasonComplete: s.seasonComplete,
+      headlines: s.headlines,
     });
   };
   // Any backend state change fans out a cache refresh (eventual consistency).
@@ -224,6 +228,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     currentMatchday: 0,
     lastMatchResult: null,
     seasonComplete: false,
+    headlines: [],
 
     matchEvents: [],
     isStreaming: false,

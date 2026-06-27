@@ -92,10 +92,10 @@ export default function PlayerDetailModal({ player, onClose, actions }: PlayerDe
             </Grid>
 
             {/* Status */}
-            {(player.injury ?? player.suspension) && (
+            {player.fitness !== undefined && (player.injury ?? player.suspension) && (
               <Box sx={{ px: 2.5, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="caption" color="text.secondary">Status</Typography>
-                <PlayerStatusChip player={player} />
+                <PlayerStatusChip player={{ ...player, fitness: player.fitness }} />
               </Box>
             )}
 

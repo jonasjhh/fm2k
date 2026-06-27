@@ -197,6 +197,10 @@ describe('CompetitionManager (match.completed events):', () => {
       // Knockout-only fields are absent for league matches.
       expect(e.winnerTeamId).toBeUndefined();
       expect(e.shootout).toBeUndefined();
+      // Per-player energy is forwarded so ClubManager can drain fitness by actual fatigue
+      // rather than falling back to a flat stamina-based estimate.
+      expect(e.homeEnergy).toBeDefined();
+      expect(e.awayEnergy).toBeDefined();
     }
   });
 

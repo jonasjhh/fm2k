@@ -21,6 +21,7 @@ import FixturesTab from '../components/tabs/FixturesTab';
 import TransfersTab from '../components/tabs/TransfersTab';
 import ClubTab from '../components/tabs/ClubTab';
 import FinancesTab from '../components/tabs/FinancesTab';
+import NewspaperTab from '../components/tabs/NewspaperTab';
 import StatsBar from '../components/StatsBar';
 import SeasonEndModal from '../components/SeasonEndModal';
 import SettingsDialog from '../components/ui/SettingsDialog';
@@ -35,6 +36,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'transfers', label: 'Transfers' },
   { id: 'club', label: 'Club' },
   { id: 'finances', label: 'Finances' },
+  { id: 'newspaper', label: 'Newspaper' },
 ];
 
 import { useClubColors } from '../hooks/useClubColors';
@@ -147,6 +149,7 @@ export default function GameInterface() {
         {activeTab === 'transfers' && <TransfersTab />}
         {activeTab === 'club' && <ClubTab />}
         {activeTab === 'finances' && <FinancesTab />}
+        {activeTab === 'newspaper' && <NewspaperTab />}
       </Box>
 
       <SeasonEndModal />

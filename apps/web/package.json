@@ -18,6 +18,7 @@
     "@fm2k/backend": "workspace:*",
     "@fm2k/design-system": "workspace:*",
     "@fm2k/engine": "workspace:*",
+    "@fm2k/newspaper": "workspace:*",
     "@fm2k/toast": "workspace:*",
     "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.1.1",

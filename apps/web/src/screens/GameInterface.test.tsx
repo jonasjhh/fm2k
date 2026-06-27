@@ -36,6 +36,7 @@ describe('GameInterface:', () => {
     expect(screen.getByRole('tab', { name: 'Squad' })).not.toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Tactics' })).not.toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Match' })).not.toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Newspaper' })).not.toBeDisabled();
   });
 
   test('with the player\'s own match live, every tab except Match is disabled (regression)', () => {
@@ -46,6 +47,7 @@ describe('GameInterface:', () => {
     expect(screen.getByRole('tab', { name: 'Squad' })).toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Tactics' })).toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Fixtures' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Newspaper' })).toBeDisabled();
     expect(screen.getByRole('tab', { name: 'Match' })).not.toBeDisabled();
   });
 

@@ -225,11 +225,19 @@ export interface AiMarketOptions {
   targetSizes?: Record<string, number>;
 }
 
+/** One discrete player movement between a club and the free-agent pool, for headline/inspection use. */
+export interface AiMarketMove {
+  teamId: string;
+  playerId: string;
+  playerName: string;
+  direction: 'signed' | 'released';
+}
+
 export interface AiMarketResult {
   teams: AiMarketTeam[];
   freeAgents: Player[];
-  /** How many transfers happened (for calibration/inspection). */
-  moves: number;
+  /** Every individual player movement this window (for calibration/inspection and news headlines). */
+  moves: AiMarketMove[];
 }
 
 /** Hard cap on an AI squad: above this, the club releases its lowest-value players. */
@@ -249,7 +257,7 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
   const activity = opts.activity ?? 0.5;
   const threshold = opts.improveThreshold ?? 2;
   const pool = [...freeAgents];
-  let moves = 0;
+  const moves: AiMarketMove[] = [];
 
   const takeBest = (predicate: (p: Player) => boolean): Player | null => {
     let best = -1;
@@ -264,12 +272,16 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
     if (opts.rng() >= activity || team.squad.length === 0) { return team; }
     const squad = [...team.squad];
     const target = Math.min(MAX_SQUAD_SIZE, opts.targetSizes?.[team.id] ?? squad.length);
+    const recordMove = (player: Player, direction: 'signed' | 'released') => {
+      moves.push({ teamId: team.id, playerId: player.id, playerName: player.name, direction });
+    };
 
     // 1. Trim above the cap: release lowest-value players to the pool.
     while (squad.length > MAX_SQUAD_SIZE) {
       const idx = squad.reduce((lo, p, i) => (playerValue(p) < playerValue(squad[lo]) ? i : lo), 0);
-      pool.push(squad.splice(idx, 1)[0]);
-      moves++;
+      const released = squad.splice(idx, 1)[0];
+      pool.push(released);
+      recordMove(released, 'released');
     }
 
     // 2. Consolidate: swap the two weakest for one clearly better player (net −1, quality up).
@@ -279,9 +291,12 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
       const combined = playerValue(w1) + playerValue(w2);
       const star = takeBest(p => playerValue(p) >= combined && ovr(p) > ovr(w1));
       if (star) {
-        for (const w of [w1, w2]) { pool.push(squad.splice(squad.findIndex(p => p.id === w.id), 1)[0]); }
+        for (const w of [w1, w2]) {
+          pool.push(squad.splice(squad.findIndex(p => p.id === w.id), 1)[0]);
+          recordMove(w, 'released');
+        }
         squad.push(star);
-        moves++;
+        recordMove(star, 'signed');
       }
     }
 
@@ -290,7 +305,12 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
       const wi = weakestIndex(squad);
       const bar = ovr(squad[wi]) + threshold;
       const better = takeBest(p => p.position === squad[wi].position && ovr(p) >= bar);
-      if (better) { pool.push(squad[wi]); squad[wi] = better; moves++; }
+      if (better) {
+        pool.push(squad[wi]);
+        recordMove(squad[wi], 'released');
+        squad[wi] = better;
+        recordMove(better, 'signed');
+      }
     }
 
     // 4. Refill open slots toward the target with the best players the pool offers.
@@ -298,7 +318,7 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
       const signing = takeBest(() => true);
       if (!signing) { break; }
       squad.push(signing);
-      moves++;
+      recordMove(signing, 'signed');
     }
 
     return { ...team, squad };

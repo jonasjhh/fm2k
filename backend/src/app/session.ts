@@ -8,6 +8,7 @@ import {
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments,
 } from '@fm2k/engine';
+import { matchHeadline, transferHeadline, injuryHeadline, isExpired, type Article } from '@fm2k/newspaper';
 import { PlayerGenerator } from '@fm2k/players';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
@@ -110,6 +111,8 @@ export interface GameSnapshot {
   lastMatchInsight: MatchInsight | null;
   /** Append-only one-off messages (retirements, transfer windows) the web turns into toasts. */
   notifications: GameNotification[];
+  /** Newspaper articles still within their retention window (older ones are pruned, not just capped). */
+  headlines: Article[];
 }
 
 /** Result of `buildManagers()`: the managers it built, or an explicit reason it couldn't
@@ -152,6 +155,8 @@ export class GameSession {
   private lastMatchInsight!: MatchInsight | null;
   private notifications!: GameNotification[];
   private nextNotificationId!: number;
+  private headlines!: Article[];
+  private nextHeadlineId!: number;
   /** Per-team squad sizes AI clubs refill toward during windows (captured pre-churn). */
   private squadTargets!: Map<string, number>;
   /** The player's live Team object inside the divisions (same reference the sim uses). */
@@ -199,6 +204,8 @@ export class GameSession {
     this.lastMatchInsight = null;
     this.notifications = [];
     this.nextNotificationId = 1;
+    this.headlines = [];
+    this.nextHeadlineId = 1;
     this.squadTargets = new Map();
     this.playerTeam = null;
     this.world = buildWorld(buildEditableCountries());
@@ -241,6 +248,14 @@ export class GameSession {
     this.notify();
   }
 
+  /** Queue a generated newspaper article and drop any now-expired ones — rolls over by game
+   *  date rather than a raw count cap, so a new game week's edition replaces last week's. */
+  private pushHeadline(article: Omit<Article, 'id'>): void {
+    const stamped: Article = { ...article, id: this.nextHeadlineId++ };
+    this.headlines = [...this.headlines, stamped].filter(a => !isExpired(a, this.now));
+    this.notify();
+  }
+
   // ── reads ─────────────────────────────────────────────────────────────────
 
   snapshot(): GameSnapshot {
@@ -276,6 +291,9 @@ export class GameSession {
       freeAgents: this.transferManager?.getFreeAgents() ?? [],
       lastMatchInsight: this.lastMatchInsight,
       notifications: this.notifications,
+      // Pruned at read-time too — `this.now` can advance with no new headline pushed, and a
+      // week-old article shouldn't visibly linger just because nothing newsworthy happened since.
+      headlines: this.headlines.filter(a => !isExpired(a, this.now)),
     };
   }
 
@@ -357,6 +375,34 @@ export class GameSession {
         params: { home: homeParams, away: awayParams },
         playerXi: this.clubManager?.getActiveLineup() ?? [],
       });
+    }));
+
+    // Newspaper headlines: unlike `lastMatchResult` above, this fires for *every* fixture in
+    // the player's division/cup (not just their own match) — that's the whole point, an upset
+    // or blowout elsewhere in the league is exactly what's newsworthy.
+    unsubs.push(eventBus.on('match.completed', (payload) => {
+      const article = matchHeadline({
+        homeTeamName: payload.homeTeamName ?? payload.homeTeamId,
+        awayTeamName: payload.awayTeamName ?? payload.awayTeamId,
+        homeScore: payload.homeScore,
+        awayScore: payload.awayScore,
+        homePosition: payload.homePosition,
+        awayPosition: payload.awayPosition,
+        timestamp: payload.timestamp,
+      }, this.rng);
+      if (article) { this.pushHeadline(article); }
+    }));
+    unsubs.push(eventBus.on('player.transferred', (p) => {
+      const isPlayerClub = p.toTeamId === this.playerTeamId || p.fromTeamId === this.playerTeamId;
+      const teamName = teamById(world, p.toTeamId)?.name ?? p.toTeamId;
+      this.pushHeadline(transferHeadline({
+        playerName: p.playerName, teamName, fee: p.fee, isPlayerClub, timestamp: this.now,
+      }, this.rng));
+    }));
+    unsubs.push(eventBus.on('player.injured', (p) => {
+      this.pushHeadline(injuryHeadline({
+        playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
+      }, this.rng));
     }));
 
     this.eventBusCleanup = () => { for (const u of unsubs) { u(); } };
@@ -1306,10 +1352,21 @@ export class GameSession {
 
     const targetSizes = Object.fromEntries(this.squadTargets);
     const result = runAiMarket(aiTeams, this.transferManager.getFreeAgents(), { rng: this.rng, targetSizes });
-    if (result.moves === 0) { return; }
+    if (result.moves.length === 0) { return; }
 
     for (const t of result.teams) { setTeamSquad(this.world, t.id, t.squad); }
     this.transferManager.setFreeAgents(result.freeAgents);
+
+    // A club signing from the pool is the newsworthy half of AI activity; a release isn't.
+    for (const move of result.moves) {
+      if (move.direction !== 'signed') { continue; }
+      const player = teamById(this.world, move.teamId)?.squad.find(p => p.id === move.playerId);
+      if (!player) { continue; }
+      this.eventBus?.emit('player.transferred', {
+        playerId: move.playerId, playerName: move.playerName, fromTeamId: '', toTeamId: move.teamId,
+        fee: playerValue(player),
+      });
+    }
   }
 
   /** The current free-agent pool (browsable as part of the whole playerbase). */

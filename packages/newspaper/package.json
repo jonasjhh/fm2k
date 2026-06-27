@@ -1,5 +1,5 @@
 {
-  "name": "@fm2k/backend",
+  "name": "@fm2k/newspaper",
   "version": "1.0.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -11,22 +11,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:mutation": "stryker run",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fm2k/engine": "workspace:*",
-    "@fm2k/newspaper": "workspace:*",
-    "@fm2k/players": "workspace:*",
-    "@fm2k/state": "workspace:*",
-    "localforage": "^1.10.0"
+    "@fm2k/timeline": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/typescript-checker": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^26.0.0",
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",

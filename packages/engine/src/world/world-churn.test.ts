@@ -162,10 +162,20 @@ describe('runAiMarket:', () => {
     expect(squad).toHaveLength(2); // 3 - 2 + 1
   });
 
+  it('records each player movement with its team, direction, and identity (for news headlines)', () => {
+    const team = { id: 't', squad: [player({ id: 'weak', position: 'ST' }, 60), player({ id: 'ok', position: 'CM' }, 75)] };
+    const pool = [player({ id: 'better', position: 'ST' }, 64)];
+    const res = runAiMarket([team], pool, { rng: () => 0, activity: 1, improveThreshold: 2, targetSizes: { t: 2 } });
+    expect(res.moves).toEqual([
+      { teamId: 't', playerId: 'weak', playerName: 'weak', direction: 'released' },
+      { teamId: 't', playerId: 'better', playerName: 'better', direction: 'signed' },
+    ]);
+  });
+
   it('skips a club when its activity roll fails', () => {
     const team = { id: 't', squad: [player({ id: 'weak', position: 'ST' }, 40)] };
     const pool = [player({ id: 'better', position: 'ST' }, 90)];
     const res = runAiMarket([team], pool, { rng: () => 0.99, activity: 0.5, targetSizes: { t: 5 } });
-    expect(res.moves).toBe(0);
+    expect(res.moves).toHaveLength(0);
   });
 });

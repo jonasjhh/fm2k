@@ -34,6 +34,7 @@ describe('GameSession.resetSession:', () => {
     expect(snap.seasonComplete).toBe(false);
     expect(snap.clubState).toBeNull();
     expect(snap.notifications).toHaveLength(0);
+    expect(snap.headlines).toHaveLength(0);
   }, 20_000);
 
   it('a fresh game can be started again after reset, using the same team id', async () => {
