@@ -17,8 +17,8 @@ type SubPage = 'stadium' | 'kit' | 'medical' | 'training' | 'academy';
 const SUB_PAGES: { id: SubPage; label: string }[] = [
   { id: 'stadium', label: 'Stadium' },
   { id: 'kit', label: 'Kit' },
-  { id: 'medical', label: 'Medical Centre' },
-  { id: 'training', label: 'Training Grounds' },
+  { id: 'medical', label: 'Medical Clinic' },
+  { id: 'training', label: 'Training Facilities' },
   { id: 'academy', label: 'Youth Academy' },
 ];
 
@@ -31,7 +31,14 @@ export default function ClubTab() {
     <Box>
       <SectionHeader
         title="Club"
-        subtitle={<>Budget: <strong>£{fmt(clubState.budget)}</strong></>}
+        subtitle={(
+          <>
+            Budget: <strong>£{fmt(clubState.budget)}</strong>
+            {clubState.facilityDeficitStreak > 0 && (
+              <> — budget in deficit, facilities will be mothballed next week if this isn't resolved</>
+            )}
+          </>
+        )}
       />
 
       <SelectorPanel>

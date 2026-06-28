@@ -5,6 +5,7 @@ import { createGameDateTime } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
+import { FACILITY_CATALOGUE } from './facilities/facility-catalogue.ts';
 
 const NOW = createGameDateTime(2025, 8, 16, 15, 0);
 
@@ -136,12 +137,12 @@ describe('ClubManager:', () => {
       expect(manager.getState().startingXI).toHaveLength(11);
     });
 
-    test('facilities start at level 1', () => {
+    test('facilities start with nothing built', () => {
       const manager = new ClubManager(makeConfig());
       const { facilities } = manager.getState();
-      expect(facilities.medical).toBe(1);
-      expect(facilities.training).toBe(1);
-      expect(facilities.academy).toBe(1);
+      expect(facilities.medical.wings).toEqual({});
+      expect(facilities.training.wings).toEqual({});
+      expect(facilities.academy.wings).toEqual({});
     });
 
     test('pendingSubstitutions starts empty', () => {
@@ -684,50 +685,125 @@ describe('ClubManager:', () => {
     });
   });
 
-  describe('upgradeFacility:', () => {
-    test('level 1→2 costs 50,000 and succeeds when budget allows', () => {
+  describe('buildWing:', () => {
+    test('deducts buildCost and creates a full_staff, tier-1 wing when budget allows', () => {
       const manager = new ClubManager(makeConfig());
-      const result = manager.upgradeFacility('medical');
+      const cost = FACILITY_CATALOGUE.medical.rehabGym.buildCost;
+      const result = manager.buildWing('medical', 'rehabGym');
       expect(result).toBe(true);
-      expect(manager.getState().facilities.medical).toBe(2);
-      expect(manager.getState().budget).toBe(450_000);
+      expect(manager.getState().budget).toBe(500_000 - cost);
+      expect(manager.getState().facilities.medical.wings.rehabGym).toEqual({
+        mothballed: false, forcedMothball: false,
+        mode: 'full_staff', staffTier: 1,
+      });
     });
 
-    test('records facility_upgrade transaction', () => {
+    test('records a facility_build transaction', () => {
       const manager = new ClubManager(makeConfig());
-      manager.upgradeFacility('training');
+      manager.buildWing('training', 'gym');
       const log = manager.getState().financialLog;
       expect(log).toHaveLength(1);
-      expect(log[0].type).toBe('facility_upgrade');
-      expect(log[0].amount).toBe(-50_000);
+      expect(log[0].type).toBe('facility_build');
+      expect(log[0].amount).toBe(-FACILITY_CATALOGUE.training.gym.buildCost);
     });
 
     test('returns false when budget insufficient', () => {
-      const manager = new ClubManager(makeConfig({ budget: 10_000 }));
-      const result = manager.upgradeFacility('medical');
+      const manager = new ClubManager(makeConfig({ budget: 1_000 }));
+      const result = manager.buildWing('medical', 'rehabGym');
       expect(result).toBe(false);
-      expect(manager.getState().facilities.medical).toBe(1);
+      expect(manager.getState().facilities.medical.wings.rehabGym).toBeUndefined();
     });
 
-    test('returns false when facility is already at level 4', () => {
+    test('returns false when the wing is already built', () => {
       const manager = new ClubManager(makeConfig({ budget: 10_000_000 }));
-      manager.upgradeFacility('medical'); // 1→2
-      manager.upgradeFacility('medical'); // 2→3
-      manager.upgradeFacility('medical'); // 3→4
-      const result = manager.upgradeFacility('medical'); // 4→? should fail
+      manager.buildWing('medical', 'rehabGym');
+      const result = manager.buildWing('medical', 'rehabGym');
       expect(result).toBe(false);
-      expect(manager.getState().facilities.medical).toBe(4);
     });
 
-    test('can upgrade all three facility types independently', () => {
+    test('can build wings across all three facility groups independently', () => {
       const manager = new ClubManager(makeConfig({ budget: 1_000_000 }));
-      manager.upgradeFacility('medical');
-      manager.upgradeFacility('training');
-      manager.upgradeFacility('academy');
+      manager.buildWing('medical', 'rehabGym');
+      manager.buildWing('training', 'gym');
+      manager.buildWing('academy', 'homeNationsHub');
       const { facilities } = manager.getState();
-      expect(facilities.medical).toBe(2);
-      expect(facilities.training).toBe(2);
-      expect(facilities.academy).toBe(2);
+      expect(facilities.medical.wings.rehabGym).toBeDefined();
+      expect(facilities.training.wings.gym).toBeDefined();
+      expect(facilities.academy.wings.homeNationsHub).toBeDefined();
+    });
+  });
+
+  describe('demolishWing / setWingMode / setWingStaffTier / mothballWing / unmothballWing:', () => {
+    test('demolishWing removes a built wing and returns false if not built', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1_000_000 }));
+      expect(manager.demolishWing('medical', 'rehabGym')).toBe(false);
+      manager.buildWing('medical', 'rehabGym');
+      expect(manager.demolishWing('medical', 'rehabGym')).toBe(true);
+      expect(manager.getState().facilities.medical.wings.rehabGym).toBeUndefined();
+    });
+
+    test('setWingMode and setWingStaffTier update the built wing, fail on an unbuilt one', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1_000_000 }));
+      expect(manager.setWingMode('medical', 'rehabGym', 'core_staff')).toBe(false);
+      manager.buildWing('medical', 'rehabGym');
+      expect(manager.setWingMode('medical', 'rehabGym', 'core_staff')).toBe(true);
+      expect(manager.setWingStaffTier('medical', 'rehabGym', 3)).toBe(true);
+      const wing = assertDefined(manager.getState().facilities.medical.wings.rehabGym, 'wing not built');
+      expect(wing.mode).toBe('core_staff');
+      expect(wing.staffTier).toBe(3);
+    });
+
+    test('mothballWing and unmothballWing toggle the built wing', () => {
+      const manager = new ClubManager(makeConfig({ budget: 1_000_000 }));
+      manager.buildWing('medical', 'rehabGym');
+      expect(manager.mothballWing('medical', 'rehabGym')).toBe(true);
+      expect(assertDefined(manager.getState().facilities.medical.wings.rehabGym, 'wing not built').mothballed).toBe(true);
+      expect(manager.unmothballWing('medical', 'rehabGym')).toBe(true);
+      expect(assertDefined(manager.getState().facilities.medical.wings.rehabGym, 'wing not built').mothballed).toBe(false);
+    });
+  });
+
+  describe('tickFacilityMaintenance:', () => {
+    test('a single deficit week bills upkeep, lets the budget go negative, and mothballs nothing', () => {
+      // 18,000 buildCost + 100 leaves 100 in budget; 150/wk upkeep tips it negative.
+      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      manager.buildWing('medical', 'iceBathRecoverySuite');
+
+      const events = manager.tickFacilityMaintenance();
+
+      expect(events).toEqual([]);
+      expect(manager.getState().budget).toBe(-50);
+      expect(manager.getState().facilityDeficitStreak).toBe(1);
+      expect(assertDefined(manager.getState().facilities.medical.wings.iceBathRecoverySuite, 'wing not built').mothballed).toBe(false);
+      const log = manager.getState().financialLog;
+      expect(log[log.length - 1].type).toBe('facility_maintenance');
+    });
+
+    test('two consecutive deficit weeks force-mothball every built wing club-wide and reset the streak', () => {
+      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      manager.buildWing('medical', 'iceBathRecoverySuite');
+      manager.tickFacilityMaintenance(); // first deficit week
+
+      const events = manager.tickFacilityMaintenance(); // second consecutive deficit week
+
+      expect(events).toContainEqual({ type: 'forced_mothball', group: 'medical', wingId: 'iceBathRecoverySuite' });
+      const wing = assertDefined(manager.getState().facilities.medical.wings.iceBathRecoverySuite, 'wing not built');
+      expect(wing.mothballed).toBe(true);
+      expect(wing.forcedMothball).toBe(true);
+      expect(manager.getState().facilityDeficitStreak).toBe(0);
+    });
+
+    test('a budget that recovers to non-negative resets the streak with no other effect', () => {
+      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      manager.buildWing('medical', 'iceBathRecoverySuite');
+      manager.tickFacilityMaintenance(); // first deficit week, streak becomes 1
+      manager.recordGateReceipt(1_000_000, 'opponent-1', NOW); // budget recovers
+
+      const events = manager.tickFacilityMaintenance();
+
+      expect(events).toEqual([]);
+      expect(manager.getState().facilityDeficitStreak).toBe(0);
+      expect(assertDefined(manager.getState().facilities.medical.wings.iceBathRecoverySuite, 'wing not built').mothballed).toBe(false);
     });
   });
 
@@ -900,15 +976,33 @@ describe('ClubManager:', () => {
       starters.forEach(p => expect(p.injury).toBeUndefined());
     });
 
-    test('medical facility level mitigates injury duration', () => {
+    test('medical wings mitigate injury duration', () => {
       const bus = new EventBus<GameEvents>();
-      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      const manager = new ClubManager(makeConfig({ eventBus: bus, budget: 1_000_000 }));
+      manager.buildWing('medical', 'rehabGym'); // -1.0 matches at full_staff
       const id = xiOf(manager)[0];
-      manager.upgradeFacility('medical'); // level 1 → 2
-      manager.upgradeFacility('medical'); // level 2 → 3, so duration -= 2
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 4 }] });
       const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 2 }); // max(1, 4-(3-1))
+      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 3 }); // max(1, round(4 - 1.0))
+    });
+
+    test('a medical injury-chance wing can avert a reported injury before it takes hold', () => {
+      // rng is constant 0.97 for every call: in the training loop this misses every player's
+      // tiny improvement chance (harmless), then at the injury-chance check, 0.97 is below the
+      // built wing's 0.95 chance mult (so it's "caught"), but without any wing the chance mult
+      // is 1 (0.97 >= 1 is false, so the injury always proceeds).
+      const busWithout = new EventBus<GameEvents>();
+      const withoutWing = new ClubManager(makeConfig({ eventBus: busWithout, rng: () => 0.97 }));
+      const idWithout = xiOf(withoutWing)[0];
+      emitMatch(busWithout, 'club-1', 'other-1', 0, 0, { home: [{ playerId: idWithout, type: 'knee_injury', baseDuration: 4 }] });
+      expect(assertDefined(withoutWing.getState().squad.find(p => p.id === idWithout), 'player not found').injury).toBeDefined();
+
+      const busWith = new EventBus<GameEvents>();
+      const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0.97, budget: 1_000_000 }));
+      withWing.buildWing('medical', 'massageTherapySuite'); // injuryChanceMult ×0.95 at full_staff
+      const idWith = xiOf(withWing)[0];
+      emitMatch(busWith, 'club-1', 'other-1', 0, 0, { home: [{ playerId: idWith, type: 'knee_injury', baseDuration: 4 }] });
+      expect(assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found').injury).toBeUndefined();
     });
 
     test('an already-injured player is not re-injured', () => {
@@ -1098,13 +1192,14 @@ describe('ClubManager (mutation top-up):', () => {
     });
   });
 
-  describe('upgradeFacility', () => {
-    test('succeeds at the exact cost and records the new level (boundary + description)', () => {
-      const manager = new ClubManager(makeConfig({ budget: 50_000 })); // exactly the level-1 cost
-      expect(manager.upgradeFacility('medical')).toBe(true);
-      expect(manager.getState().facilities.medical).toBe(2);
-      expect(manager.getState().financialLog.find(t => t.type === 'facility_upgrade')?.description)
-        .toBe('Upgraded medical to level 2');
+  describe('buildWing (boundary)', () => {
+    test('succeeds at the exact cost and records the build (boundary + description)', () => {
+      const cost = FACILITY_CATALOGUE.medical.massageTherapySuite.buildCost;
+      const manager = new ClubManager(makeConfig({ budget: cost })); // exactly the build cost
+      expect(manager.buildWing('medical', 'massageTherapySuite')).toBe(true);
+      expect(manager.getState().facilities.medical.wings.massageTherapySuite).toBeDefined();
+      expect(manager.getState().financialLog.find(t => t.type === 'facility_build')?.description)
+        .toBe('Built Massage Therapy Suite');
     });
   });
 
@@ -1247,6 +1342,22 @@ describe('ClubManager (mutation top-up):', () => {
 });
 
 describe('ClubManager.recoverFitness:', () => {
+  test('a built medical recovery wing speeds up fitness recovery', () => {
+    const withoutWing = new ClubManager(makeConfig());
+    const withWing = new ClubManager(makeConfig({ budget: 1_000_000 }));
+    withWing.buildWing('medical', 'hydrotherapyPool'); // recoveryMult +0.15 at full_staff
+    for (const m of [withoutWing, withWing]) {
+      const state = m.getState();
+      state.squad[0].fitness = 500;
+      m.loadState(state);
+    }
+
+    withoutWing.recoverFitness(7);
+    withWing.recoverFitness(7);
+
+    expect(withWing.getState().squad[0].fitness).toBeGreaterThan(withoutWing.getState().squad[0].fitness);
+  });
+
   test('does nothing for a zero or negative elapsed-day count', () => {
     const manager = new ClubManager(makeConfig());
     const before = manager.getState().squad[0].fitness;
@@ -1315,6 +1426,30 @@ describe('ClubManager.recoverFitness:', () => {
 });
 
 describe('ClubManager training & development:', () => {
+  test('a built training ceiling wing raises the attainable ceiling for per-match training', () => {
+    // Default player: potential 70, balanced regiment, rng=0 always picks 'speed'. With no
+    // training wing the unfacilitated ceiling is potential-10=60 — set speed to exactly that
+    // so headroom (and so improveChance) is 0 and rng=0 never clears it (0 < 0 is false). A
+    // built ceiling-axis wing raises the ceiling above the player's current speed, giving
+    // nonzero headroom, so the same rng=0 roll now hits (0 < positive is true).
+    const busWithout = new EventBus<GameEvents>();
+    const withoutWing = new ClubManager(makeConfig({ eventBus: busWithout, rng: () => 0 }));
+    const stateWithout = withoutWing.getState();
+    stateWithout.squad[0].attributes.speed = 60;
+    withoutWing.loadState(stateWithout);
+    emitMatch(busWithout, 'club-1', 'other-1');
+    expect(withoutWing.getState().squad[0].attributes.speed).toBe(60);
+
+    const busWith = new EventBus<GameEvents>();
+    const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0, budget: 1_000_000 }));
+    withWing.buildWing('training', 'tacticalAnalysisSuite'); // ceilingBonus +2 at full_staff
+    const stateWith = withWing.getState();
+    stateWith.squad[0].attributes.speed = 60;
+    withWing.loadState(stateWith);
+    emitMatch(busWith, 'club-1', 'other-1');
+    expect(withWing.getState().squad[0].attributes.speed).toBe(61);
+  });
+
   test('setTraining sets a squad player\'s regiment', () => {
     const manager = new ClubManager(makeConfig());
     const id = manager.getState().squad[0].id;
@@ -1355,6 +1490,32 @@ describe('ClubManager training & development:', () => {
     expect(developed).toHaveLength(after.squad.length);
     expect(developed[0].age).toBe(26);
     expect(developed[0].deltas.speed).toBeGreaterThan(0);
+  });
+
+  test('a built academy recruitment hub raises direct-intake quality', () => {
+    // All outfielders certain to retire (age 40, rng=0); maxIntake=1, so the first squad
+    // member (an ST, deliberately not the GK — Home Nations Hub has no gk-specific bonus)
+    // becomes the one direct intake. With rng=0 throughout, makeYouth's potential reduces to
+    // exactly the bias's potential-range floor (54 unfacilitated, +2 with the hub built).
+    const positions: PlayerPosition[] = ['ST', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'GK', 'ST'];
+    const makeSetup = (buildHub: boolean) => {
+      const xi = positions.map(position => makePlayer({ position, age: 40 }));
+      const bench = makeSquad(4);
+      const manager = new ClubManager(makeConfig({
+        squad: [...xi, ...bench], startingXI: xi.map(p => p.id), benchPlayers: bench.map(p => p.id),
+        rng: () => 0, budget: 1_000_000,
+      }));
+      if (buildHub) { manager.buildWing('academy', 'homeNationsHub'); } // overall +2, potential +[2,2]
+      const originalIds = new Set([...xi, ...bench].map(p => p.id));
+      manager.handleSeasonComplete();
+      return assertDefined(
+        manager.getState().squad.find(p => !originalIds.has(p.id)),
+        'no intake found',
+      );
+    };
+
+    expect(makeSetup(false).potential).toBe(54);
+    expect(makeSetup(true).potential).toBe(56);
   });
 
   test('handleSeasonComplete prunes a retiree\'s customSlots entry', () => {

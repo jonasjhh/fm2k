@@ -1,7 +1,13 @@
 import {
-  retirementChance, makeYouth, churnSquad, churnFreeAgents, runAiMarket, type YouthFactory,
+  retirementChance, makeYouth, churnSquad, churnFreeAgents, runAiMarket, academyBiasForLevel, type YouthFactory,
 } from './world-churn.ts';
 import type { Player, PlayerAttributes } from '@fm2k/match';
+import type { YouthBias } from '../club/facilities/facility-types.ts';
+
+const NO_BIAS: YouthBias = {
+  overallBonus: 0, potentialRangeBonus: [0, 0], nationalityPool: [],
+  gkOverallBonus: 0, gkPotentialRangeBonus: [0, 0],
+};
 
 function attrs(v: number): PlayerAttributes {
   return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };
@@ -44,27 +50,49 @@ describe('retirementChance:', () => {
 });
 
 describe('makeYouth:', () => {
-  it('mints a 16–19 prospect in the requested position with academy-banded potential', () => {
-    const y = makeYouth('ST', 4, 'spanish', youthFactory, () => 0.5);
+  it('mints a 16–19 prospect in the requested position with bias-banded potential', () => {
+    const y = makeYouth('ST', academyBiasForLevel(4), 'spanish', youthFactory, () => 0.5);
     expect(y.position).toBe('ST');
     expect(y.nationality).toBe('spanish');
     expect(y.age).toBeGreaterThanOrEqual(16);
     expect(y.age).toBeLessThanOrEqual(19);
-    // L4 potential band is [72, 96]; rng=0.5 → midpoint.
+    // L4-equivalent potential band is [72, 96]; rng=0.5 → midpoint.
     expect(y.potential).toBeGreaterThanOrEqual(72);
     expect(y.potential).toBeLessThanOrEqual(96);
   });
 
   it('better academies produce higher-potential youth on average', () => {
     const rng = () => 0.8;
-    expect(makeYouth('CM', 4, 'n', youthFactory, rng).potential)
-      .toBeGreaterThan(makeYouth('CM', 1, 'n', youthFactory, rng).potential);
+    expect(makeYouth('CM', academyBiasForLevel(4), 'n', youthFactory, rng).potential)
+      .toBeGreaterThan(makeYouth('CM', academyBiasForLevel(1), 'n', youthFactory, rng).potential);
+  });
+
+  it('with no bias built, falls back to the unfacilitated floor', () => {
+    const y = makeYouth('ST', NO_BIAS, 'spanish', youthFactory, () => 0);
+    expect(y.potential).toBeGreaterThanOrEqual(54);
+    expect(y.potential).toBeLessThanOrEqual(72);
+  });
+
+  it('a goalkeeper intake uses the bias\'s gk-specific bonuses, not its outfield ones', () => {
+    const bias: YouthBias = {
+      overallBonus: 0, potentialRangeBonus: [0, 0], nationalityPool: [],
+      gkOverallBonus: 20, gkPotentialRangeBonus: [20, 20],
+    };
+    const gk = makeYouth('GK', bias, 'n', youthFactory, () => 0.5);
+    const outfield = makeYouth('ST', bias, 'n', youthFactory, () => 0.5);
+    expect(gk.potential).toBeGreaterThan(outfield.potential);
+  });
+
+  it('a non-empty nationalityPool overrides the passed nationality', () => {
+    const bias: YouthBias = { ...NO_BIAS, nationalityPool: ['brazilian'] };
+    const y = makeYouth('ST', bias, 'norwegian', youthFactory, () => 0.5);
+    expect(y.nationality).toBe('brazilian');
   });
 });
 
 describe('churnSquad:', () => {
   const opts = (rng: () => number, extra: Partial<Parameters<typeof churnSquad>[1]> = {}) =>
-    ({ rng, youthFactory, nationality: 'norwegian', trainingLevel: 3, academyLevel: 3, ...extra });
+    ({ rng, youthFactory, nationality: 'norwegian', growthBonus: 0.2, ceilingBonus: 11, academyBias: academyBiasForLevel(3), ...extra });
 
   it('ages and develops everyone when nobody retires (no overflow)', () => {
     const squad = [player({ id: 'a', age: 18, potential: 90 }, 45), player({ id: 'b', age: 20, potential: 85 }, 45)];

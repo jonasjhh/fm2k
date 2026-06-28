@@ -101,7 +101,7 @@ describe('GameSession clock:', () => {
 
   it('rolls the world over: squad ages and is preserved, finances carry, AI squads churn', async () => {
     const { session } = newGame();
-    session.upgradeFacility('training');
+    session.buildWing('training', 'outdoorTechnicalPitch');
     const before = assertDefined(session.snapshot().clubState, 'clubState missing');
     const someSquadId = before.squad[0].id;
     const ageBefore = before.squad[0].age;
@@ -118,13 +118,13 @@ describe('GameSession clock:', () => {
     // Capture finances at season end (gate receipts have accrued); they should survive the rollover.
     const endOfSeason = assertDefined(session.snapshot().clubState, 'clubState missing');
     const budgetAtRollover = endOfSeason.budget;
-    const trainingAtRollover = endOfSeason.facilities.training;
+    const trainingWingsAtRollover = endOfSeason.facilities.training.wings;
     session.startNewSeason();
 
     const after = assertDefined(session.snapshot().clubState, 'clubState missing');
     // Facilities carry across the rollover; the budget carries plus this season's prize money
     // (every finishing position earns at least something, so it's strictly more, never equal).
-    expect(after.facilities.training).toBe(trainingAtRollover);
+    expect(after.facilities.training.wings).toEqual(trainingWingsAtRollover);
     expect(after.budget).toBeGreaterThan(budgetAtRollover);
     // The player's developed squad survived (a surviving player aged by a year).
     const survivor = after.squad.find(p => p.id === someSquadId);

@@ -1,7 +1,18 @@
 export { ClubManager } from './club/club-manager.ts';
 export type { ClubManagerConfig } from './club/club-manager.ts';
-export type { ClubPlayer, ClubState, FacilityLevel, FacilityLevels, FinancialTransaction } from './club/club-types.ts';
+export type { ClubPlayer, ClubState, FinancialTransaction } from './club/club-types.ts';
 export { prizeMoneyFor, CUP_PRIZE } from './club/prize-money.ts';
+export { FacilityManager } from './club/facilities/facility-manager.ts';
+export {
+  FACILITY_CATALOGUE, MEDICAL_WING_IDS, TRAINING_WING_IDS, ACADEMY_WING_IDS,
+  ACADEMY_HUB_WING_IDS, ACADEMY_DEVELOPMENT_WING_IDS,
+} from './club/facilities/facility-catalogue.ts';
+export { createEmptyFacilities } from './club/facilities/facility-types.ts';
+export type {
+  ClubFacilities, FacilityGroupId, FacilityGroupState, WingId, WingInstance, WingDefinition,
+  OperatingMode, MedicalAxes, TrainingAxes, YouthBias, AcademyIntakeQualityBonus,
+  MaintenanceEvent, MaintenanceTickResult,
+} from './club/facilities/facility-types.ts';
 
 export { generateFixtures } from './league/fixture-generator.ts';
 export { LeagueManager } from './league/league-manager.ts';
@@ -56,7 +67,7 @@ export {
 export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
 export {
   retirementChance, makeYouth, generatorYouthFactory, churnSquad, churnFreeAgents, runAiMarket,
-  randomIntakeCap, MAX_SQUAD_SIZE,
+  randomIntakeCap, MAX_SQUAD_SIZE, academyBiasForLevel,
 } from './world/world-churn.ts';
 export type {
   YouthFactory, PlayerDelta, SquadChurnOptions, SquadChurnResult, PoolChurnOptions, OverflowSpec,

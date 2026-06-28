@@ -6,7 +6,7 @@ import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
   StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
-  TransferWindow, FormationPosition, Band,
+  TransferWindow, FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -46,7 +46,12 @@ export interface BackendCommands {
   signPlayer(playerId: string): boolean;
   refreshTransfers(): TransferListing[];
   // facilities
-  upgradeFacility(key: 'medical' | 'training' | 'academy'): boolean;
+  buildWing(group: FacilityGroupId, wingId: WingId): boolean;
+  demolishWing(group: FacilityGroupId, wingId: WingId): boolean;
+  setWingMode(group: FacilityGroupId, wingId: WingId, mode: OperatingMode): boolean;
+  setWingStaffTier(group: FacilityGroupId, wingId: WingId, staffTier: 1 | 2 | 3): boolean;
+  mothballWing(group: FacilityGroupId, wingId: WingId): boolean;
+  unmothballWing(group: FacilityGroupId, wingId: WingId): boolean;
   applyStadiumDesign(sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number): boolean;
   // pre-game editor
   setEditableCountries(countries: EditableCountry[]): void;
@@ -124,7 +129,12 @@ export function createBackend(): Backend {
     bidForPlayer: (teamId, playerId, amount) => s.bidForPlayer(teamId, playerId, amount),
     signPlayer: (playerId) => s.signPlayer(playerId),
     refreshTransfers: () => s.refreshTransfers(),
-    upgradeFacility: (key) => s.upgradeFacility(key),
+    buildWing: (group, wingId) => s.buildWing(group, wingId),
+    demolishWing: (group, wingId) => s.demolishWing(group, wingId),
+    setWingMode: (group, wingId, mode) => s.setWingMode(group, wingId, mode),
+    setWingStaffTier: (group, wingId, staffTier) => s.setWingStaffTier(group, wingId, staffTier),
+    mothballWing: (group, wingId) => s.mothballWing(group, wingId),
+    unmothballWing: (group, wingId) => s.unmothballWing(group, wingId),
     applyStadiumDesign: (sectors, cost, cap) => s.applyStadiumDesign(sectors, cost, cap),
     setEditableCountries: (c) => s.setEditableCountries(c),
     updateTeamName: (t, n) => s.updateTeamName(t, n),

@@ -11,8 +11,6 @@ import type { LeagueStanding } from '../league/league-types.ts';
 import type {
   ClubState,
   ClubPlayer,
-  FacilityLevel,
-  FacilityLevels,
   FinancialTransaction,
   StadiumSectorConfig,
 } from './club-types.ts';
@@ -24,12 +22,12 @@ import {
 import {
   churnSquad, attributeDelta, generatorYouthFactory, type YouthFactory, type PlayerDelta,
 } from '../world/world-churn.ts';
-
-const FACILITY_UPGRADE_COSTS: Record<number, number> = {
-  1: 50_000,
-  2: 150_000,
-  3: 500_000,
-};
+import { FacilityManager } from './facilities/facility-manager.ts';
+import { FACILITY_CATALOGUE } from './facilities/facility-catalogue.ts';
+import { createEmptyFacilities } from './facilities/facility-types.ts';
+import type {
+  ClubFacilities, FacilityGroupId, MaintenanceEvent, OperatingMode, WingId,
+} from './facilities/facility-types.ts';
 
 const TICKET_PRICE = 20;
 
@@ -51,13 +49,16 @@ export interface ClubManagerConfig {
   readonly nationality?: string
   /** Injected youth factory; falls back to a default `PlayerGenerator`-backed one. */
   readonly youthFactory?: YouthFactory
-  /** Facility levels; defaults to all-level-1 (a brand-new club). Pass the previous season's
-   *  levels directly here for a season rollover — there's no post-construction setter. */
-  readonly facilities?: FacilityLevels
+  /** Facilities (wings/staffing); defaults to nothing built (a brand-new club). Pass the
+   *  previous season's facilities directly here for a season rollover. */
+  readonly facilities?: ClubFacilities
   /** Carried-over finance/development history (a season rollover); defaults to empty (a
    *  brand-new club has no history yet). */
   readonly financialLog?: FinancialTransaction[]
   readonly recentDevelopment?: PlayerDelta[]
+  /** Consecutive weekly maintenance ticks the club's budget has ended negative; defaults to 0
+   *  (a brand-new club, or a season rollover, starts with no deficit streak). */
+  readonly facilityDeficitStreak?: number
 }
 
 export class ClubManager {
@@ -86,7 +87,8 @@ export class ClubManager {
       startingXI: config.startingXI,
       benchPlayers: config.benchPlayers,
       pendingSubstitutions: [],
-      facilities: config.facilities ?? { medical: 1, training: 1, academy: 1 },
+      facilities: config.facilities ?? createEmptyFacilities(),
+      facilityDeficitStreak: config.facilityDeficitStreak ?? 0,
       stadiumCapacity: config.stadiumCapacity,
       stadiumSectors: config.stadiumSectors,
       financialLog: config.financialLog ?? [],
@@ -407,27 +409,117 @@ export class ClubManager {
     return player;
   }
 
-  upgradeFacility(facility: keyof FacilityLevels): boolean {
+  /** Build a new wing in a facility group, at tier-1 staffing and full_staff mode. Fails if
+   *  already built or the club can't afford `buildCost`. */
+  buildWing(group: FacilityGroupId, wingId: WingId): boolean {
     const state = this.stateManager.getState();
-    const currentLevel = state.facilities[facility];
-    if (currentLevel >= 4) {return false;}
+    if (state.facilities[group].wings[wingId]) {return false;}
 
-    const cost = FACILITY_UPGRADE_COSTS[currentLevel];
-    if (state.budget < cost) {return false;}
+    const def = FACILITY_CATALOGUE[group][wingId];
+    if (state.budget < def.buildCost) {return false;}
 
     const tx: FinancialTransaction = {
-      type: 'facility_upgrade',
-      amount: -cost,
-      description: `Upgraded ${facility} to level ${currentLevel + 1}`,
+      type: 'facility_build',
+      amount: -def.buildCost,
+      description: `Built ${def.name}`,
     };
 
     this.stateManager.updateState(s => {
-      s.budget -= cost;
-      s.facilities[facility] = (currentLevel + 1) as FacilityLevel;
+      s.budget -= def.buildCost;
+      s.facilities[group].wings[wingId] = {
+        mothballed: false, forcedMothball: false,
+        mode: 'full_staff', staffTier: 1,
+      };
       s.financialLog.push(tx);
     });
 
     return true;
+  }
+
+  /** Tear down a built wing entirely — no refund, mirrors the old facility system having no
+   *  downgrade path. Must be rebuilt from scratch (full buildCost) if wanted again. */
+  demolishWing(group: FacilityGroupId, wingId: WingId): boolean {
+    const state = this.stateManager.getState();
+    if (!state.facilities[group].wings[wingId]) {return false;}
+
+    this.stateManager.updateState(s => {
+      delete s.facilities[group].wings[wingId];
+    });
+    return true;
+  }
+
+  setWingMode(group: FacilityGroupId, wingId: WingId, mode: OperatingMode): boolean {
+    const state = this.stateManager.getState();
+    const wing = state.facilities[group].wings[wingId];
+    if (!wing) {return false;}
+
+    this.stateManager.updateState(s => {
+      const w = s.facilities[group].wings[wingId];
+      if (w) { w.mode = mode; }
+    });
+    return true;
+  }
+
+  setWingStaffTier(group: FacilityGroupId, wingId: WingId, staffTier: 1 | 2 | 3): boolean {
+    const state = this.stateManager.getState();
+    const wing = state.facilities[group].wings[wingId];
+    if (!wing) {return false;}
+
+    this.stateManager.updateState(s => {
+      const w = s.facilities[group].wings[wingId];
+      if (w) { w.staffTier = staffTier; }
+    });
+    return true;
+  }
+
+  /** Voluntarily pause a wing — zero cost, zero effect, staff let go. */
+  mothballWing(group: FacilityGroupId, wingId: WingId): boolean {
+    const state = this.stateManager.getState();
+    const wing = state.facilities[group].wings[wingId];
+    if (!wing) {return false;}
+
+    this.stateManager.updateState(s => {
+      const w = s.facilities[group].wings[wingId];
+      if (w) { w.mothballed = true; }
+    });
+    return true;
+  }
+
+  /** Resume a mothballed wing. If the maintenance system (not the player) had mothballed it,
+   *  the next tickFacilityMaintenance call clears its forced-mothball/demolition countdown. */
+  unmothballWing(group: FacilityGroupId, wingId: WingId): boolean {
+    const state = this.stateManager.getState();
+    const wing = state.facilities[group].wings[wingId];
+    if (!wing) {return false;}
+
+    this.stateManager.updateState(s => {
+      const w = s.facilities[group].wings[wingId];
+      if (w) { w.mothballed = false; }
+    });
+    return true;
+  }
+
+  /** Weekly maintenance tick: bills upkeep (budget allowed to go negative), and force-mothballs
+   *  every built wing club-wide if the budget has been negative two consecutive ticks — see
+   *  FacilityManager.tickMaintenance. */
+  tickFacilityMaintenance(): MaintenanceEvent[] {
+    const state = this.stateManager.getState();
+    const result = FacilityManager.tickMaintenance(state.facilities, state.budget, state.facilityDeficitStreak);
+
+    const tx: FinancialTransaction = {
+      type: 'facility_maintenance',
+      amount: -result.totalUpkeep,
+      description: 'Weekly facility upkeep',
+    };
+
+    this.stateManager.updateState(s => {
+      s.facilities = result.facilities;
+      s.budget -= result.totalUpkeep;
+      s.facilityDeficitStreak = result.deficitStreak;
+      if (result.totalUpkeep > 0) { s.financialLog.push(tx); }
+    });
+
+    return result.events;
   }
 
   applyStadiumDesign(
@@ -519,9 +611,6 @@ export class ClubManager {
         : undefined;
 
     this.stateManager.updateState(s => {
-      const medicalLevel = s.facilities.medical;
-      const trainingLevel = s.facilities.training;
-
       for (const player of s.squad) {
         if (!s.startingXI.includes(player.id)) {continue;}
 
@@ -531,15 +620,21 @@ export class ClubManager {
         player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * 10);
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
-        player.attributes = trainOnMatch(player, player.training ?? DEFAULT_REGIMENT, trainingLevel, this.rng);
+        const trainingAxes = FacilityManager.trainingAxes(s.facilities, player);
+        player.attributes = trainOnMatch(
+          player, player.training ?? DEFAULT_REGIMENT, trainingAxes.growthBonus, trainingAxes.ceilingBonus, this.rng,
+        );
       }
 
       for (const inj of ourInjuries ?? []) {
         const player = s.squad.find(p => p.id === inj.playerId);
         if (!player || player.injury) { continue; }
+        const medicalAxes = FacilityManager.medicalAxes(s.facilities, player);
+        // Medical staff catch/treat some injuries before they ever take hold.
+        if (this.rng() >= medicalAxes.injuryChanceMult) { continue; }
         player.injury = {
           type: inj.type,
-          matchesRemaining: Math.max(1, inj.baseDuration - (medicalLevel - 1)),
+          matchesRemaining: Math.max(1, Math.round(inj.baseDuration - medicalAxes.injuryDurationReduction)),
         };
         newInjuries.push({
           playerId: player.id,
@@ -592,23 +687,18 @@ export class ClubManager {
   // Tenths-of-a-point/day; matches the old +15/week baseline at neutral (50) stamina.
   private static readonly FITNESS_RECOVERY_PER_DAY = 150 / 7;
 
-  /** Placeholder for a future training-facility recovery bonus — always 1.0 today. Wire this
-   *  up to `state.facilities.training` once that balance pass happens; the call site below
-   *  already threads the facility level through so no signature changes will be needed. */
-  private trainingFacilityRecoveryMultiplier(_trainingLevel: FacilityLevel): number { return 1; }
-
   /** Passive fitness recovery scaled by actual elapsed game-calendar days, and very slightly
    *  by the player's own stamina (fitter players shake off fatigue marginally faster) — a
    *  congested run of fixtures recovers proportionally less than a normal week, a long gap
-   *  recovers more. */
+   *  recovers more. Medical wings (Hydrotherapy, Cryotherapy, etc.) drive the recovery bonus. */
   recoverFitness(days: number): void {
     if (days <= 0) { return; }
     this.stateManager.updateState(state => {
-      const trainingMult = this.trainingFacilityRecoveryMultiplier(state.facilities.training);
       for (const player of state.squad) {
+        const recoveryMult = FacilityManager.medicalAxes(state.facilities, player).recoveryMult;
         // 0.9–1.1x across the stamina range — deliberately tiny, not a tactical decision.
         const staminaMult = 0.9 + 0.2 * Math.max(0, Math.min(1, player.attributes.stamina / 99));
-        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * trainingMult;
+        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * recoveryMult;
         player.fitness = Math.min(1000, player.fitness + recovered);
       }
     });
@@ -620,12 +710,24 @@ export class ClubManager {
   // positions NOT backfilled in-club (overflow) so the caller can mint them into the free-agent pool.
   handleSeasonComplete(): PlayerPosition[] {
     const state = this.stateManager.getState();
+    // Season-end batch development isn't per-player here (unlike the per-match tick above), so
+    // GK-only/youth-only training bonuses aren't applied at this granularity yet — a generic
+    // outfield, non-youth reference player gives the squad-wide growth/ceiling bonus instead.
+    const referencePlayer: Player = {
+      id: '', name: '', nationality: this.nationality, age: 99, position: 'CM', potential: 0,
+      attributes: state.squad[0]?.attributes ?? {
+        speed: 0, strength: 0, agility: 0, passing: 0, finishing: 0,
+        technique: 0, defending: 0, stamina: 0, awareness: 0, composure: 0,
+      },
+    };
+    const trainingAxes = FacilityManager.trainingAxes(state.facilities, referencePlayer);
     const result = churnSquad(state.squad, {
       rng: this.rng,
       youthFactory: this.youthFactory,
       nationality: this.nationality,
-      trainingLevel: state.facilities.training,
-      academyLevel: state.facilities.academy,
+      growthBonus: trainingAxes.growthBonus,
+      ceilingBonus: trainingAxes.ceilingBonus,
+      academyBias: FacilityManager.academyBias(state.facilities),
       regimentOf: p => (p as ClubPlayer).training ?? DEFAULT_REGIMENT,
     });
 

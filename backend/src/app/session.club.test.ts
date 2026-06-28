@@ -208,11 +208,11 @@ describe('GameSession signPlayer (one-click at asking):', () => {
 });
 
 describe('GameSession facilities:', () => {
-  test('upgradeFacility notifies subscribers on success', () => {
+  test('buildWing notifies subscribers on success', () => {
     const { session } = newGame();
     let notifications = 0;
     session.subscribe(() => { notifications++; });
-    const ok = session.upgradeFacility('training');
+    const ok = session.buildWing('training', 'outdoorTechnicalPitch');
     expect(ok).toBe(true);
     expect(notifications).toBe(1);
   });
@@ -222,4 +222,12 @@ describe('GameSession facilities:', () => {
     const sectors = club(session).stadiumSectors;
     expect(session.applyStadiumDesign(sectors, Number.MAX_SAFE_INTEGER, 999_999)).toBe(false);
   });
+
+  test('weekly facility maintenance is billed as the season progresses', async () => {
+    const { session } = newGame();
+    session.buildWing('medical', 'rehabGym');
+    await session.simulateToEnd();
+    const log = club(session).financialLog;
+    expect(log.some(tx => tx.type === 'facility_maintenance')).toBe(true);
+  }, 15_000);
 });

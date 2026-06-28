@@ -3,6 +3,7 @@ import { calculateOverall } from '@fm2k/match';
 import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
 import { PlayerGenerator } from '@fm2k/players';
 import { playerValue } from '@fm2k/valuation';
+import type { YouthBias } from '../club/facilities/facility-types.ts';
 
 /**
  * World churn — the season-boundary lifecycle for the **shared player pool**: every squad develops
@@ -41,15 +42,24 @@ export function retirementChance(age: number, overall: number): number {
   return clamp(0, 0.98, base - resist);
 }
 
-// ── youth quality by academy level (1–4) ─────────────────────────────────────────
+// ── youth quality ───────────────────────────────────────────────────────────────
 // Prospects start low (they develop via progression) but their *potential* band — the real measure
-// of an academy — widens and lifts with the facility level, so good academies can produce stars.
-const YOUTH_START_OVERALL: Record<number, number> = { 1: 44, 2: 48, 3: 52, 4: 56 };
-const YOUTH_POTENTIAL_RANGE: Record<number, [number, number]> = {
-  1: [54, 72], 2: [60, 80], 3: [66, 88], 4: [72, 96],
-};
+// of an academy — widens and lifts with recruitment quality, so good academies can produce stars.
+// These are the "nothing built" floor; Regional Scouting Hubs (and, for AI clubs without real
+// wings, academyBiasForLevel) add on top via `bias`.
+const YOUTH_BASE_OVERALL = 44;
+const YOUTH_BASE_POTENTIAL_RANGE: [number, number] = [54, 72];
 const YOUTH_AGE_MIN = 16;
 const YOUTH_AGE_MAX = 19;
+
+/** Maps the old flat 1–4 academy level onto a YouthBias — an exact equivalence, used by AI
+ *  clubs (which approximate their academy from division tier rather than owning real hubs). */
+export function academyBiasForLevel(level: number): YouthBias {
+  const l = clamp(1, 4, Math.round(level));
+  const overallBonus = (l - 1) * 4;
+  const potentialRangeBonus: [number, number] = [(l - 1) * 6, (l - 1) * 8];
+  return { overallBonus, potentialRangeBonus, nationalityPool: [], gkOverallBonus: overallBonus, gkPotentialRangeBonus: potentialRangeBonus };
+}
 
 /** A factory that mints a youth player to the requested spec (injected; impure part lives here). */
 export type YouthFactory = (
@@ -66,16 +76,27 @@ export function generatorYouthFactory(rng: () => number = Math.random): YouthFac
   });
 }
 
-/** Build a youth spec for the given academy level, then mint via the factory. */
+/** Build a youth spec from the recruitment bias (Regional Scouting Hubs, or an AI-club
+ *  equivalent via academyBiasForLevel), then mint via the factory. Goalkeeper intakes use the
+ *  bias's GK-specific bonuses instead of its outfield ones (e.g. the Goalkeeping Academy Hub);
+ *  a non-empty `nationalityPool` overrides the passed `nationality` for this prospect. */
 export function makeYouth(
-  position: PlayerPosition, academyLevel: number, nationality: string, factory: YouthFactory, rng: () => number,
+  position: PlayerPosition, bias: YouthBias, nationality: string, factory: YouthFactory, rng: () => number,
 ): Player {
-  const level = clamp(1, 4, Math.round(academyLevel));
-  const overall = YOUTH_START_OVERALL[level] + Math.round((rng() - 0.5) * 8);
-  const [pLo, pHi] = YOUTH_POTENTIAL_RANGE[level];
+  const isGK = position === 'GK';
+  const overallBonus = isGK ? bias.gkOverallBonus : bias.overallBonus;
+  const [bonusLo, bonusHi] = isGK ? bias.gkPotentialRangeBonus : bias.potentialRangeBonus;
+  const overall = YOUTH_BASE_OVERALL + overallBonus + Math.round((rng() - 0.5) * 8);
+  const pLo = YOUTH_BASE_POTENTIAL_RANGE[0] + bonusLo;
+  const pHi = YOUTH_BASE_POTENTIAL_RANGE[1] + bonusHi;
   const potential = Math.round(pLo + rng() * (pHi - pLo));
   const age = YOUTH_AGE_MIN + Math.floor(rng() * (YOUTH_AGE_MAX - YOUTH_AGE_MIN + 1));
-  return factory(position, { overall: clamp(20, 99, overall), age, potential: clamp(overall, 99, potential), nationality });
+  const pickedNationality = bias.nationalityPool.length > 0
+    ? bias.nationalityPool[Math.floor(rng() * bias.nationalityPool.length)]
+    : nationality;
+  return factory(position, {
+    overall: clamp(20, 99, overall), age, potential: clamp(overall, 99, potential), nationality: pickedNationality,
+  });
 }
 
 // ── squad churn ───────────────────────────────────────────────────────────────────
@@ -96,10 +117,13 @@ export interface SquadChurnOptions {
   rng: () => number;
   youthFactory: YouthFactory;
   nationality: string;
-  /** Training-facility level driving development (1–4). */
-  trainingLevel: number;
-  /** Academy-facility level driving youth quality (1–4). */
-  academyLevel: number;
+  /** Training Facilities' composed growth-axis bonus (FacilityManager.trainingAxes). */
+  growthBonus: number;
+  /** Training Facilities' composed ceiling-axis bonus (FacilityManager.trainingAxes). */
+  ceilingBonus: number;
+  /** Recruitment bias driving youth intake quality (Regional Scouting Hubs, merged with any
+   *  intake-quality bonus from youth development wings — see FacilityManager). */
+  academyBias: YouthBias;
   /** The training regiment for a given player (defaults to balanced). */
   regimentOf?: (player: Player) => RegimentId;
   /** Max academy youth that join the club directly this season (default: random 1–2). */
@@ -144,7 +168,7 @@ export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurn
   const developed: PlayerDelta[] = [];
 
   for (const player of squad) {
-    const dev = developOverSeason(player, regimentOf(player), opts.trainingLevel, opts.rng);
+    const dev = developOverSeason(player, regimentOf(player), opts.growthBonus, opts.ceilingBonus, opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
     const deltas = attributeDelta(player.attributes, dev.attributes);
     if (Object.keys(deltas).length > 0) {
@@ -159,7 +183,7 @@ export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurn
 
   // Only a small intake joins directly; the rest of the retiree positions overflow to the pool.
   const intake = retired.slice(0, maxIntake);
-  const youth = intake.map(r => makeYouth(r.position, opts.academyLevel, opts.nationality, opts.youthFactory, opts.rng));
+  const youth = intake.map(r => makeYouth(r.position, opts.academyBias, opts.nationality, opts.youthFactory, opts.rng));
   const overflow = retired.slice(maxIntake).map(r => r.position);
 
   return { squad: [...survivors, ...youth], retired, developed, youth, overflow };
@@ -176,8 +200,10 @@ export interface PoolChurnOptions {
   overflow: OverflowSpec[];
   /** Academy band used for pool youth (unattached prospects); defaults to 2. */
   youthLevel?: number;
-  /** Training level used to develop unattached players; defaults to 2. */
-  trainingLevel?: number;
+  /** Growth-axis bonus used to develop unattached players; defaults to a neutral mid-tier value. */
+  growthBonus?: number;
+  /** Ceiling-axis bonus used to develop unattached players; defaults to a neutral mid-tier value. */
+  ceilingBonus?: number;
 }
 
 /**
@@ -185,13 +211,15 @@ export interface PoolChurnOptions {
  * pool retiree 1:1 with a fresh youth (same position), and mint the supplied club `overflow`.
  */
 export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[] {
-  const trainingLevel = opts.trainingLevel ?? 2;
+  // Neutral mid-tier defaults — equivalent to the old flat training-facility level 2.
+  const growthBonus = opts.growthBonus ?? 0.1;
+  const ceilingBonus = opts.ceilingBonus ?? 6;
   const youthLevel = opts.youthLevel ?? 2;
   const next: Player[] = [];
   const retiredSpecs: OverflowSpec[] = [];
 
   for (const player of pool) {
-    const dev = developOverSeason(player, DEFAULT_REGIMENT, trainingLevel, opts.rng);
+    const dev = developOverSeason(player, DEFAULT_REGIMENT, growthBonus, ceilingBonus, opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
     if (opts.rng() >= retirementChance(grown.age, calculateOverall(grown.attributes))) {
       next.push(grown);
@@ -200,8 +228,9 @@ export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[
     }
   }
 
+  const youthBias = academyBiasForLevel(youthLevel);
   for (const spec of [...retiredSpecs, ...opts.overflow]) {
-    next.push(makeYouth(spec.position, youthLevel, spec.nationality, opts.youthFactory, opts.rng));
+    next.push(makeYouth(spec.position, youthBias, spec.nationality, opts.youthFactory, opts.rng));
   }
 
   return next;

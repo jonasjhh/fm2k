@@ -1,23 +1,33 @@
-import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import FacilityUpgradeCard from './FacilityUpgradeCard';
+import { ACADEMY_HUB_WING_IDS, ACADEMY_DEVELOPMENT_WING_IDS } from '@fm2k/engine';
+import WingCard from './WingCard';
+import FacilityGroupSummary from './FacilityGroupSummary';
 
 export default function AcademySubPage() {
   return (
     <Grid container spacing={2}>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <FacilityUpgradeCard facilityKey="academy" />
+      <Grid size={12}>
+        <FacilityGroupSummary group="academy" />
       </Grid>
-      <Grid size={{ xs: 12, md: 8 }}>
-        <Paper variant="outlined" sx={{ borderRadius: 2, p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Youth Intake</Typography>
-            <Typography variant="body2" color="text.secondary">More options coming soon.</Typography>
-          </Box>
-        </Paper>
+      <Grid size={12}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 1 }}>Regional Scouting Hubs</Typography>
+        <Typography variant="caption" color="text.secondary">Recruitment quality and bias for new intakes.</Typography>
       </Grid>
+      {ACADEMY_HUB_WING_IDS.map(wingId => (
+        <Grid key={wingId} size={{ xs: 12, sm: 6, md: 4 }}>
+          <WingCard group="academy" wingId={wingId} />
+        </Grid>
+      ))}
+      <Grid size={12}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 1 }}>Youth Development</Typography>
+        <Typography variant="caption" color="text.secondary">Growth and welfare for players already at the club.</Typography>
+      </Grid>
+      {ACADEMY_DEVELOPMENT_WING_IDS.map(wingId => (
+        <Grid key={wingId} size={{ xs: 12, sm: 6, md: 4 }}>
+          <WingCard group="academy" wingId={wingId} />
+        </Grid>
+      ))}
     </Grid>
   );
 }

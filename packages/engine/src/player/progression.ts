@@ -85,38 +85,40 @@ export function ageFactor(age: number): number {
 
 /**
  * Training facilities scale gains modestly (the ceiling, above, carries the bigger gate to
- * full potential). L1 0.9 … L4 1.2.
+ * full potential). `growthBonus` is the sum of every built Training wing's contribution
+ * (FacilityManager.trainingAxes) — 0 with nothing built (the old worst case), up to roughly
+ * +0.24 fully built (deliberately short of the old best case, since the new system also adds
+ * genuinely new strategic depth the flat level never had).
  */
-export function facilityFactor(trainingLevel: number): number {
-  return 0.9 + (clamp(1, 4, trainingLevel) - 1) * 0.1;
+export function facilityFactor(growthBonus: number): number {
+  return clamp(0.9, 1.5, 0.9 + growthBonus);
 }
 
-// How much the training facility shifts the attainable ceiling: only world-class (L4)
-// facilities let a player reach (or slightly exceed) their raw potential; poor ones cap below it.
-const FACILITY_CEILING_BONUS: Record<number, number> = { 1: -10, 2: -4, 3: 1, 4: 5 };
 const CEILING_SPREAD = 18; // how gradually growth tapers as an attribute nears its ceiling
 
 /**
  * The attribute level a player can realistically *approach* — set by potential and gated by
- * the training facility. A soft target, not a hard cap: growth tapers asymptotically near it
- * and variance means a player may fall short, so reaching it is a chance, not a guarantee.
+ * `ceilingBonus` (the sum of every built Training wing's ceiling contribution). A soft target,
+ * not a hard cap: growth tapers asymptotically near it and variance means a player may fall
+ * short, so reaching it is a chance, not a guarantee. -10 is the unfacilitated baseline (the old
+ * worst case); each ceiling-axis wing adds to it.
  */
-export function attainableCeiling(potential: number, trainingLevel: number): number {
-  return clamp(45, 99, potential + FACILITY_CEILING_BONUS[clamp(1, 4, trainingLevel)]);
+export function attainableCeiling(potential: number, ceilingBonus: number): number {
+  return clamp(45, 99, potential - 10 + ceilingBonus);
 }
 
 /** Headroom toward the (potential- and facility-derived) ceiling; growth stops as it nears 0. */
-export function headroom(attrValue: number, potential: number, trainingLevel: number): number {
-  return clamp(0, 1, (attainableCeiling(potential, trainingLevel) - attrValue) / CEILING_SPREAD);
+export function headroom(attrValue: number, potential: number, ceilingBonus: number): number {
+  return clamp(0, 1, (attainableCeiling(potential, ceilingBonus) - attrValue) / CEILING_SPREAD);
 }
 
 /** The chance a single attribute improves on one tick. */
 export function improveChance(
-  attrValue: number, potential: number, age: number, trainingLevel: number, base: number,
+  attrValue: number, potential: number, age: number, growthBonus: number, ceilingBonus: number, base: number,
 ): number {
   return clamp(0, 0.95,
-    base * potentialFactor(potential) * ageFactor(age) * facilityFactor(trainingLevel)
-      * headroom(attrValue, potential, trainingLevel));
+    base * potentialFactor(potential) * ageFactor(age) * facilityFactor(growthBonus)
+      * headroom(attrValue, potential, ceilingBonus));
 }
 
 /** Chance an old player declines at season end — 0 before 31, rising with age, eased by potential. */
@@ -144,11 +146,11 @@ function pickWeighted(weights: Partial<Record<AttrKey, number>>, rng: () => numb
  * Returns the (possibly unchanged) attributes — never mutates the input.
  */
 export function trainOnMatch(
-  player: Player, regiment: RegimentId, trainingLevel: number, rng: () => number,
+  player: Player, regiment: RegimentId, growthBonus: number, ceilingBonus: number, rng: () => number,
 ): PlayerAttributes {
   const attr = pickWeighted(TRAINING_REGIMENTS[regiment], rng);
   const cur = player.attributes[attr];
-  if (rng() < improveChance(cur, player.potential, player.age, trainingLevel, BASE_MATCH)) {
+  if (rng() < improveChance(cur, player.potential, player.age, growthBonus, ceilingBonus, BASE_MATCH)) {
     return { ...player.attributes, [attr]: Math.min(ATTR_MAX, cur + 1) };
   }
   return player.attributes;
@@ -165,13 +167,13 @@ export interface SeasonDevelopment {
  * An older player can still improve; decline is only a *chance*.
  */
 export function developOverSeason(
-  player: Player, regiment: RegimentId, trainingLevel: number, rng: () => number,
+  player: Player, regiment: RegimentId, growthBonus: number, ceilingBonus: number, rng: () => number,
 ): SeasonDevelopment {
   const attributes: PlayerAttributes = { ...player.attributes };
 
   for (let i = 0; i < SEASON_TRIES; i++) {
     const attr = pickWeighted(TRAINING_REGIMENTS[regiment], rng);
-    if (rng() < improveChance(attributes[attr], player.potential, player.age, trainingLevel, BASE_SEASON)) {
+    if (rng() < improveChance(attributes[attr], player.potential, player.age, growthBonus, ceilingBonus, BASE_SEASON)) {
       attributes[attr] = Math.min(ATTR_MAX, attributes[attr] + 1);
     }
   }

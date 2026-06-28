@@ -4,6 +4,7 @@ import type { GameDateTime } from '@fm2k/timeline';
 import type { RegimentId } from '../player/progression.ts';
 import type { PlayerDelta } from '../world/world-churn.ts';
 import type { StadiumSectorConfig } from '../stadium/stadium.ts';
+import type { ClubFacilities } from './facilities/facility-types.ts';
 
 export type { StadiumSectorConfig };
 
@@ -17,16 +18,11 @@ export interface ClubPlayer extends Player {
   training?: RegimentId
 }
 
-export type FacilityLevel = 1 | 2 | 3 | 4
-
-export interface FacilityLevels {
-  medical: FacilityLevel    // reduces injury duration
-  training: FacilityLevel   // improves attribute growth
-  academy: FacilityLevel    // improves youth player generation quality
-}
-
 export interface FinancialTransaction {
-  type: 'gate_receipt' | 'transfer_in' | 'transfer_out' | 'facility_upgrade' | 'wages' | 'league_prize' | 'cup_prize'
+  type:
+    | 'gate_receipt' | 'transfer_in' | 'transfer_out' | 'facility_upgrade'
+    | 'wages' | 'league_prize' | 'cup_prize'
+    | 'facility_build' | 'facility_maintenance'
   amount: number
   description: string
   timestamp?: GameDateTime
@@ -52,7 +48,10 @@ export interface ClubState {
   startingXI: (string | null)[]
   benchPlayers: string[]       // player IDs, 4–7
   pendingSubstitutions: SubstitutionRequest[]
-  facilities: FacilityLevels
+  facilities: ClubFacilities
+  /** Consecutive weekly maintenance ticks the budget has ended negative; see
+   *  ClubManager.tickFacilityMaintenance. */
+  facilityDeficitStreak: number
   stadiumCapacity: number
   stadiumSectors: Record<string, StadiumSectorConfig>
   financialLog: FinancialTransaction[]

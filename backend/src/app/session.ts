@@ -4,7 +4,7 @@ import {
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays, daysBetween,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
-  makeYouth, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
+  makeYouth, academyBiasForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments,
 } from '@fm2k/engine';
@@ -14,7 +14,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
-  FormationPosition, Band,
+  FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 import { buildEditableCountries } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
@@ -159,6 +159,9 @@ export class GameSession {
   private nextHeadlineId!: number;
   /** Per-team squad sizes AI clubs refill toward during windows (captured pre-churn). */
   private squadTargets!: Map<string, number>;
+  /** Accrued game-calendar days since the last weekly facility-maintenance tick; ticks (and
+   *  resets toward 0) every time it reaches 7 — see advanceClockTo/drainClockTo. */
+  private daysSinceMaintenanceTick!: number;
   /** The player's live Team object inside the divisions (same reference the sim uses). */
   private playerTeam!: Team | null;
   /** The live, flat, mutable game world. Exists for the whole session lifetime — built
@@ -209,6 +212,7 @@ export class GameSession {
     this.squadTargets = new Map();
     this.playerTeam = null;
     this.world = buildWorld(buildEditableCountries());
+    this.daysSinceMaintenanceTick = 0;
   }
 
   /** Discard the current game (if any) and any pre-game edits, returning to a fresh
@@ -223,6 +227,14 @@ export class GameSession {
   /** AI clubs have no facility levels; approximate them from division tier (top tier = best). */
   private facilityForLevel(divisionLevel: number): number {
     return Math.max(1, Math.min(4, 5 - divisionLevel));
+  }
+
+  /** Maps the old flat 1–4 facility level onto Training Facilities' (growthBonus, ceilingBonus)
+   *  axes — an exact equivalence (see packages/engine's progression.ts) used for AI clubs, which
+   *  approximate their facilities from division tier rather than owning real wings/staff. */
+  private trainingBonusesForLevel(level: number): { growthBonus: number; ceilingBonus: number } {
+    return [{ growthBonus: 0, ceilingBonus: 0 }, { growthBonus: 0.1, ceilingBonus: 6 },
+      { growthBonus: 0.2, ceilingBonus: 11 }, { growthBonus: 0.3, ceilingBonus: 15 }][level - 1];
   }
 
   /** The transfer-window state for the current matchday. */
@@ -669,6 +681,7 @@ export class GameSession {
     this.currentMatchday = 0;
     this.seasonComplete = false;
     this.now = SEASON_START;
+    this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
     this.lastMatchInsight = null;
@@ -772,6 +785,7 @@ export class GameSession {
     this.currentMatchday = 0;
     this.seasonComplete = false;
     this.now = SEASON_START;
+    this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
     this.lastMatchInsight = null;
@@ -878,6 +892,7 @@ export class GameSession {
     // (rebuilt at SEASON_START with only future fixtures scheduled) lazily catch up to
     // `now` on the next advance. Legacy saves approximate it from the matchday.
     this.now = save.now ?? addDays(SEASON_START, save.currentMatchday * 7);
+    this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = save.lastMatchResult;
     this.lastMatchInsight = null;
@@ -958,7 +973,9 @@ export class GameSession {
     const perSeason = await Promise.all(Object.values(this.seasons).map(s => s.tickTo(target)));
     this.now = target;
     this.applyClockSideEffects();
-    this.clubManager?.recoverFitness(daysBetween(previousNow, this.now));
+    const elapsedDays = daysBetween(previousNow, this.now);
+    this.clubManager?.recoverFitness(elapsedDays);
+    this.tickFacilityMaintenanceIfDue(elapsedDays);
     return perSeason.flat() as OccurrenceEvent[];
   }
 
@@ -969,7 +986,23 @@ export class GameSession {
     await Promise.all(Object.values(this.seasons).map(s => s.drainTo(target)));
     this.now = target;
     this.applyClockSideEffects();
-    this.clubManager?.recoverFitness(daysBetween(previousNow, this.now));
+    const elapsedDays = daysBetween(previousNow, this.now);
+    this.clubManager?.recoverFitness(elapsedDays);
+    this.tickFacilityMaintenanceIfDue(elapsedDays);
+  }
+
+  /** Accrues elapsed game-calendar days and runs one weekly facility-maintenance tick (bills
+   *  upkeep, allowing the budget to go negative; force-mothballs every built wing club-wide if
+   *  the budget has been negative two consecutive ticks) for every full week accrued — possibly
+   *  several at once after a long skip (e.g. simulateToEnd). */
+  private tickFacilityMaintenanceIfDue(elapsedDays: number): void {
+    if (!this.clubManager) { return; }
+    this.daysSinceMaintenanceTick += elapsedDays;
+    const MAINTENANCE_INTERVAL_DAYS = 7;
+    while (this.daysSinceMaintenanceTick >= MAINTENANCE_INTERVAL_DAYS) {
+      this.daysSinceMaintenanceTick -= MAINTENANCE_INTERVAL_DAYS;
+      this.clubManager.tickFacilityMaintenance();
+    }
   }
 
   private applyClockSideEffects(): void {
@@ -1040,7 +1073,7 @@ export class GameSession {
       const level = this.facilityForLevel(division.level);
       const res = churnSquad(team.squad, {
         rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
-        trainingLevel: level, academyLevel: level,
+        ...this.trainingBonusesForLevel(level), academyBias: academyBiasForLevel(level),
       });
       for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
       this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, res.squad.length));
@@ -1325,7 +1358,7 @@ export class GameSession {
 
     const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, teamId)?.level ?? 3;
-    const replacement = makeYouth(target.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
+    const replacement = makeYouth(target.position, academyBiasForLevel(this.facilityForLevel(level)), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
     addPlayerToWorld(this.world, replacement, teamId);
 
@@ -1412,7 +1445,7 @@ export class GameSession {
 
     const nationality = countryForTeam(this.world, team.id)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, team.id)?.level ?? 3;
-    const replacement = makeYouth(player.position, this.facilityForLevel(level), nationality, this.youthFactory, this.rng);
+    const replacement = makeYouth(player.position, academyBiasForLevel(this.facilityForLevel(level)), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
     addPlayerToWorld(this.world, replacement, team.id);
     this.eventBus?.emit('player.transferred', {
@@ -1457,9 +1490,44 @@ export class GameSession {
 
   // ── facilities ────────────────────────────────────────────────────────────
 
-  upgradeFacility(key: 'medical' | 'training' | 'academy'): boolean {
+  buildWing(group: FacilityGroupId, wingId: WingId): boolean {
     if (!this.clubManager) { return false; }
-    const ok = this.clubManager.upgradeFacility(key);
+    const ok = this.clubManager.buildWing(group, wingId);
+    if (ok) { this.notify(); }
+    return ok;
+  }
+
+  demolishWing(group: FacilityGroupId, wingId: WingId): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.demolishWing(group, wingId);
+    if (ok) { this.notify(); }
+    return ok;
+  }
+
+  setWingMode(group: FacilityGroupId, wingId: WingId, mode: OperatingMode): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.setWingMode(group, wingId, mode);
+    if (ok) { this.notify(); }
+    return ok;
+  }
+
+  setWingStaffTier(group: FacilityGroupId, wingId: WingId, staffTier: 1 | 2 | 3): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.setWingStaffTier(group, wingId, staffTier);
+    if (ok) { this.notify(); }
+    return ok;
+  }
+
+  mothballWing(group: FacilityGroupId, wingId: WingId): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.mothballWing(group, wingId);
+    if (ok) { this.notify(); }
+    return ok;
+  }
+
+  unmothballWing(group: FacilityGroupId, wingId: WingId): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.unmothballWing(group, wingId);
     if (ok) { this.notify(); }
     return ok;
   }

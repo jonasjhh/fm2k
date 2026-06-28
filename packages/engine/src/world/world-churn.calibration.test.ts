@@ -1,4 +1,4 @@
-import { churnSquad, churnFreeAgents, runAiMarket, generatorYouthFactory, MAX_SQUAD_SIZE, type OverflowSpec } from './world-churn.ts';
+import { churnSquad, churnFreeAgents, runAiMarket, generatorYouthFactory, academyBiasForLevel, MAX_SQUAD_SIZE, type OverflowSpec } from './world-churn.ts';
 import { PlayerGenerator } from '@fm2k/players';
 import { calculateOverall, type Player, type PlayerPosition } from '@fm2k/match';
 
@@ -45,6 +45,13 @@ function buildWorld(teamCount: number, rng: () => number): Team[] {
   });
 }
 
+/** Maps the old flat 1–4 facility level onto the new (growthBonus, ceilingBonus) axes —
+ *  an exact equivalence (see progression.ts). */
+function bonusesFor(level: number): { growthBonus: number; ceilingBonus: number } {
+  return [{ growthBonus: 0, ceilingBonus: 0 }, { growthBonus: 0.1, ceilingBonus: 6 },
+    { growthBonus: 0.2, ceilingBonus: 11 }, { growthBonus: 0.3, ceilingBonus: 15 }][level - 1];
+}
+
 const meanOverall = (players: Player[]) => players.reduce((s, p) => s + calculateOverall(p.attributes), 0) / players.length;
 const meanAge = (players: Player[]) => players.reduce((s, p) => s + p.age, 0) / players.length;
 
@@ -70,7 +77,7 @@ function simulate(seasons: number, teamCount: number, seed: number): { history: 
     world = world.map(team => {
       const res = churnSquad(team.squad, {
         rng, youthFactory, nationality: team.nationality,
-        trainingLevel: team.trainingLevel, academyLevel: team.academyLevel,
+        ...bonusesFor(team.trainingLevel), academyBias: academyBiasForLevel(team.academyLevel),
       });
       for (const pos of res.overflow) { overflow.push({ position: pos, nationality: team.nationality }); }
       return { ...team, squad: res.squad };

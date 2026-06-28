@@ -6,7 +6,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
-  FormationPosition, Band,
+  FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 import type { Article } from '@fm2k/newspaper';
 
@@ -150,7 +150,12 @@ interface GameStore {
   refreshTransfers: () => void;
 
   // facilities
-  upgradeFacility: (key: string) => boolean;
+  buildWing: (group: FacilityGroupId, wingId: WingId) => boolean;
+  demolishWing: (group: FacilityGroupId, wingId: WingId) => boolean;
+  setWingMode: (group: FacilityGroupId, wingId: WingId, mode: OperatingMode) => boolean;
+  setWingStaffTier: (group: FacilityGroupId, wingId: WingId, staffTier: 1 | 2 | 3) => boolean;
+  mothballWing: (group: FacilityGroupId, wingId: WingId) => boolean;
+  unmothballWing: (group: FacilityGroupId, wingId: WingId) => boolean;
   applyStadiumDesign: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean;
 }
 
@@ -347,7 +352,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     refreshTransfers: () => { backend.commands.refreshTransfers(); },
 
     // ── facilities ────────────────────────────────────────────────────────────��
-    upgradeFacility: (key) => backend.commands.upgradeFacility(key as 'medical' | 'training' | 'academy'),
+    buildWing: (group, wingId) => backend.commands.buildWing(group, wingId),
+    demolishWing: (group, wingId) => backend.commands.demolishWing(group, wingId),
+    setWingMode: (group, wingId, mode) => backend.commands.setWingMode(group, wingId, mode),
+    setWingStaffTier: (group, wingId, staffTier) => backend.commands.setWingStaffTier(group, wingId, staffTier),
+    mothballWing: (group, wingId) => backend.commands.mothballWing(group, wingId),
+    unmothballWing: (group, wingId) => backend.commands.unmothballWing(group, wingId),
     applyStadiumDesign: (sectors, cost, newCapacity) => backend.commands.applyStadiumDesign(sectors, cost, newCapacity),
   };
 });

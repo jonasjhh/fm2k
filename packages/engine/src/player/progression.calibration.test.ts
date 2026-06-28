@@ -25,6 +25,13 @@ const attrsOf = (v: number): PlayerAttributes => ({
 const avg = (a: PlayerAttributes) => Object.values(a).reduce((s, v) => s + v, 0) / 10;
 const total = (a: PlayerAttributes) => Object.values(a).reduce((s, v) => s + v, 0);
 
+/** Maps the old flat 1–4 facility level onto the new (growthBonus, ceilingBonus) axes —
+ *  an exact equivalence (see progression.ts), so the old calibration gates still apply. */
+function bonusesFor(level: number): { growthBonus: number; ceilingBonus: number } {
+  return [{ growthBonus: 0, ceilingBonus: 0 }, { growthBonus: 0.1, ceilingBonus: 6 },
+    { growthBonus: 0.2, ceilingBonus: 11 }, { growthBonus: 0.3, ceilingBonus: 15 }][level - 1];
+}
+
 interface Scenario {
   startAge: number;
   potential: number;
@@ -47,15 +54,16 @@ function simulateCareer(s: Scenario, rng: () => number): CareerOutcome {
     id: 'p', name: 'P', nationality: 'n', age: s.startAge, position: 'ST',
     potential: s.potential, attributes: attrsOf(s.startAttr),
   };
+  const { growthBonus, ceilingBonus } = bonusesFor(s.facility);
   let matchGain = 0, seasonGain = 0;
   for (let y = 0; y < s.seasons; y++) {
     for (let m = 0; m < matches; m++) {
       const before = total(p.attributes);
-      p = { ...p, attributes: trainOnMatch(p, s.regiment, s.facility, rng) };
+      p = { ...p, attributes: trainOnMatch(p, s.regiment, growthBonus, ceilingBonus, rng) };
       matchGain += total(p.attributes) - before;
     }
     const before = total(p.attributes);
-    const dev = developOverSeason(p, s.regiment, s.facility, rng);
+    const dev = developOverSeason(p, s.regiment, growthBonus, ceilingBonus, rng);
     p = { ...p, attributes: dev.attributes, age: dev.age };
     seasonGain += total(p.attributes) - before;
   }
