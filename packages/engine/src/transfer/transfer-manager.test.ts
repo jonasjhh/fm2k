@@ -78,8 +78,8 @@ describe('TransferManager:', () => {
       makeManager().getListings().forEach(l => expect(l.askingPrice).toBeGreaterThan(0));
     });
 
-    test('each listing player has fitness 100', () => {
-      makeManager().getListings().forEach(l => expect(l.player.fitness).toBe(100));
+    test('each listing player has fitness 1000', () => {
+      makeManager().getListings().forEach(l => expect(l.player.fitness).toBe(1000));
     });
 
     test('refreshedOnMatchday is 0', () => {

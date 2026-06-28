@@ -2,7 +2,7 @@ import {
   CompetitionManager, LeagueFormat, KnockoutFormat, QualifierFormat, Season,
   ClubManager, TransferManager, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
-  isBefore, addMinutes, addDays,
+  isBefore, addMinutes, addDays, daysBetween,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
   makeYouth, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
@@ -954,18 +954,22 @@ export class GameSession {
    *  match events fired across the advance (the caller filters them). */
   private async advanceClockTo(target: GameDateTime): Promise<OccurrenceEvent[]> {
     if (!isBefore(this.now, target)) { return []; }
+    const previousNow = this.now;
     const perSeason = await Promise.all(Object.values(this.seasons).map(s => s.tickTo(target)));
     this.now = target;
     this.applyClockSideEffects();
+    this.clubManager?.recoverFitness(daysBetween(previousNow, this.now));
     return perSeason.flat() as OccurrenceEvent[];
   }
 
   /** Like advanceClockTo but discards event arrays (simulateToEnd path). */
   private async drainClockTo(target: GameDateTime): Promise<void> {
     if (!isBefore(this.now, target)) { return; }
+    const previousNow = this.now;
     await Promise.all(Object.values(this.seasons).map(s => s.drainTo(target)));
     this.now = target;
     this.applyClockSideEffects();
+    this.clubManager?.recoverFitness(daysBetween(previousNow, this.now));
   }
 
   private applyClockSideEffects(): void {
@@ -1191,8 +1195,9 @@ export class GameSession {
     this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.resolvePlayerStarters());
     this.playerTeam.customSlots = cs.customSlots ?? undefined;
     // Seed in-match starting energy from each player's current fitness, so a tired
-    // squad (fixture congestion) starts and tires flatter.
-    this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness]));
+    // squad (fixture congestion) starts and tires flatter. ClubPlayer.fitness is 0-1000
+    // internally; packages/match's energy model stays on its existing 0-100 scale.
+    this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness / 10]));
   }
 
   /** The human club's current starting XI, mapped from ClubState's deliberate choice —

@@ -121,9 +121,9 @@ describe('ClubManager:', () => {
       expect(state.stadiumCapacity).toBe(10_000);
     });
 
-    test('all squad players start with fitness 100', () => {
+    test('all squad players start with fitness 1000', () => {
       const manager = new ClubManager(makeConfig());
-      manager.getState().squad.forEach(p => expect(p.fitness).toBe(100));
+      manager.getState().squad.forEach(p => expect(p.fitness).toBe(1000));
     });
 
     test('squad has correct length', () => {
@@ -587,12 +587,12 @@ describe('ClubManager:', () => {
       expect(manager.getState().budget).toBe(400_000);
     });
 
-    test('adds player to squad with fitness 100', () => {
+    test('adds player to squad with fitness 1000', () => {
       const manager = new ClubManager(makeConfig());
       const newPlayer = makePlayer();
       manager.buyPlayer(newPlayer, 100_000);
       const bought = assertDefined(manager.getState().squad.find(p => p.id === newPlayer.id), 'player not found');
-      expect(bought.fitness).toBe(100);
+      expect(bought.fitness).toBe(1000);
     });
 
     test('records transfer_in transaction in financialLog', () => {
@@ -847,7 +847,7 @@ describe('ClubManager:', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       emitMatch(bus, 'other-1', 'other-2', 2, 1);
-      manager.getState().squad.forEach(p => expect(p.fitness).toBe(100));
+      manager.getState().squad.forEach(p => expect(p.fitness).toBe(1000));
     });
 
     test('drains fitness of starting XI players', () => {
@@ -856,7 +856,7 @@ describe('ClubManager:', () => {
       emitMatch(bus, 'club-1', 'other-1', 1, 0);
       const state = manager.getState();
       const starters = state.squad.filter(p => state.startingXI.includes(p.id));
-      starters.forEach(p => expect(p.fitness).toBeLessThan(100));
+      starters.forEach(p => expect(p.fitness).toBeLessThan(1000));
     });
 
     test('bench players retain their fitness', () => {
@@ -869,7 +869,7 @@ describe('ClubManager:', () => {
       const pureSubstitutes = state.squad.filter(
         p => benchIds.has(p.id) && !startingIds.has(p.id),
       );
-      pureSubstitutes.forEach(p => expect(p.fitness).toBe(100));
+      pureSubstitutes.forEach(p => expect(p.fitness).toBe(1000));
     });
 
     test('clears pendingSubstitutions after match', () => {
@@ -958,21 +958,15 @@ describe('ClubManager:', () => {
   });
 
   describe('handleMatchdayComplete:', () => {
-    test('recovers 15 fitness for all players', () => {
+    test('does not change fitness — that is now recoverFitness()\'s job, scaled by elapsed days', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ rng: () => 1, eventBus: bus }));
       emitMatch(bus, 'club-1', 'other-1');
       const fitnessAfterMatch = manager.getState().squad.map(p => p.fitness);
       manager.handleMatchdayComplete();
       manager.getState().squad.forEach((p, i) => {
-        expect(p.fitness).toBe(Math.min(100, fitnessAfterMatch[i] + 15));
+        expect(p.fitness).toBe(fitnessAfterMatch[i]);
       });
-    });
-
-    test('fitness does not exceed 100', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.handleMatchdayComplete();
-      manager.getState().squad.forEach(p => expect(p.fitness).toBe(100));
     });
 
     test('counts down injury matchesRemaining', () => {
@@ -1147,13 +1141,13 @@ describe('ClubManager (mutation top-up):', () => {
       return { p, config: makeConfig({ squad: [p], startingXI: [p.id], benchPlayers: [], eventBus: bus, rng }) };
     }
 
-    test('drains starter fitness by 25 - floor(stamina/2)', () => {
+    test('drains starter fitness by (25 - floor(stamina/2)) * 10', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus); // 0.99 avoids injury
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other');
-      // stamina 10 -> drain max(5, 25-5) = 20
-      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(80);
+      // stamina 10 -> drain max(5, 25-5) = 20, scaled *10 onto the 0-1000 fitness range
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(800);
     });
 
     test('processes a match where the club is the away team', () => {
@@ -1161,14 +1155,14 @@ describe('ClubManager (mutation top-up):', () => {
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
       emitMatch(bus, 'other', 'club-1'); // we are away
-      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBeLessThan(100);
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBeLessThan(1000);
     });
 
     test('clamps fitness at zero, never negative', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
-      for (let i = 0; i < 6; i++) { emitMatch(bus, 'club-1', 'other'); } // 6 * 20 drain >> 100
+      for (let i = 0; i < 6; i++) { emitMatch(bus, 'club-1', 'other'); } // 6 * 200 drain >> 1000
       expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(0);
     });
 
@@ -1249,14 +1243,74 @@ describe('ClubManager (mutation top-up):', () => {
       expect(manager.getState().squad[0].suspension).toBeUndefined();
     });
 
-    test('recovers fitness by 15, capped at 100', () => {
-      const manager = new ClubManager(makeConfig());
-      const state = manager.getState();
-      state.squad[0].fitness = 50;
-      manager.loadState(state);
-      manager.handleMatchdayComplete();
-      expect(manager.getState().squad[0].fitness).toBe(65);
-    });
+  });
+});
+
+describe('ClubManager.recoverFitness:', () => {
+  test('does nothing for a zero or negative elapsed-day count', () => {
+    const manager = new ClubManager(makeConfig());
+    const before = manager.getState().squad[0].fitness;
+    manager.recoverFitness(0);
+    manager.recoverFitness(-3);
+    expect(manager.getState().squad[0].fitness).toBe(before);
+  });
+
+  test('recovers ~+150 over 7 elapsed days at high stamina (99) — close to the old +15/week baseline', () => {
+    const manager = new ClubManager(makeConfig());
+    const state = manager.getState();
+    state.squad[0].fitness = 500;
+    state.squad[0].attributes.stamina = 99;
+    manager.loadState(state);
+    manager.recoverFitness(7);
+    // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = (150/7)*7*1.1 = 165
+    expect(manager.getState().squad[0].fitness).toBeCloseTo(665, 5);
+  });
+
+  test('a higher-stamina player recovers more than a lower-stamina one over the same days', () => {
+    const fit = new ClubManager(makeConfig());
+    const tired = new ClubManager(makeConfig());
+    for (const m of [fit, tired]) {
+      const state = m.getState();
+      state.squad[0].fitness = 500;
+      m.loadState(state);
+    }
+    const fitState = fit.getState();
+    fitState.squad[0].attributes.stamina = 99;
+    fit.loadState(fitState);
+    const tiredState = tired.getState();
+    tiredState.squad[0].attributes.stamina = 1;
+    tired.loadState(tiredState);
+
+    fit.recoverFitness(7);
+    tired.recoverFitness(7);
+    expect(fit.getState().squad[0].fitness).toBeGreaterThan(tired.getState().squad[0].fitness);
+  });
+
+  test('recovers proportionally less for a shorter elapsed-day gap', () => {
+    const manager = new ClubManager(makeConfig());
+    const state = manager.getState();
+    state.squad[0].fitness = 0;
+    manager.loadState(state);
+    manager.recoverFitness(3);
+    const after3 = manager.getState().squad[0].fitness;
+
+    const manager2 = new ClubManager(makeConfig());
+    const state2 = manager2.getState();
+    state2.squad[0].fitness = 0;
+    manager2.loadState(state2);
+    manager2.recoverFitness(7);
+    const after7 = manager2.getState().squad[0].fitness;
+
+    expect(after3).toBeLessThan(after7);
+  });
+
+  test('never exceeds the 1000 cap', () => {
+    const manager = new ClubManager(makeConfig());
+    const state = manager.getState();
+    state.squad[0].fitness = 950;
+    manager.loadState(state);
+    manager.recoverFitness(30);
+    expect(manager.getState().squad[0].fitness).toBe(1000);
   });
 });
 

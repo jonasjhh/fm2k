@@ -62,6 +62,28 @@ describe('GameSession clock:', () => {
     expect(nations.size).toBeGreaterThan(1);    // across competitions/nations
   });
 
+  it('a benched player\'s fitness recovers (never drains) while the clock advances to the next fixture', async () => {
+    const { session } = newGame();
+    await session.skipToFullTime();
+    const club = assertDefined(session.snapshot().clubState, 'clubState missing');
+    const starter = assertDefined(
+      club.squad.find(p => club.startingXI.includes(p.id)), 'no starter found');
+    const fitnessAfterMatch = starter.fitness;
+    expect(fitnessAfterMatch).toBeLessThan(1000);
+
+    // Bench them for the next match, so the gap to the next kickoff is pure recovery
+    // (recoverFitness, scaled by the elapsed game-calendar days) with no further drain to confound it.
+    session.toggleXI(starter.id);
+    session.nextMatch();
+    await session.skipToFullTime();
+
+    const clubAfterGap = assertDefined(session.snapshot().clubState, 'clubState missing');
+    const sameStarter = assertDefined(
+      clubAfterGap.squad.find(p => p.id === starter.id), 'starter missing after gap');
+    expect(sameStarter.fitness).toBeGreaterThan(fitnessAfterMatch);
+    expect(sameStarter.fitness).toBeLessThanOrEqual(1000);
+  });
+
   it('nextMatch moves the focus to the following fixture after one is played', async () => {
     const { session } = newGame();
     await session.skipToFullTime();

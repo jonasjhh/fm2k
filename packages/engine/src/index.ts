@@ -87,7 +87,7 @@ export {
 export { v4, EventBus, StateManager, assertDefined } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';
 
-export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore, isAfter } from '@fm2k/timeline';
+export { EventLog, addDays, addMinutes, createGameDateTime, TickEngine, isBefore, isAfter, daysBetween } from '@fm2k/timeline';
 export type { GameDateTime, Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 
 export { calculateOverall } from '@fm2k/match';

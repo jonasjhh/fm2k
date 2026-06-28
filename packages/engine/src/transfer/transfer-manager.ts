@@ -128,7 +128,7 @@ export class TransferManager {
 
   /** Wrap a (free-agent or freshly generated) player into a priced, time-limited listing. */
   private listingFor(player: Player, currentMatchday: number): TransferListing {
-    const clubPlayer: ClubPlayer = { ...player, fitness: 100 };
+    const clubPlayer: ClubPlayer = { ...player, fitness: 1000 };
     return {
       id: uuidv4(),
       player: clubPlayer,

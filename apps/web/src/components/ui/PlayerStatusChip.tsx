@@ -8,7 +8,8 @@ interface Props { player: Pick<ClubPlayer, 'injury' | 'suspension' | 'fitness'> 
 export default function PlayerStatusChip({ player }: Props) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <FitnessBar fitness={player.fitness} />
+      {/* ClubPlayer.fitness is 0-1000 internally (tenths of a point); FitnessBar displays 0-100. */}
+      <FitnessBar fitness={player.fitness / 10} />
       {player.injury && <Chip label={`Injured ${player.injury.matchesRemaining}md`} size="small" color="error" />}
       {!player.injury && player.suspension && <Chip label={`Susp. ${player.suspension.matchesRemaining}md`} size="small" color="warning" />}
     </Box>

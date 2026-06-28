@@ -7,6 +7,7 @@ import {
   isAfter,
   isBefore,
   isEqual,
+  daysBetween,
   formatGameDateTime,
 } from './game-date-time.ts';
 
@@ -242,6 +243,36 @@ describe('isEqual:', () => {
       createGameDateTime(2025, 8, 15, 14, 30),
       createGameDateTime(2025, 8, 15, 14, 31),
     )).toBe(false);
+  });
+});
+
+describe('daysBetween:', () => {
+  test('given datetimes a week apart then returns 7', () => {
+    expect(daysBetween(
+      createGameDateTime(2025, 8, 1),
+      createGameDateTime(2025, 8, 8),
+    )).toBe(7);
+  });
+
+  test('given the same instant then returns 0', () => {
+    expect(daysBetween(
+      createGameDateTime(2025, 8, 1, 14, 30),
+      createGameDateTime(2025, 8, 1, 14, 30),
+    )).toBe(0);
+  });
+
+  test('given b before a then returns a negative value', () => {
+    expect(daysBetween(
+      createGameDateTime(2025, 8, 8),
+      createGameDateTime(2025, 8, 1),
+    )).toBe(-7);
+  });
+
+  test('given a partial-day gap then returns a fraction', () => {
+    expect(daysBetween(
+      createGameDateTime(2025, 8, 1, 0, 0),
+      createGameDateTime(2025, 8, 1, 12, 0),
+    )).toBeCloseTo(0.5);
   });
 });
 

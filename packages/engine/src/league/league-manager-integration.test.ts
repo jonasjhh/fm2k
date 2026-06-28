@@ -164,11 +164,11 @@ describe('ClubManager wired to LeagueManager:', () => {
 
     const state = clubManager.getState();
     const starters = state.squad.filter(p => state.startingXI.some(id => id === p.id));
-    const anyDrained = starters.some(p => p.fitness < 100);
+    const anyDrained = starters.some(p => p.fitness < 1000);
     expect(anyDrained).toBe(true);
   }, 30000);
 
-  test('non-participating players retain fitness 100', async () => {
+  test('non-participating players retain fitness 1000', async () => {
     const starters = Array.from({ length: 11 }, (_, i) => makePlayer(`main-p${i}`));
     const bench = Array.from({ length: 4 }, (_, i) => makePlayer(`bench-p${i}`));
     const playerTeam = makeTeam('player-club', starters);
@@ -202,7 +202,7 @@ describe('ClubManager wired to LeagueManager:', () => {
 
     bench.forEach(bp => {
       const inSquad = assertDefined(club.getState().squad.find(p => p.id === bp.id), 'player not found');
-      expect(inSquad.fitness).toBe(100);
+      expect(inSquad.fitness).toBe(1000);
     });
   }, 30000);
 

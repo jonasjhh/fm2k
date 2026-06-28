@@ -31,8 +31,6 @@ export default function NewspaperTab() {
 
   return (
     <Box>
-      <SectionHeader title="Newspaper" subtitle="This week's back pages — fresh news rolls in as results and signings happen." />
-
       <Paper
         elevation={3}
         sx={{

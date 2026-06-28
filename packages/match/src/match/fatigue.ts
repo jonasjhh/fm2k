@@ -21,29 +21,43 @@ function norm(attr: number): number { return Math.max(0, Math.min(1, attr / 99))
 
 /** How much a role runs, by pitch line (before the formation shape adjustment). */
 const LINE_BASE_LOAD: Record<FieldLine, number> = {
-  GK: 0.3, DEF: 0.8, MID: 1.2, ATT: 1.0,
+  GK: 0.45, DEF: 0.8, MID: 1.2, ATT: 1.0,
 };
 
 /**
- * Formation shape adjustments (multipliers on the line base; omitted = 1.0).
- * Captures where a shape makes a line cover more ground: wing-backs in a back five
- * bomb on, a lone striker presses alone, a packed midfield shares the load, an
- * exposed front line scrambles back.
+ * Formation shape adjustments (multipliers on the line base; omitted = 1.0). Captures
+ * "band size" effects: a line with fewer bodies covers more ground per player (a lone
+ * striker presses alone, a back three is thinner), while a line with more bodies shares
+ * the work and covers less each (a back five, a crowded midfield).
  */
 const FORMATION_LOAD: Partial<Record<Formation, Partial<Record<FieldLine, number>>>> = {
-  '5-3-2':   { DEF: 1.25 },             // wing-backs cover the whole flank
-  '5-4-1':   { DEF: 1.20, ATT: 1.30 },  // wing-backs + a lone striker chasing
-  '3-5-2':   { DEF: 1.20, MID: 1.15 },  // back three + driving wide midfielders
+  '5-3-2':   { DEF: 0.85 },             // 5 at the back share the line — each covers less
+  '5-4-1':   { DEF: 0.85, ATT: 1.30 },  // same back-five relief; lone striker still chases alone
+  '3-5-2':   { DEF: 1.20, MID: 1.15 },  // only 3 at the back — each covers more
   '4-5-1':   { MID: 0.90, ATT: 1.30 },  // crowded midfield shares it; striker isolated
   '4-1-4-1': { MID: 0.92, ATT: 1.25 },
   '4-2-4':   { DEF: 1.10, ATT: 1.15 },  // thin midfield leaves both lines exposed
+};
+
+/** Per-role adjustment on top of the line base load — captures roles that cover more or
+ *  less ground than their line-mates, regardless of formation. Within DEF, lowest to
+ *  highest: CB < LB/RB < LWB/RWB. Within ATT: ST < LW/RW. CM eases off slightly relative
+ *  to the other midfield roles (DM/AM/LM/RM, left at the flat line base). */
+const POSITION_LOAD_ADJUST: Partial<Record<FormationPosition, number>> = {
+  CB: 1.05,
+  LB: 1.15, RB: 1.15,
+  LWB: 1.3, RWB: 1.3,
+  ST: 1.05,
+  LW: 1.3, RW: 1.3,
+  CM: 0.9,
 };
 
 /** Running load of a role in a given formation. */
 export function positionLoad(formation: Formation, position: FormationPosition): number {
   const line = FIELD_LINE[position];
   const shape = FORMATION_LOAD[formation]?.[line] ?? 1;
-  return LINE_BASE_LOAD[line] * shape;
+  const roleAdjust = POSITION_LOAD_ADJUST[position] ?? 1;
+  return LINE_BASE_LOAD[line] * shape * roleAdjust;
 }
 
 /** Higher stamina → less energy burned (≈1.32 at stamina 20 → 0.61 at stamina 99). */

@@ -8,7 +8,9 @@ import type { StadiumSectorConfig } from '../stadium/stadium.ts';
 export type { StadiumSectorConfig };
 
 export interface ClubPlayer extends Player {
-  fitness: number  // 0–100
+  /** 0–1000 (tenths of a fitness point; the UI displays this divided by 10). The finer
+   *  resolution lets recovery vary by tiny, sub-integer amounts (stamina, facility level). */
+  fitness: number
   injury?: { type: string; matchesRemaining: number }
   suspension?: { matchesRemaining: number }
   /** The player's training focus; defaults to 'balanced' when unset. */

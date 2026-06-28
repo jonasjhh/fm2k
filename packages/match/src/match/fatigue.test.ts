@@ -23,8 +23,21 @@ describe('fatigue — position load (formation-aware):', () => {
   it('a lone striker chases more than a striker in a front two', () => {
     expect(positionLoad('5-4-1', 'ST')).toBeGreaterThan(positionLoad('4-4-2', 'ST'));
   });
-  it('wing-backs in a back five cover more ground than full-backs in a flat four', () => {
-    expect(positionLoad('5-3-2', 'LB')).toBeGreaterThan(positionLoad('4-4-2', 'LB'));
+  it('a back five spreads defensive duty over more bodies, so each defender runs less than in a flat four', () => {
+    expect(positionLoad('5-3-2', 'LB')).toBeLessThan(positionLoad('4-4-2', 'LB'));
+  });
+  it('a back three has fewer bodies, so each defender runs more than in a flat four', () => {
+    expect(positionLoad('3-5-2', 'LB')).toBeGreaterThan(positionLoad('4-4-2', 'LB'));
+  });
+  it('within the defensive line: CB < LB/RB < LWB/RWB', () => {
+    expect(positionLoad('4-4-2', 'CB')).toBeLessThan(positionLoad('4-4-2', 'LB'));
+    expect(positionLoad('4-4-2', 'LB')).toBeLessThan(positionLoad('3-5-2', 'LWB'));
+  });
+  it('within the attacking line: ST < LW/RW', () => {
+    expect(positionLoad('4-4-2', 'ST')).toBeLessThan(positionLoad('4-3-3', 'LW'));
+  });
+  it('the keeper still runs the least of all roles', () => {
+    expect(positionLoad('4-4-2', 'GK')).toBeLessThan(positionLoad('4-4-2', 'CB'));
   });
 });
 

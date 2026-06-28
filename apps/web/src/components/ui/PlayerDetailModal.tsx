@@ -81,7 +81,7 @@ export default function PlayerDetailModal({ player, onClose, actions }: PlayerDe
             {/* Stats grid */}
             <Grid container sx={{ borderBottom: 1, borderColor: 'divider' }}>
               {(player.fitness !== undefined
-                ? [{ label: 'Fitness', value: `${player.fitness}%` }, { label: 'Value', value: `£${fmt(value)}` }]
+                ? [{ label: 'Fitness', value: `${Math.round(player.fitness / 10)}%` }, { label: 'Value', value: `£${fmt(value)}` }]
                 : [{ label: 'Value', value: `£${fmt(value)}` }]
               ).map(({ label, value: val }, i, arr) => (
                 <Grid size={12 / arr.length} key={label} sx={{ textAlign: 'center', py: 1.5, borderRight: 1, borderColor: 'divider', '&:last-child': { borderRight: 0 } }}>

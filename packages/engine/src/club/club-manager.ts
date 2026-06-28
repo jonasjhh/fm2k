@@ -73,7 +73,7 @@ export class ClubManager {
     this.nationality = config.nationality ?? 'Unknown';
     this.youthFactory = config.youthFactory ?? generatorYouthFactory(this.rng);
     config.eventBus?.on('match.completed', payload => this.processMatchResult(payload));
-    const squad: ClubPlayer[] = config.squad.map(p => ({ ...p, fitness: 100 }));
+    const squad: ClubPlayer[] = config.squad.map(p => ({ ...p, fitness: 1000 }));
 
     this.stateManager = new StateManager<ClubState>({
       clubId: config.clubId,
@@ -365,7 +365,7 @@ export class ClubManager {
     const state = this.stateManager.getState();
     if (state.budget < price) {return false;}
 
-    const clubPlayer: ClubPlayer = { ...player, fitness: 100 };
+    const clubPlayer: ClubPlayer = { ...player, fitness: 1000 };
     const tx: FinancialTransaction = {
       type: 'transfer_in',
       amount: -price,
@@ -528,7 +528,7 @@ export class ClubManager {
         const energySpent = ourEnergy?.[player.id] !== undefined
           ? 100 - ourEnergy[player.id]
           : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
-        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent));
+        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * 10);
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
         player.attributes = trainOnMatch(player, player.training ?? DEFAULT_REGIMENT, trainingLevel, this.rng);
@@ -567,7 +567,8 @@ export class ClubManager {
     }
   }
 
-  // Call once per matchday end to tick down injuries, suspensions, and recover fitness
+  // Call once per matchday end to tick down injuries and suspensions (these count down per
+  // match missed, not per calendar day — see recoverFitness() for the time-based counterpart).
   handleMatchdayComplete(): void {
     this.stateManager.updateState(state => {
       for (const player of state.squad) {
@@ -584,9 +585,31 @@ export class ClubManager {
             delete player.suspension;
           }
         }
+      }
+    });
+  }
 
-        // Between-matchday fitness recovery
-        player.fitness = Math.min(100, player.fitness + 15);
+  // Tenths-of-a-point/day; matches the old +15/week baseline at neutral (50) stamina.
+  private static readonly FITNESS_RECOVERY_PER_DAY = 150 / 7;
+
+  /** Placeholder for a future training-facility recovery bonus — always 1.0 today. Wire this
+   *  up to `state.facilities.training` once that balance pass happens; the call site below
+   *  already threads the facility level through so no signature changes will be needed. */
+  private trainingFacilityRecoveryMultiplier(_trainingLevel: FacilityLevel): number { return 1; }
+
+  /** Passive fitness recovery scaled by actual elapsed game-calendar days, and very slightly
+   *  by the player's own stamina (fitter players shake off fatigue marginally faster) — a
+   *  congested run of fixtures recovers proportionally less than a normal week, a long gap
+   *  recovers more. */
+  recoverFitness(days: number): void {
+    if (days <= 0) { return; }
+    this.stateManager.updateState(state => {
+      const trainingMult = this.trainingFacilityRecoveryMultiplier(state.facilities.training);
+      for (const player of state.squad) {
+        // 0.9–1.1x across the stamina range — deliberately tiny, not a tactical decision.
+        const staminaMult = 0.9 + 0.2 * Math.max(0, Math.min(1, player.attributes.stamina / 99));
+        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * trainingMult;
+        player.fitness = Math.min(1000, player.fitness + recovered);
       }
     });
   }
@@ -610,7 +633,7 @@ export class ClubManager {
     // Youth join as fresh ClubPlayers; carry survivors' club-specific fields as-is.
     const newSquad: ClubPlayer[] = result.squad.map(p => {
       const existing = state.squad.find(s => s.id === p.id);
-      return existing ? { ...existing, attributes: p.attributes, age: p.age } : { ...p, fitness: 100 };
+      return existing ? { ...existing, attributes: p.attributes, age: p.age } : { ...p, fitness: 1000 };
     });
 
     // The full season's development: per-match training (already baked into `state.squad` by

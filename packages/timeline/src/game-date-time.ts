@@ -76,6 +76,11 @@ export function isEqual(a: GameDateTime, b: GameDateTime): boolean {
   return compareGameDateTime(a, b) === 0;
 }
 
+/** Whole/fractional days from `a` to `b` (negative if `b` is before `a`). */
+export function daysBetween(a: GameDateTime, b: GameDateTime): number {
+  return (toDate(b).getTime() - toDate(a).getTime()) / 86_400_000;
+}
+
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
