@@ -1,4 +1,4 @@
-export { ClubManager } from './club/club-manager.ts';
+export { ClubManager, MAX_SUBS_PER_MATCH, MAX_BENCH_SIZE, applySubstitutions } from './club/club-manager.ts';
 export type { ClubManagerConfig } from './club/club-manager.ts';
 export type { ClubPlayer, ClubState, FinancialTransaction } from './club/club-types.ts';
 export { prizeMoneyFor, CUP_PRIZE } from './club/prize-money.ts';
@@ -93,7 +93,7 @@ export {
   FORMATION_TENDENCIES, STYLE_TENDENCIES, formationToStyle, aiIntent,
   combine, applySquadDistortion,
   squadSuitability, defensiveSuitability, attackEffectiveness,
-  resolveMatchParameters, buildMatchInsight,
+  resolveMatchParameters, buildMatchInsights,
 } from '@fm2k/match';
 export { v4, EventBus, StateManager, assertDefined } from '@fm2k/state';
 export type { GameEvents } from './game-events.ts';

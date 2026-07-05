@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { ClubPlayer } from '@fm2k/engine';
+import { MAX_BENCH_SIZE } from '@fm2k/engine';
 
 // The hook reads from the zustand store via useGameStore(selector). We mock the
 // store module to drive the selector against a fixed, controlled club state.
@@ -57,9 +58,9 @@ describe('useLineupSlots:', () => {
     expect(starters).toEqual(['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2']);
   });
 
-  it('given bench players then they fill the four substitute slots', () => {
+  it('given bench players then they fill the first substitute slots, padded to the bench cap', () => {
     const { result } = renderHook(() => useLineupSlots());
-    expect(result.current.slotAssignments.slice(11)).toEqual(['sub1', 'sub2', null, null]);
+    expect(result.current.slotAssignments.slice(11)).toEqual(['sub1', 'sub2', ...Array(MAX_BENCH_SIZE - 2).fill(null)]);
   });
 
   it('given a cleared slot then it commits an 11-length array with that slot null, others untouched', () => {

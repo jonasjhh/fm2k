@@ -31,6 +31,27 @@ import type {
 
 const TICKET_PRICE = 20;
 
+/** Maximum substitutions a club may make in one match. */
+export const MAX_SUBS_PER_MATCH = 5;
+
+/** Maximum named substitutes on the bench. Naming subs is optional — 0..9 are all valid. */
+export const MAX_BENCH_SIZE = 9;
+
+/** Apply queued substitutions to a slot-ordered XI: each incoming player takes the
+ *  outgoing player's slot. Pure — shared by ClubManager.getActiveLineup and the UI
+ *  (which renders the on-pitch lineup from ClubState without a manager instance). */
+export function applySubstitutions(
+  startingXI: readonly (string | null)[],
+  subs: readonly { playerOutId: string; playerInId: string }[],
+): (string | null)[] {
+  const slots = [...startingXI];
+  for (const sub of subs) {
+    const i = slots.indexOf(sub.playerOutId);
+    if (i !== -1) { slots[i] = sub.playerInId; }
+  }
+  return slots;
+}
+
 export interface ClubManagerConfig {
   readonly clubId: string
   readonly clubName: string
@@ -85,7 +106,8 @@ export class ClubManager {
       formation: config.formation,
       tactics: config.tactics ?? defaultIntent(config.formation),
       startingXI: config.startingXI,
-      benchPlayers: config.benchPlayers,
+      // Pre-cap saves/configs may carry an oversized bench (it used to be unbounded).
+      benchPlayers: config.benchPlayers.slice(0, MAX_BENCH_SIZE),
       pendingSubstitutions: [],
       facilities: config.facilities ?? createEmptyFacilities(),
       facilityDeficitStreak: config.facilityDeficitStreak ?? 0,
@@ -327,7 +349,8 @@ export class ClubManager {
   }
 
   setBenchPlayers(playerIds: string[]): void {
-    this.stateManager.updateState(state => { state.benchPlayers = playerIds; });
+    // Naming subs is optional (an empty bench is valid), but never more than the cap.
+    this.stateManager.updateState(state => { state.benchPlayers = playerIds.slice(0, MAX_BENCH_SIZE); });
   }
 
   /** Set a squad player's training focus (drives their development). */
@@ -338,27 +361,43 @@ export class ClubManager {
     });
   }
 
-  queueSubstitution(playerOutId: string, playerInId: string): void {
-    this.stateManager.updateState(state => {
-      state.pendingSubstitutions.push({ playerOutId, playerInId });
+  /** Queue an in-match substitution. Enforces the per-match limit and eligibility:
+   *  the incoming player must be a fit, unsuspended bench player who hasn't already
+   *  been used or taken off; the outgoing player must currently be on the pitch. */
+  queueSubstitution(playerOutId: string, playerInId: string): boolean {
+    const state = this.stateManager.getState();
+    if (state.pendingSubstitutions.length >= MAX_SUBS_PER_MATCH) { return false; }
+
+    const activeIds = new Set(this.getActiveLineup().map(p => p.id));
+    if (!activeIds.has(playerOutId) || activeIds.has(playerInId)) { return false; }
+    if (!state.benchPlayers.includes(playerInId)) { return false; }
+    // A player who already came off cannot return.
+    if (state.pendingSubstitutions.some(sub => sub.playerOutId === playerInId)) { return false; }
+    const playerIn = state.squad.find(p => p.id === playerInId);
+    if (!playerIn || playerIn.injury || playerIn.suspension) { return false; }
+
+    this.stateManager.updateState(s => {
+      s.pendingSubstitutions.push({ playerOutId, playerInId });
     });
+    return true;
   }
 
   clearPendingSubstitutions(): void {
     this.stateManager.updateState(state => { state.pendingSubstitutions = []; });
   }
 
+  /** Substitutions remaining this match. */
+  subsRemaining(): number {
+    return MAX_SUBS_PER_MATCH - this.stateManager.getState().pendingSubstitutions.length;
+  }
+
+  /** The XI currently on the pitch, slot-ordered: each substitution replaces the
+   *  outgoing player in their startingXI slot, so formation positions carry over. */
   getActiveLineup(): Player[] {
     const state = this.stateManager.getState();
     const squadMap = new Map(state.squad.map(p => [p.id, p]));
-    const activeIds = new Set(state.startingXI.filter((id): id is string => id !== null));
-
-    for (const sub of state.pendingSubstitutions) {
-      activeIds.delete(sub.playerOutId);
-      activeIds.add(sub.playerInId);
-    }
-
-    return [...activeIds]
+    return applySubstitutions(state.startingXI, state.pendingSubstitutions)
+      .filter((id): id is string => id !== null)
       .map(id => squadMap.get(id))
       .filter((p): p is ClubPlayer => p !== undefined);
   }
@@ -611,8 +650,11 @@ export class ClubManager {
         : undefined;
 
     this.stateManager.updateState(s => {
+      // Everyone who saw the pitch: the starting XI plus any substitutes who came on.
+      const played = new Set<string>(s.startingXI.filter((id): id is string => id !== null));
+      for (const sub of s.pendingSubstitutions) { played.add(sub.playerInId); }
       for (const player of s.squad) {
-        if (!s.startingXI.includes(player.id)) {continue;}
+        if (!played.has(player.id)) {continue;}
 
         const energySpent = ourEnergy?.[player.id] !== undefined
           ? 100 - ourEnergy[player.id]
@@ -642,6 +684,9 @@ export class ClubManager {
           injuryType: player.injury.type,
           matchesRemaining: player.injury.matchesRemaining,
         });
+        // The lineup itself is deliberately left untouched: the manager keeps their
+        // picked XI, and starting the next match is blocked by validation until the
+        // injured starter is replaced (or recovers).
       }
 
       s.pendingSubstitutions = [];

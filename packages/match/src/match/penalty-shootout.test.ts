@@ -1,29 +1,14 @@
 import { simulateShootout } from './penalty-shootout.ts';
 import type { Player } from '../shared/types.ts';
+import { mulberry32 } from './distribution.ts';
+import { createUniformPlayer } from './test-fixtures.ts';
 
-function createTestPlayer(id: string, position: string, quality = 70): Player {
-  return {
-    id, name: id, nationality: 'norwegian', age: 25, position: position as Player['position'], potential: quality,
-    attributes: {
-      speed: quality, strength: quality, agility: quality, passing: quality, finishing: quality,
-      technique: quality, defending: quality, stamina: quality, awareness: quality, composure: quality,
-    },
-  };
+function createTestPlayer(id: string, position: Player['position'], quality = 70): Player {
+  return createUniformPlayer(id, id, position, quality);
 }
 
 function createTestXI(id: string, quality = 70): Player[] {
   return Array.from({ length: 11 }, (_, i) => createTestPlayer(`${id}-p${i}`, 'ST', quality));
-}
-
-/** Deterministic PRNG (mulberry32) — varies per call so a shootout always resolves. */
-function mulberry32(seed: number): () => number {
-  let a = seed;
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /** Deterministic RNG cycling through a fixed list of values. */

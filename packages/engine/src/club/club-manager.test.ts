@@ -1,5 +1,6 @@
 import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
+import type { ClubPlayer } from './club-types.ts';
 import type { Player, PlayerPosition, InjuryReport } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
@@ -522,27 +523,109 @@ describe('ClubManager:', () => {
   });
 
   describe('queueSubstitution:', () => {
+    // makePlayer's ids are file-global, so subs always reference the config's own
+    // XI/bench (never literal 'player-N' ids, which belong to the first-built squad).
+    function subFixture() {
+      const config = makeConfig();
+      return { config, manager: new ClubManager(config), xi: config.startingXI, bench: config.benchPlayers };
+    }
+
     test('adds a substitution to pendingSubstitutions', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.queueSubstitution('player-1', 'player-12');
+      const { manager, xi, bench } = subFixture();
+      expect(manager.queueSubstitution(xi[0], bench[0])).toBe(true);
       const subs = manager.getState().pendingSubstitutions;
       expect(subs).toHaveLength(1);
-      expect(subs[0]).toEqual({ playerOutId: 'player-1', playerInId: 'player-12' });
+      expect(subs[0]).toEqual({ playerOutId: xi[0], playerInId: bench[0] });
     });
 
     test('can queue multiple substitutions', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.queueSubstitution('player-1', 'player-12');
-      manager.queueSubstitution('player-2', 'player-13');
+      const { manager, xi, bench } = subFixture();
+      manager.queueSubstitution(xi[0], bench[0]);
+      manager.queueSubstitution(xi[1], bench[1]);
       expect(manager.getState().pendingSubstitutions).toHaveLength(2);
+    });
+
+    test('rejects a sixth substitution (per-match limit of 5)', () => {
+      const squad = makeSquad(18);
+      const config = makeConfig({
+        squad,
+        startingXI: squad.slice(0, 11).map(p => p.id),
+        benchPlayers: squad.slice(11, 17).map(p => p.id),
+      });
+      const manager = new ClubManager(config);
+      const xi = config.startingXI;
+      const bench = config.benchPlayers;
+      for (let i = 0; i < 5; i++) {
+        expect(manager.queueSubstitution(xi[i], bench[i])).toBe(true);
+      }
+      expect(manager.queueSubstitution(xi[5], bench[5])).toBe(false);
+      expect(manager.getState().pendingSubstitutions).toHaveLength(5);
+      expect(manager.subsRemaining()).toBe(0);
+    });
+
+    test('rejects an incoming player who is not on the bench', () => {
+      const { manager, xi } = subFixture();
+      expect(manager.queueSubstitution(xi[0], xi[1])).toBe(false);
+    });
+
+    test('rejects an outgoing player who is not on the pitch', () => {
+      const { manager, bench } = subFixture();
+      expect(manager.queueSubstitution(bench[1], bench[0])).toBe(false);
+    });
+
+    test('rejects an injured or suspended incoming player', () => {
+      const config = makeConfig();
+      const [injuredId, suspendedId] = config.benchPlayers;
+      const injured = config.squad.find(p => p.id === injuredId) as ClubPlayer | undefined;
+      const suspended = config.squad.find(p => p.id === suspendedId) as ClubPlayer | undefined;
+      if (injured) { injured.injury = { type: 'Sprained Ankle', matchesRemaining: 2 }; }
+      if (suspended) { suspended.suspension = { matchesRemaining: 1 }; }
+      const manager = new ClubManager(config);
+      expect(manager.queueSubstitution(config.startingXI[0], injuredId)).toBe(false);
+      expect(manager.queueSubstitution(config.startingXI[0], suspendedId)).toBe(false);
+    });
+
+    test('a player who came off cannot come back on', () => {
+      const { manager, xi, bench } = subFixture();
+      expect(manager.queueSubstitution(xi[0], bench[0])).toBe(true);
+      // xi[0] came off → may not return
+      expect(manager.queueSubstitution(xi[1], xi[0])).toBe(false);
+      // bench[0] came on and is now active — cannot also come on for someone else
+      expect(manager.queueSubstitution(xi[1], bench[0])).toBe(false);
+    });
+  });
+
+  describe('bench size:', () => {
+    test('setBenchPlayers caps the bench at MAX_BENCH_SIZE; empty is valid', () => {
+      const squad = makeSquad(22);
+      const config = makeConfig({ squad, startingXI: squad.slice(0, 11).map(p => p.id), benchPlayers: [] });
+      const manager = new ClubManager(config);
+      expect(manager.getState().benchPlayers).toHaveLength(0);
+
+      manager.setBenchPlayers(squad.slice(11).map(p => p.id)); // 11 candidates
+      expect(manager.getState().benchPlayers).toHaveLength(9);
+
+      manager.setBenchPlayers([]);
+      expect(manager.getState().benchPlayers).toHaveLength(0);
+    });
+
+    test('an oversized bench from an old save is capped at construction', () => {
+      const squad = makeSquad(22);
+      const config = makeConfig({
+        squad,
+        startingXI: squad.slice(0, 11).map(p => p.id),
+        benchPlayers: squad.slice(11).map(p => p.id), // 11 — pre-cap saves were unbounded
+      });
+      expect(new ClubManager(config).getState().benchPlayers).toHaveLength(9);
     });
   });
 
   describe('clearPendingSubstitutions:', () => {
     test('removes all queued substitutions', () => {
-      const manager = new ClubManager(makeConfig());
-      manager.queueSubstitution('player-1', 'player-12');
-      manager.queueSubstitution('player-2', 'player-13');
+      const config = makeConfig();
+      const manager = new ClubManager(config);
+      manager.queueSubstitution(config.startingXI[0], config.benchPlayers[0]);
+      manager.queueSubstitution(config.startingXI[1], config.benchPlayers[1]);
       manager.clearPendingSubstitutions();
       expect(manager.getState().pendingSubstitutions).toHaveLength(0);
     });
@@ -576,6 +659,20 @@ describe('ClubManager:', () => {
         expect(p).toHaveProperty('name');
         expect(p).toHaveProperty('attributes');
       });
+    });
+
+    test('a substitute takes the outgoing player\'s slot (slot order preserved)', () => {
+      const config = makeConfig();
+      const manager = new ClubManager(config);
+      const outId = config.startingXI[4];
+      const inId = config.benchPlayers[1];
+
+      const before = manager.getActiveLineup().map(p => p.id);
+      manager.queueSubstitution(outId, inId);
+      const after = manager.getActiveLineup().map(p => p.id);
+
+      expect(after[4]).toBe(inId);
+      expect(after.filter((_, i) => i !== 4)).toEqual(before.filter((_, i) => i !== 4));
     });
   });
 
@@ -965,6 +1062,18 @@ describe('ClubManager:', () => {
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: injuries });
       const state = manager.getState();
       state.squad.filter(p => starters.includes(p.id)).forEach(p => expect(p.injury).toBeDefined());
+    });
+
+    test('an injured starter keeps their XI slot (lineup untouched; validation blocks the next match)', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      const starters = xiOf(manager);
+      const injuredId = starters[3];
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: injuredId, type: 'muscle_strain', baseDuration: 2 }] });
+      const state = manager.getState();
+      expect(state.startingXI).toEqual(starters);
+      const injured = state.squad.find(p => p.id === injuredId);
+      expect(injured?.injury).toBeDefined();
     });
 
     test('no reported injuries means no injuries', () => {

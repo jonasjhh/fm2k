@@ -2,6 +2,7 @@ import { Player, Team, type FieldedPositions } from '../shared/types';
 import type { MatchParameterSet } from '../tactics/match-parameters.ts';
 import type { InjuryReport } from './injury.ts';
 import type { FieldedGeometry } from './action-selector.ts';
+import type { ActionBreakdown } from './stats.ts';
 
 export type EventType =
   | 'kickoff'
@@ -112,6 +113,11 @@ export interface MatchResult {
   injuries: { home: InjuryReport[]; away: InjuryReport[] };
 }
 
+export interface PassTally {
+  attempted: number;
+  completed: number;
+}
+
 export interface MatchStatistics {
   possession: { home: number; away: number };
   shots: { home: number; away: number };
@@ -122,4 +128,11 @@ export interface MatchStatistics {
     yellow: { home: number; away: number };
     red: { home: number; away: number };
   };
+  passes: { home: PassTally; away: PassTally };
+  /** Goals scored from the 70th minute on (late-fade signal for the insight detectors). */
+  lateGoals: { home: number; away: number };
+  /** Per contested outfield action: attempts (incl. ones a defender resolved) and successes. */
+  actionBreakdown: { home: ActionBreakdown; away: ActionBreakdown };
+  /** Per-player match rating on the familiar 10-point scale (only players with events). */
+  playerRatings: Record<string, number>;
 }

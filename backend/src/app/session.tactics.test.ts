@@ -65,9 +65,9 @@ describe('GameSession tactics:', () => {
     expect(playerTeam.tacticsParams).toBeDefined();
   });
 
-  test('getLastMatchInsight returns null until the detector logic ships', () => {
+  test('lastMatchInsights is empty before any match has been played', () => {
     const { session } = newGame();
-    expect(session.snapshot().lastMatchInsight).toBeNull();
+    expect(session.snapshot().lastMatchInsights).toEqual([]);
   });
 
   test('tactics survive a save/load round-trip', () => {

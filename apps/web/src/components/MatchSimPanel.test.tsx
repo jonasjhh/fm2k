@@ -7,12 +7,13 @@ let storeState: Record<string, unknown>;
 
 vi.mock('@/store/game-store', () => ({
   useGameStore: (selector: (s: Record<string, unknown>) => unknown) => selector(storeState),
+  MAX_PAUSES_PER_MATCH: 3,
 }));
 
 import MatchSimPanel from './MatchSimPanel';
 
-function squadPlayer(id: string, suspension?: { matchesRemaining: number }) {
-  return { id, name: id, suspension };
+function squadPlayer(id: string, suspension?: { matchesRemaining: number }, injury?: { type: string; matchesRemaining: number }) {
+  return { id, name: id, suspension, injury };
 }
 
 function baseState(overrides: Record<string, unknown> = {}) {
@@ -21,6 +22,13 @@ function baseState(overrides: Record<string, unknown> = {}) {
     focusLive: null,
     matchEvents: [],
     isStreaming: false,
+    pauseRequested: false,
+    pausesUsed: 0,
+    lastPauseReason: null,
+    lastMatchInsights: [],
+    lastMatchStatistics: null,
+    halfTimeInsights: [],
+    editableCountries: [],
     streamHome: 0,
     streamAway: 0,
     streamMinute: 0,
@@ -33,6 +41,7 @@ function baseState(overrides: Record<string, unknown> = {}) {
       ],
     },
     advanceMatch: vi.fn(),
+    pauseMatch: vi.fn(),
     skipMatch: vi.fn(),
     goToNextMatch: vi.fn(),
     simulateToEnd: vi.fn(),
@@ -77,6 +86,34 @@ describe('MatchSimPanel:', () => {
     render(<MatchSimPanel />);
     expect(screen.getByText('Play Match')).toBeDisabled();
     expect(screen.getByText(/includes a suspended player/i)).toBeInTheDocument();
+  });
+
+  test('a complete XI with an injured starter disables the sim buttons and shows the injury alert', () => {
+    storeState = baseState({
+      clubState: {
+        startingXI: ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'],
+        squad: [
+          squadPlayer('gk', undefined, { type: 'knee_injury', matchesRemaining: 3 }), squadPlayer('lb'),
+          squadPlayer('cb1'), squadPlayer('cb2'), squadPlayer('rb'), squadPlayer('lm'), squadPlayer('cm1'),
+          squadPlayer('cm2'), squadPlayer('rm'), squadPlayer('st1'), squadPlayer('st2'),
+        ],
+      },
+    });
+    render(<MatchSimPanel />);
+    expect(screen.getByText('Play Match')).toBeDisabled();
+    expect(screen.getByText(/includes an injured player/i)).toBeInTheDocument();
+  });
+
+  test('while streaming, the Pause button shows the remaining budget and is enabled', () => {
+    storeState = baseState({ isStreaming: true });
+    render(<MatchSimPanel />);
+    expect(screen.getByText('Pause (3 left)')).not.toBeDisabled();
+  });
+
+  test('with the pause budget spent, the Pause button is disabled', () => {
+    storeState = baseState({ isStreaming: true, pausesUsed: 3 });
+    render(<MatchSimPanel />);
+    expect(screen.getByText('No pauses left')).toBeDisabled();
   });
 
   test('when both incomplete and suspended, the incompleteness message takes priority', () => {

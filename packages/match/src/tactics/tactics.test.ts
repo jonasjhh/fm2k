@@ -11,7 +11,6 @@ import { applySquadDistortion } from './squad-influence.ts';
 import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 import { resolveMatchParameters } from './resolve.ts';
 import { formationToStyle, aiIntent } from './ai-style.ts';
-import { buildMatchInsight } from './feedback.ts';
 
 function attrs(value: number, overrides: Partial<PlayerAttributes> = {}): PlayerAttributes {
   return {
@@ -251,14 +250,5 @@ describe('AI style mapping:', () => {
     expect(intent.formation).toBe('5-4-1');
     expect(intent.style).toBe('defend_deep');
     expect(intent.sliders).toEqual({ tempo: 50, risk: 50, defensiveLine: 50 });
-  });
-});
-
-describe('feedback stub:', () => {
-  it('given the deferred insight builder then it returns null', () => {
-    expect(buildMatchInsight({
-      playerSide: 'home', homeScore: 1, awayScore: 0,
-      params: { home: NEUTRAL_PARAMS, away: NEUTRAL_PARAMS }, playerXi: squad(60),
-    })).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
 import { getContrastColor } from '../../utils/colors';
 import {
-  getTeamOVR, recentForm, FORMATION_LINES, buildXISlotAssignments,
+  getTeamOVR, recentForm, FORMATION_LINES, buildXISlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
 import type { Player, Formation } from '@fm2k/engine';
 import { FormationGrid } from '../ui/FormationGrid';
@@ -68,15 +68,13 @@ export default function MatchTab() {
   const xiViewFor = (teamId: string) => {
     const team = findTeamById(editableCountries, teamId);
     if (teamId === playerTeamId && clubState) {
-      // TODO: an injured player can be selected and is shown here, but MatchSimulator
-      // does not yet model reduced performance for injured players.
       const formation = clubState.formation;
       return {
         team, formation,
         lines: FORMATION_LINES[formation],
         // clubState.startingXI is itself slot-ordered (and hole-preserving) — no need to
         // re-derive it via buildSlotAssignments.
-        slotAssignments: [...clubState.startingXI, ...clubState.benchPlayers.slice(0, 4)],
+        slotAssignments: [...clubState.startingXI, ...clubState.benchPlayers.slice(0, MAX_BENCH_SIZE)],
         squad: clubState.squad as Player[],
         customSlots: clubState.customSlots,
         emptySlotRoles: clubState.emptySlotRoles,
@@ -165,7 +163,9 @@ export default function MatchTab() {
             sliders={clubState.tactics.sliders}
             onStyle={setStyle}
             onSliders={setSliders}
-            disabled={isStreaming || !!focusLive}
+            // Editable whenever the match is paused (half time, red card, user pause) —
+            // changes are re-resolved into the live simulation on the next minute.
+            disabled={isStreaming}
           />
         </Box>
       )}

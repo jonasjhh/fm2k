@@ -129,7 +129,9 @@ const CONV_SPREAD = 220;
 // dribble often is. (Replaces the old embedded per-generator success rolls and the
 // standalone tackle/interception/clearance actions — turnovers now flow through here.)
 const CONTEST_SPREAD = 300;        // (defenderSkill − attackerSkill) → win-chance shift
-const CONTEST_PARITY: Record<string, number> = {
+// Exported for the insight detectors: 1 − parity is the expected success rate of a
+// contested action in an even matchup — the baseline actual rates are judged against.
+export const CONTEST_PARITY: Record<string, number> = {
   short_pass:   0.32,   // safe ball, seldom intercepted
   long_pass:    0.46,   // direct ball cut out more often
   through_ball: 0.54,   // high-risk killer pass

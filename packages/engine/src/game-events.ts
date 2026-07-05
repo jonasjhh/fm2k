@@ -1,5 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
-import type { InjuryReport } from '@fm2k/match';
+import type { InjuryReport, MatchStatistics } from '@fm2k/match';
 import type { LeagueStanding } from './league/league-types.ts';
 
 export type GameEvents = {
@@ -30,6 +30,8 @@ export type GameEvents = {
     // Injuries picked up in the match (pre-mitigation); the club applies medical mitigation.
     homeInjuries?: InjuryReport[]
     awayInjuries?: InjuryReport[]
+    // Full-match statistics (possession, shots, passes, action breakdown, ratings).
+    statistics?: MatchStatistics
   }
   'player.injured': {
     playerId: string

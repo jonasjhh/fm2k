@@ -1,6 +1,7 @@
 import { MatchSimulator, flattenMatchEventChain, type MatchConfig } from './match-simulator.ts';
-import { Team, Player, Formation } from '../shared/types.ts';
+import { Team, Formation } from '../shared/types.ts';
 import { assertDefined } from '../test-assert.ts';
+import { createTestTeam as sharedTeam } from './test-fixtures.ts';
 
 /** Defaults homeStarters/awayStarters to the first 11 squad members (already slot-ordered
  *  by createTestTeam below) so existing call sites don't need to spell them out. */
@@ -12,63 +13,9 @@ function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partia
   });
 }
 
-function createTestPlayer(id: string, name: string, position: any): Player {
-  return {
-    id,
-    name,
-    nationality: 'norwegian',
-    age: 25,
-    position,
-    potential: 70,
-    attributes: {
-      speed: 70,
-      strength: 70,
-      agility: position === 'GK' ? 85 : 70,
-      passing: 70,
-      finishing: position === 'GK' ? 30 : 70,
-      technique: 70,
-      defending: ['CB', 'LB', 'RB', 'DM'].includes(position) ? 85 : 50,
-      stamina: 75,
-      awareness: 70,
-      composure: 70,
-    },
-  };
-}
-
+/** This suite's teams carry the standard bench (subs feed the substitution tests). */
 function createTestTeam(id: string, name: string, formation: Formation = '4-4-2'): Team {
-  const starters: Player[] = [
-    createTestPlayer('gk1', 'Goalkeeper', 'GK'),
-    createTestPlayer('lb1', 'Left Back', 'LB'),
-    createTestPlayer('cb1', 'Centre Back 1', 'CB'),
-    createTestPlayer('cb2', 'Centre Back 2', 'CB'),
-    createTestPlayer('rb1', 'Right Back', 'RB'),
-    createTestPlayer('lm1', 'Left Mid', 'LM'),
-    createTestPlayer('cm1', 'Central Mid 1', 'CM'),
-    createTestPlayer('cm2', 'Central Mid 2', 'CM'),
-    createTestPlayer('rm1', 'Right Mid', 'RM'),
-    createTestPlayer('st1', 'Striker 1', 'ST'),
-    createTestPlayer('st2', 'Striker 2', 'ST'),
-  ];
-
-  const substitutes: Player[] = [
-    createTestPlayer('sub1', 'Sub 1', 'CB'),
-    createTestPlayer('sub2', 'Sub 2', 'CM'),
-    createTestPlayer('sub3', 'Sub 3', 'ST'),
-  ];
-
-  return {
-    id,
-    name,
-    formation,
-    colors: { primary: '#FFFFFF', secondary: '#000000' },
-    squad: [...starters, ...substitutes],
-    tactics: {
-      attackingMentality: 'balanced',
-      passingStyle: 'mixed',
-      tempo: 'medium',
-      width: 'balanced',
-    },
-  };
+  return sharedTeam(id, name, formation, { withSubs: true });
 }
 
 describe('MatchSimulator:', () => {

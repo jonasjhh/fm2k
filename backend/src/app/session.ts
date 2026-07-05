@@ -3,17 +3,17 @@ import {
   ClubManager, TransferManager, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays, daysBetween,
-  defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsight,
+  defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights,
   makeYouth, academyBiasForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
-  prizeMoneyFor, CUP_PRIZE, buildSlotAssignments,
+  prizeMoneyFor, CUP_PRIZE, buildSlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
 import { matchHeadline, transferHeadline, injuryHeadline, isExpired, type Article } from '@fm2k/newspaper';
 import { PlayerGenerator } from '@fm2k/players';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
-  TeamTacticsIntent, MatchInsight, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
+  TeamTacticsIntent, MatchInsight, MatchStatistics, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
   FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 import { buildEditableCountries } from '../domain/editable-country.ts';
@@ -37,8 +37,8 @@ import {
   qualifierCompetitionId,
 } from './config.ts';
 
-/** Significant match events the UI animates (goals, cards, saves, phase changes). */
-const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'half_time', 'full_time']);
+/** Significant match events the UI animates (goals, cards, saves, subs, phase changes). */
+const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
 
 /** Ordinal suffix for a 1-based position ("1st", "2nd", "3rd", "4th"...). */
 function ordinalSuffix(n: number): string {
@@ -67,6 +67,10 @@ export interface AnimEvent {
   awayScore: number;
 }
 
+/** Why an advance segment stopped: a real intermission/finish, a sending-off that
+ *  demands a tactical response, or simply the end of a streaming chunk. */
+export type PauseReason = 'half_time' | 'full_time' | 'red_card' | 'chunk';
+
 /** Result of advancing the player's match to the next stop (intermission / completion). */
 export interface AdvanceResult {
   fixtureId: string | null;
@@ -78,7 +82,10 @@ export interface AdvanceResult {
   phase: string;
   atIntermission: boolean;
   matchOver: boolean;
+  pauseReason: PauseReason;
   events: AnimEvent[];
+  /** Tactical read at the interval (player's fixture only, from first-half statistics). */
+  halfTimeInsights?: MatchInsight[];
 }
 
 /** The read-model the frontend caches: lifecycle flags + engine state snapshots. */
@@ -107,8 +114,10 @@ export interface GameSnapshot {
   transferListings: TransferListing[];
   /** The free-agent pool (browsable as part of the whole playerbase). */
   freeAgents: Player[];
-  /** Single post-match insight for the player's team (null until the detector logic ships). */
-  lastMatchInsight: MatchInsight | null;
+  /** Ranked post-match insights for the player's team (strongest first; empty = no story). */
+  lastMatchInsights: MatchInsight[];
+  /** Full statistics of the player's most recently completed match (post-match stat sheet). */
+  lastMatchStatistics: MatchStatistics | null;
   /** Append-only one-off messages (retirements, transfer windows) the web turns into toasts. */
   notifications: GameNotification[];
   /** Newspaper articles still within their retention window (older ones are pruned, not just capped). */
@@ -152,7 +161,8 @@ export class GameSession {
   private now!: GameDateTime;
   private focusFixtureId!: string | null;
   private lastMatchResult!: LastMatchResult | null;
-  private lastMatchInsight!: MatchInsight | null;
+  private lastMatchInsights!: MatchInsight[];
+  private lastMatchStatistics!: MatchStatistics | null;
   private notifications!: GameNotification[];
   private nextNotificationId!: number;
   private headlines!: Article[];
@@ -204,7 +214,8 @@ export class GameSession {
     this.now = SEASON_START;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
-    this.lastMatchInsight = null;
+    this.lastMatchInsights = [];
+    this.lastMatchStatistics = null;
     this.notifications = [];
     this.nextNotificationId = 1;
     this.headlines = [];
@@ -301,7 +312,8 @@ export class GameSession {
       clubState: this.clubManager?.getState() ?? null,
       transferListings: this.transferManager?.getActiveListings(this.currentMatchday) ?? [],
       freeAgents: this.transferManager?.getFreeAgents() ?? [],
-      lastMatchInsight: this.lastMatchInsight,
+      lastMatchInsights: this.lastMatchInsights,
+      lastMatchStatistics: this.lastMatchStatistics,
       notifications: this.notifications,
       // Pruned at read-time too — `this.now` can advance with no new headline pushed, and a
       // week-old article shouldn't visibly linger just because nothing newsworthy happened since.
@@ -339,8 +351,39 @@ export class GameSession {
       : leagueIds;
   }
 
+  /** Assemble the insight input for the player's fixture and run the detectors. Shared by
+   *  the post-match seam (full statistics + end energy) and the half-time readout (partial
+   *  statistics, no energy). The opposing XI is approximated as their best-fit selection —
+   *  close enough for the style-matchup verdict, which reads squad profiles, not form. */
+  private buildPlayerInsights(opts: {
+    playerSide: 'home' | 'away';
+    opponentTeamId: string;
+    homeScore: number;
+    awayScore: number;
+    statistics?: MatchStatistics;
+    endEnergy?: Record<string, number>;
+  }): MatchInsight[] {
+    const cs = this.clubManager?.getState();
+    const oppTeam = teamById(this.world, opts.opponentTeamId);
+    const playerParams = this.playerTeam?.tacticsParams ?? NEUTRAL_PARAMS;
+    const oppParams = oppTeam?.tacticsParams ?? NEUTRAL_PARAMS;
+    return buildMatchInsights({
+      playerSide: opts.playerSide,
+      homeScore: opts.homeScore,
+      awayScore: opts.awayScore,
+      params: opts.playerSide === 'home'
+        ? { home: playerParams, away: oppParams }
+        : { home: oppParams, away: playerParams },
+      playerXi: this.clubManager?.getActiveLineup() ?? [],
+      playerIntent: cs?.tactics,
+      opponentXi: oppTeam ? selectStartingXIWithSlots(oppTeam.squad, oppTeam.formation).starters : [],
+      statistics: opts.statistics,
+      endEnergy: opts.endEnergy,
+    });
+  }
+
   /** Fresh EventBus + the session-level listeners that drive notifications/lastMatchResult/
-   *  lastMatchInsight. Used whenever the competition layer is rebuilt (new game or season
+   *  lastMatchInsights. Used whenever the competition layer is rebuilt (new game or season
    *  rollover) since the old bus's subscriptions are tied to the CompetitionManagers being
    *  discarded. */
   private rewireEventBus(world: World): EventBus<GameEvents> {
@@ -375,17 +418,16 @@ export class GameSession {
         shootout: payload.shootout,
         winnerTeamId: payload.winnerTeamId,
       };
+      this.lastMatchStatistics = payload.statistics ?? null;
 
-      // Feedback hook (logic deferred — buildMatchInsight currently returns null).
-      // Wired now so the insight feature drops in with no plumbing changes.
-      const homeParams = teamById(world, payload.homeTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
-      const awayParams = teamById(world, payload.awayTeamId)?.tacticsParams ?? NEUTRAL_PARAMS;
-      this.lastMatchInsight = buildMatchInsight({
+      // Post-match tactical readout: what worked, what to change (detectors in @fm2k/match).
+      this.lastMatchInsights = this.buildPlayerInsights({
         playerSide: isHome ? 'home' : 'away',
+        opponentTeamId: isHome ? payload.awayTeamId : payload.homeTeamId,
         homeScore: payload.homeScore,
         awayScore: payload.awayScore,
-        params: { home: homeParams, away: awayParams },
-        playerXi: this.clubManager?.getActiveLineup() ?? [],
+        statistics: payload.statistics,
+        endEnergy: isHome ? payload.homeEnergy : payload.awayEnergy,
       });
     }));
 
@@ -412,6 +454,11 @@ export class GameSession {
       }, this.rng));
     }));
     unsubs.push(eventBus.on('player.injured', (p) => {
+      // Only the player's own ClubManager emits this — it's always their squad.
+      this.pushNotification(
+        `${p.playerName} is injured (out ${p.matchesRemaining} match${p.matchesRemaining === 1 ? '' : 'es'}) — pick a replacement.`,
+        'warning',
+      );
       this.pushHeadline(injuryHeadline({
         playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
       }, this.rng));
@@ -636,7 +683,7 @@ export class GameSession {
       formation: team.formation,
       tactics: intent,
       startingXI: initialXI.starters.map(p => p.id),
-      benchPlayers: initialXI.substitutes.map(p => p.id),
+      benchPlayers: initialXI.substitutes.slice(0, MAX_BENCH_SIZE).map(p => p.id),
       stadiumCapacity: calculateTotalCapacity(defaultSectors) || STADIUM_START,
       stadiumSectors: defaultSectors,
       eventBus,
@@ -684,7 +731,7 @@ export class GameSession {
     this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
-    this.lastMatchInsight = null;
+    this.lastMatchInsights = [];
     return true;
   }
 
@@ -749,7 +796,7 @@ export class GameSession {
       formation: team.formation,
       tactics: intent,
       startingXI,
-      benchPlayers,
+      benchPlayers: benchPlayers.slice(0, MAX_BENCH_SIZE),
       stadiumCapacity: prevClub.stadiumCapacity,
       stadiumSectors: prevClub.stadiumSectors,
       eventBus,
@@ -788,7 +835,7 @@ export class GameSession {
     this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
-    this.lastMatchInsight = null;
+    this.lastMatchInsights = [];
     return true;
   }
 
@@ -895,7 +942,7 @@ export class GameSession {
     this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = save.lastMatchResult;
-    this.lastMatchInsight = null;
+    this.lastMatchInsights = [];
     return true;
   }
 
@@ -1088,11 +1135,11 @@ export class GameSession {
   }
 
   private idleResult(): AdvanceResult {
-    return { fixtureId: null, homeTeamName: '', awayTeamName: '', homeScore: 0, awayScore: 0, phase: 'idle', atIntermission: false, matchOver: true, events: [] };
+    return { fixtureId: null, homeTeamName: '', awayTeamName: '', homeScore: 0, awayScore: 0, phase: 'idle', atIntermission: false, matchOver: true, pauseReason: 'full_time', events: [] };
   }
 
   /** Map collected occurrence events for one fixture into animation events. */
-  private buildAdvanceResult(fixtureId: string, collected: OccurrenceEvent[]): AdvanceResult {
+  private buildAdvanceResult(fixtureId: string, collected: OccurrenceEvent[], pauseReason: PauseReason): AdvanceResult {
     const fixture = this.findFixture(fixtureId);
     const live = this.liveMatches().find(l => l.fixtureId === fixtureId) ?? null;
     const matchOver = live === null;
@@ -1111,6 +1158,25 @@ export class GameSession {
       });
     const homeScore = live?.homeScore ?? fixture?.result?.homeScore ?? 0;
     const awayScore = live?.awayScore ?? fixture?.result?.awayScore ?? 0;
+
+    // Half-time readout for the player's own fixture: run the insight detectors over
+    // the first-half statistics (no end-energy yet — the fade detector stays quiet).
+    let halfTimeInsights: MatchInsight[] | undefined;
+    const atHalfTime = live?.phase === 'half_time' || live?.phase === 'extra_time_half';
+    if (live && atHalfTime && this.playerTeamId) {
+      const playerSide = live.homeTeamId === this.playerTeamId ? 'home'
+        : live.awayTeamId === this.playerTeamId ? 'away' : null;
+      if (playerSide) {
+        halfTimeInsights = this.buildPlayerInsights({
+          playerSide,
+          opponentTeamId: playerSide === 'home' ? live.awayTeamId : live.homeTeamId,
+          homeScore: live.homeScore,
+          awayScore: live.awayScore,
+          statistics: live.statistics,
+        });
+      }
+    }
+
     return {
       fixtureId,
       homeTeamName: fixture?.homeTeamName ?? live?.homeTeamName ?? '',
@@ -1120,7 +1186,9 @@ export class GameSession {
       phase: live?.phase ?? 'full_time',
       atIntermission: !matchOver,
       matchOver,
+      pauseReason: matchOver ? 'full_time' : pauseReason,
       events,
+      ...(halfTimeInsights && { halfTimeInsights }),
     };
   }
 
@@ -1137,8 +1205,12 @@ export class GameSession {
     return this.playerLiveMatch()?.fixtureId ?? nextFix.id;
   }
 
-  /** Auto-stream the player's match to the next intermission (half/full time, etc.). */
-  async advanceToNextStop(): Promise<AdvanceResult> {
+  /** Auto-stream the player's match to the next stop: an intermission or full time,
+   *  a sending-off in the player's fixture (a tactical response moment), or — when
+   *  `maxMinutes` is set — the end of a streaming chunk (lets the UI interleave a
+   *  user-driven pause between chunks without any mid-tick interruption, keeping
+   *  the rng stream untouched by when the pauses happen). */
+  async advanceToNextStop(opts: { maxMinutes?: number } = {}): Promise<AdvanceResult> {
     if (!this.playerTeamId) { return this.idleResult(); }
     this.lastMatchResult = null;
 
@@ -1147,15 +1219,22 @@ export class GameSession {
     if (!focusId) { await this.simulateToEnd(); return this.idleResult(); }
     this.focusFixtureId = focusId;
 
+    let pauseReason: PauseReason = 'full_time';
     let guard = 0;
     while (guard++ < MATCH_MAX_MINUTES + 10) {
+      const before = collected.length;
       collected.push(...await this.advanceClockTo(addMinutes(this.now, 1)));
       const lm = this.liveMatches().find(l => l.fixtureId === focusId);
-      if (!lm) { break; }                                                  // completed
-      if (lm.phase === 'half_time' || lm.phase === 'extra_time_half') { break; } // intermission
+      if (!lm) { pauseReason = 'full_time'; break; }                       // completed
+      if (lm.phase === 'half_time' || lm.phase === 'extra_time_half') { pauseReason = 'half_time'; break; }
+      if (collected.slice(before).some(e => e.occurrenceId === focusId && e.eventType === 'red_card')) {
+        pauseReason = 'red_card';
+        break;
+      }
+      if (opts.maxMinutes !== undefined && guard >= opts.maxMinutes) { pauseReason = 'chunk'; break; }
     }
     this.notify();
-    return this.buildAdvanceResult(focusId, collected);
+    return this.buildAdvanceResult(focusId, collected, pauseReason);
   }
 
   /** Skip the player's current match to full time with no streaming. */
@@ -1173,7 +1252,7 @@ export class GameSession {
       collected.push(...await this.advanceClockTo(addMinutes(this.now, 5)));
     }
     this.notify();
-    return this.buildAdvanceResult(focusId, collected);
+    return this.buildAdvanceResult(focusId, collected, 'full_time');
   }
 
   /** Move the Match-tab focus to the player's next upcoming fixture. */
@@ -1233,17 +1312,21 @@ export class GameSession {
     this.playerTeam.fitness = Object.fromEntries(cs.squad.map(p => [p.id, p.fitness / 10]));
   }
 
-  /** The human club's current starting XI, mapped from ClubState's deliberate choice —
-   *  never auto-selected/fit-scored. Called fresh by CompetitionManager at kickoff and
-   *  live for in-match substitution diffing. */
+  /** The human club's XI as it stands right now: the deliberately-chosen starting XI
+   *  with any queued in-match substitutions applied in place (slot-ordered) — never
+   *  auto-selected/fit-scored. Called fresh by CompetitionManager at kickoff and live
+   *  each tick, which is what makes queued substitutions reach the simulator. */
   private resolvePlayerStarters(): Player[] {
-    const cs = this.clubManager?.getState();
-    if (!cs) { return []; }
-    const byId = new Map(cs.squad.map(p => [p.id, p]));
-    return cs.startingXI
-      .filter((id): id is string => id !== null)
-      .map(id => byId.get(id))
-      .filter((p): p is NonNullable<typeof p> => !!p);
+    return this.clubManager?.getActiveLineup() ?? [];
+  }
+
+  /** Queue an in-match substitution for the player's club (validated by ClubManager:
+   *  per-match limit, bench eligibility, fitness/suspension). */
+  queueSubstitution(playerOutId: string, playerInId: string): boolean {
+    if (!this.clubManager) { return false; }
+    const ok = this.clubManager.queueSubstitution(playerOutId, playerInId);
+    if (ok) { this.clubChanged(); }
+    return ok;
   }
 
   /** Toggle whether `id` is a starter, preserving every other slot's position: dropping a

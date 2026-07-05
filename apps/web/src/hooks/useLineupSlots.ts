@@ -2,11 +2,12 @@ import { useState, useMemo } from 'react';
 import type React from 'react';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_LINES, effectiveRole, effectiveDisplayOrder } from '@fm2k/engine';
+import { FORMATION_LINES, effectiveRole, effectiveDisplayOrder, MAX_BENCH_SIZE } from '@fm2k/engine';
 import type { Formation, FormationPosition } from '@fm2k/engine';
 
-function padBenchTo4(benchPlayers: string[]): (string | null)[] {
-  return [...benchPlayers, ...Array(4).fill(null)].slice(0, 4);
+/** Bench slots are optional: pad the named subs with empty slots up to the cap. */
+function padBench(benchPlayers: string[]): (string | null)[] {
+  return [...benchPlayers, ...Array(MAX_BENCH_SIZE).fill(null)].slice(0, MAX_BENCH_SIZE);
 }
 
 export function useLineupSlots() {
@@ -27,7 +28,7 @@ export function useLineupSlots() {
   // for a stale re-derivation to clobber (the bug this hook used to have).
   const slotAssignments = useMemo(() => [
     ...(clubState?.startingXI ?? Array(11).fill(null)),
-    ...padBenchTo4(clubState?.benchPlayers ?? []),
+    ...padBench(clubState?.benchPlayers ?? []),
   ], [clubState?.startingXI, clubState?.benchPlayers]);
 
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
@@ -43,7 +44,7 @@ export function useLineupSlots() {
     ...starterSlots.map((templatePos, i) => (
       { pos: effectiveRole(slotAssignments[i], templatePos as FormationPosition, customSlots, emptySlotRoles?.[i]?.role), idx: i, isSub: false }
     )),
-    ...(['SUB', 'SUB', 'SUB', 'SUB'] as const).map((pos, i) => ({ pos: pos as string, idx: 11 + i, isSub: true })),
+    ...Array.from({ length: MAX_BENCH_SIZE }, (_, i) => ({ pos: 'SUB', idx: 11 + i, isSub: true })),
   ], [starterSlots, slotAssignments, customSlots, emptySlotRoles]);
 
   // Display-only ordering for pills/table rows — derived from customSlots (the live

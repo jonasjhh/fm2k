@@ -5,8 +5,9 @@ import { combine } from './translate.ts';
 import { applySquadDistortion } from './squad-influence.ts';
 import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 
-/** Attack effectiveness of an even, league-average matchup — the no-edge baseline. */
-const TYPICAL_EFF = 0.46;
+/** Attack effectiveness of an even, league-average matchup — the no-edge baseline.
+ *  Exported for the post-match insight detectors (matchup verdict vs "typical"). */
+export const TYPICAL_EFF = 0.46;
 
 /** Keep a suitability multiplier in a sane band so no single match explodes. */
 function clampMult(m: number): number {

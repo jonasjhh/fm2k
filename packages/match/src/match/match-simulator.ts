@@ -1,4 +1,5 @@
 import { MatchState, MatchEvent, MatchResult, MatchStatistics, EventType } from './types.ts';
+import { StatsAccumulator } from './stats.ts';
 
 export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
   if (!event.chainedEvent) {return [event];}
@@ -14,8 +15,9 @@ const MOMENTUM_ON_GOAL = 35;
 const MOMENTUM_DECAY = 0.72;
 
 // Home advantage as a chance-quality bump (~+10% conversion at neutral via qFactor).
+// Exported so the occurrence applies the same bump when re-resolving mid-match tactics.
 const HOME_ADVANTAGE_CQ = 16;
-function withHomeAdvantage(p: MatchParameters): MatchParameters {
+export function withHomeAdvantage(p: MatchParameters): MatchParameters {
   return { ...p, chanceQuality: clampParam(p.chanceQuality + HOME_ADVANTAGE_CQ) };
 }
 import { deriveFieldedPositions, deriveCustomFieldedPositions } from '../lineup/lineup.ts';
@@ -75,6 +77,7 @@ export class MatchSimulator {
   private readonly rng: () => number;
   private events: MatchEvent[] = [];
   private currentState: MatchState;
+  private stats = new StatsAccumulator();
 
   constructor(config: MatchConfig) {
     this.config = config;
@@ -270,11 +273,16 @@ export class MatchSimulator {
       ));
     }
 
+    // Running statistics: counting only (no rng), so the live tick-by-tick path and the
+    // one-shot simulate() path stay byte-identical.
+    this.stats.record(events);
+
     return { events, nextState };
   }
 
   simulate(): MatchResult {
     this.events = [];
+    this.stats = new StatsAccumulator();
     this.currentState = this.createInitialState();
 
     while (!isTerminalPhase(this.currentState.phase)) {
@@ -286,9 +294,14 @@ export class MatchSimulator {
     return {
       events: [...this.events],
       finalState: { ...this.currentState },
-      statistics: this.calculateStatistics(),
+      statistics: this.stats.build(),
       injuries: this.generateInjuries(),
     };
+  }
+
+  /** Statistics accumulated so far — readable mid-match (live stat sheet, half-time). */
+  getStatistics(): MatchStatistics {
+    return this.stats.build();
   }
 
   /** Injuries picked up over the match, from each side's players and their end energy. */
@@ -320,33 +333,4 @@ export class MatchSimulator {
     };
   }
 
-  private calculateStatistics(): MatchStatistics {
-    const homeEvents = this.events.filter(e => e.team === 'home');
-    const awayEvents = this.events.filter(e => e.team === 'away');
-
-    const homeShots = homeEvents.filter(e => e.type === 'shot' || e.type === 'goal').length;
-    const awayShots = awayEvents.filter(e => e.type === 'shot' || e.type === 'goal').length;
-
-    const homeShotsOnTarget = homeEvents.filter(e => e.type === 'goal').length +
-                              awayEvents.filter(e => e.type === 'save').length;
-    const awayShotsOnTarget = awayEvents.filter(e => e.type === 'goal').length +
-                              homeEvents.filter(e => e.type === 'save').length;
-
-    const homePossession = Math.round((homeEvents.length / this.events.length) * 100);
-    const awayPossession = 100 - homePossession;
-
-    const countType = (evs: MatchEvent[], type: EventType): number => evs.filter(e => e.type === type).length;
-
-    return {
-      possession: { home: homePossession, away: awayPossession },
-      shots: { home: homeShots, away: awayShots },
-      shotsOnTarget: { home: homeShotsOnTarget, away: awayShotsOnTarget },
-      corners: { home: countType(homeEvents, 'corner'), away: countType(awayEvents, 'corner') },
-      fouls: { home: countType(homeEvents, 'foul'), away: countType(awayEvents, 'foul') },
-      cards: {
-        yellow: { home: countType(homeEvents, 'yellow_card'), away: countType(awayEvents, 'yellow_card') },
-        red: { home: countType(homeEvents, 'red_card'), away: countType(awayEvents, 'red_card') },
-      },
-    };
-  }
 }

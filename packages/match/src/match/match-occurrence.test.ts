@@ -2,46 +2,11 @@ import { MatchOccurrence } from './match-occurrence.ts';
 import type { MatchOccurrenceConfig } from './match-occurrence.ts';
 import { createGameDateTime } from '@fm2k/timeline';
 import type { OccurrenceContext } from '@fm2k/timeline';
-import type { Team, Player, Formation } from '../shared/types.ts';
+import type { Team, Player } from '../shared/types.ts';
+import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { assertDefined } from '../test-assert.ts';
-
-function createTestPlayer(id: string, name: string, position: string): Player {
-  return {
-    id,
-    name,
-    nationality: 'norwegian',
-    age: 25,
-    position: position as any,
-    potential: 70,
-    attributes: {
-      speed: 70, strength: 70, agility: 70,
-      passing: 70, finishing: 70, technique: 70,
-      defending: 70, stamina: 75, awareness: 70, composure: 70,
-    },
-  };
-}
-
-function createTestTeam(id: string, name: string): Team {
-  return {
-    id,
-    name,
-    formation: '4-4-2' as Formation,
-    colors: { primary: '#FFFFFF', secondary: '#000000' },
-    squad: [
-      createTestPlayer(`${id}-gk`, 'GK', 'GK'),
-      createTestPlayer(`${id}-lb`, 'LB', 'LB'),
-      createTestPlayer(`${id}-cb1`, 'CB1', 'CB'),
-      createTestPlayer(`${id}-cb2`, 'CB2', 'CB'),
-      createTestPlayer(`${id}-rb`, 'RB', 'RB'),
-      createTestPlayer(`${id}-lm`, 'LM', 'LM'),
-      createTestPlayer(`${id}-cm1`, 'CM1', 'CM'),
-      createTestPlayer(`${id}-cm2`, 'CM2', 'CM'),
-      createTestPlayer(`${id}-rm`, 'RM', 'RM'),
-      createTestPlayer(`${id}-st1`, 'ST1', 'ST'),
-      createTestPlayer(`${id}-st2`, 'ST2', 'ST'),
-    ],
-  };
-}
+import { mulberry32 } from './distribution.ts';
+import { createUniformPlayer as createTestPlayer, createUniformTeam as createTestTeam } from './test-fixtures.ts';
 
 const KICK_OFF = createGameDateTime(2025, 8, 15, 14, 0);
 const CTX: OccurrenceContext = {};
@@ -67,17 +32,6 @@ function advanceTicks(occ: MatchOccurrence, ticks: number): void {
   for (let i = 0; i < ticks; i++) {
     occ.onTick(createGameDateTime(2025, 8, 15, 14 + Math.floor(i / 60), i % 60), CTX);
   }
-}
-
-/** Deterministic PRNG (mulberry32) — varies per call so a shootout always resolves. */
-function mulberry32(seed: number): () => number {
-  let a = seed;
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 function tickUntilComplete(occ: MatchOccurrence, maxTicks = 200): number {
@@ -547,6 +501,108 @@ describe('MatchOccurrence:', () => {
       );
       expect(subEvent.occurrenceId).toBe('cup-final');
       expect(subEvent.occurrenceType).toBe('match');
+    });
+  });
+
+  describe('substitution guards:', () => {
+    test('given the outgoing slot holds a sent-off player then they are not brought back on', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const sentOff = team.squad[5];
+      let lineup = team.squad.slice(0, 11);
+      const occ = makeOccurrence({
+        homeTeam: team,
+        playerTeamId: 'home',
+        getPlayerStarters: () => lineup,
+      });
+      advanceTicks(occ, 5);
+      // Simulate a sending-off: the player leaves the pitch and is booked red.
+      const state = occ.getMatchState();
+      state.bookings.red.push({ playerId: sentOff.id, team: 'home', minute: 5 });
+      state.currentPlayers.home = state.currentPlayers.home.filter(p => p.id !== sentOff.id);
+      // The club state still lists them in the XI — the diff must not re-add them.
+      lineup = team.squad.slice(0, 11);
+      const events = occ.onTick(KICK_OFF, CTX);
+      expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(false);
+      expect(occ.getMatchState().currentPlayers.home.map(p => p.id)).not.toContain(sentOff.id);
+    });
+
+    test('substitution event payload carries ticker fields (team, description, scores)', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const sub = createTestPlayer('home-sub', 'Sub Player', 'CM');
+      team.squad.push(sub);
+      const starters = team.squad.slice(0, 11);
+      let lineup = [...starters];
+      const occ = makeOccurrence({ homeTeam: team, playerTeamId: 'home', getPlayerStarters: () => lineup });
+      advanceTicks(occ, 5);
+      lineup = [sub, ...starters.slice(1)];
+      const events = occ.onTick(KICK_OFF, CTX);
+      const subEvent = assertDefined(
+        events.find(e => e.eventType === 'match.substitution_applied'),
+        'substitution event not found',
+      );
+      expect(subEvent.payload.team).toBe('home');
+      expect(subEvent.payload.description).toContain('Sub Player');
+      expect(typeof subEvent.payload.homeScore).toBe('number');
+      expect(typeof subEvent.payload.awayScore).toBe('number');
+    });
+  });
+
+  describe('mid-match tactics:', () => {
+    function playerOccurrence(team: Team): MatchOccurrence {
+      return makeOccurrence({
+        homeTeam: team,
+        playerTeamId: 'home',
+        getPlayerStarters: () => team.squad.slice(0, 11),
+      });
+    }
+
+    test('given tacticsParams change mid-match then live params update (with home advantage re-applied)', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const occ = playerOccurrence(team);
+      advanceTicks(occ, 10);
+      team.tacticsParams = { ...NEUTRAL_PARAMS, chanceQuality: 70, tempo: 80 };
+      occ.onTick(KICK_OFF, CTX);
+      const params = occ.getMatchState().params?.home;
+      expect(params?.tempo).toBe(80);
+      expect(params?.chanceQuality).toBe(86); // 70 + HOME_ADVANTAGE_CQ (16)
+    });
+
+    test('given a formation change mid-match then fielded positions are re-derived', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const occ = playerOccurrence(team);
+      advanceTicks(occ, 10);
+      const before = { ...(occ.getMatchState().fieldedPositions?.home ?? {}) };
+      team.formation = '4-3-3';
+      occ.onTick(KICK_OFF, CTX);
+      const after = occ.getMatchState().fieldedPositions?.home ?? {};
+      expect(after).not.toEqual(before);
+    });
+
+    test('given no tactics change then the live params object stays untouched between ticks', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const occ = playerOccurrence(team);
+      advanceTicks(occ, 5);
+      const before = occ.getMatchState().params;
+      advanceTicks(occ, 5);
+      expect(occ.getMatchState().params).toEqual(before);
+    });
+
+    test('given identical seeds and no live changes then two runs produce identical event streams', () => {
+      const collect = (): string[] => {
+        const team = createTestTeam('home', 'Home FC');
+        const occ = makeOccurrence({
+          homeTeam: team,
+          playerTeamId: 'home',
+          getPlayerStarters: () => team.squad.slice(0, 11),
+          rng: mulberry32(1234),
+        });
+        const out: string[] = [];
+        for (let i = 0; i < 90; i++) {
+          out.push(...occ.onTick(KICK_OFF, CTX).map(e => `${e.eventType}:${JSON.stringify(e.payload)}`));
+        }
+        return out;
+      };
+      expect(collect()).toEqual(collect());
     });
   });
 

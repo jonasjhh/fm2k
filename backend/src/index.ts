@@ -15,7 +15,7 @@ export type { LastMatchResult } from './domain/match-result.ts';
 
 // Application session
 export { GameSession } from './app/session.ts';
-export type { GameSnapshot, AdvanceResult, AnimEvent, GameNotification } from './app/session.ts';
+export type { GameSnapshot, AdvanceResult, AnimEvent, GameNotification, PauseReason } from './app/session.ts';
 
 // Pragmatic CQRS facade (the surface the frontend uses)
 export { createBackend } from './api/backend.ts';

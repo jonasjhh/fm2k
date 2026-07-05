@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { showToast } from '@fm2k/toast';
 import { createBackend, findTeamById, findDivisionForTeam, findCountryForTeam } from '@fm2k/backend';
-import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult, AnimEvent } from '@fm2k/backend';
+import type { SaveData, SaveType, EditableCountry, EditableDivision, LastMatchResult, AnimEvent, PauseReason } from '@fm2k/backend';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
   FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
+  MatchInsight, MatchStatistics,
 } from '@fm2k/engine';
 import type { Article } from '@fm2k/newspaper';
 
@@ -33,6 +34,12 @@ export const SIM_DELAY_MAX = 250;
 export const SIM_DELAY_DEFAULT = 220;
 
 const SIM_DELAY_KEY = 'fm2k-sim-delay';
+
+/** Streaming chunk length (game minutes): the granularity at which a user pause lands. */
+const STREAM_CHUNK_MINUTES = 5;
+
+/** User-initiated pauses allowed per match (half-time and red-card stops don't count). */
+export const MAX_PAUSES_PER_MATCH = 3;
 
 const clampDelay = (ms: number) => Math.min(SIM_DELAY_MAX, Math.max(SIM_DELAY_MIN, ms));
 
@@ -84,6 +91,12 @@ interface GameStore {
   selectedLeagueIds: string[];
   currentMatchday: number;
   lastMatchResult: LastMatchResult | null;
+  /** Ranked post-match insights for the player's most recent match (strongest first). */
+  lastMatchInsights: MatchInsight[];
+  /** Full statistics of the player's most recent completed match (post-match stat sheet). */
+  lastMatchStatistics: MatchStatistics | null;
+  /** Tactical read at the interval of the current live match (cleared on resume). */
+  halfTimeInsights: MatchInsight[];
   seasonComplete: boolean;
   /** Newspaper articles still within their retention window (the backend already prunes expired ones). */
   headlines: Article[];
@@ -91,6 +104,12 @@ interface GameStore {
   // match centre (pure UI)
   matchEvents: SimEvent[];        // newest-first ticker for the focus match
   isStreaming: boolean;
+  /** Set by the Pause button while streaming; the chunk loop stops at the next boundary. */
+  pauseRequested: boolean;
+  /** User-initiated pauses spent on the current match (budget: MAX_PAUSES_PER_MATCH). */
+  pausesUsed: number;
+  /** Why the last advance segment stopped (drives the "Paused — red card" style banner). */
+  lastPauseReason: PauseReason | null;
   streamHome: number;
   streamAway: number;
   streamMinute: number;
@@ -124,6 +143,7 @@ interface GameStore {
 
   // match centre (the game clock)
   advanceMatch: () => Promise<void>;   // auto-stream to the next intermission
+  pauseMatch: () => void;              // stop streaming at the next chunk boundary
   skipMatch: () => Promise<void>;      // skip current match to full time
   goToNextMatch: () => void;           // focus the next fixture
   setSimDelay: (ms: number) => void;
@@ -140,6 +160,8 @@ interface GameStore {
   setPlayerGeometry: (playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }) => void;
   setPlayerRole: (playerId: string, role: FormationPosition) => void;
   setEmptySlotRole: (slotIndex: number, role: FormationPosition) => void;
+  /** Queue an in-match substitution; false when rejected (limit reached, ineligible). */
+  queueSubstitution: (playerOutId: string, playerInId: string) => boolean;
 
   // transfers
   buyPlayer: (listingId: string) => boolean;
@@ -189,6 +211,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       selectedLeagueIds: s.selectedLeagueIds,
       currentMatchday: s.currentMatchday,
       lastMatchResult: s.lastMatchResult,
+      lastMatchInsights: s.lastMatchInsights,
+      lastMatchStatistics: s.lastMatchStatistics,
       seasonComplete: s.seasonComplete,
       headlines: s.headlines,
     });
@@ -232,11 +256,17 @@ export const useGameStore = create<GameStore>((set, get) => {
     selectedLeagueIds: [],
     currentMatchday: 0,
     lastMatchResult: null,
+    lastMatchInsights: [],
+    lastMatchStatistics: null,
+    halfTimeInsights: [],
     seasonComplete: false,
     headlines: [],
 
     matchEvents: [],
     isStreaming: false,
+    pauseRequested: false,
+    pausesUsed: 0,
+    lastPauseReason: null,
     streamHome: 0,
     streamAway: 0,
     streamMinute: 0,
@@ -294,14 +324,34 @@ export const useGameStore = create<GameStore>((set, get) => {
     // ── match centre (the game clock) ─────────────────────────────────────────────
     advanceMatch: async () => {
       if (get().isStreaming) { return; }
-      // Starting a fresh match clears the previous ticker.
+      // Starting a fresh match clears the previous ticker and restores the pause budget.
       if (get().focusLive === null && get().focusFixture?.status !== 'completed') {
-        set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0 });
+        set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0 });
       }
-      set({ isStreaming: true });
-      const r = await backend.commands.advanceToNextStop();
+      set({ isStreaming: true, pauseRequested: false, lastPauseReason: null, halfTimeInsights: [] });
+      // Advance in short chunks so a user pause takes effect at the next boundary.
+      // Chunk boundaries never interrupt a simulated minute, so where the pauses fall
+      // has no effect on the rng stream (same seed ⇒ same match).
+      let r = await backend.commands.advanceToNextStop({ maxMinutes: STREAM_CHUNK_MINUTES });
       await animate(r.events, r.homeTeamName, r.awayTeamName);
-      set({ isStreaming: false, streamHome: r.homeScore, streamAway: r.awayScore });
+      while (r.pauseReason === 'chunk' && !get().pauseRequested) {
+        r = await backend.commands.advanceToNextStop({ maxMinutes: STREAM_CHUNK_MINUTES });
+        await animate(r.events, r.homeTeamName, r.awayTeamName);
+      }
+      set({
+        isStreaming: false,
+        pauseRequested: false,
+        lastPauseReason: r.pauseReason,
+        halfTimeInsights: r.halfTimeInsights ?? [],
+        streamHome: r.homeScore,
+        streamAway: r.awayScore,
+      });
+    },
+
+    pauseMatch: () => {
+      const st = get();
+      if (st.pauseRequested || st.pausesUsed >= MAX_PAUSES_PER_MATCH) { return; }
+      set({ pauseRequested: true, pausesUsed: st.pausesUsed + 1 });
     },
 
     skipMatch: async () => {
@@ -315,7 +365,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     goToNextMatch: () => {
       backend.commands.nextMatch();
-      set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0 });
+      set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0 });
     },
 
     setSimDelay: (ms) => {
@@ -333,6 +383,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     setPlayerGeometry: (playerId, geometry) => { backend.commands.setPlayerGeometry(playerId, geometry); },
     setPlayerRole: (playerId, role) => { backend.commands.setPlayerRole(playerId, role); },
     setEmptySlotRole: (slotIndex, role) => { backend.commands.setEmptySlotRole(slotIndex, role); },
+    queueSubstitution: (playerOutId, playerInId) => backend.commands.queueSubstitution(playerOutId, playerInId),
     setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {
       const cs = get().clubState;

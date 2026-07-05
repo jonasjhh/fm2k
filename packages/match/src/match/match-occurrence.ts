@@ -1,9 +1,11 @@
 import type { Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 import type { GameDateTime } from '@fm2k/timeline';
-import { MatchSimulator, isTerminalPhase } from './match-simulator.ts';
+import { MatchSimulator, isTerminalPhase, withHomeAdvantage } from './match-simulator.ts';
 import { simulateShootout } from './penalty-shootout.ts';
 import { generateInjuries } from './injury.ts';
-import type { MatchState, MatchEvent } from './types.ts';
+import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { deriveFieldedPositions, deriveCustomFieldedPositions } from '../lineup/lineup.ts';
+import type { MatchState, MatchEvent, MatchStatistics } from './types.ts';
 import type { Team, Player, MatchOutcomeDecidedBy } from '../shared/types.ts';
 
 export interface MatchOccurrenceConfig {
@@ -35,6 +37,9 @@ export class MatchOccurrence implements Occurrence {
 
   private simulator: MatchSimulator | null = null;
   private matchState!: MatchState;
+  /** Signature of the player team's tactics as last applied to the live state —
+   *  cheap change detection so re-resolution only happens when something changed. */
+  private lastTacticsSignature: string | null = null;
   private readonly playerTeamSide: 'home' | 'away' | null;
   private readonly getPlayerStarters?: () => Player[];
   private readonly homeStartersDefault?: Player[];
@@ -102,8 +107,67 @@ export class MatchOccurrence implements Occurrence {
         rng: this.rng,
       });
       this.matchState = this.simulator.getCurrentState();
+      if (this.playerTeamSide) {
+        this.lastTacticsSignature = this.tacticsSignature(this.playerTeam());
+      }
     }
     return this.simulator;
+  }
+
+  private playerTeam(): Team {
+    return this.playerTeamSide === 'home' ? this.homeTeam : this.awayTeam;
+  }
+
+  private tacticsSignature(team: Team): string {
+    return JSON.stringify([team.tacticsParams ?? null, team.formation, team.customSlots ?? null]);
+  }
+
+  /**
+   * Mid-match tactic/formation changes for the human club. The session mirrors the
+   * manager's live edits onto the Team object (tacticsParams/formation/customSlots);
+   * when that changed since it was last applied, rebuild the live state's params and
+   * fielded positions for that side. Pure recomputation — no rng — so determinism is
+   * untouched when nothing changed. AI sides deliberately never react mid-match.
+   */
+  private applyPendingTactics(): void {
+    const side = this.playerTeamSide;
+    if (!side || !this.getPlayerStarters) { return; }
+    const team = this.playerTeam();
+    const sig = this.tacticsSignature(team);
+    if (sig === this.lastTacticsSignature) { return; }
+    this.lastTacticsSignature = sig;
+
+    const raw = team.tacticsParams ?? NEUTRAL_PARAMS;
+    const params = side === 'home' ? withHomeAdvantage(raw) : raw;
+
+    // Re-derive positions from the slot-ordered active lineup; keep the existing
+    // assignment for any on-pitch player the new map doesn't cover (e.g. a substitute
+    // not yet reflected in customSlots).
+    const custom = team.customSlots ? deriveCustomFieldedPositions(team.customSlots) : undefined;
+    const derived = custom?.fieldedPositions ?? deriveFieldedPositions(this.getPlayerStarters(), team.formation);
+    const fielded = { ...(this.matchState.fieldedPositions?.[side] ?? {}) };
+    for (const p of this.matchState.currentPlayers[side]) {
+      if (derived[p.id]) { fielded[p.id] = derived[p.id]; }
+    }
+
+    this.matchState = {
+      ...this.matchState,
+      params: {
+        home: this.matchState.params?.home ?? NEUTRAL_PARAMS,
+        away: this.matchState.params?.away ?? NEUTRAL_PARAMS,
+        [side]: params,
+      },
+      fieldedPositions: {
+        home: this.matchState.fieldedPositions?.home ?? {},
+        away: this.matchState.fieldedPositions?.away ?? {},
+        [side]: fielded,
+      },
+      fieldedGeometry: {
+        home: this.matchState.fieldedGeometry?.home ?? {},
+        away: this.matchState.fieldedGeometry?.away ?? {},
+        [side]: custom?.fieldedGeometry ?? {},
+      },
+    };
   }
 
   onStart(_context: OccurrenceContext): OccurrenceEvent[] {
@@ -126,6 +190,7 @@ export class MatchOccurrence implements Occurrence {
   onTick(now: GameDateTime, _context: OccurrenceContext): OccurrenceEvent[] {
     const simulator = this.ensureStarted();
     const subEvents = this.applyPendingSubstitutions(now);
+    this.applyPendingTactics();
     const { events, nextState } = simulator.simulateMinute(this.matchState);
     this.matchState = nextState;
     return [...subEvents, ...events.map(e => this.toOccurrenceEvent(e, now))];
@@ -175,6 +240,7 @@ export class MatchOccurrence implements Occurrence {
         awayScore,
         finalMinute: minute,
         decidedBy,
+        statistics: this.getStatistics(),
         ...(shootout && { shootout }),
         ...(winnerTeamId && { winnerTeamId }),
         ...(this.matchState.energy && {
@@ -192,6 +258,11 @@ export class MatchOccurrence implements Occurrence {
     return this.matchState;
   }
 
+  /** Statistics accumulated so far (live) or the full-match totals once complete. */
+  getStatistics(): MatchStatistics {
+    return this.ensureStarted().getStatistics();
+  }
+
   private applyPendingSubstitutions(now: GameDateTime): OccurrenceEvent[] {
     if (!this.getPlayerStarters || !this.playerTeamSide) {return [];}
 
@@ -200,9 +271,12 @@ export class MatchOccurrence implements Occurrence {
 
     const currentIds = new Set(current.map(p => p.id));
     const desiredIds = new Set(desired.map(p => p.id));
+    // A sent-off player is gone from the pitch but may still occupy a lineup slot in
+    // the club's state — never let the diff bring them back on.
+    const sentOff = new Set(this.matchState.bookings.red.map(b => b.playerId));
 
     const playersOut = current.filter(p => !desiredIds.has(p.id));
-    const playersIn = desired.filter(p => !currentIds.has(p.id));
+    const playersIn = desired.filter(p => !currentIds.has(p.id) && !sentOff.has(p.id));
 
     if (playersIn.length === 0) {return [];}
 
@@ -231,19 +305,30 @@ export class MatchOccurrence implements Occurrence {
       },
     };
 
-    return playersIn.map((playerIn, i) => ({
-      id: `${this.id}-sub-${playersOut[i]?.id ?? 'unknown'}-${playerIn.id}`,
-      eventType: 'match.substitution_applied',
-      occurrenceId: this.id,
-      occurrenceType: 'match',
-      timestamp: now,
-      payload: {
-        matchId: this.id,
-        playerOutId: playersOut[i]?.id ?? null,
-        playerInId: playerIn.id,
-        minute: this.matchState.minute,
-      },
-    }));
+    return playersIn.map((playerIn, i) => {
+      const playerOut = playersOut[i];
+      return {
+        id: `${this.id}-sub-${playerOut?.id ?? 'unknown'}-${playerIn.id}`,
+        eventType: 'match.substitution_applied',
+        occurrenceId: this.id,
+        occurrenceType: 'match',
+        timestamp: now,
+        payload: {
+          matchId: this.id,
+          playerOutId: playerOut?.id ?? null,
+          playerInId: playerIn.id,
+          minute: this.matchState.minute,
+          // Shaped like a match event so the UI ticker can animate it directly.
+          team: side,
+          description: playerOut
+            ? `Substitution: ${playerIn.name} on for ${playerOut.name}`
+            : `Substitution: ${playerIn.name} comes on`,
+          homeScore: this.matchState.homeScore,
+          awayScore: this.matchState.awayScore,
+          phase: this.matchState.phase,
+        },
+      };
+    });
   }
 
   private toOccurrenceEvent(matchEvent: MatchEvent, timestamp: GameDateTime): OccurrenceEvent {

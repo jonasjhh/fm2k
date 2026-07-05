@@ -5,31 +5,15 @@ import {
 import { BallPosition } from './types.ts';
 import type { Band } from '../shared/types.ts';
 import { Player, PlayerPosition } from '../shared/types.ts';
+import { createTestPlayer as fixturePlayer } from './test-fixtures.ts';
 
+/** This suite names players by their id (event descriptions assert on ids). */
 function createTestPlayer(id: string, position: PlayerPosition): Player {
-  return {
-    id,
-    name: id,
-    nationality: 'norwegian',
-    age: 25,
-    position,
-    potential: 70,
-    attributes: {
-      speed: 70,
-      strength: 70,
-      agility: position === 'GK' ? 85 : 70,
-      passing: 70,
-      finishing: position === 'GK' ? 30 : 70,
-      technique: 70,
-      defending: ['CB', 'LB', 'RB', 'DM'].includes(position) ? 85 : 50,
-      stamina: 75,
-      awareness: 70,
-      composure: 70,
-    },
-  };
+  return fixturePlayer(id, id, position);
 }
 
-// A full XI mirroring the match-simulator test team (4-4-2).
+// A full XI mirroring the match-simulator test team (4-4-2) — kept local because the
+// selection tests are sensitive to roster order (weighted rng picks).
 function createTestXI(): Player[] {
   const spec: [string, PlayerPosition][] = [
     ['gk1', 'GK'],

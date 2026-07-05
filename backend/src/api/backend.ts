@@ -20,7 +20,7 @@ export interface BackendCommands {
    *  default world — call when the player returns to the main menu. */
   resetSession(): void;
   // simulation (the game clock)
-  advanceToNextStop(): Promise<AdvanceResult>;
+  advanceToNextStop(opts?: { maxMinutes?: number }): Promise<AdvanceResult>;
   skipToFullTime(): Promise<AdvanceResult>;
   nextMatch(): void;
   simulateToEnd(): Promise<void>;
@@ -38,6 +38,8 @@ export interface BackendCommands {
   /** Set a manager's pending role choice for a currently-empty outfield slot (1-10) — takes
    *  effect once a player is assigned there. */
   setEmptySlotRole(slotIndex: number, role: FormationPosition): ClubState | null;
+  /** Queue an in-match substitution (validated: per-match limit, bench eligibility, fitness). */
+  queueSubstitution(playerOutId: string, playerInId: string): boolean;
   // transfers
   buyPlayer(listingId: string): boolean;
   sellPlayer(playerId: string): boolean;
@@ -81,7 +83,7 @@ export interface BackendQueries {
   /** The free-agent pool (browsable as part of the whole playerbase). */
   getFreeAgents(): Player[];
   getLastMatchResult(): LastMatchResult | null;
-  getLastMatchInsight(): MatchInsight | null;
+  getLastMatchInsights(): MatchInsight[];
   getCurrentMatchday(): number;
   isSeasonComplete(): boolean;
   getNotifications(): GameNotification[];
@@ -111,7 +113,7 @@ export function createBackend(): Backend {
     saveGame: (type, activeTab) => s.saveGame(type, activeTab),
     loadGame: (save) => s.loadGame(save),
     resetSession: () => s.resetSession(),
-    advanceToNextStop: () => s.advanceToNextStop(),
+    advanceToNextStop: (...args) => s.advanceToNextStop(...args),
     skipToFullTime: () => s.skipToFullTime(),
     nextMatch: () => s.nextMatch(),
     simulateToEnd: () => s.simulateToEnd(),
@@ -124,6 +126,7 @@ export function createBackend(): Backend {
     setPlayerGeometry: (playerId, geometry) => s.setPlayerGeometry(playerId, geometry),
     setPlayerRole: (playerId, role) => s.setPlayerRole(playerId, role),
     setEmptySlotRole: (slotIndex, role) => s.setEmptySlotRole(slotIndex, role),
+    queueSubstitution: (playerOutId, playerInId) => s.queueSubstitution(playerOutId, playerInId),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),
     bidForPlayer: (teamId, playerId, amount) => s.bidForPlayer(teamId, playerId, amount),
@@ -161,7 +164,7 @@ export function createBackend(): Backend {
     getTransferListings: () => s.snapshot().transferListings,
     getFreeAgents: () => s.getFreeAgents(),
     getLastMatchResult: () => s.snapshot().lastMatchResult,
-    getLastMatchInsight: () => s.snapshot().lastMatchInsight,
+    getLastMatchInsights: () => s.snapshot().lastMatchInsights,
     getCurrentMatchday: () => s.snapshot().currentMatchday,
     isSeasonComplete: () => s.snapshot().seasonComplete,
     getNotifications: () => s.snapshot().notifications,

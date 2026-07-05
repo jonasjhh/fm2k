@@ -376,7 +376,20 @@ export class ActionSelector {
       const defender = this.selectContestingDefender(state);
       if (defender) {
         const defensiveEvent = resolveContest(chosenAction.type, activePlayer, defender, state, this.rng);
-        if (defensiveEvent) {return defensiveEvent;}
+        if (defensiveEvent) {
+          // Tag which action was being attempted (and by whom) — the event itself is
+          // credited to the resolving side, so without this the failed attempt would be
+          // invisible to the statistics accumulator.
+          return {
+            ...defensiveEvent,
+            metadata: {
+              ...defensiveEvent.metadata,
+              contestedAction: chosenAction.type,
+              attackingTeam: state.possession,
+              attackerId: activePlayer.id,
+            },
+          };
+        }
       }
     }
 

@@ -39,7 +39,9 @@ export { MatchOccurrence } from './match/match-occurrence.ts';
 export type { MatchOccurrenceConfig } from './match/match-occurrence.ts';
 export { simulateShootout } from './match/penalty-shootout.ts';
 export type { ShootoutResult } from './match/penalty-shootout.ts';
-export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState, BallPosition } from './match/types.ts';
+export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState, BallPosition, PassTally } from './match/types.ts';
+export { StatsAccumulator, CONTESTED_ACTION_TYPES } from './match/stats.ts';
+export type { ActionBreakdown, ActionTally, ContestedActionType } from './match/stats.ts';
 
 // Standalone simulation contract
 export { simulateMatch } from './match/simulate.ts';

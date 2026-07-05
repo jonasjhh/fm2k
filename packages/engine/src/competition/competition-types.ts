@@ -1,5 +1,5 @@
 import type { GameDateTime } from '@fm2k/timeline';
-import type { MatchOutcomeDecidedBy } from '@fm2k/match';
+import type { MatchOutcomeDecidedBy, MatchStatistics } from '@fm2k/match';
 
 /** Discriminates the two built-in competition formats. */
 export type CompetitionKind = 'league' | 'knockout';
@@ -91,6 +91,8 @@ export interface LiveMatch {
   readonly minute: number;
   /** Match phase: first_half | half_time | second_half | full_time | extra_time_* */
   readonly phase: string;
+  /** Statistics accumulated so far (live stat sheet / half-time). */
+  readonly statistics: MatchStatistics;
 }
 
 /** Unified read-model for any competition. A `LeagueState` is the `kind: 'league'` case. */
