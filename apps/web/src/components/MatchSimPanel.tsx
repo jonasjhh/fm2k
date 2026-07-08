@@ -185,6 +185,12 @@ export default function MatchSimPanel() {
         </Alert>
       )}
 
+      {!isStreaming && live && lastPauseReason === 'injury' && (
+        <Alert severity="error" square sx={{ borderRadius: 0 }}>
+          Injury! Your player can&apos;t continue — make a substitution before playing on.
+        </Alert>
+      )}
+
       {/* While paused (any reason, incl. half time) the manager can make substitutions;
           tactics/formation can be changed in the sections below the panel. */}
       {!isStreaming && live && !completed && clubState && (

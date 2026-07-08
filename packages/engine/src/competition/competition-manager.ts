@@ -30,6 +30,11 @@ export interface CompetitionManagerConfig {
   readonly getPlayerStarters?: () => Player[];
 }
 
+/** The record-worthy event types the per-competition EventLog retains. */
+const KEY_LOG_EVENTS = new Set([
+  'goal', 'yellow_card', 'red_card', 'match.substitution_applied', 'match.completed', 'injury',
+]);
+
 /** Raw shape of a MatchOccurrence's `match.completed` payload. */
 interface CompletedPayload {
   homeTeamId: string;
@@ -95,7 +100,10 @@ export class CompetitionManager {
   private newEngine(): TickEngine {
     return new TickEngine({
       startTime: this.startDate,
-      eventLog: new EventLog(),
+      // Keep only the record-worthy events (goals/cards/subs/completions) — the log is
+      // the substrate for future top-scorer tables and club records, not a firehose.
+      // Competitions are rebuilt each season, so the log resets per season for free.
+      eventLog: new EventLog({ keep: e => KEY_LOG_EVENTS.has(e.eventType) }),
       onEvents: async (events) => this.handleEvents(events),
     });
   }

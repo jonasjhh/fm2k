@@ -2,7 +2,7 @@ import type { Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timel
 import type { GameDateTime } from '@fm2k/timeline';
 import { MatchSimulator, isTerminalPhase, withHomeAdvantage } from './match-simulator.ts';
 import { simulateShootout } from './penalty-shootout.ts';
-import { generateInjuries } from './injury.ts';
+import { injuriesBySide } from './injury.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { deriveFieldedPositions, deriveCustomFieldedPositions } from '../lineup/lineup.ts';
 import type { MatchState, MatchEvent, MatchStatistics } from './types.ts';
@@ -221,9 +221,8 @@ export class MatchOccurrence implements Occurrence {
       }
     }
 
-    const energy = this.matchState.energy;
-    const homeInjuries = generateInjuries(this.matchState.currentPlayers.home, energy?.home ?? {}, this.rng);
-    const awayInjuries = generateInjuries(this.matchState.currentPlayers.away, energy?.away ?? {}, this.rng);
+    // Injuries happened live, during play (see injury.ts) — report them per side.
+    const { home: homeInjuries, away: awayInjuries } = injuriesBySide(this.matchState);
 
     return [{
       id: `${this.id}-completed`,
@@ -271,19 +270,25 @@ export class MatchOccurrence implements Occurrence {
 
     const currentIds = new Set(current.map(p => p.id));
     const desiredIds = new Set(desired.map(p => p.id));
-    // A sent-off player is gone from the pitch but may still occupy a lineup slot in
-    // the club's state — never let the diff bring them back on.
+    // A sent-off or injured player is gone from the pitch but may still occupy a lineup
+    // slot in the club's state — never let the diff bring them back on.
     const sentOff = new Set(this.matchState.bookings.red.map(b => b.playerId));
+    const injuredOff = new Set((this.matchState.matchInjuries ?? []).map(i => i.playerId));
 
     const playersOut = current.filter(p => !desiredIds.has(p.id));
-    const playersIn = desired.filter(p => !currentIds.has(p.id) && !sentOff.has(p.id));
+    const playersIn = desired.filter(p => !currentIds.has(p.id) && !sentOff.has(p.id) && !injuredOff.has(p.id));
 
     if (playersIn.length === 0) {return [];}
 
     const side = this.playerTeamSide;
     const sideFielded = { ...(this.matchState.fieldedPositions?.[side] ?? {}) };
+    // Slots vacated by players already off the pitch (injured — never red cards, whose
+    // team stays a player short): a sub replacing an injured player inherits that slot.
+    const offPitchVacated = Object.keys(sideFielded).filter(
+      id => !desiredIds.has(id) && !currentIds.has(id) && injuredOff.has(id) && !sentOff.has(id),
+    );
     playersIn.forEach((playerIn, i) => {
-      const outgoingId = playersOut[i]?.id;
+      const outgoingId = playersOut[i]?.id ?? offPitchVacated.shift();
       const slot = outgoingId ? sideFielded[outgoingId] : undefined;
       if (outgoingId) {delete sideFielded[outgoingId];}
       if (slot) {sideFielded[playerIn.id] = slot;}

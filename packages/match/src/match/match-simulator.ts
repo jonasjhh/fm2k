@@ -8,7 +8,8 @@ export function flattenMatchEventChain(event: MatchEvent): MatchEvent[] {
 import { Player, Team } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS, clampParam } from '../tactics/match-parameters.ts';
 import { perMinuteDrain, applyFatigue } from './fatigue.ts';
-import { generateInjuries, type InjuryReport } from './injury.ts';
+import { rollInjuries, injuryDescription, injuriesBySide } from './injury.ts';
+import { mulberry32 } from './rng.ts';
 
 // Momentum: a goal gives the scorers a short-lived attacking lift that decays each minute.
 const MOMENTUM_ON_GOAL = 35;
@@ -52,6 +53,9 @@ export interface MatchConfig {
   awayFitness?: Record<string, number>;
   /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
   rng?: () => number;
+  /** Dedicated injury stream (tests). Defaults to a mulberry32 seeded by ONE draw from
+   *  the main rng, so injury rolls never disturb the main stream beyond that draw. */
+  injuryRng?: () => number;
 }
 
 /** Phases at which a match is over (regulation, or after extra time). */
@@ -78,6 +82,7 @@ export class MatchSimulator {
   private events: MatchEvent[] = [];
   private currentState: MatchState;
   private stats = new StatsAccumulator();
+  private injuryRng!: () => number;
 
   constructor(config: MatchConfig) {
     this.config = config;
@@ -99,6 +104,9 @@ export class MatchSimulator {
   }
 
   private createInitialState(): MatchState {
+    // Derive the dedicated injury stream from exactly one main-stream draw: injury
+    // rolls (variable in number) then never shift the rest of the match's randomness.
+    this.injuryRng = this.config.injuryRng ?? mulberry32(Math.floor(this.rng() * 2 ** 31));
     const homePlayers = this.config.homeStarters;
     const awayPlayers = this.config.awayStarters;
     // A team's customSlots (manager-chosen free positioning) takes precedence over the
@@ -166,19 +174,38 @@ export class MatchSimulator {
     return out;
   }
 
+  /**
+   * One simulated game minute, as a sequence of named pipeline steps
+   * (see MATCH-PIPELINE.md): fatigue → actions → roster restore → momentum →
+   * phase transitions → post-processing (statistics).
+   */
   simulateMinute(state: MatchState): { events: MatchEvent[]; nextState: MatchState } {
     const events: MatchEvent[] = [];
 
-    // Drain energy for everyone on the pitch, then run this minute's actions against
-    // a *fatigued view* of the rosters (attributes scaled by energy). The canonical
-    // roster is restored afterwards — only the energy carries forward.
+    let currentState = this.beginMinute(state);
+    currentState = this.runActions(currentState, events);
+    currentState = this.restoreRosters(state, currentState);
+    currentState = this.applyGoalMomentum(currentState, events);
+    currentState = this.applyInjuries(currentState, events);
+    const nextState = this.advancePhase(currentState, events);
+
+    // Post-processing: counting only (no rng), so the live tick-by-tick path and the
+    // one-shot simulate() path stay byte-identical.
+    this.stats.record(events);
+
+    return { events, nextState };
+  }
+
+  /** Drain energy for everyone on the pitch, decay goal momentum, and build the
+   *  *fatigued view* of the rosters this minute's actions run against. The canonical
+   *  roster is restored afterwards — only the energy carries forward. */
+  private beginMinute(state: MatchState): MatchState {
     const energy = this.decayEnergy(state);
-    // Momentum from earlier goals decays each minute (set again below if a goal lands).
     const momentum = {
       home: (state.momentum?.home ?? 0) * MOMENTUM_DECAY,
       away: (state.momentum?.away ?? 0) * MOMENTUM_DECAY,
     };
-    let currentState: MatchState = {
+    return {
       ...state,
       energy,
       momentum,
@@ -187,9 +214,13 @@ export class MatchSimulator {
         away: fatiguedView(state.currentPlayers.away, energy.away),
       },
     };
+  }
 
-    // Tempo of the possessing team scales how many actions happen this minute.
-    // At the neutral value (50) the multiplier is exactly 1 (baseline behaviour).
+  /** Run this minute's actions through the skill-check pipeline. The tempo of the
+   *  possessing team scales how many happen; at the neutral value (50) the multiplier
+   *  is exactly 1 (baseline behaviour). */
+  private runActions(state: MatchState, events: MatchEvent[]): MatchState {
+    let currentState = state;
     const tempo = currentState.params?.[currentState.possession]?.tempo ?? 50;
     const tempoMult = 0.7 + (tempo / 100) * 0.6;
     const count = Math.floor(this.rng() * this.config.eventsPerMinute * tempoMult) + 1;
@@ -201,30 +232,75 @@ export class MatchSimulator {
         currentState = { ...chain[chain.length - 1].resultingState };
       }
     }
+    return currentState;
+  }
 
-    // Restore the real (un-fatigued) attributes, but keep any membership change from
-    // this minute (e.g. a sending-off): map each player still on the pitch back to their
-    // real object by id. Energy is the lasting state.
+  /** Restore the real (un-fatigued) attributes, but keep any membership change from
+   *  this minute (e.g. a sending-off): map each player still on the pitch back to their
+   *  real object by id. Energy is the lasting state. */
+  private restoreRosters(preMinute: MatchState, state: MatchState): MatchState {
     const realById = new Map(
-      [...state.currentPlayers.home, ...state.currentPlayers.away].map(p => [p.id, p] as const),
+      [...preMinute.currentPlayers.home, ...preMinute.currentPlayers.away].map(p => [p.id, p] as const),
     );
     const restore = (players: Player[]): Player[] => players.map(p => realById.get(p.id) ?? p);
-    currentState = {
-      ...currentState,
+    return {
+      ...state,
       currentPlayers: {
-        home: restore(currentState.currentPlayers.home),
-        away: restore(currentState.currentPlayers.away),
+        home: restore(state.currentPlayers.home),
+        away: restore(state.currentPlayers.away),
       },
     };
+  }
 
-    // A goal this minute gives the scorers a momentum lift (decays over the next minutes).
+  /** A goal this minute gives the scorers a momentum lift (decays over the next minutes). */
+  private applyGoalMomentum(state: MatchState, events: MatchEvent[]): MatchState {
+    let currentState = state;
     for (const e of events) {
       if (e.type === 'goal') {
         const momentum = currentState.momentum ?? { home: 0, away: 0 };
         currentState = { ...currentState, momentum: { ...momentum, [e.team]: MOMENTUM_ON_GOAL } };
       }
     }
+    return currentState;
+  }
 
+  /** Injuries are consequences of the minute's events: risky involvements (challenges,
+   *  sprints, aerial duels — see injury.ts) roll against the dedicated injury rng,
+   *  fatigue-scaled. An injured player is forced off (the team plays short until
+   *  substituted) and never returns. */
+  private applyInjuries(state: MatchState, events: MatchEvent[]): MatchState {
+    const already = new Set((state.matchInjuries ?? []).map(i => i.playerId));
+    const injuries = rollInjuries(events, state, already, this.injuryRng);
+    if (injuries.length === 0) { return state; }
+
+    let currentState = state;
+    for (const injury of injuries) {
+      const player = currentState.currentPlayers[injury.team].find(p => p.id === injury.playerId);
+      currentState = {
+        ...currentState,
+        currentPlayers: {
+          ...currentState.currentPlayers,
+          [injury.team]: currentState.currentPlayers[injury.team].filter(p => p.id !== injury.playerId),
+        },
+        matchInjuries: [...(currentState.matchInjuries ?? []), injury],
+      };
+      events.push({
+        id: this.actionSelector.generateId(),
+        type: 'injury',
+        minute: currentState.minute,
+        team: injury.team,
+        playerId: injury.playerId,
+        description: injuryDescription(player?.name ?? injury.playerId, injury),
+        resultingState: currentState,
+        metadata: { injuryType: injury.type, baseDuration: injury.baseDuration, cause: injury.cause },
+      });
+    }
+    return currentState;
+  }
+
+  /** Advance the clock one minute and fire phase transitions (HT, 2nd half + possession
+   *  swap, FT or extra time) with their announcement events. */
+  private advancePhase(currentState: MatchState, events: MatchEvent[]): MatchState {
     const nextMinute = currentState.minute + 1;
     let nextState: MatchState = { ...currentState, minute: nextMinute };
 
@@ -273,11 +349,7 @@ export class MatchSimulator {
       ));
     }
 
-    // Running statistics: counting only (no rng), so the live tick-by-tick path and the
-    // one-shot simulate() path stay byte-identical.
-    this.stats.record(events);
-
-    return { events, nextState };
+    return nextState;
   }
 
   simulate(): MatchResult {
@@ -295,22 +367,13 @@ export class MatchSimulator {
       events: [...this.events],
       finalState: { ...this.currentState },
       statistics: this.stats.build(),
-      injuries: this.generateInjuries(),
+      injuries: injuriesBySide(this.currentState),
     };
   }
 
   /** Statistics accumulated so far — readable mid-match (live stat sheet, half-time). */
   getStatistics(): MatchStatistics {
     return this.stats.build();
-  }
-
-  /** Injuries picked up over the match, from each side's players and their end energy. */
-  private generateInjuries(): { home: InjuryReport[]; away: InjuryReport[] } {
-    const energy = this.currentState.energy ?? { home: {}, away: {} };
-    return {
-      home: generateInjuries(this.currentState.currentPlayers.home, energy.home, this.rng),
-      away: generateInjuries(this.currentState.currentPlayers.away, energy.away, this.rng),
-    };
   }
 
   getCurrentState(): MatchState {

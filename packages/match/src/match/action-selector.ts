@@ -2,6 +2,7 @@ import { MatchState, MatchEvent, BallPosition } from './types.ts';
 import { Player, type FormationPosition, type FieldedPositions } from '../shared/types.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
 import { resolveContest, mirrorBall, type Skill } from './action-generators.ts';
+import { visionCheck, engagementChance, SECOND_DEFENDER_FACTOR, VISION_SPECS } from './skill-checks.ts';
 
 // ── active-player weighting ─────────────────────────────────────────────────────
 // Picks who is "on the ball" based on where the ball is. Follows the engine
@@ -358,10 +359,11 @@ export class ActionSelector {
     this.actionGenerators.set(actionType, generator);
   }
 
-  // Two-step model: the possessor's active player chooses an offensive action, then a
-  // selected defender contests it. The defender resolving it (a turnover or a foul) ends
-  // the move; otherwise the offensive action's success path runs. `shot` is the exception —
-  // it is resolved by the keeper inside ShotGenerator, not by an outfield contest.
+  // Skill-check pipeline (see MATCH-PIPELINE.md): the possessor's active player perceives
+  // her options (vision checks gate the hard balls), chooses one, then the engaged
+  // defender(s) contest it. A defender resolving it (a turnover or a foul) ends the move;
+  // otherwise the offensive action's success path runs (which may chain its own receiver
+  // checks). `shot` is the exception — it is resolved by the keeper inside ShotGenerator.
   selectPlayerAction(state: MatchState): MatchEvent | null {
     const activePlayer = this.getActivePlayer(state);
     if (!activePlayer) {return null;}
@@ -377,24 +379,46 @@ export class ActionSelector {
       if (defender) {
         const defensiveEvent = resolveContest(chosenAction.type, activePlayer, defender, state, this.rng);
         if (defensiveEvent) {
-          // Tag which action was being attempted (and by whom) — the event itself is
-          // credited to the resolving side, so without this the failed attempt would be
-          // invisible to the statistics accumulator.
-          return {
-            ...defensiveEvent,
-            metadata: {
-              ...defensiveEvent.metadata,
-              contestedAction: chosenAction.type,
-              attackingTeam: state.possession,
-              attackerId: activePlayer.id,
-            },
-          };
+          return this.tagContested(defensiveEvent, chosenAction.type, activePlayer, state);
+        }
+      }
+      // Engagement stage: a carrier who beats the first defender may be met by a second —
+      // pressing sides trap with two. The second man is committed, so he checks at a
+      // reduced win chance; if he resolves it, the move ends on his challenge.
+      if (chosenAction.type === 'dribble' && defender) {
+        const press = state.params?.[state.possession === 'home' ? 'away' : 'home']?.pressIntensity ?? 50;
+        if (this.rng() < engagementChance(press, state.ballPosition.zone)) {
+          const second = this.selectContestingDefender(state, defender.id);
+          if (second) {
+            const secondEvent = resolveContest(chosenAction.type, activePlayer, second, state, this.rng, SECOND_DEFENDER_FACTOR);
+            if (secondEvent) {
+              const tagged = this.tagContested(secondEvent, chosenAction.type, activePlayer, state);
+              tagged.metadata = { ...tagged.metadata, secondDefender: true };
+              tagged.description = `${tagged.description} (second defender)`;
+              return tagged;
+            }
+          }
         }
       }
     }
 
     const generator = this.actionGenerators.get(chosenAction.type);
     return generator?.generateEvent(activePlayer, state) ?? null;
+  }
+
+  /** Tag which action was being attempted (and by whom) — the event itself is credited
+   *  to the resolving side, so without this the failed attempt would be invisible to
+   *  the statistics accumulator. */
+  private tagContested(event: MatchEvent, actionType: string, attacker: Player, state: MatchState): MatchEvent {
+    return {
+      ...event,
+      metadata: {
+        ...event.metadata,
+        contestedAction: actionType,
+        attackingTeam: state.possession,
+        attackerId: attacker.id,
+      },
+    };
   }
 
   private getActivePlayer(state: MatchState): Player | null {
@@ -409,10 +433,11 @@ export class ActionSelector {
 
   // The defender who contests the action: nearest defending outfielder to the ball. The
   // ball is mirrored into the defending team's frame so DEF-line players are favoured when
-  // the ball is in the attacking third (their defensive end).
-  private selectContestingDefender(state: MatchState): Player | null {
+  // the ball is in the attacking third (their defensive end). `excludeId` skips the primary
+  // defender when picking the second man of a press.
+  private selectContestingDefender(state: MatchState, excludeId?: string): Player | null {
     const defSide = state.possession === 'home' ? 'away' : 'home';
-    const defRoster = state.currentPlayers[defSide].filter(p => p.position !== 'GK');
+    const defRoster = state.currentPlayers[defSide].filter(p => p.position !== 'GK' && p.id !== excludeId);
     return selectActivePlayer(
       defRoster, mirrorBall(state.ballPosition), this.rng,
       state.fieldedPositions?.[defSide], state.fieldedGeometry?.[defSide],
@@ -421,18 +446,22 @@ export class ActionSelector {
 
   private getPossibleActions(player: Player, state: MatchState): PlayerAction[] {
     const actions: PlayerAction[] = [];
+    const awareness = player.attributes.awareness || 50;
 
     for (const [actionType, generator] of this.actionGenerators.entries()) {
-      if (generator.canPerform(player, state)) {
-        const probability = generator.calculateProbability(player, state);
-        actions.push({
-          type: actionType,
-          player,
-          probability,
-          skillRequired: getSkillRequired(actionType),
-          riskLevel: getRiskLevel(actionType),
-        });
+      if (!generator.canPerform(player, state)) { continue; }
+      // Perception stage: the hard-to-see balls (killer pass, big switch) only enter the
+      // option set when the player's vision check passes — she has to *see* the run.
+      if (actionType in VISION_SPECS && !visionCheck(awareness, actionType as keyof typeof VISION_SPECS, this.rng)) {
+        continue;
       }
+      actions.push({
+        type: actionType,
+        player,
+        probability: generator.calculateProbability(player, state),
+        skillRequired: getSkillRequired(actionType),
+        riskLevel: getRiskLevel(actionType),
+      });
     }
 
     return actions;

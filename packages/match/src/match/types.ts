@@ -1,6 +1,6 @@
 import { Player, Team, type FieldedPositions } from '../shared/types';
 import type { MatchParameterSet } from '../tactics/match-parameters.ts';
-import type { InjuryReport } from './injury.ts';
+import type { InjuryReport, MatchInjury } from './injury.ts';
 import type { FieldedGeometry } from './action-selector.ts';
 import type { ActionBreakdown } from './stats.ts';
 
@@ -22,6 +22,7 @@ export type EventType =
   | 'free_kick'
   | 'penalty'
   | 'offside'
+  | 'injury'
   | 'foul'
   | 'yellow_card'
   | 'red_card'
@@ -80,6 +81,9 @@ export interface MatchState {
     yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;
     red: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>;
   };
+  /** In-match injuries so far (players forced off; never re-enter). Optional so
+   *  ad-hoc test MatchState literals keep compiling. */
+  matchInjuries?: MatchInjury[];
 }
 
 export interface BallPosition {

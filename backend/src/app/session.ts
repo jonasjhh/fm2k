@@ -37,8 +37,8 @@ import {
   qualifierCompetitionId,
 } from './config.ts';
 
-/** Significant match events the UI animates (goals, cards, saves, subs, phase changes). */
-const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
+/** Significant match events the UI animates (goals, cards, injuries, saves, subs, phase changes). */
+const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'injury', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
 
 /** Ordinal suffix for a 1-based position ("1st", "2nd", "3rd", "4th"...). */
 function ordinalSuffix(n: number): string {
@@ -67,9 +67,9 @@ export interface AnimEvent {
   awayScore: number;
 }
 
-/** Why an advance segment stopped: a real intermission/finish, a sending-off that
- *  demands a tactical response, or simply the end of a streaming chunk. */
-export type PauseReason = 'half_time' | 'full_time' | 'red_card' | 'chunk';
+/** Why an advance segment stopped: a real intermission/finish, a sending-off or an
+ *  injury that demands a response, or simply the end of a streaming chunk. */
+export type PauseReason = 'half_time' | 'full_time' | 'red_card' | 'injury' | 'chunk';
 
 /** Result of advancing the player's match to the next stop (intermission / completion). */
 export interface AdvanceResult {
@@ -1219,6 +1219,15 @@ export class GameSession {
     if (!focusId) { await this.simulateToEnd(); return this.idleResult(); }
     this.focusFixtureId = focusId;
 
+    // The player's side of the focus fixture: sendings-off and injuries pause only
+    // when they hit the manager's own team (a response moment), not the opponent's.
+    const focusFixture = this.findFixture(focusId);
+    const playerSide = focusFixture?.homeTeamId === this.playerTeamId ? 'home'
+      : focusFixture?.awayTeamId === this.playerTeamId ? 'away' : null;
+    const ownTeamEvent = (e: OccurrenceEvent, type: string): boolean =>
+      e.occurrenceId === focusId && e.eventType === type
+      && (e.payload as { team?: string }).team === playerSide;
+
     let pauseReason: PauseReason = 'full_time';
     let guard = 0;
     while (guard++ < MATCH_MAX_MINUTES + 10) {
@@ -1227,10 +1236,9 @@ export class GameSession {
       const lm = this.liveMatches().find(l => l.fixtureId === focusId);
       if (!lm) { pauseReason = 'full_time'; break; }                       // completed
       if (lm.phase === 'half_time' || lm.phase === 'extra_time_half') { pauseReason = 'half_time'; break; }
-      if (collected.slice(before).some(e => e.occurrenceId === focusId && e.eventType === 'red_card')) {
-        pauseReason = 'red_card';
-        break;
-      }
+      const fresh = collected.slice(before);
+      if (fresh.some(e => ownTeamEvent(e, 'red_card'))) { pauseReason = 'red_card'; break; }
+      if (fresh.some(e => ownTeamEvent(e, 'injury'))) { pauseReason = 'injury'; break; }
       if (opts.maxMinutes !== undefined && guard >= opts.maxMinutes) { pauseReason = 'chunk'; break; }
     }
     this.notify();

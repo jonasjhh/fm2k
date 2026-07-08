@@ -85,3 +85,23 @@ All in [src/match/action-generators.ts](src/match/action-generators.ts) unless n
 - The synthetic *pure-neutral* `scale-calibration.test.ts` (no formation) runs a touch hotter
   than these figures because every real team carries a formation whose compactness pulls
   scoring down — the `simulateMatch` distributions above are the realistic numbers.
+
+## Skill-check stages (Step 8 — NOT yet recalibrated)
+
+The action pipeline gained three explicit stages (see MATCH-PIPELINE.md); their knobs live
+in [src/match/skill-checks.ts](src/match/skill-checks.ts):
+
+- **Vision checks** (`VISION_SPECS`): `through_ball` and `long_pass` only enter the option
+  set when an awareness check passes (through ball parity 0.55, long ball 0.75 at average
+  awareness). Net effect: slightly fewer direct/killer balls, more from high-awareness XIs.
+- **Second-defender engagement** (`engagementChance`, `SECOND_DEFENDER_FACTOR = 0.6`): a
+  carrier who beats the first defender may be met by a second (base 0.22, + up to 0.28 at
+  max press, zone-shifted). Adds a turnover source on dribbles, strongest deep in the
+  defending third under a heavy press.
+- **First-touch receiver check** (`FIRST_TOUCH_SPEC`, parity 0.82): a completed through
+  ball can still run loose off the runner's touch (~18% at parity).
+
+All three depress goal totals slightly and add rng draws (every seeded distribution
+reshuffles). **A recalibration pass is pending** (deliberately deferred by the user):
+re-run `pnpm --filter @fm2k/match test:calibration` and retune the specs above (and, if
+needed, `PASS_FORWARD_BASE`/`CONV_PARITY`) until the gates hold.

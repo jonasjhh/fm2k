@@ -17,10 +17,22 @@ interface SerializedEventLog {
 
 const CURRENT_VERSION = 1;
 
+export interface EventLogOptions {
+  /** Keep only events this predicate accepts (e.g. goals/cards) — the log is the
+   *  substrate for season records/top scorers, not a firehose of every pass. */
+  readonly keep?: (event: OccurrenceEvent) => boolean;
+}
+
 export class EventLog {
   private entries: OccurrenceEvent[] = [];
+  private readonly keep?: (event: OccurrenceEvent) => boolean;
+
+  constructor(options: EventLogOptions = {}) {
+    this.keep = options.keep;
+  }
 
   append(event: OccurrenceEvent): void {
+    if (this.keep && !this.keep(event)) { return; }
     this.entries.push(event);
   }
 

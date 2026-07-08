@@ -48,8 +48,8 @@ export { simulateMatch } from './match/simulate.ts';
 export type {
   SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate,
 } from './match/simulate.ts';
-export { generateInjuries, injuryChance, INJURY_TYPES } from './match/injury.ts';
-export type { InjuryReport } from './match/injury.ts';
+export { rollInjuries, collectExposures, fatigueRiskFactor, injuryDescription, INJURY_TYPES } from './match/injury.ts';
+export type { InjuryReport, MatchInjury, InjuryTrigger } from './match/injury.ts';
 
 // Distribution harness (black-box calibration + the /test sandbox)
 export { runDistribution, mulberry32 } from './match/distribution.ts';

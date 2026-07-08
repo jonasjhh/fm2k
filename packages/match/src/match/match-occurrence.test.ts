@@ -547,6 +547,65 @@ describe('MatchOccurrence:', () => {
     });
   });
 
+  describe('injured players:', () => {
+    function injureOnPitch(occ: MatchOccurrence, playerId: string): void {
+      // Simulate the simulator having forced a player off injured.
+      const state = occ.getMatchState();
+      state.matchInjuries = [
+        ...(state.matchInjuries ?? []),
+        { playerId, team: 'home', minute: 5, cause: 'challenge', type: 'dead_leg', baseDuration: 1 },
+      ];
+      state.currentPlayers.home = state.currentPlayers.home.filter(p => p.id !== playerId);
+    }
+
+    test('an injured player is never brought back on by the lineup diff', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const injured = team.squad[4];
+      let lineup = team.squad.slice(0, 11);
+      const occ = makeOccurrence({ homeTeam: team, playerTeamId: 'home', getPlayerStarters: () => lineup });
+      advanceTicks(occ, 5);
+      injureOnPitch(occ, injured.id);
+      lineup = team.squad.slice(0, 11); // club lineup still lists them
+      const events = occ.onTick(KICK_OFF, CTX);
+      expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(false);
+      expect(occ.getMatchState().currentPlayers.home.map(p => p.id)).not.toContain(injured.id);
+    });
+
+    test('a substitute replacing an injured (off-pitch) player inherits their fielded slot', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const sub = createTestPlayer('home-sub', 'Sub Player', 'CM');
+      team.squad.push(sub);
+      const starters = team.squad.slice(0, 11);
+      const injured = starters[6];
+      let lineup = [...starters];
+      const occ = makeOccurrence({ homeTeam: team, playerTeamId: 'home', getPlayerStarters: () => lineup });
+      advanceTicks(occ, 5);
+      const slotBefore = occ.getMatchState().fieldedPositions?.home[injured.id];
+      injureOnPitch(occ, injured.id);
+      // manager subs the injured player for the bench player
+      lineup = starters.map(p => (p.id === injured.id ? sub : p));
+      const events = occ.onTick(KICK_OFF, CTX);
+      expect(events.some(e => e.eventType === 'match.substitution_applied')).toBe(true);
+      const state = occ.getMatchState();
+      expect(state.currentPlayers.home.map(p => p.id)).toContain(sub.id);
+      expect(state.currentPlayers.home).toHaveLength(11);
+      expect(state.fieldedPositions?.home[sub.id]).toBe(slotBefore);
+      expect(state.fieldedPositions?.home[injured.id]).toBeUndefined();
+    });
+
+    test('onComplete reports in-match injuries per side', () => {
+      const team = createTestTeam('home', 'Home FC');
+      const injured = team.squad[2];
+      const occ = makeOccurrence({ homeTeam: team, playerTeamId: 'home', getPlayerStarters: () => team.squad.slice(0, 11) });
+      advanceTicks(occ, 5);
+      injureOnPitch(occ, injured.id);
+      advanceTicks(occ, 90);
+      const [event] = occ.onComplete(CTX);
+      const homeInjuries = event.payload.homeInjuries as { playerId: string }[];
+      expect(homeInjuries.map(i => i.playerId)).toContain(injured.id);
+    });
+  });
+
   describe('mid-match tactics:', () => {
     function playerOccurrence(team: Team): MatchOccurrence {
       return makeOccurrence({

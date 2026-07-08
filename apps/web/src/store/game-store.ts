@@ -55,7 +55,7 @@ function simEventFromAnim(e: AnimEvent, homeName: string, awayName: string): Sim
     minute: `${e.minute}'`,
     text: `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
     type: e.type === 'goal' ? 'goal'
-      : (e.type === 'yellow_card' || e.type === 'red_card') ? 'card'
+      : (e.type === 'yellow_card' || e.type === 'red_card' || e.type === 'injury') ? 'card'
       : e.type === 'penalty' ? 'penalty'
       : (e.type === 'half_time' || e.type === 'full_time') ? 'phase'
       : 'normal',

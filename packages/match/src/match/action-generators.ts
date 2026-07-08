@@ -3,11 +3,13 @@ import { Player, type FormationPosition, type PlayerAttributes } from '../shared
 import type { ActionGenerator } from './action-selector.ts';
 import { getEffectiveAttributes } from '../shared/position-rules.ts';
 import { type MatchParameters, NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
+import { checkChance, firstTouchCheck } from './skill-checks.ts';
 
 /** A named component skill, each backed by a weighted sum of base attributes in `SKILL_WEIGHTS`. */
 export type Skill =
   | 'dribbling' | 'finishing' | 'heading' | 'penalties' | 'throughBall' | 'longShot'
-  | 'crossing' | 'tackling' | 'interception' | 'gkSaving' | 'shortPassing' | 'longPassing';
+  | 'crossing' | 'tackling' | 'interception' | 'gkSaving' | 'shortPassing' | 'longPassing'
+  | 'firstTouch';
 
 /**
  * The single source of truth for every skill's component attributes and their weights
@@ -27,6 +29,7 @@ export const SKILL_WEIGHTS: Record<Skill, Partial<Record<keyof PlayerAttributes,
   gkSaving:     { agility: 0.55, awareness: 0.25, composure: 0.2 },
   shortPassing: { passing: 0.6, technique: 0.4 },
   longPassing:  { passing: 0.7, strength: 0.3 },
+  firstTouch:   { technique: 0.5, composure: 0.3, awareness: 0.2 },
 };
 
 function weightedSkill(attrs: PlayerAttributes, weights: Partial<Record<keyof PlayerAttributes, number>>): number {
@@ -96,6 +99,11 @@ export class ActionCalculator {
   /** Short pass: accuracy (passing) led, helped by close control (technique). */
   static shortPassing(player: Player, fieldedPosition: FormationPosition = player.position): number {
     return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.shortPassing);
+  }
+
+  /** Bringing a driven ball down at speed: close control under pressure. */
+  static firstTouch(player: Player, fieldedPosition: FormationPosition = player.position): number {
+    return weightedSkill(getEffectiveAttributes(player, fieldedPosition), SKILL_WEIGHTS.firstTouch);
   }
 
   /** Long pass: accuracy (passing) led, helped by the power to drive it (strength). */
@@ -294,8 +302,14 @@ function pickRandom<T>(arr: T[], rng: () => number): T | null {
   return arr.length > 0 ? arr[Math.floor(rng() * arr.length)] : null;
 }
 
+// Match events are ephemeral (they die with the match; only results/statistics persist),
+// so their ids only need uniqueness — but they must not leak unseeded randomness into
+// otherwise-deterministic output. A module-level sequence is deterministic given the
+// session's (deterministic) tick order; the `g` prefix keeps it disjoint from the
+// ActionSelector's per-instance `event-N` counter. Persistent entities use uuids instead.
+let eventSeq = 0;
 function makeId(): string {
-  return `event-${Date.now()}-${Math.random()}`;
+  return `event-g${++eventSeq}`;
 }
 
 // ── ShortPassGenerator ────────────────────────────────────────────────────────
@@ -436,10 +450,13 @@ export class ShotGenerator implements ActionGenerator {
     const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
     const zoneMultiplier = state.ballPosition.zone === 'away_box' ? 1.0 : 0.4;
 
-    // Conversion is the finisher vs the keeper, parity-centred (so even matches at
-    // any tier convert similarly) then scaled by zone and the tactical chance
-    // quality (attacker) vs defensive compactness (defender).
-    const conv = clamp(0.02, 0.6, CONV_PARITY + (ActionCalculator.finishing(player, fielded(state, state.possession, player)) - gkSkill) / CONV_SPREAD);
+    // Conversion is a finishing check: finisher vs keeper, parity-centred (so even
+    // matches at any tier convert similarly) then scaled by zone and the tactical
+    // chance quality (attacker) vs defensive compactness (defender).
+    const conv = checkChance(
+      ActionCalculator.finishing(player, fielded(state, state.possession, player)), gkSkill,
+      { parity: CONV_PARITY, spread: CONV_SPREAD, lo: 0.02, hi: 0.6 },
+    );
     const goalProb = Math.max(0.01, Math.min(0.6, conv * zoneMultiplier * momentumQuality(state)));
     const isGoal = this.rng() < goalProb;
 
@@ -592,18 +609,49 @@ export class ThroughBallGenerator implements ActionGenerator {
     return clamp(0.18, 0.7, 0.45 + diff / 280);
   }
 
-  // Success-only: runs when the contest did not intercept. Splits the line — jumps 2 zones.
+  // Success-only: runs when the contest did not intercept. Splits the line — jumps 2 zones,
+  // but the runner still has to bring it down: a first-touch check against the defence's
+  // read decides whether the move continues or the ball runs loose (receiver stage).
   generateEvent(player: Player, state: MatchState): MatchEvent | null {
     const idx = zoneIndex(state.ballPosition.zone);
-    return {
+    const advancedState: MatchState = {
+      ...state,
+      ballPosition: { zone: ZONES[Math.min(idx + 2, ZONES.length - 1)], side: state.ballPosition.side },
+    };
+
+    const receiver = pickRunner(state, this.rng);
+    const passEvent: MatchEvent = {
       id: makeId(), type: 'through_ball', minute: state.minute, team: state.possession, playerId: player.id,
       description: `${player.name} threads a defence-splitting pass`,
-      resultingState: {
-        ...state,
-        ballPosition: { zone: ZONES[Math.min(idx + 2, ZONES.length - 1)], side: state.ballPosition.side },
-      },
+      resultingState: advancedState,
+      metadata: { receiverId: receiver?.id ?? null },
     };
+    if (!receiver || receiver.id === player.id) { return passEvent; }
+
+    const touch = ActionCalculator.firstTouch(receiver, fielded(state, state.possession, receiver));
+    if (firstTouchCheck(touch, defLineStrength(state), this.rng)) { return passEvent; }
+
+    // Heavy touch: the ball runs through to the defence.
+    const defSide = defTeamSide(state);
+    passEvent.chainedEvent = {
+      id: makeId(), type: 'clearance', minute: state.minute, team: defSide, playerId: undefined,
+      description: `${receiver.name}'s first touch lets her down — the defence mops up`,
+      resultingState: {
+        ...advancedState,
+        possession: defSide,
+        ballPosition: mirrorBall(advancedState.ballPosition),
+      },
+      metadata: { looseTouch: true, receiverId: receiver.id },
+    };
+    return passEvent;
   }
+}
+
+/** The most advanced likely runner onto a through ball (ST/AM/wing first, then any outfielder). */
+function pickRunner(state: MatchState, rng: () => number): Player | null {
+  const attackers = possPlayers(state);
+  const runners = attackers.filter(p => ['ST', 'AM', 'LW', 'RW'].includes(fielded(state, state.possession, p)));
+  return pickRandom(runners.length ? runners : attackers.filter(p => p.position !== 'GK'), rng);
 }
 
 // ── CrossGenerator ──────────────────────────────────────────────────────────
@@ -661,6 +709,8 @@ function headerAttempt(state: MatchState, rng: () => number): MatchEvent {
     description: `${target.name} meets it with a header`,
     resultingState: boxState,
     chainedEvent: isGoal ? goalEvent(boxState, target, 'heads it home') : saveEvent(boxState, gk, 'heads it but the keeper saves'),
+    // Aerial duel marker: read by the insight detectors and the (future) injury triggers.
+    metadata: { aerial: true },
   };
 }
 
@@ -755,7 +805,10 @@ function penaltyEvent(state: MatchState, rng: () => number): MatchEvent {
     ?? possPlayers(state)[0];
   const gk = getGK(state);
   const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.55, 0.92, 0.78 + (ActionCalculator.penalties(taker, fielded(state, state.possession, taker)) - gkSkill) / 400);
+  const conv = checkChance(
+    ActionCalculator.penalties(taker, fielded(state, state.possession, taker)), gkSkill,
+    { parity: 0.78, spread: 400, lo: 0.55, hi: 0.92 },
+  );
   const isGoal = rng() < conv;
   return {
     id: makeId(), type: 'penalty', minute: state.minute, team: state.possession, playerId: taker.id,
@@ -770,7 +823,10 @@ function freeKickShot(state: MatchState, rng: () => number): MatchEvent {
     ?? possPlayers(state)[0];
   const gk = getGK(state);
   const gkSkill = gk ? ActionCalculator.gkSaving(gk) : 50;
-  const conv = clamp(0.02, 0.3, 0.06 + (ActionCalculator.longShot(taker, fielded(state, state.possession, taker)) - gkSkill) / 500);
+  const conv = checkChance(
+    ActionCalculator.longShot(taker, fielded(state, state.possession, taker)), gkSkill,
+    { parity: 0.06, spread: 500, lo: 0.02, hi: 0.3 },
+  );
   const goalProb = clamp(0.01, 0.3, conv * momentumQuality(state));
   const isGoal = rng() < goalProb;
   return {
@@ -818,13 +874,17 @@ function defenderSkillForAction(actionType: string, defender: Player, state: Mat
     : ActionCalculator.interception(defender, fp);
 }
 
-/** Chance the defender wins the ball (= the turnover chance) — parity-centred, press-scaled. */
-export function contestWinChance(actionType: string, attacker: Player, defender: Player, state: MatchState): number {
+/** Chance the defender wins the ball (= the turnover chance) — parity-centred, press-scaled.
+ *  `winMult` scales the base (used for a committed second defender stepping in late). */
+export function contestWinChance(actionType: string, attacker: Player, defender: Player, state: MatchState, winMult = 1): number {
   const parity = CONTEST_PARITY[actionType] ?? CONTEST_PARITY.short_pass;
-  const diff = defenderSkillForAction(actionType, defender, state) - attackerSkillForAction(actionType, attacker, state);
   const pressFactor = 0.8 + defParams(state).pressIntensity / 250; // neutral 1.0
-  const base = clamp(CONTEST_LO, CONTEST_HI, parity + diff / CONTEST_SPREAD);
-  return Math.min(base * pressFactor, 0.9);
+  const base = checkChance(
+    defenderSkillForAction(actionType, defender, state),
+    attackerSkillForAction(actionType, attacker, state),
+    { parity, spread: CONTEST_SPREAD, lo: CONTEST_LO, hi: CONTEST_HI },
+  );
+  return Math.min(base * pressFactor * winMult, 0.9);
 }
 
 /** Chance the challenge is a foul rather than a clean win/loss (carry-heavy, press-scaled). */
@@ -872,6 +932,8 @@ function buildWinEvent(actionType: string, defender: Player, state: MatchState, 
  * Resolve the contesting defender's challenge of the possessor's action.
  * Returns a defensive event (foul/set-piece, or a turnover) if the defender intervenes,
  * or `null` to let the offensive generator's success path run.
+ * `winMult` scales the defender's win chance (a committed second defender checks at
+ * SECOND_DEFENDER_FACTOR — see skill-checks.ts).
  */
 export function resolveContest(
   actionType: string,
@@ -879,11 +941,12 @@ export function resolveContest(
   defender: Player,
   state: MatchState,
   rng: () => number,
+  winMult = 1,
 ): MatchEvent | null {
   if (rng() < contestFoulChance(actionType, state, defender)) {
     return resolveFoul(state, defender, rng);
   }
-  if (rng() < contestWinChance(actionType, attacker, defender, state)) {
+  if (rng() < contestWinChance(actionType, attacker, defender, state, winMult)) {
     return buildWinEvent(actionType, defender, state, rng);
   }
   return null;
