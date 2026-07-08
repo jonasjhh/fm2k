@@ -52,6 +52,7 @@ interface CompletedPayload {
   homeInjuries?: InjuryReport[];
   awayInjuries?: InjuryReport[];
   statistics?: MatchStatistics;
+  bookings?: GameEvents['match.completed']['bookings'];
 }
 
 /**
@@ -261,6 +262,7 @@ export class CompetitionManager {
           homeInjuries: p.homeInjuries,
           awayInjuries: p.awayInjuries,
           statistics: p.statistics,
+          bookings: p.bookings,
           homeStanding: state.standings.find(s => s.teamId === p.homeTeamId),
           awayStanding: state.standings.find(s => s.teamId === p.awayTeamId),
           homePosition: state.standings.findIndex(s => s.teamId === p.homeTeamId) >= 0 ? state.standings.findIndex(s => s.teamId === p.homeTeamId) + 1 : undefined,

@@ -13,13 +13,19 @@ const CATEGORY_LABEL: Record<ArticleCategory, string> = {
   upset: 'Shock Result',
   transfer: 'Transfer',
   injury: 'Injury News',
+  preview: 'Preview',
+  form: 'Form Watch',
+  discipline: 'Discipline',
 };
 
-const CATEGORY_COLOR: Record<ArticleCategory, 'error' | 'warning' | 'success' | 'default'> = {
+const CATEGORY_COLOR: Record<ArticleCategory, 'error' | 'warning' | 'success' | 'info' | 'default'> = {
   blowout: 'error',
   upset: 'warning',
   transfer: 'success',
   injury: 'default',
+  preview: 'info',
+  form: 'info',
+  discipline: 'error',
 };
 
 /** A tab whose chrome stays in the app's normal theme — only the "newspaper" surface inside

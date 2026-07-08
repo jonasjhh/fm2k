@@ -248,6 +248,7 @@ export class MatchOccurrence implements Occurrence {
         }),
         ...(homeInjuries.length > 0 && { homeInjuries }),
         ...(awayInjuries.length > 0 && { awayInjuries }),
+        bookings: this.matchState.bookings,
       },
     }];
   }

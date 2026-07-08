@@ -201,6 +201,9 @@ describe('CompetitionManager (match.completed events):', () => {
       // rather than falling back to a flat stamina-based estimate.
       expect(e.homeEnergy).toBeDefined();
       expect(e.awayEnergy).toBeDefined();
+      // Per-player cards forwarded (drives own-club discipline headlines).
+      expect(Array.isArray(e.bookings?.yellow)).toBe(true);
+      expect(Array.isArray(e.bookings?.red)).toBe(true);
     }
   });
 

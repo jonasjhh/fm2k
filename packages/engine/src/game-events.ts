@@ -32,6 +32,11 @@ export type GameEvents = {
     awayInjuries?: InjuryReport[]
     // Full-match statistics (possession, shots, passes, action breakdown, ratings).
     statistics?: MatchStatistics
+    // Per-player cards shown during the match (drives own-club discipline headlines).
+    bookings?: {
+      yellow: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>
+      red: Array<{ playerId: string; team: 'home' | 'away'; minute: number }>
+    }
   }
   'player.injured': {
     playerId: string

@@ -50,4 +50,43 @@ describe('GameSession newspaper headlines:', () => {
     session.resetSession();
     expect(session.snapshot().headlines).toHaveLength(0);
   });
+
+  test('starting a game publishes a preview article about the next opponent', () => {
+    const { session, teamId } = seededGame();
+    const previews = session.snapshot().headlines.filter(a => a.category === 'preview');
+    expect(previews).toHaveLength(1);
+
+    // The article names the upcoming opponent's club (never the player's own).
+    const fixture = assertDefined(session.getFocusFixture(), 'no upcoming fixture');
+    const opponentId = fixture.homeTeamId === teamId ? fixture.awayTeamId : fixture.homeTeamId;
+    const opponentName = fixture.homeTeamId === teamId ? fixture.awayTeamName : fixture.homeTeamName;
+    expect(opponentId).not.toBe(teamId);
+    // Danger-man templates always name the player; most also name the team — assert on
+    // the stable part (some player from the opponent squad is named).
+    const country = session.getEditableCountries().find(c =>
+      c.divisions.some(d => d.teams.some(t => t.id === opponentId)));
+    const opponent = assertDefined(
+      country?.divisions.flatMap(d => d.teams).find(t => t.id === opponentId),
+      `opponent team ${opponentId} (${opponentName}) not found`,
+    );
+    expect(opponent.squad.some(p => previews[0].headline.includes(p.name))).toBe(true);
+  });
+
+  test('advancing past a matchday previews the following fixture exactly once', async () => {
+    const { session } = seededGame();
+    let result = await session.advanceToNextStop(); // → half time
+    while (!result.matchOver) { result = await session.advanceToNextStop(); }
+
+    const previews = session.snapshot().headlines.filter(a => a.category === 'preview');
+    // one preview at game start + one for the fixture after the played matchday
+    expect(previews).toHaveLength(2);
+    expect(previews[0].headline).not.toBe(previews[1].headline);
+  });
+
+  test('form-watch articles never appear before 5 completed league matches', () => {
+    const { session } = seededGame();
+    // At game start the opponent has no completed fixtures — the conservative form
+    // detector must stay quiet no matter the seed.
+    expect(session.snapshot().headlines.filter(a => a.category === 'form')).toHaveLength(0);
+  });
 });

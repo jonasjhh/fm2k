@@ -296,6 +296,16 @@ describe('MatchOccurrence:', () => {
       const [event] = occ.onComplete(CTX);
       expect(event.payload.finalMinute).toBe(90);
     });
+
+    test('given a completed occurrence when completing then payload carries the match bookings', () => {
+      const occ = makeOccurrence();
+      advanceTicks(occ, 90);
+      const [event] = occ.onComplete(CTX);
+      const bookings = event.payload.bookings as { yellow: unknown[]; red: unknown[] };
+      expect(bookings).toEqual(occ.getMatchState().bookings);
+      expect(Array.isArray(bookings.yellow)).toBe(true);
+      expect(Array.isArray(bookings.red)).toBe(true);
+    });
   });
 
   describe('lazy kickoff build (per-match settings):', () => {

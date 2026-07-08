@@ -1,6 +1,6 @@
 import type { GameDateTime } from '@fm2k/timeline';
 
-export type ArticleCategory = 'blowout' | 'upset' | 'transfer' | 'injury';
+export type ArticleCategory = 'blowout' | 'upset' | 'transfer' | 'injury' | 'preview' | 'form' | 'discipline';
 
 /** A generated newspaper article, ready to display. `id` is assigned by the caller (the backend
  *  session, mirroring how it assigns `notifications` ids) since this package stays pure. */
@@ -38,5 +38,40 @@ export interface TransferHeadlineInput {
 export interface InjuryHeadlineInput {
   playerName: string;
   injuryType: string;
+  timestamp: GameDateTime;
+}
+
+export interface DangerManHeadlineInput {
+  playerName: string;
+  teamName: string;
+  /** The player's card position (e.g. "ST", "CM") — flavours the phrasing. */
+  position: string;
+  timestamp: GameDateTime;
+}
+
+/** Oldest→newest recent results, as produced by the engine's `recentForm` — declared
+ *  structurally here so this package stays dependent on @fm2k/timeline only. */
+export type FormLetter = 'W' | 'D' | 'L';
+
+export interface FormWatchHeadlineInput {
+  teamName: string;
+  form: FormLetter[];
+  timestamp: GameDateTime;
+}
+
+export interface BookingHeadlineInput {
+  playerName: string;
+  timestamp: GameDateTime;
+}
+
+export interface InjuryAvertedHeadlineInput {
+  playerName: string;
+  injuryType: string;
+  timestamp: GameDateTime;
+}
+
+export interface ReturnHeadlineInput {
+  playerName: string;
+  matchesMissed: number;
   timestamp: GameDateTime;
 }

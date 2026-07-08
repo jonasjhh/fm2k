@@ -1,5 +1,10 @@
 import { createGameDateTime } from '@fm2k/timeline';
-import { matchHeadline, transferHeadline, injuryHeadline, UPSET_GAP, BLOWOUT_MARGIN } from './headlines.ts';
+import {
+  matchHeadline, transferHeadline, injuryHeadline,
+  dangerManHeadline, formWatchHeadline, bookingHeadline, injuryAvertedHeadline, returnHeadline,
+  UPSET_GAP, BLOWOUT_MARGIN,
+} from './headlines.ts';
+import type { FormLetter } from './types.ts';
 
 const TS = createGameDateTime(2026, 3, 1);
 const rngReturning = (v: number) => () => v;
@@ -81,5 +86,65 @@ describe('injuryHeadline:', () => {
     const article = injuryHeadline({ playerName: 'Jane Doe', injuryType: 'hamstring strain', timestamp: TS }, rngReturning(1));
     expect(article.category).toBe('injury');
     expect(article.headline).toContain('Jane Doe');
+  });
+});
+
+describe('dangerManHeadline:', () => {
+  it('interpolates the opposition star and picks templates deterministically by rng', () => {
+    const a = dangerManHeadline({ playerName: 'Erik Berg', teamName: 'Rosenborg', position: 'ST', timestamp: TS }, rngReturning(0));
+    expect(a.category).toBe('preview');
+    expect(a.headline).toContain('Erik Berg');
+    const b = dangerManHeadline({ playerName: 'Erik Berg', teamName: 'Rosenborg', position: 'ST', timestamp: TS }, rngReturning(0.99));
+    expect(b.headline).not.toBe(a.headline);
+  });
+});
+
+describe('formWatchHeadline:', () => {
+  const form = (s: string): FormLetter[] => s.split('') as FormLetter[];
+
+  it('a hot streak (4+ wins in 5) produces a form article', () => {
+    const article = formWatchHeadline({ teamName: 'Rosenborg', form: form('WWWWL'), timestamp: TS }, rngReturning(0));
+    expect(article?.category).toBe('form');
+    expect(article?.headline).toContain('Rosenborg');
+  });
+
+  it('a slump (4+ winless in 5) produces a crisis article', () => {
+    const article = formWatchHeadline({ teamName: 'Rosenborg', form: form('LDLLW'), timestamp: TS }, rngReturning(0));
+    expect(article?.category).toBe('form');
+  });
+
+  it('mixed form is not a story', () => {
+    expect(formWatchHeadline({ teamName: 'A', form: form('WWLLD'), timestamp: TS })).toBeNull();
+    expect(formWatchHeadline({ teamName: 'A', form: form('WWWLL'), timestamp: TS })).toBeNull();
+  });
+
+  it('fewer than 5 completed matches (early season) is never a story, however good', () => {
+    expect(formWatchHeadline({ teamName: 'A', form: form('WWWW'), timestamp: TS })).toBeNull();
+    expect(formWatchHeadline({ teamName: 'A', form: [], timestamp: TS })).toBeNull();
+  });
+});
+
+describe('bookingHeadline:', () => {
+  it('names the sent-off player under the discipline category', () => {
+    const article = bookingHeadline({ playerName: 'Jane Doe', timestamp: TS }, rngReturning(0));
+    expect(article.category).toBe('discipline');
+    expect(article.headline).toContain('Jane Doe');
+  });
+});
+
+describe('injuryAvertedHeadline:', () => {
+  it('frames the scare as cleared, under the injury category', () => {
+    const article = injuryAvertedHeadline({ playerName: 'Jane Doe', injuryType: 'knee knock', timestamp: TS }, rngReturning(0));
+    expect(article.category).toBe('injury');
+    expect(article.headline).toContain('Jane Doe');
+  });
+});
+
+describe('returnHeadline:', () => {
+  it('celebrates the comeback with the matches missed', () => {
+    const article = returnHeadline({ playerName: 'Jane Doe', matchesMissed: 6, timestamp: TS }, rngReturning(0));
+    expect(article.category).toBe('injury');
+    expect(article.headline).toContain('Jane Doe');
+    expect(article.headline).toContain('6');
   });
 });

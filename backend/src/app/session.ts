@@ -3,12 +3,16 @@ import {
   ClubManager, TransferManager, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays, daysBetween,
-  defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights,
+  defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights, recentForm,
   makeYouth, academyBiasForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
-import { matchHeadline, transferHeadline, injuryHeadline, isExpired, type Article } from '@fm2k/newspaper';
+import {
+  matchHeadline, transferHeadline, injuryHeadline,
+  dangerManHeadline, formWatchHeadline, bookingHeadline, injuryAvertedHeadline, returnHeadline,
+  isExpired, type Article,
+} from '@fm2k/newspaper';
 import { PlayerGenerator } from '@fm2k/players';
 import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
@@ -84,6 +88,9 @@ function ordinalSuffix(n: number): string {
 
 /** Minutes added to a kickoff to be sure a match (incl. extra time) has finished. */
 const MATCH_MAX_MINUTES = 130;
+
+/** An injury layoff this long (matches) makes the player's eventual return newspaper-worthy. */
+const LONG_LAYOFF_MATCHES = 4;
 
 /** Free agents seeded per included nation at the start of a new game (scales the pool with size). */
 const INITIAL_FREE_AGENTS_PER_NATION = 40;
@@ -198,6 +205,9 @@ export class GameSession {
   private nextNotificationId!: number;
   private headlines!: Article[];
   private nextHeadlineId!: number;
+  /** The fixture the pre-matchday preview articles were last written about, so previews
+   *  aren't duplicated when several matchdays roll past in one advance. */
+  private lastPreviewedFixtureId!: string | null;
   /** Per-team squad sizes AI clubs refill toward during windows (captured pre-churn). */
   private squadTargets!: Map<string, number>;
   /** Accrued game-calendar days since the last weekly facility-maintenance tick; ticks (and
@@ -251,6 +261,7 @@ export class GameSession {
     this.nextNotificationId = 1;
     this.headlines = [];
     this.nextHeadlineId = 1;
+    this.lastPreviewedFixtureId = null;
     this.squadTargets = new Map();
     this.playerTeam = null;
     this.world = buildWorld(buildEditableCountries());
@@ -476,6 +487,19 @@ export class GameSession {
         timestamp: payload.timestamp,
       }, this.rng);
       if (article) { this.pushHeadline(article); }
+
+      // A sending-off in the manager's own match is front-page material (own club only,
+      // mirroring injuryHeadline's scope — the press doesn't cover every AI dismissal).
+      const playerSide = payload.homeTeamId === this.playerTeamId ? 'home'
+        : payload.awayTeamId === this.playerTeamId ? 'away' : null;
+      if (playerSide && payload.bookings) {
+        for (const red of payload.bookings.red) {
+          if (red.team !== playerSide) { continue; }
+          const player = this.clubManager?.getState().squad.find(p => p.id === red.playerId);
+          if (!player) { continue; }
+          this.pushHeadline(bookingHeadline({ playerName: player.name, timestamp: payload.timestamp }, this.rng));
+        }
+      }
     }));
     unsubs.push(eventBus.on('player.transferred', (p) => {
       const isPlayerClub = p.toTeamId === this.playerTeamId || p.fromTeamId === this.playerTeamId;
@@ -504,6 +528,18 @@ export class GameSession {
           : `${p.playerName} is back from injury and available for selection.`,
         'success',
       );
+      // The paper covers the two ends of the clearance spectrum: a scare that came to
+      // nothing, and a long-term absentee back in contention. Short real layoffs (1–3
+      // matches) stay toast-only so the paper isn't flooded with routine knocks.
+      if (p.originalDuration === 0) {
+        this.pushHeadline(injuryAvertedHeadline({
+          playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
+        }, this.rng));
+      } else if (p.originalDuration >= LONG_LAYOFF_MATCHES) {
+        this.pushHeadline(returnHeadline({
+          playerName: p.playerName, matchesMissed: p.originalDuration, timestamp: this.now,
+        }, this.rng));
+      }
     }));
 
     this.eventBusCleanup = () => { for (const u of unsubs) { u(); } };
@@ -774,6 +810,8 @@ export class GameSession {
     this.focusFixtureId = null;
     this.lastMatchResult = null;
     this.lastMatchInsights = [];
+    this.lastPreviewedFixtureId = null;
+    this.publishMatchPreviews();
     return true;
   }
 
@@ -878,6 +916,8 @@ export class GameSession {
     this.focusFixtureId = null;
     this.lastMatchResult = null;
     this.lastMatchInsights = [];
+    this.lastPreviewedFixtureId = null;
+    this.publishMatchPreviews();
     return true;
   }
 
@@ -985,6 +1025,10 @@ export class GameSession {
     this.focusFixtureId = null;
     this.lastMatchResult = save.lastMatchResult;
     this.lastMatchInsights = [];
+    // Headlines aren't persisted, so the loaded game starts with a fresh paper — seed it
+    // with the preview coverage of the upcoming fixture.
+    this.lastPreviewedFixtureId = null;
+    this.publishMatchPreviews();
     return true;
   }
 
@@ -1025,6 +1069,32 @@ export class GameSession {
       }
     }
     return next;
+  }
+
+  /** Pre-matchday press coverage of the player's next opponent: a "danger man" piece naming
+   *  their stand-out player, plus a form-watch piece when their recent league results are a
+   *  real story (hot streak or slump). Runs at game start and after each completed matchday;
+   *  the fixture id is remembered so previews aren't re-published when several matchdays roll
+   *  past in one advance (e.g. simulateToEnd). */
+  private publishMatchPreviews(): void {
+    const fixture = this.playerNextFixture();
+    if (!fixture || fixture.id === this.lastPreviewedFixtureId) { return; }
+    const opponentId = fixture.homeTeamId === this.playerTeamId ? fixture.awayTeamId : fixture.homeTeamId;
+    const opponent = teamById(this.world, opponentId);
+    if (!opponent || opponent.squad.length === 0) { return; }
+    this.lastPreviewedFixtureId = fixture.id;
+
+    const dangerMan = opponent.squad.reduce((best, p) =>
+      calculateOverall(p.attributes) > calculateOverall(best.attributes) ? p : best);
+    this.pushHeadline(dangerManHeadline({
+      playerName: dangerMan.name, teamName: opponent.name, position: dangerMan.position, timestamp: this.now,
+    }, this.rng));
+
+    // Cup opponents from other divisions have no fixtures in the player's league → empty
+    // form → the generator stays quiet.
+    const form = this.leagueManager ? recentForm(this.leagueManager.getState().fixtures, opponentId) : [];
+    const formArticle = formWatchHeadline({ teamName: opponent.name, form, timestamp: this.now }, this.rng);
+    if (formArticle) { this.pushHeadline(formArticle); }
   }
 
   private findFixture(fixtureId: string): CompetitionFixture | null {
@@ -1112,6 +1182,7 @@ export class GameSession {
         });
         if (nextWindow.open) { this.runAiMarketWindow(); } // AI clubs shop when a window opens
       }
+      this.publishMatchPreviews();
     }
     this.scheduleQualifiersIfNeeded();
     if (!Object.values(this.seasons).some(s => s.hasNext())) {
