@@ -64,7 +64,7 @@ function flatWorld(teamId = 't1', tactics?: TeamTactics) {
 function makeSave(overrides: Partial<SaveData> = {}): SaveData {
   const squad: ClubPlayer[] = [
     clubPlayer('p1'),
-    clubPlayer('p2', { injury: { type: 'hamstring', matchesRemaining: 3 } }),
+    clubPlayer('p2', { injury: { type: 'hamstring', matchesRemaining: 3, originalDuration: 3 } }),
     clubPlayer('p3', { suspension: { matchesRemaining: 1 } }),
   ];
   return {
@@ -113,7 +113,7 @@ describe('save-data round-trip:', () => {
     await writeSave(makeSave());
     const [loaded] = await readAllSaves();
     const byId = Object.fromEntries(loaded.clubState.squad.map(p => [p.id, p]));
-    expect(byId.p2.injury).toEqual({ type: 'hamstring', matchesRemaining: 3 });
+    expect(byId.p2.injury).toEqual({ type: 'hamstring', matchesRemaining: 3, originalDuration: 3 });
     expect(byId.p3.suspension).toEqual({ matchesRemaining: 1 });
     expect(byId.p1.injury).toBeUndefined();
   });

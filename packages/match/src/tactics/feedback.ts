@@ -56,6 +56,12 @@ const FADE_ENERGY = 55;             // mean XI end-energy considered "gassed"
 const CORNER_DOMINANCE = 2;         // corners at least double the opponent's
 const CORNER_MIN = 6;
 const YELLOWS_COSTLY = 3;
+const TEMPO_HIGH = 65;               // tempo slider considered deliberately high
+const TEMPO_LOW = 35;                // tempo slider considered deliberately low
+const SLOPPY_COMPLETION = 0.6;       // pass completion rate that reads as "sloppy" at high tempo
+const TIDY_COMPLETION = 0.85;        // pass completion rate that reads as "in control" at low tempo
+const DEFENSIVE_LINE_HIGH = 65;      // defensive-line slider considered deliberately high
+const BREAK_GOALS_COSTLY = 2;        // fast-break goals conceded before it's a pattern, not bad luck
 
 const ACTION_LABEL: Record<ContestedActionType, string> = {
   short_pass: 'Short passing',
@@ -205,12 +211,60 @@ function detectDiscipline(input: MatchInsightInput): ScoredInsight | null {
   return null;
 }
 
+/** Tempo slider vs. how cleanly the team actually kept the ball. */
+function detectTempo(input: MatchInsightInput): ScoredInsight | null {
+  const sliders = input.playerIntent?.sliders;
+  const passes = input.statistics?.passes?.[input.playerSide];
+  if (!sliders || !passes || passes.attempted < ACTION_MIN_ATTEMPTS) { return null; }
+  const completion = passes.completed / passes.attempted;
+  if (sliders.tempo >= TEMPO_HIGH && completion < SLOPPY_COMPLETION) {
+    return {
+      score: 3 + (SLOPPY_COMPLETION - completion) * 10,
+      insight: {
+        headline: 'High tempo cost you control',
+        detail: `Only ${pct(completion)} of passes found their man at that pace (${passes.completed}/${passes.attempted}). A calmer tempo would keep more of the ball.`,
+        category: 'midfield',
+      },
+    };
+  }
+  if (sliders.tempo <= TEMPO_LOW && completion >= TIDY_COMPLETION) {
+    return {
+      score: 2 + (completion - TIDY_COMPLETION) * 10,
+      insight: {
+        headline: 'Patient tempo kept things tidy',
+        detail: `${pct(completion)} pass completion at a slow tempo — sound, but a sharper pace might have created more.`,
+        category: 'midfield',
+      },
+    };
+  }
+  return null;
+}
+
+/** A high defensive line getting punished on the counter. */
+function detectDefensiveLine(input: MatchInsightInput): ScoredInsight | null {
+  const sliders = input.playerIntent?.sliders;
+  const stats = input.statistics;
+  if (!sliders || !stats || sliders.defensiveLine < DEFENSIVE_LINE_HIGH) { return null; }
+  const conceded = stats.fastBreakGoals[input.playerSide === 'home' ? 'away' : 'home'];
+  if (conceded < BREAK_GOALS_COSTLY) { return null; }
+  return {
+    score: 3 + conceded,
+    insight: {
+      headline: 'Your high line got exposed on the counter',
+      detail: `Conceded ${conceded} from fast breaks after winning the ball back high up the pitch. A deeper line would cut off that space.`,
+      category: 'defense',
+    },
+  };
+}
+
 const DETECTORS = [
   detectStyleMatchup,
   detectActionOutlier,
   detectLateFade,
   detectWastedSetPieces,
   detectDiscipline,
+  detectTempo,
+  detectDefensiveLine,
 ];
 
 /**

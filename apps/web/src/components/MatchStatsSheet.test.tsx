@@ -17,6 +17,7 @@ function statistics(overrides: Partial<MatchStatistics> = {}): MatchStatistics {
       away: { attempted: 60, completed: 30 },
     },
     lateGoals: { home: 0, away: 0 },
+    fastBreakGoals: { home: 0, away: 0 },
     actionBreakdown: {
       home: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally },
       away: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally },

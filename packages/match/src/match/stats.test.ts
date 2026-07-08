@@ -57,6 +57,47 @@ describe('StatsAccumulator:', () => {
     expect(acc.build().possession).toEqual({ home: 67, away: 33 });
   });
 
+  test('a goal following a quick turnover-then-carry counts as a fast break', () => {
+    const acc = new StatsAccumulator();
+    acc.record([
+      ev('interception', 'home', { minute: 40 }),
+      ev('long_pass', 'home', { minute: 40 }),
+      ev('shot', 'home', { minute: 41 }),
+      ev('goal', 'home', { minute: 41 }),
+    ]);
+    expect(acc.build().fastBreakGoals).toEqual({ home: 1, away: 0 });
+  });
+
+  test('a goal is not a fast break without a preceding turnover credited to the scoring side', () => {
+    const acc = new StatsAccumulator();
+    acc.record([
+      ev('short_pass', 'home', { minute: 40 }),
+      ev('long_pass', 'home', { minute: 40 }),
+      ev('goal', 'home', { minute: 41 }),
+    ]);
+    expect(acc.build().fastBreakGoals).toEqual({ home: 0, away: 0 });
+  });
+
+  test('a goal is not a fast break if the turnover-to-goal gap is too slow', () => {
+    const acc = new StatsAccumulator();
+    acc.record([
+      ev('interception', 'home', { minute: 10 }),
+      ev('long_pass', 'home', { minute: 10 }),
+      ev('goal', 'home', { minute: 20 }),
+    ]);
+    expect(acc.build().fastBreakGoals).toEqual({ home: 0, away: 0 });
+  });
+
+  test('a goal is not a fast break without a long pass/through ball carrying it forward', () => {
+    const acc = new StatsAccumulator();
+    acc.record([
+      ev('interception', 'home', { minute: 40 }),
+      ev('short_pass', 'home', { minute: 40 }),
+      ev('goal', 'home', { minute: 41 }),
+    ]);
+    expect(acc.build().fastBreakGoals).toEqual({ home: 0, away: 0 });
+  });
+
   test('player ratings reward goals/saves and punish cards, clamped to the 10-point scale', () => {
     const acc = new StatsAccumulator();
     acc.record([

@@ -5,6 +5,7 @@ import {
   CORNER_KEYS,
   CORNER_SIZE,
   CORNER_FACETS,
+  FACET_BLEED_DEG,
   computeCornerFacets,
   computeCornerRoofFaces,
   computeStandFaces,
@@ -204,7 +205,7 @@ describe('corner fans (rounded corners):', () => {
 
   test('facet wedge dimensions follow the fan radius (stand depth)', () => {
     const radius = computeStandProfile('kop').totalDepth;
-    const half = 90 / CORNER_FACETS / 2;
+    const half = 90 / CORNER_FACETS / 2 + FACET_BLEED_DEG;
     for (const facet of facetsOf('NW')) {
       expect(facet.halfAngleDeg).toBeCloseTo(half, 6);
       expect(facet.scale).toBeCloseTo(Math.cos((half * Math.PI) / 180), 6);
@@ -212,6 +213,19 @@ describe('corner fans (rounded corners):', () => {
       expect(facet.depth).toBeCloseTo(radius * facet.scale, 0);
       // the facet fits inside its corner square
       expect(facet.depth).toBeLessThanOrEqual(CORNER_SIZE);
+    }
+  });
+
+  test('adjacent facets overlap: each wedge is strictly wider than its slot in the fan', () => {
+    const slotHalf = 90 / CORNER_FACETS / 2;
+    for (const key of CORNER_KEYS) {
+      for (const facet of facetsOf(key)) {
+        // the wedge covers slotHalf + bleed on each side of its bisector, so
+        // neighbours (bisectors 2·slotHalf apart) overlap by 2·bleed of arc —
+        // no exactly-meeting clip edges for the background to bleed through
+        expect(facet.halfAngleDeg).toBeGreaterThan(slotHalf);
+        expect(facet.halfAngleDeg).toBeCloseTo(slotHalf + FACET_BLEED_DEG, 6);
+      }
     }
   });
 

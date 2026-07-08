@@ -22,11 +22,21 @@ function emptyBreakdown(): ActionBreakdown {
 /** Goals from this minute on count as "late" (fade/fitness signal). */
 const LATE_GOAL_MINUTE = 70;
 
+/** How far back (in recorded events) to look for the turnover that started a break. */
+const FAST_BREAK_WINDOW = 4;
+/** How quickly (in match minutes) that turnover must have been converted to still count as "fast". */
+const FAST_BREAK_MAX_MINUTES = 2;
+/** Winning the ball back via one of these counts as the possible start of a break. */
+const TURNOVER_EVENT_TYPES = new Set(['tackle', 'interception', 'clearance']);
+/** The kind of forward action that carries a break from the turnover to the box. */
+const BREAK_CARRIER_TYPES = new Set(['long_pass', 'through_ball']);
+
 interface SideCounters {
   events: number;
   shots: number;
   goals: number;
   lateGoals: number;
+  fastBreakGoals: number;
   saves: number;
   corners: number;
   fouls: number;
@@ -39,7 +49,7 @@ interface SideCounters {
 
 function emptySide(): SideCounters {
   return {
-    events: 0, shots: 0, goals: 0, lateGoals: 0, saves: 0, corners: 0, fouls: 0, yellow: 0, red: 0,
+    events: 0, shots: 0, goals: 0, lateGoals: 0, fastBreakGoals: 0, saves: 0, corners: 0, fouls: 0, yellow: 0, red: 0,
     passesCompleted: 0, passesAttempted: 0, actions: emptyBreakdown(),
   };
 }
@@ -80,6 +90,9 @@ export class StatsAccumulator {
   private readonly home = emptySide();
   private readonly away = emptySide();
   private readonly ratingDeltas = new Map<string, number>();
+  /** Bounded tail of recently recorded events, for the fast-break-goal look-back
+   *  (persists across `record()` calls since live matches feed one minute at a time). */
+  private readonly recentEvents: MatchEvent[] = [];
 
   record(events: MatchEvent[]): void {
     for (const e of events) {
@@ -90,6 +103,7 @@ export class StatsAccumulator {
       case 'goal':
         side.goals++;
         if (e.minute >= LATE_GOAL_MINUTE) { side.lateGoals++; }
+        if (this.isFastBreakGoal(e)) { side.fastBreakGoals++; }
         break;
       case 'save': side.saves++; break;
       case 'corner': side.corners++; break;
@@ -126,11 +140,34 @@ export class StatsAccumulator {
           side.passesCompleted++;
         }
       }
+
+      this.recentEvents.push(e);
+      if (this.recentEvents.length > FAST_BREAK_WINDOW + 1) { this.recentEvents.shift(); }
     }
   }
 
   private bumpRating(playerId: string, delta: number): void {
     this.ratingDeltas.set(playerId, (this.ratingDeltas.get(playerId) ?? 0) + delta);
+  }
+
+  /** A goal counts as a fast break if, within the last few events, the scoring side won
+   *  the ball back (tackle/interception/clearance) and carried it forward with a long
+   *  pass or through ball, all within a couple of match minutes of the turnover. */
+  private isFastBreakGoal(goal: MatchEvent): boolean {
+    const window = this.recentEvents.slice(-FAST_BREAK_WINDOW);
+    let turnoverIndex = -1;
+    for (let i = window.length - 1; i >= 0; i--) {
+      if (TURNOVER_EVENT_TYPES.has(window[i].type) && window[i].team === goal.team) {
+        turnoverIndex = i;
+        break;
+      }
+    }
+    if (turnoverIndex === -1) { return false; }
+    const turnover = window[turnoverIndex];
+    if (goal.minute - turnover.minute > FAST_BREAK_MAX_MINUTES) { return false; }
+    return window
+      .slice(turnoverIndex + 1)
+      .some(e => BREAK_CARRIER_TYPES.has(e.type) && e.team === goal.team);
   }
 
   build(): MatchStatistics {
@@ -162,6 +199,7 @@ export class StatsAccumulator {
         away: { attempted: this.away.passesAttempted, completed: this.away.passesCompleted },
       },
       lateGoals: { home: this.home.lateGoals, away: this.away.lateGoals },
+      fastBreakGoals: { home: this.home.fastBreakGoals, away: this.away.fastBreakGoals },
       actionBreakdown: { home: this.home.actions, away: this.away.actions },
       playerRatings,
     };

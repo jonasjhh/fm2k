@@ -38,7 +38,38 @@ import {
 } from './config.ts';
 
 /** Significant match events the UI animates (goals, cards, injuries, saves, subs, phase changes). */
-const KEY_EVENT_TYPES = new Set(['goal', 'yellow_card', 'red_card', 'injury', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
+const KEY_EVENT_TYPES = new Set(['goal', 'shot', 'yellow_card', 'red_card', 'injury', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
+
+/** Event types that represent a visible on-ball action worth showing in a goal's build-up
+ *  (as opposed to phase markers, cards, or the goal itself). */
+const BUILDUP_EVENT_TYPES = new Set(['short_pass', 'long_pass', 'through_ball', 'cross', 'dribble', 'shot', 'corner', 'free_kick', 'penalty']);
+
+/** Reconstruct the passage of play leading to a goal: walk backward through the fixture's
+ *  collected events (not just the KEY_EVENT_TYPES ticker subset) and take the contiguous run
+ *  credited to the scoring team, stopping at the first event credited to the other side (a
+ *  turnover), a non-buildup event (phase/card/injury), or after `maxLookback` events. Only
+ *  searches events already collected for this advance — the live ticker never retains a
+ *  full-match history, so a build-up that started in an earlier streaming chunk is truncated
+ *  at the chunk boundary. */
+export function buildGoalBuildup(fixtureEvents: OccurrenceEvent[], goalIndex: number, maxLookback = 6): AnimEvent[] {
+  const team = (fixtureEvents[goalIndex].payload as { team?: 'home' | 'away' }).team;
+  const buildup: AnimEvent[] = [];
+  for (let i = goalIndex - 1; i >= 0 && buildup.length < maxLookback; i--) {
+    const e = fixtureEvents[i];
+    if (!BUILDUP_EVENT_TYPES.has(e.eventType)) { break; }
+    const p = e.payload as { minute?: number; team?: 'home' | 'away'; description?: string; homeScore?: number; awayScore?: number };
+    if (p.team !== team) { break; }
+    buildup.unshift({
+      minute: p.minute ?? 0,
+      team: p.team ?? 'home',
+      description: p.description ?? '',
+      type: e.eventType,
+      homeScore: p.homeScore ?? 0,
+      awayScore: p.awayScore ?? 0,
+    });
+  }
+  return buildup;
+}
 
 /** Ordinal suffix for a 1-based position ("1st", "2nd", "3rd", "4th"...). */
 function ordinalSuffix(n: number): string {
@@ -462,6 +493,17 @@ export class GameSession {
       this.pushHeadline(injuryHeadline({
         playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
       }, this.rng));
+    }));
+    // One generic clearance event covers both a medical wing averting an injury before it
+    // ever took hold (originalDuration 0) and a confirmed injury running its course — the
+    // wording branches on that signal instead of the engine special-casing "averted".
+    unsubs.push(eventBus.on('player.injuryCleared', (p) => {
+      this.pushNotification(
+        p.originalDuration === 0
+          ? `${p.playerName}'s knock turned out to be nothing serious — cleared by the medical staff.`
+          : `${p.playerName} is back from injury and available for selection.`,
+        'success',
+      );
     }));
 
     this.eventBusCleanup = () => { for (const u of unsubs) { u(); } };
@@ -1143,19 +1185,23 @@ export class GameSession {
     const fixture = this.findFixture(fixtureId);
     const live = this.liveMatches().find(l => l.fixtureId === fixtureId) ?? null;
     const matchOver = live === null;
-    const events: AnimEvent[] = collected
-      .filter(e => e.occurrenceId === fixtureId && KEY_EVENT_TYPES.has(e.eventType))
-      .map(e => {
-        const p = e.payload as { minute?: number; team?: 'home' | 'away'; description?: string; homeScore?: number; awayScore?: number };
-        return {
-          minute: p.minute ?? 0,
-          team: p.team ?? 'home',
-          description: p.description ?? '',
-          type: e.eventType,
-          homeScore: p.homeScore ?? 0,
-          awayScore: p.awayScore ?? 0,
-        };
+    const fixtureEvents = collected.filter(e => e.occurrenceId === fixtureId);
+    const events: AnimEvent[] = [];
+    fixtureEvents.forEach((e, i) => {
+      if (!KEY_EVENT_TYPES.has(e.eventType)) { return; }
+      if (e.eventType === 'goal') {
+        events.push(...buildGoalBuildup(fixtureEvents, i));
+      }
+      const p = e.payload as { minute?: number; team?: 'home' | 'away'; description?: string; homeScore?: number; awayScore?: number };
+      events.push({
+        minute: p.minute ?? 0,
+        team: p.team ?? 'home',
+        description: p.description ?? '',
+        type: e.eventType,
+        homeScore: p.homeScore ?? 0,
+        awayScore: p.awayScore ?? 0,
       });
+    });
     const homeScore = live?.homeScore ?? fixture?.result?.homeScore ?? 0;
     const awayScore = live?.awayScore ?? fixture?.result?.awayScore ?? 0;
 

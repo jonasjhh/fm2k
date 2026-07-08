@@ -637,6 +637,7 @@ export class ClubManager {
     if (!isOurMatch) {return;}
 
     const newInjuries: GameEvents['player.injured'][] = [];
+    const clearedInjuries: GameEvents['player.injuryCleared'][] = [];
 
     // Energy our players ended the match on (in-match fatigue), if reported. Drain
     // fitness by the energy actually spent; fall back to a stamina-based estimate.
@@ -672,12 +673,16 @@ export class ClubManager {
         const player = s.squad.find(p => p.id === inj.playerId);
         if (!player || player.injury) { continue; }
         const medicalAxes = FacilityManager.medicalAxes(s.facilities, player);
-        // Medical staff catch/treat some injuries before they ever take hold.
-        if (this.rng() >= medicalAxes.injuryChanceMult) { continue; }
-        player.injury = {
-          type: inj.type,
-          matchesRemaining: Math.max(1, Math.round(inj.baseDuration - medicalAxes.injuryDurationReduction)),
-        };
+        // Medical staff can catch/treat an injury before it ever takes hold — a clean
+        // clearance (originalDuration 0), not a distinct "averted" event of its own.
+        if (this.rng() >= medicalAxes.injuryChanceMult) {
+          clearedInjuries.push({
+            playerId: player.id, playerName: player.name, injuryType: inj.type, originalDuration: 0,
+          });
+          continue;
+        }
+        const originalDuration = Math.max(1, Math.round(inj.baseDuration - medicalAxes.injuryDurationReduction));
+        player.injury = { type: inj.type, matchesRemaining: originalDuration, originalDuration };
         newInjuries.push({
           playerId: player.id,
           playerName: player.name,
@@ -695,6 +700,9 @@ export class ClubManager {
     for (const inj of newInjuries) {
       this.eventBus?.emit('player.injured', inj);
     }
+    for (const cleared of clearedInjuries) {
+      this.eventBus?.emit('player.injuryCleared', cleared);
+    }
 
     if (payload.homeTeamId === clubId) {
       const receipt = this.calculateHomeReceipt(payload.awayStanding, {
@@ -710,11 +718,16 @@ export class ClubManager {
   // Call once per matchday end to tick down injuries and suspensions (these count down per
   // match missed, not per calendar day — see recoverFitness() for the time-based counterpart).
   handleMatchdayComplete(): void {
+    const cleared: GameEvents['player.injuryCleared'][] = [];
     this.stateManager.updateState(state => {
       for (const player of state.squad) {
         if (player.injury) {
           player.injury.matchesRemaining--;
           if (player.injury.matchesRemaining <= 0) {
+            cleared.push({
+              playerId: player.id, playerName: player.name,
+              injuryType: player.injury.type, originalDuration: player.injury.originalDuration,
+            });
             delete player.injury;
           }
         }
@@ -727,6 +740,9 @@ export class ClubManager {
         }
       }
     });
+    for (const c of cleared) {
+      this.eventBus?.emit('player.injuryCleared', c);
+    }
   }
 
   // Tenths-of-a-point/day; matches the old +15/week baseline at neutral (50) stamina.

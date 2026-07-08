@@ -103,6 +103,68 @@ describe('buildMatchInsights:', () => {
     expect(buildMatchInsights(input({ playerXi: xi, statistics: s, endEnergy: gassed }))).toHaveLength(3);
   });
 
+  test('a high tempo with sloppy passing fires the tempo-control insight', () => {
+    const s = stats({ passes: { home: { attempted: 20, completed: 10 }, away: { attempted: 0, completed: 0 } } });
+    const i = input({
+      statistics: s,
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50 } },
+    });
+    expect(headlines(i)).toContain('High tempo cost you control');
+  });
+
+  test('a low tempo with tidy passing fires the patient-control insight; a mid tempo fires neither', () => {
+    const s = stats({ passes: { home: { attempted: 20, completed: 18 }, away: { attempted: 0, completed: 0 } } });
+    const patient = input({
+      statistics: s,
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 30, risk: 50, defensiveLine: 50 } },
+    });
+    expect(headlines(patient)).toContain('Patient tempo kept things tidy');
+
+    const mid = input({
+      statistics: s,
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } },
+    });
+    expect(headlines(mid)).not.toContain('Patient tempo kept things tidy');
+    expect(headlines(mid)).not.toContain('High tempo cost you control');
+  });
+
+  test('no tempo insight fires without a passes sample or without chosen sliders', () => {
+    const tinySample = input({
+      statistics: stats({ passes: { home: { attempted: 3, completed: 1 }, away: { attempted: 0, completed: 0 } } }),
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50 } },
+    });
+    expect(buildMatchInsights(tinySample)).toEqual([]);
+
+    const noIntent = input({
+      statistics: stats({ passes: { home: { attempted: 20, completed: 10 }, away: { attempted: 0, completed: 0 } } }),
+    });
+    expect(buildMatchInsights(noIntent)).toEqual([]);
+  });
+
+  test('a high defensive line conceding fast-break goals fires the counter-exposure insight', () => {
+    const s = stats({ fastBreakGoals: { home: 0, away: 2 } });
+    const i = input({
+      statistics: s,
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80 } },
+    });
+    expect(headlines(i)).toContain('Your high line got exposed on the counter');
+  });
+
+  test('the counter-exposure insight stays quiet at a low defensive line or below the goals threshold', () => {
+    const s = stats({ fastBreakGoals: { home: 0, away: 2 } });
+    const lowLine = input({
+      statistics: s,
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 40 } },
+    });
+    expect(buildMatchInsights(lowLine)).toEqual([]);
+
+    const oneGoal = input({
+      statistics: stats({ fastBreakGoals: { home: 0, away: 1 } }),
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80 } },
+    });
+    expect(buildMatchInsights(oneGoal)).toEqual([]);
+  });
+
   test('style matchup verdict needs intent + opponent XI, and reports a clear edge', () => {
     // without them, no matchup insight even in a lopsided game
     expect(buildMatchInsights(input({ homeScore: 4 }))).toEqual([]);

@@ -12,7 +12,10 @@ export interface ClubPlayer extends Player {
   /** 0–1000 (tenths of a fitness point; the UI displays this divided by 10). The finer
    *  resolution lets recovery vary by tiny, sub-integer amounts (stamina, facility level). */
   fitness: number
-  injury?: { type: string; matchesRemaining: number }
+  /** `originalDuration` is the layoff as first confirmed (before any countdown) — kept
+   *  alongside the live countdown so the eventual `player.injuryCleared` event can report
+   *  how serious the injury was, regardless of how much of it has already ticked away. */
+  injury?: { type: string; matchesRemaining: number; originalDuration: number }
   suspension?: { matchesRemaining: number }
   /** The player's training focus; defaults to 'balanced' when unset. */
   training?: RegimentId

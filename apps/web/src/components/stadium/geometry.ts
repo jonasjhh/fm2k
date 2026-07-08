@@ -323,6 +323,13 @@ export function isCornerKey(key: SectorKey): key is CornerKey {
 
 export const CORNER_FACETS = 4;
 
+/** Extra half-angle added to each wedge so adjacent facets overlap instead of
+ *  abutting edge-to-edge. Two independently antialiased clip-path edges never
+ *  sum to full pixel coverage, so exactly-meeting facets leak a hairline of the
+ *  dark ground ring through every shared radial edge; a slight overlap leaves
+ *  no gap to bleed through. */
+export const FACET_BLEED_DEG = 0.75;
+
 export interface CornerFan {
   apexX: number // apex position within the corner square (local coords)
   apexY: number
@@ -352,7 +359,10 @@ export interface FacetGeometry {
  * and rotates by rotZ.
  */
 export function computeCornerFacets(fan: CornerFan, type: string): FacetGeometry[] {
-  const half = 90 / CORNER_FACETS / 2;
+  // The wedge is built from a slightly widened half-angle while the rotZ
+  // spacing keeps the exact step, so every facet overlaps each neighbour by
+  // 2·FACET_BLEED_DEG of arc at every radius (see FACET_BLEED_DEG).
+  const half = 90 / CORNER_FACETS / 2 + FACET_BLEED_DEG;
   const scale = Math.cos(rad(half));
   const radius = computeStandProfile(type).totalDepth;
   const w = 2 * radius * Math.sin(rad(half));

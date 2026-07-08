@@ -39,9 +39,16 @@ export type GameEvents = {
     injuryType: string
     matchesRemaining: number
   }
-  'player.recovered': {
+  // Fired whenever a player's injury clears, regardless of why: the medical staff
+  // averted it before it ever took hold (originalDuration 0), or a confirmed injury
+  // ran its course (originalDuration = the layoff as first confirmed). Consumers
+  // (notifications, newspaper) branch on originalDuration to phrase themselves —
+  // the engine doesn't special-case the wording.
+  'player.injuryCleared': {
     playerId: string
     playerName: string
+    injuryType: string
+    originalDuration: number
   }
   // Emitted at season end for each player whose attributes changed through training/ageing.
   'player.developed': {

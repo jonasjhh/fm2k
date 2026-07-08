@@ -578,7 +578,7 @@ describe('ClubManager:', () => {
       const [injuredId, suspendedId] = config.benchPlayers;
       const injured = config.squad.find(p => p.id === injuredId) as ClubPlayer | undefined;
       const suspended = config.squad.find(p => p.id === suspendedId) as ClubPlayer | undefined;
-      if (injured) { injured.injury = { type: 'Sprained Ankle', matchesRemaining: 2 }; }
+      if (injured) { injured.injury = { type: 'Sprained Ankle', matchesRemaining: 2, originalDuration: 2 }; }
       if (suspended) { suspended.suspension = { matchesRemaining: 1 }; }
       const manager = new ClubManager(config);
       expect(manager.queueSubstitution(config.startingXI[0], injuredId)).toBe(false);
@@ -1092,7 +1092,8 @@ describe('ClubManager:', () => {
       const id = xiOf(manager)[0];
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 4 }] });
       const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 3 }); // max(1, round(4 - 1.0))
+      // max(1, round(4 - 1.0)); originalDuration is set once and equals the confirmed layoff.
+      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 3, originalDuration: 3 });
     });
 
     test('a medical injury-chance wing can avert a reported injury before it takes hold', () => {
@@ -1110,8 +1111,15 @@ describe('ClubManager:', () => {
       const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0.97, budget: 1_000_000 }));
       withWing.buildWing('medical', 'massageTherapySuite'); // injuryChanceMult ×0.95 at full_staff
       const idWith = xiOf(withWing)[0];
+      const clearedWith: GameEvents['player.injuryCleared'][] = [];
+      busWith.on('player.injuryCleared', e => clearedWith.push(e));
+      const player = assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found');
       emitMatch(busWith, 'club-1', 'other-1', 0, 0, { home: [{ playerId: idWith, type: 'knee_injury', baseDuration: 4 }] });
       expect(assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found').injury).toBeUndefined();
+      // The generic clearance event still fires — originalDuration 0 signals "averted".
+      expect(clearedWith).toEqual([{
+        playerId: idWith, playerName: player.name, injuryType: 'knee_injury', originalDuration: 0,
+      }]);
     });
 
     test('an already-injured player is not re-injured', () => {
@@ -1376,7 +1384,7 @@ describe('ClubManager (mutation top-up):', () => {
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other', 0, 0, { home: [{ playerId: p.id, type: 'hamstring_pull', baseDuration: 3 }] });
       const injury = assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').injury;
-      expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3 }); // max(1, 3-(1-1))
+      expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3, originalDuration: 3 }); // max(1, 3-(1-1))
     });
 
     test('no reported injury leaves the starter uninjured', () => {
@@ -1424,14 +1432,45 @@ describe('ClubManager (mutation top-up):', () => {
     test('ticks an injury down and only clears it when it reaches zero', () => {
       const manager = new ClubManager(makeConfig());
       const state = manager.getState();
-      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2 };
+      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2, originalDuration: 2 };
       manager.loadState(state);
 
       manager.handleMatchdayComplete();
-      expect(manager.getState().squad[0].injury).toEqual({ type: 'muscle_strain', matchesRemaining: 1 });
+      expect(manager.getState().squad[0].injury).toEqual({ type: 'muscle_strain', matchesRemaining: 1, originalDuration: 2 });
 
       manager.handleMatchdayComplete();
       expect(manager.getState().squad[0].injury).toBeUndefined();
+    });
+
+    test('emits player.injuryCleared with the original duration when a natural recovery completes', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      const cleared: GameEvents['player.injuryCleared'][] = [];
+      bus.on('player.injuryCleared', e => cleared.push(e));
+
+      const state = manager.getState();
+      const player = state.squad[0];
+      player.injury = { type: 'hamstring_pull', matchesRemaining: 1, originalDuration: 3 };
+      manager.loadState(state);
+
+      manager.handleMatchdayComplete();
+      expect(cleared).toEqual([{
+        playerId: player.id, playerName: player.name, injuryType: 'hamstring_pull', originalDuration: 3,
+      }]);
+    });
+
+    test('does not emit player.injuryCleared while an injury is still counting down', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus }));
+      const cleared: GameEvents['player.injuryCleared'][] = [];
+      bus.on('player.injuryCleared', e => cleared.push(e));
+
+      const state = manager.getState();
+      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2, originalDuration: 2 };
+      manager.loadState(state);
+
+      manager.handleMatchdayComplete();
+      expect(cleared).toHaveLength(0);
     });
 
     test('ticks a suspension down and only clears it at zero', () => {

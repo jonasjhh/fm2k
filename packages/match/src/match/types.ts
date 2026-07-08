@@ -135,6 +135,10 @@ export interface MatchStatistics {
   passes: { home: PassTally; away: PassTally };
   /** Goals scored from the 70th minute on (late-fade signal for the insight detectors). */
   lateGoals: { home: number; away: number };
+  /** Goals scored within a couple of minutes of winning the ball back and carrying it
+   *  forward with a long pass/through ball (counter-exposure signal for the defensive-line
+   *  insight detector). */
+  fastBreakGoals: { home: number; away: number };
   /** Per contested outfield action: attempts (incl. ones a defender resolved) and successes. */
   actionBreakdown: { home: ActionBreakdown; away: ActionBreakdown };
   /** Per-player match rating on the familiar 10-point scale (only players with events). */
