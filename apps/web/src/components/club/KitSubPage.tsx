@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -114,6 +114,8 @@ export default function KitSubPage() {
     const { primary, secondary } = teamColors;
     return { primary, secondary, ...loadExtras(playerTeamId ?? '', primary, secondary) };
   });
+  const savedColors = useRef({ primary: teamColors.primary, secondary: teamColors.secondary });
+  const [dirty, setDirty] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
 
   if (!playerTeamId) { return null; }
@@ -122,6 +124,7 @@ export default function KitSubPage() {
     setKit((prev) => {
       const next = { ...prev, [field]: value } as Kit;
       saveExtras(playerTeamId, next);
+      setDirty(true);
       return next;
     });
   };
@@ -130,6 +133,7 @@ export default function KitSubPage() {
     setKit((prev) => {
       const next = { ...prev, pattern };
       saveExtras(playerTeamId, next);
+      setDirty(true);
       return next;
     });
   };
@@ -137,13 +141,16 @@ export default function KitSubPage() {
   const saveKit = () => {
     updateTeamColors(playerTeamId, { primary: kit.primary, secondary: kit.secondary });
     setSavedOpen(true);
+    savedColors.current = { primary: kit.primary, secondary: kit.secondary };
+    setDirty(false);
   };
 
   const resetColors = () => {
-    setKit((prev) => ({ ...prev, primary: teamColors.primary, secondary: teamColors.secondary }));
+    const { primary, secondary } = savedColors.current;
+    const reset = { primary, secondary, ...loadExtras(playerTeamId, primary, secondary) };
+    setKit(reset);
+    setDirty(false);
   };
-
-  const dirty = kit.primary !== teamColors.primary || kit.secondary !== teamColors.secondary;
 
   return (
     <Box>
