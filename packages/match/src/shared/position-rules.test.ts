@@ -17,8 +17,8 @@ describe('getPositionModifier:', () => {
   });
 
   it('returns 0.90 for secondary position', () => {
-    expect(getPositionModifier('LB', 'LWB')).toBe(0.90);
-    expect(getPositionModifier('RB', 'RWB')).toBe(0.90);
+    expect(getPositionModifier('CB', 'LB')).toBe(0.90);
+    expect(getPositionModifier('CB', 'RB')).toBe(0.90);
     expect(getPositionModifier('CM', 'LM')).toBe(0.90);
     expect(getPositionModifier('RW', 'ST')).toBe(0.90);
   });

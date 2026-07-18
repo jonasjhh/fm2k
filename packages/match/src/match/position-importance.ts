@@ -69,7 +69,7 @@ const BAND_EXPOSURE: Record<Band, BandExposure> = {
 };
 
 /** Wide roles live off pace and delivery into the box more than their central bandmates. */
-const WIDE_ROLES = new Set<FormationPosition>(['LB', 'RB', 'LWB', 'RWB', 'LM', 'RM', 'LW', 'RW']);
+const WIDE_ROLES = new Set<FormationPosition>(['LB', 'RB', 'LM', 'RM', 'LW', 'RW']);
 const WIDE_SPEED_BONUS = 0.3;
 const WIDE_DELIVERY_BONUS = 0.3;
 

@@ -48,10 +48,9 @@ describe('positionFit:', () => {
     expect(positionFit('LM', 'LW')).toBe(positionFit('LW', 'LM'));
   });
 
-  it('given a wing-back slot then a full-back fits it better than any other position', () => {
-    expect(positionFit('LB', 'LWB')).toBeGreaterThan(positionFit('LM', 'LWB'));
-    expect(positionFit('LB', 'LWB')).toBeGreaterThan(positionFit('CB', 'LWB'));
-    expect(positionFit('RB', 'RWB')).toBeGreaterThan(positionFit('RM', 'RWB'));
+  it('given a wide midfield slot then a wide back fits better than a centre-back', () => {
+    expect(positionFit('LB', 'LM')).toBeGreaterThan(positionFit('CB', 'LM'));
+    expect(positionFit('RB', 'RM')).toBeGreaterThan(positionFit('CB', 'RM'));
   });
 });
 

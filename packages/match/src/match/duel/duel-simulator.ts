@@ -12,7 +12,7 @@ import { perMinuteDrain, applyFatigue } from '../fatigue.ts';
 import { rollInjuries, injuryDescription, injuriesBySide } from '../injury.ts';
 import { mulberry32 } from '../rng.ts';
 import {
-  deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation,
+  deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation, deriveRolesForShape,
 } from '../../lineup/lineup.ts';
 import { type XY, type Side, targetsForShape, phaseOf, anchorXY, toAbsolute, BAND_Y, nearestTo } from './field.ts';
 import { advancePositions } from './movement.ts';
@@ -70,6 +70,7 @@ export class DuelMatchSimulator {
   // v2-only live state (ephemeral; never on MatchState, never persisted).
   private positions!: { home: Record<string, XY>; away: Record<string, XY> };
   private shapes!: { home: TeamShapes; away: TeamShapes };
+  private derivedRoles!: { home: { defending: Record<string, string>; attacking: Record<string, string> }; away: { defending: Record<string, string>; attacking: Record<string, string> } };
   private ball!: BallState;
 
   constructor(config: MatchConfig) {
@@ -112,6 +113,10 @@ export class DuelMatchSimulator {
     this.shapes = {
       home: this.resolveShapes(this.config.homeTeam, homePlayers),
       away: this.resolveShapes(this.config.awayTeam, awayPlayers),
+    };
+    this.derivedRoles = {
+      home: { defending: deriveRolesForShape(this.shapes.home.defending), attacking: deriveRolesForShape(this.shapes.home.attacking) },
+      away: { defending: deriveRolesForShape(this.shapes.away.defending), attacking: deriveRolesForShape(this.shapes.away.attacking) },
     };
     this.positions = {
       home: this.initialPositions(this.shapes.home, homePlayers, 'home'),
@@ -205,7 +210,7 @@ export class DuelMatchSimulator {
       const params = state.params?.[side] ?? NEUTRAL_PARAMS;
       for (const p of state.currentPlayers[side]) {
         const cur = energy[side][p.id] ?? 100;
-        energy[side][p.id] = Math.max(0, cur - perMinuteDrain(p, team.formation, params));
+        energy[side][p.id] = Math.max(0, cur - perMinuteDrain(p, team.formation, params, this.derivedRoles[side]));
       }
     });
     const momentum = {

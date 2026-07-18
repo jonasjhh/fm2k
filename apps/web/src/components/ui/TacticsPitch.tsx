@@ -31,8 +31,8 @@ function keyAttributesTooltip(pos: string): string {
 
 /** Eligible role options for a player circle: the geometry-derived role + their natural
  *  position + SECONDARY_POSITIONS secondaries, deduped. */
-const LEFT_ROLES = new Set<FormationPosition>(['LM', 'LW', 'LB', 'LWB']);
-const RIGHT_ROLES = new Set<FormationPosition>(['RM', 'RW', 'RB', 'RWB']);
+const LEFT_ROLES = new Set<FormationPosition>(['LM', 'LW', 'LB']);
+const RIGHT_ROLES = new Set<FormationPosition>(['RM', 'RW', 'RB']);
 
 /** `rank` is the player's 0-based index among all players in their band (sorted left→right).
  *  Only the leftmost player (rank 0) is offered left-flank secondaries; only the rightmost

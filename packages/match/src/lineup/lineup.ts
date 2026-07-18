@@ -15,9 +15,9 @@ export const FORMATION_LINES: Record<Formation, string[][]> = {
   '3-5-2': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'CM', 'RM'], ['ST', 'ST']],
   '3-4-3': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'RM'], ['LW', 'ST', 'RW']],
   '3-4-2-1': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'RM'], ['AM', 'AM'], ['ST']],
-  // 5-back — wide defenders are wing-backs, not plain full-backs (LWB/RWB; see FormationPosition)
-  '5-3-2': [['GK'], ['LWB', 'CB', 'CB', 'CB', 'RWB'], ['CM', 'CM', 'CM'], ['ST', 'ST']],
-  '5-4-1': [['GK'], ['LWB', 'CB', 'CB', 'CB', 'RWB'], ['LM', 'CM', 'CM', 'RM'], ['ST']],
+  // 5-back — wide defenders use LB/RB slots (shape-delta drain covers the extra running)
+  '5-3-2': [['GK'], ['LB', 'CB', 'CB', 'CB', 'RB'], ['CM', 'CM', 'CM'], ['ST', 'ST']],
+  '5-4-1': [['GK'], ['LB', 'CB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['ST']],
 };
 
 /**
@@ -71,7 +71,7 @@ function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number): Forma
   const edge = n > 1 && i === 0 ? 'L' : n > 1 && i === n - 1 ? 'R' : null;
   switch (band) {
     case 'DEF':
-      if (n >= 4 && edge) { return n >= 5 ? (edge === 'L' ? 'LWB' : 'RWB') : (edge === 'L' ? 'LB' : 'RB'); }
+      if (n >= 4 && edge) { return edge === 'L' ? 'LB' : 'RB'; }
       return 'CB';
     case 'DM': return 'DM';
     case 'MID': return n >= 4 && edge ? (edge === 'L' ? 'LM' : 'RM') : 'CM';
@@ -87,12 +87,12 @@ function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number): Forma
  *  occupy in a 5-player band (leftmost = -1, rightmost = +1, center = 0). Used to
  *  reposition a player's geometry when a role override is applied. */
 export const ROLE_CANONICAL_LATERAL: Record<FormationPosition, number> = {
-  GK:  0,
-  LWB: -1, LB: -1, CB: 0, RB: 1, RWB: 1,
-  DM:  0,
-  LM:  -1, CM: 0, RM: 1,
-  AM:  0,
-  LW:  -1, ST: 0, RW: 1,
+  GK: 0,
+  LB: -1, CB: 0, RB: 1,
+  DM: 0,
+  LM: -1, CM: 0, RM: 1,
+  AM: 0,
+  LW: -1, ST: 0, RW: 1,
 };
 
 /** Derive every member's effective FormationPosition from a shape's geometry alone —

@@ -29,9 +29,12 @@ describe('fatigue — position load (formation-aware):', () => {
   it('a back three has fewer bodies, so each defender runs more than in a flat four', () => {
     expect(positionLoad('3-5-2', 'LB')).toBeGreaterThan(positionLoad('4-4-2', 'LB'));
   });
-  it('within the defensive line: CB < LB/RB < LWB/RWB', () => {
-    expect(positionLoad('4-4-2', 'CB')).toBeLessThan(positionLoad('4-4-2', 'LB'));
-    expect(positionLoad('4-4-2', 'LB')).toBeLessThan(positionLoad('3-5-2', 'LWB'));
+  it('within the defensive line: all defenders are in the same range (DEF line base)', () => {
+    const cb = positionLoad('4-4-2', 'CB');
+    const lb = positionLoad('4-4-2', 'LB');
+    expect(cb).toBeGreaterThan(0.5);
+    expect(lb).toBeGreaterThan(0.5);
+    expect(cb).toBeLessThan(positionLoad('4-4-2', 'CM'));
   });
   it('within the attacking line: ST < LW/RW', () => {
     expect(positionLoad('4-4-2', 'ST')).toBeLessThan(positionLoad('4-3-3', 'LW'));

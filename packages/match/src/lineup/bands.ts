@@ -15,7 +15,7 @@ export type Band = 'GK' | 'DEF' | 'DM' | 'MID' | 'AM' | 'ATT';
 
 export const BAND_OF_ROLE: Record<FormationPosition, Band> = {
   GK: 'GK',
-  LB: 'DEF', LWB: 'DEF', CB: 'DEF', RB: 'DEF', RWB: 'DEF',
+  LB: 'DEF', CB: 'DEF', RB: 'DEF',
   DM: 'DM',
   LM: 'MID', CM: 'MID', RM: 'MID',
   AM: 'AM',

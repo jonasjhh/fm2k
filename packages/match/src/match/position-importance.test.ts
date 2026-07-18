@@ -40,14 +40,8 @@ describe('positionAttributeImportance:', () => {
     expect(cb.defending).toBeGreaterThan(cb.finishing ?? 0);
   });
 
-  it('wide defenders live off pace and delivery more than central ones (roles are gone; width is the identity)', () => {
-    // Behavioral roles were removed (REWORK_01 ruling #4): LWB and LB are the same
-    // band + flank, so their importance is identical — the wide/central axis is
-    // what distinguishes defenders now.
+  it('wide defenders live off pace and delivery more than central ones', () => {
     const lb = positionAttributeImportance('LB');
-    const lwb = positionAttributeImportance('LWB');
-    expect(lwb).toEqual(lb);
-
     const cb = positionAttributeImportance('CB');
     expect(lb.speed).toBeGreaterThan(cb.speed ?? 0);
     expect(lb.passing).toBeGreaterThan(cb.passing ?? 0);

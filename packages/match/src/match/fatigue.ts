@@ -1,6 +1,7 @@
 import type { Formation, Player, PlayerAttributes, FormationPosition } from '../shared/types.ts';
 import { type MatchParameters } from '../tactics/match-parameters.ts';
 import { FIELD_LINE, type FieldLine } from '../lineup/bands.ts';
+import { ROLE_CANONICAL_LATERAL } from '../lineup/lineup.ts';
 
 /**
  * In-match fatigue model — pure, deterministic, and isolated here so the energy
@@ -40,13 +41,11 @@ const FORMATION_LOAD: Partial<Record<Formation, Partial<Record<FieldLine, number
 };
 
 /** Per-role adjustment on top of the line base load — captures roles that cover more or
- *  less ground than their line-mates, regardless of formation. Within DEF, lowest to
- *  highest: CB < LB/RB < LWB/RWB. Within ATT: ST < LW/RW. CM eases off slightly relative
- *  to the other midfield roles (DM/AM/LM/RM, left at the flat line base). */
+ *  less ground than their line-mates, regardless of formation. Within ATT: ST < LW/RW.
+ *  CM eases off slightly relative to other midfield roles. Wide backs (LB/RB) carry their
+ *  extra load via shape-delta drain rather than a static factor. */
 const POSITION_LOAD_ADJUST: Partial<Record<FormationPosition, number>> = {
   CB: 1.05,
-  LB: 1.15, RB: 1.15,
-  LWB: 1.3, RWB: 1.3,
   ST: 1.05,
   LW: 1.3, RW: 1.3,
   CM: 0.9,
@@ -58,6 +57,29 @@ export function positionLoad(formation: Formation, position: FormationPosition):
   const shape = FORMATION_LOAD[formation]?.[line] ?? 1;
   const roleAdjust = POSITION_LOAD_ADJUST[position] ?? 1;
   return LINE_BASE_LOAD[line] * shape * roleAdjust;
+}
+
+// Field line numeric values for delta arithmetic.
+const FIELD_LINE_VALUE: Record<FieldLine, number> = { GK: 0, DEF: 1, MID: 2, ATT: 3 };
+
+// Weights for the two delta components. A full 2-line jump (DEF→ATT) with no lateral
+// change adds 2 × 0.12 = 0.24 extra base drain — roughly the same as the old LWB bump.
+const LINE_DELTA_WEIGHT    = 0.12;
+const LATERAL_DELTA_WEIGHT = 0.06;
+
+/** Extra drain per minute for a player whose defending and attacking roles differ.
+ *  `precomputed` holds already-derived role maps (pass pre-computed to avoid re-deriving
+ *  per player per minute). Returns 0 when roles are identical. */
+export function shapeDeltaDrain(
+  playerId: string,
+  precomputed: { defending: Record<string, string>; attacking: Record<string, string> },
+): number {
+  const defRole = precomputed.defending[playerId];
+  const atkRole = precomputed.attacking[playerId];
+  if (!defRole || !atkRole || defRole === atkRole) { return 0; }
+  const lineDelta = Math.abs(FIELD_LINE_VALUE[FIELD_LINE[atkRole as FormationPosition] ?? 'MID'] - FIELD_LINE_VALUE[FIELD_LINE[defRole as FormationPosition] ?? 'MID']);
+  const lateralDelta = Math.abs((ROLE_CANONICAL_LATERAL[atkRole as FormationPosition] ?? 0) - (ROLE_CANONICAL_LATERAL[defRole as FormationPosition] ?? 0));
+  return BASE_DRAIN * (lineDelta * LINE_DELTA_WEIGHT + lateralDelta * LATERAL_DELTA_WEIGHT);
 }
 
 /** Higher stamina → less energy burned (≈1.32 at stamina 20 → 0.61 at stamina 99). */
@@ -74,18 +96,24 @@ export function pressFactor(pressIntensity: number): number { return 0.8 + 0.4 *
 /** The reserved `fatigueRate` param, finally consumed (1.0 at neutral 50). */
 export function fatigueRateFactor(fatigueRate: number): number { return 0.7 + 0.6 * (fatigueRate / 100); }
 
-/** Energy a player loses this minute given the team's params and the player. */
+/** Energy a player loses this minute given the team's params and the player.
+ *  When `derivedRoles` is provided, adds shape-delta drain for players whose role
+ *  differs between the defending and attacking shape. */
 export function perMinuteDrain(
   player: Player,
   formation: Formation,
   params: MatchParameters,
+  derivedRoles?: { defending: Record<string, string>; attacking: Record<string, string> },
 ): number {
-  return BASE_DRAIN
-    * positionLoad(formation, player.position)
-    * tempoFactor(params.tempo)
+  const tacticalFactors = tempoFactor(params.tempo)
     * pressFactor(params.pressIntensity)
     * fatigueRateFactor(params.fatigueRate)
     * staminaResistance(player.attributes.stamina);
+  const baseDrain = BASE_DRAIN * positionLoad(formation, player.position) * tacticalFactors;
+  const deltaDrain = derivedRoles
+    ? shapeDeltaDrain(player.id, derivedRoles) * tacticalFactors
+    : 0;
+  return baseDrain + deltaDrain;
 }
 
 // ── effect on attributes ────────────────────────────────────────────────────

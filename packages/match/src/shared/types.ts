@@ -17,10 +17,8 @@ export type MatchOutcomeDecidedBy = 'normal' | 'extra_time' | 'penalties';
 export type PlayerPosition = 'GK' | 'CB' | 'LB' | 'RB' | 'CM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
 /** A formation slot / in-match role a player can be fielded at — a superset of
- *  PlayerPosition that also includes DM and AM (always filled by a CM), and LWB/RWB
- *  (always filled by an LB/RB, in back-5 formations like 5-3-2/5-4-1) — never a player's
- *  own PlayerPosition. */
-export type FormationPosition = PlayerPosition | 'DM' | 'AM' | 'LWB' | 'RWB';
+ *  PlayerPosition that also includes DM and AM (always filled by a CM). */
+export type FormationPosition = PlayerPosition | 'DM' | 'AM';
 
 /** Single source of truth for all PlayerPosition values — a Record keyed by the full
  *  union, so TypeScript refuses to compile if a position is ever added without an entry
