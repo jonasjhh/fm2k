@@ -80,8 +80,11 @@ function assignToSlots(
   const pairs: { pi: number; si: number; score: number }[] = [];
   pool.forEach((p, pi) => {
     const ovr = calculateOverall(p.attributes);
+    // ClubPlayer has fitness 0–1000; base Player never has it (undefined → treat as fully fit)
+    const cp = p as { fitness?: number };
+    const fitnessFactor = cp.fitness !== undefined ? Math.max(0.1, cp.fitness / 1000) : 1;
     positions.forEach((slot, si) => {
-      pairs.push({ pi, si, score: ovr * positionFit(p.position, slot) });
+      pairs.push({ pi, si, score: ovr * positionFit(p.position, slot) * fitnessFactor });
     });
   });
   pairs.sort((a, b) => b.score - a.score);
