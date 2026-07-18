@@ -70,9 +70,12 @@ function assignToSlots(
 ): { slots: (Player | null)[]; score: number } {
   const positions = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']).flat() as FormationPosition[];
   const unavailableIds = opts.unavailableIds;
-  const pool = unavailableIds
-    ? squad.filter(p => !unavailableIds.has(p.id))
-    : squad;
+  const pool = squad.filter(p => {
+    if (unavailableIds?.has(p.id)) { return false; }
+    // ClubPlayer carries injury/suspension; base Player never has them (undefined = available)
+    const cp = p as { injury?: unknown; suspension?: unknown };
+    return !cp.injury && !cp.suspension;
+  });
 
   const pairs: { pi: number; si: number; score: number }[] = [];
   pool.forEach((p, pi) => {

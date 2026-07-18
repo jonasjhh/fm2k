@@ -13,11 +13,11 @@ import { useGameStore } from '@/store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
-import { FORMATION_LINES, effectiveFormationLabel, emptySlotKey } from '@fm2k/engine';
+import { FORMATION_LINES, effectiveFormationLabel, emptySlotKey, selectStartingXIWithSlots, MAX_BENCH_SIZE } from '@fm2k/engine';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
-import SlotLabel from '../ui/SlotLabel';
+import LineupPills from '../ui/LineupPills';
 import { TacticsPitch } from '../ui/TacticsPitch';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
@@ -47,10 +47,12 @@ const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation, setPlayerGeometry } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation, setPlayerGeometry, setStartingXI, setBench } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
     setPlayerGeometry: s.setPlayerGeometry,
+    setStartingXI: s.setStartingXI,
+    setBench: s.setBench,
   })));
 
   const {
@@ -91,6 +93,21 @@ export default function TacticsTab() {
     setSort((s) => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
   }
 
+  function handleClearTeam() {
+    setStartingXI(Array(11).fill(null));
+    setBench([]);
+  }
+
+  function handleAutoPick() {
+    if (!clubState) { return; }
+    const { starters, substitutes } = selectStartingXIWithSlots(
+      clubState.squad,
+      formation,
+    );
+    setStartingXI(starters.map(p => p.id));
+    setBench(substitutes.slice(0, MAX_BENCH_SIZE).map(p => p.id));
+  }
+
   return (
     <Box>
       {/* Formation selector */}
@@ -115,26 +132,17 @@ export default function TacticsTab() {
         />
       </Box>
 
-      {/* Position pills */}
-      <Box sx={{ display: 'flex', gap: 0.75, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-        {orderedSlots.map(({ pos, idx, isSub }) => {
-          const playerId = slotAssignments[idx] ?? null;
-          const player = playerId ? (playerById.get(playerId) ?? null) : null;
-          return (
-            <SlotLabel
-              key={idx}
-              index={idx}
-              position={pos}
-              player={player}
-              isSub={isSub}
-              isDragging={draggingSlot === idx}
-              onDragStart={setDraggingSlot}
-              onDragEnd={handleDragEnd}
-              onClick={handleSlotClick}
-            />
-          );
-        })}
-      </Box>
+      <LineupPills
+        orderedSlots={orderedSlots}
+        slotAssignments={slotAssignments}
+        playerById={playerById}
+        draggingSlot={draggingSlot}
+        onDragStart={setDraggingSlot}
+        onDragEnd={handleDragEnd}
+        onSlotClick={handleSlotClick}
+        onAutoPick={handleAutoPick}
+        onClearTeam={handleClearTeam}
+      />
 
       {/* Two-column layout: player list + formation pitch */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>

@@ -13,13 +13,14 @@ import Button from '@mui/material/Button';
 import { useGameStore } from '@/store/game-store';
 import type { ClubPlayer } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { playerValue, emptySlotKey } from '@fm2k/engine';
+import { playerValue, emptySlotKey, calculateOverall, selectStartingXIWithSlots, MAX_BENCH_SIZE } from '@fm2k/engine';
+import type { Formation } from '@fm2k/engine';
 import { StatsCard } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 import { useConfirm } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
-import SlotLabel from '../ui/SlotLabel';
+import LineupPills from '../ui/LineupPills';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
@@ -55,6 +56,8 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
 export default function SquadTab() {
   const clubState = useGameStore((s) => s.clubState);
   const sellPlayer = useGameStore((s) => s.sellPlayer);
+  const setStartingXI = useGameStore((s) => s.setStartingXI);
+  const setBench = useGameStore((s) => s.setBench);
   const windowOpen = useGameStore((s) => s.transferWindow.open);
   const confirm = useConfirm();
   const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
@@ -83,8 +86,12 @@ export default function SquadTab() {
 
   if (!clubState) {return null;}
 
-  const totalValue = clubState.squad.reduce((s, p) => s + playerValue(p), 0);
-  const playerById = new Map(clubState.squad.map(p => [p.id, p]));
+  const squad = clubState.squad;
+  const totalValue = squad.reduce((s, p) => s + playerValue(p), 0);
+  const avgValue = squad.length ? Math.round(totalValue / squad.length) : 0;
+  const avgAge = squad.length ? Math.round(squad.reduce((s, p) => s + p.age, 0) / squad.length) : 0;
+  const avgRating = squad.length ? Math.round(squad.reduce((s, p) => s + calculateOverall(p.attributes), 0) / squad.length) : 0;
+  const playerById = new Map(squad.map(p => [p.id, p]));
 
   function handleSort(col: SortCol) {
     setSort((s) => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
@@ -104,39 +111,45 @@ export default function SquadTab() {
     setSelectedPlayer(null);
   }
 
+  function handleClearTeam() {
+    setStartingXI(Array(11).fill(null));
+    setBench([]);
+  }
+
+  function handleAutoPick() {
+    if (!clubState) {return;}
+    const { starters, substitutes } = selectStartingXIWithSlots(clubState.squad, clubState.formation as Formation);
+    setStartingXI(starters.map(p => p.id));
+    setBench(substitutes.slice(0, MAX_BENCH_SIZE).map(p => p.id));
+  }
+
   return (
     <Box>
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
         {[
-          { label: 'Squad Size', value: clubState.squad.length },
-          { label: 'Est. Value', value: `£${fmt(totalValue)}` },
+          { label: 'Squad Size', value: squad.length },
+          { label: 'Avg Age', value: avgAge },
+          { label: 'Avg Rating', value: avgRating },
+          { label: 'Total Value', value: `£${fmt(totalValue)}` },
+          { label: 'Avg Value', value: `£${fmt(avgValue)}` },
         ].map(({ label, value }) => (
-          <Grid size={{ xs: 6, sm: 4 }} key={label}>
+          <Box key={label} sx={{ width: 200 }}>
             <StatsCard label={label} value={value} />
-          </Grid>
+          </Box>
         ))}
-      </Grid>
-
-      {/* Position pills */}
-      <Box sx={{ display: 'flex', gap: 0.75, mb: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-        {orderedSlots.map(({ pos, idx, isSub }) => {
-          const playerId = slotAssignments[idx] ?? null;
-          const player = playerId ? (playerById.get(playerId) ?? null) : null;
-          return (
-            <SlotLabel
-              key={idx}
-              index={idx}
-              position={pos}
-              player={player}
-              isSub={isSub}
-              isDragging={draggingSlot === idx}
-              onDragStart={setDraggingSlot}
-              onDragEnd={handleDragEnd}
-              onClick={handleSlotClick}
-            />
-          );
-        })}
       </Box>
+
+      <LineupPills
+        orderedSlots={orderedSlots}
+        slotAssignments={slotAssignments}
+        playerById={playerById}
+        draggingSlot={draggingSlot}
+        onDragStart={setDraggingSlot}
+        onDragEnd={handleDragEnd}
+        onSlotClick={handleSlotClick}
+        onAutoPick={handleAutoPick}
+        onClearTeam={handleClearTeam}
+      />
 
       <ScrollableTable>
         <TableHead>
