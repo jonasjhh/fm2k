@@ -153,9 +153,10 @@ export class ClubManager {
 
   setTactics(tactics: TeamTacticsIntent): void {
     this.stateManager.updateState(state => {
+      const formationChanged = state.formation !== tactics.formation;
       state.tactics = tactics;
       state.formation = tactics.formation;
-      state.shapes = null;
+      if (formationChanged) { state.shapes = null; }
     });
   }
 
