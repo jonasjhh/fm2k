@@ -132,12 +132,12 @@ describe('trainOnMatch:', () => {
     const trained = new Set<string>();
     for (let s = 0; s < 200; s++) {
       const p = player({ age: 18, potential: 90 }, 30);
-      const out = trainOnMatch(p, 'finishing', 0.3, 15, seq([s / 200, 0]));
+      const out = trainOnMatch(p, 'shooting', 0.3, 15, seq([s / 200, 0]));
       for (const k of Object.keys(out) as (keyof PlayerAttributes)[]) {
         if (out[k] !== p.attributes[k]) { trained.add(k); }
       }
     }
-    expect([...trained].every(k => k in TRAINING_REGIMENTS.finishing)).toBe(true);
+    expect([...trained].every(k => k in TRAINING_REGIMENTS.shooting)).toBe(true);
     expect(trained.size).toBeGreaterThan(0);
   });
 
@@ -236,7 +236,7 @@ describe('career arc:', () => {
 
   it('an aimed regiment outgrows a balanced one on its focus attribute', () => {
     const start = player({ age: 18, potential: 85 }, 40);
-    const focused = career(start, 'finishing', 0.3, 15, 8, mulberry32(7)).attributes.finishing;
+    const focused = career(start, 'shooting', 0.3, 15, 8, mulberry32(7)).attributes.finishing;
     const spread = career(start, 'balanced', 0.3, 15, 8, mulberry32(7)).attributes.finishing;
     expect(focused).toBeGreaterThan(spread);
   });

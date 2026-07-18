@@ -1,7 +1,9 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TableBody from '@mui/material/TableBody';
@@ -11,7 +13,8 @@ import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Typography from '@mui/material/Typography';
 import {
-  calculateOverall, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
+  calculateOverall, REGIMENT_IDS, REGIMENT_LABELS, REGIMENT_DESCRIPTIONS,
+  DEFAULT_REGIMENT, defaultRegiment,
 } from '@fm2k/engine';
 import type { ClubPlayer, PlayerDelta, RegimentId, PlayerAttributes } from '@fm2k/engine';
 import { useShallow } from 'zustand/react/shallow';
@@ -89,6 +92,7 @@ export default function TrainingTab() {
   const par = useDivisionPar();
   const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'position', dir: 'asc' });
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const deltaByPlayerId = useMemo(
     () => new Map((clubState?.recentDevelopment ?? []).map(d => [d.playerId, d])),
@@ -123,20 +127,55 @@ export default function TrainingTab() {
     );
   }
 
+  function handleAutoAssign() {
+    if (!clubState) { return; }
+    for (const p of clubState.squad) {
+      setTraining(p.id, defaultRegiment(p.position, p.age));
+    }
+  }
+
   return (
     <Box>
       <SectionHeader title="Training" subtitle="Assign each player's training focus and review last season's development." />
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-        {REGIMENT_IDS.map(id => (
-          <Chip
-            key={id}
-            label={`${REGIMENT_LABELS[id]}: ${regimentCounts.get(id) ?? 0}`}
-            size="small"
-            variant="outlined"
-          />
-        ))}
+      {/* Regiment counts + actions */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flex: 1 }}>
+          {REGIMENT_IDS.map(id => (
+            <Chip
+              key={id}
+              label={`${REGIMENT_LABELS[id]}: ${regimentCounts.get(id) ?? 0}`}
+              size="small"
+              variant="outlined"
+            />
+          ))}
+        </Box>
+        <Button size="small" variant="outlined" onClick={() => setLegendOpen(o => !o)}>
+          {legendOpen ? 'Hide guide' : 'Show guide'}
+        </Button>
+        <Button size="small" variant="outlined" onClick={handleAutoAssign}>
+          Auto-assign
+        </Button>
       </Box>
+
+      {/* Collapsible regiment guide */}
+      <Collapse in={legendOpen}>
+        <Box sx={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gap: 1, mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover',
+        }}>
+          {REGIMENT_IDS.map(id => (
+            <Box key={id}>
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                {REGIMENT_LABELS[id]}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {REGIMENT_DESCRIPTIONS[id]}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Collapse>
 
       <ScrollableTable>
         <TableHead>
@@ -153,7 +192,7 @@ export default function TrainingTab() {
             <TableCell align="center" sortDirection={sort.col === 'overall' ? sort.dir : false}>
               {sortLabel('overall', 'OVR')}
             </TableCell>
-            <TableCell sx={{ minWidth: 160 }} sortDirection={sort.col === 'training' ? sort.dir : false}>
+            <TableCell sx={{ minWidth: 200 }} sortDirection={sort.col === 'training' ? sort.dir : false}>
               {sortLabel('training', 'Training focus')}
             </TableCell>
             <TableCell sx={{ minWidth: 200 }} sortDirection={sort.col === 'development' ? sort.dir : false}>

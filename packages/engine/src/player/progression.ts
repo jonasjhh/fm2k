@@ -1,4 +1,4 @@
-import type { Player, PlayerAttributes } from '@fm2k/match';
+import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 
 /**
  * Player development (training). Pure and **rng-injected** so it is deterministic and
@@ -11,43 +11,67 @@ import type { Player, PlayerAttributes } from '@fm2k/match';
 type AttrKey = keyof PlayerAttributes;
 
 export type RegimentId =
-  | 'physical' | 'finishing' | 'playmaking' | 'technique'
-  | 'defending' | 'goalkeeping' | 'balanced';
+  | 'goalkeeping' | 'defending' | 'passing' | 'crossing'
+  | 'dribbling' | 'shooting' | 'heading' | 'physical' | 'recovery' | 'balanced';
 
 export const REGIMENT_IDS: readonly RegimentId[] = [
-  'physical', 'finishing', 'playmaking', 'technique',
-  'defending', 'goalkeeping', 'balanced',
+  'goalkeeping', 'defending', 'passing', 'crossing',
+  'dribbling', 'shooting', 'heading', 'physical', 'recovery', 'balanced',
 ];
 
 export const DEFAULT_REGIMENT: RegimentId = 'balanced';
 
 /** Human-readable labels for the UI. */
 export const REGIMENT_LABELS: Record<RegimentId, string> = {
-  physical: 'Physical',
-  finishing: 'Finishing',
-  playmaking: 'Playmaking',
-  technique: 'Technique',
-  defending: 'Defending',
   goalkeeping: 'Goalkeeping',
-  balanced: 'Balanced',
+  defending:   'Defending',
+  passing:     'Passing',
+  crossing:    'Crossing',
+  dribbling:   'Dribbling',
+  shooting:    'Shooting',
+  heading:     'Heading',
+  physical:    'Physical',
+  recovery:    'Recovery',
+  balanced:    'Balanced',
+};
+
+/** One-line description of what each regiment develops — shown in the UI guide. */
+export const REGIMENT_DESCRIPTIONS: Record<RegimentId, string> = {
+  goalkeeping: 'Trains goalkeeping',
+  defending:   'Trains defending, with supporting gains in strength, stamina and speed',
+  passing:     'Trains passing and technique',
+  crossing:    'Trains passing and speed',
+  dribbling:   'Trains speed and technique',
+  shooting:    'Trains finishing, with supporting gains in technique',
+  heading:     'Trains strength, with supporting gains in finishing and defending',
+  physical:    'Trains speed, strength and stamina equally — best for young players',
+  recovery:    'Trains stamina lightly, with a significantly faster fitness recovery rate',
+  balanced:    'Trains all attributes equally',
 };
 
 /**
  * Which attributes each regiment trains, and the relative weight a gain is directed into.
- * Covers all 8 attributes across the set; `balanced` spreads thinly over everything.
+ * `recovery` trains stamina lightly — its main benefit is a fitness recovery bonus applied
+ * in ClubManager.recoverFitness (RECOVERY_REGIMENT_MULT).
  */
 export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, number>>> = {
+  goalkeeping: { goalkeeping: 1 },
+  defending:   { defending: 2, strength: 1, stamina: 1, speed: 1 },
+  passing:     { passing: 2, technique: 2 },
+  crossing:    { passing: 2, speed: 2 },
+  dribbling:   { speed: 2, technique: 2 },
+  shooting:    { finishing: 3, technique: 1 },
+  heading:     { strength: 2, finishing: 1, defending: 1 },
   physical:    { speed: 1, strength: 1, stamina: 1 },
-  finishing:   { finishing: 2, technique: 1 },
-  playmaking:  { passing: 2, technique: 1 },
-  technique:   { technique: 2, speed: 1 },
-  defending:   { defending: 2, strength: 1 },
-  goalkeeping: { goalkeeping: 3 },
+  recovery:    { stamina: 1 },
   balanced:    {
     speed: 1, strength: 1, stamina: 1, passing: 1, technique: 1,
     finishing: 1, defending: 1, goalkeeping: 1,
   },
 };
+
+/** Extra fitness recovery multiplier applied when a player is on the Recovery regiment. */
+export const RECOVERY_REGIMENT_MULT = 1.5;
 
 // Physical attributes fade first — "legs before touch" — so decline is weighted toward them.
 const DECLINE_WEIGHTS: Partial<Record<AttrKey, number>> = {
@@ -183,4 +207,19 @@ export function developOverSeason(
   }
 
   return { attributes, age: player.age + 1 };
+}
+
+/** Default training regiment for a player based on position and age. Age overrides position:
+ *  young players build their athletic base; older players prioritise recovery. */
+export function defaultRegiment(position: PlayerPosition, age: number): RegimentId {
+  if (age <= 21) { return 'physical'; }
+  if (age >= 31) { return 'recovery'; }
+  switch (position) {
+    case 'GK':            return 'goalkeeping';
+    case 'CB':            return 'defending';
+    case 'LB': case 'RB': return 'crossing';
+    case 'LM': case 'RM': case 'CM': return 'passing';
+    case 'LW': case 'RW': return 'dribbling';
+    case 'ST':            return 'shooting';
+  }
 }

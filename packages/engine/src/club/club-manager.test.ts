@@ -1409,8 +1409,8 @@ describe('ClubManager training & development:', () => {
   test('setTraining sets a squad player\'s regiment', () => {
     const manager = new ClubManager(makeConfig());
     const id = manager.getState().squad[0].id;
-    manager.setTraining(id, 'finishing');
-    expect(manager.getState().squad.find(p => p.id === id)?.training).toBe('finishing');
+    manager.setTraining(id, 'shooting');
+    expect(manager.getState().squad.find(p => p.id === id)?.training).toBe('shooting');
   });
 
   test('a played match can improve starters (not the bench) — rng forced to hit', () => {

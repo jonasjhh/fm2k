@@ -59,7 +59,7 @@ export { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES } from '@fm2k/playe
 export type { PlayerInstruction, OverallDistribution, AttributeCategory } from '@fm2k/players';
 export { divisionOverallDistribution, divisionCategoryBias } from './player/generation-profile.ts';
 export {
-  trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, DEFAULT_REGIMENT,
+  trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, REGIMENT_DESCRIPTIONS, DEFAULT_REGIMENT, defaultRegiment,
 } from './player/progression.ts';
 export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
 export {

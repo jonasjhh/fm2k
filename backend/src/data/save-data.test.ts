@@ -120,13 +120,13 @@ describe('save-data round-trip:', () => {
 
   it('given a per-player training regiment then it survives the round-trip; unset stays unset', async () => {
     const squad: ClubPlayer[] = [
-      clubPlayer('tr1', { training: 'finishing' }),
+      clubPlayer('tr1', { training: 'shooting' }),
       clubPlayer('tr2'), // no regiment set — should remain unset (consumer defaults it)
     ];
     await writeSave(makeSave({ clubState: { budget: 1, squad } as unknown as ClubState }));
     const [loaded] = await readAllSaves();
     const byId = Object.fromEntries(loaded.clubState.squad.map(p => [p.id, p]));
-    expect(byId.tr1.training).toBe('finishing');
+    expect(byId.tr1.training).toBe('shooting');
     expect(byId.tr2.training).toBeUndefined();
   });
 

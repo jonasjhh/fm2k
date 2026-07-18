@@ -17,7 +17,7 @@ import type {
 import type { EventBus } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import {
-  trainOnMatch, DEFAULT_REGIMENT, type RegimentId,
+  trainOnMatch, DEFAULT_REGIMENT, RECOVERY_REGIMENT_MULT, type RegimentId,
 } from '../player/progression.ts';
 import {
   churnSquad, attributeDelta, generatorYouthFactory, type YouthFactory, type PlayerDelta,
@@ -652,7 +652,8 @@ export class ClubManager {
         const recoveryMult = FacilityManager.medicalAxes(state.facilities, player).recoveryMult;
         // 0.9–1.1x across the stamina range — deliberately tiny, not a tactical decision.
         const staminaMult = 0.9 + 0.2 * Math.max(0, Math.min(1, player.attributes.stamina / 99));
-        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * recoveryMult;
+        const regimentMult = player.training === 'recovery' ? RECOVERY_REGIMENT_MULT : 1;
+        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * recoveryMult * regimentMult;
         player.fitness = Math.min(1000, player.fitness + recovered);
       }
     });

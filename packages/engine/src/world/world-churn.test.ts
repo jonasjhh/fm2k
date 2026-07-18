@@ -173,7 +173,7 @@ describe('churnSquad:', () => {
 
   it('uses the supplied regiment for development', () => {
     const squad = [player({ id: 'x', age: 18, potential: 95 }, 40)];
-    const res = churnSquad(squad, opts(() => 0, { regimentOf: () => 'finishing' }));
+    const res = churnSquad(squad, opts(() => 0, { regimentOf: () => 'shooting' }));
     const grown = res.squad[0];
     expect(grown.attributes.finishing).toBeGreaterThan(40);
     expect(grown.attributes.defending).toBe(40);

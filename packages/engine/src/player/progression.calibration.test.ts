@@ -92,7 +92,7 @@ function runScenario(s: Scenario, n = 200, seedBase = 1): Aggregate {
 
 const N = 200;
 const youngFocus = (potential: number, facility: number): Scenario =>
-  ({ startAge: 17, potential, startAttr: 42, regiment: 'finishing', facility, seasons: 13 });
+  ({ startAge: 17, potential, startAttr: 42, regiment: 'shooting', facility, seasons: 13 });
 
 describe('progression calibration (career distributions):', () => {
   it('prints the career distribution table', () => {
