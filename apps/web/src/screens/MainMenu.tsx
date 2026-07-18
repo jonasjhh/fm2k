@@ -16,7 +16,7 @@ import SettingsDialog from '../components/ui/SettingsDialog';
 import LoadGameDialog from '../components/ui/LoadGameDialog';
 import { readAllSaves } from '@fm2k/backend';
 
-const FEATURES = ['8 nations', '384 clubs', 'Transfer market', 'Club facilities', 'Full season'];
+const FEATURES = ['Season-by-season progression', 'Build your stadium', 'Tactical formations & instructions', 'Transfer market', 'Match simulation', 'League & cup competitions', '8 nations · 384 clubs'];
 
 export default function MainMenu() {
   const setScreen = useGameStore((s) => s.setScreen);
