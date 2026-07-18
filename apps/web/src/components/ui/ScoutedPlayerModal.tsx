@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/game-store';
 import { fmt } from '../../utils/formatting';
 import { useBuyPlayerWithConfirm } from '../../utils/transfers';
 import PlayerDetailModal from './PlayerDetailModal';
+import { useDivisionPar } from '../../hooks/useDivisionPar';
 
 interface Props {
   squad: Player[];
@@ -27,6 +28,7 @@ export default function ScoutedPlayerModal({ squad, playerId, onClose, teamId, i
     getAskingPrice: s.getAskingPrice,
   })));
 
+  const par = useDivisionPar();
   const buyPlayerWithConfirm = useBuyPlayerWithConfirm();
 
   const player = playerId ? squad.find(p => p.id === playerId) ?? null : null;
@@ -42,6 +44,7 @@ export default function ScoutedPlayerModal({ squad, playerId, onClose, teamId, i
     <PlayerDetailModal
       player={player}
       onClose={onClose}
+      par={par}
       actions={
         price !== null && (
           <Button variant="contained" disabled={!transferWindow.open || !canAfford} onClick={handleBuy}>

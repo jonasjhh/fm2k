@@ -17,6 +17,7 @@ import { FORMATION_LINES, effectiveFormationLabel, emptySlotKey, selectStartingX
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
+import { useDivisionPar } from '../../hooks/useDivisionPar';
 import LineupPills from '../ui/LineupPills';
 import { TacticsPitch } from '../ui/TacticsPitch';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
@@ -64,6 +65,7 @@ export default function TacticsTab() {
   } = useLineupSlots();
 
   const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
+  const par = useDivisionPar();
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
   const teamColors = useClubColors();
@@ -227,6 +229,7 @@ export default function TacticsTab() {
       <PlayerDetailModal
         player={selectedPlayer}
         onClose={() => setSelectedPlayer(null)}
+        par={par}
       />
     </Box>
   );

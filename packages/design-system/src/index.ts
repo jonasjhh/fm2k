@@ -17,3 +17,4 @@ export { SelectorPanel } from './components/SelectorPanel.tsx';
 export { ButtonSelector } from './components/ButtonSelector.tsx';
 export type { SelectorOption } from './components/ButtonSelector.tsx';
 export { FormBadge } from './components/FormBadge.tsx';
+export { AttrBar } from './components/AttrBar.tsx';

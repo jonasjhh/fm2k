@@ -1,22 +1,21 @@
 import Box from '@mui/material/Box';
-import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 
-function tier(fitness: number): 'success' | 'warning' | 'error' {
-  return fitness >= 85 ? 'success' : fitness >= 60 ? 'warning' : 'error';
+function fitnessColor(fitness: number): string {
+  if (fitness >= 95) return '#00cc44';
+  if (fitness >= 85) return '#44aa22';
+  if (fitness >= 70) return '#e8d000';
+  if (fitness >= 55) return '#dd8800';
+  if (fitness >= 40) return '#cc2200';
+  return '#881030';
 }
 
-/** A fixed-width bar that fills/drains with a value from 0–100, colored by how low
- *  it is (green ≥85, amber ≥60, red below), with the value written on top. */
+/** A fixed-width bar that fills/drains with a value from 0–100, colored by fitness level. */
 export function FitnessBar({ fitness }: { fitness: number }) {
+  const color = fitnessColor(fitness);
   return (
-    <Box sx={{ position: 'relative', width: 56, height: 18 }}>
-      <LinearProgress
-        variant="determinate"
-        value={fitness}
-        color={tier(fitness)}
-        sx={{ height: 18, borderRadius: 1 }}
-      />
+    <Box sx={{ position: 'relative', width: 56, height: 18, borderRadius: 1, bgcolor: 'action.hover', overflow: 'hidden' }}>
+      <Box sx={{ position: 'absolute', inset: 0, width: `${fitness}%`, bgcolor: color }} />
       <Typography
         variant="caption"
         sx={{

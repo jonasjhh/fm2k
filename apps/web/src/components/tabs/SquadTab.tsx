@@ -21,6 +21,7 @@ import { useConfirm } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
 import LineupPills from '../ui/LineupPills';
+import { useDivisionPar } from '../../hooks/useDivisionPar';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function SquadTab() {
+  const par = useDivisionPar();
   const clubState = useGameStore((s) => s.clubState);
   const sellPlayer = useGameStore((s) => s.sellPlayer);
   const setStartingXI = useGameStore((s) => s.setStartingXI);
@@ -231,6 +233,7 @@ export default function SquadTab() {
       <PlayerDetailModal
         player={selectedPlayer}
         onClose={() => setSelectedPlayer(null)}
+        par={par}
         actions={
           selectedPlayer && (
             <Button

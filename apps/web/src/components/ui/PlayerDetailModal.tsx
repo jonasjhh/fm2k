@@ -14,23 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { fmt } from '../../utils/formatting';
 import { ATTR_GROUPS } from '../../lib/attribute-labels';
 import PlayerStatusChip from './PlayerStatusChip';
-
-export function AttrBar({ label, value }: { label: string; value: number }) {
-  const color = value >= 80 ? 'success.main' : value >= 65 ? 'warning.main' : 'error.light';
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-      <Typography variant="caption" sx={{ width: 76, color: 'text.secondary', flexShrink: 0 }}>
-        {label}
-      </Typography>
-      <Box sx={{ flex: 1, height: 6, borderRadius: 1, bgcolor: 'action.hover', overflow: 'hidden' }}>
-        <Box sx={{ height: '100%', width: `${value}%`, bgcolor: color, borderRadius: 1 }} />
-      </Box>
-      <Typography variant="caption" sx={{ width: 22, textAlign: 'right', fontWeight: 600 }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-}
+import { AttrBar } from '@fm2k/design-system';
 
 // ─── modal ────────────────────────────────────────────────────────────────────
 
@@ -42,9 +26,10 @@ interface PlayerDetailModalProps {
   player: ViewablePlayer | null;
   onClose: () => void;
   actions?: React.ReactNode;
+  par?: number;
 }
 
-export default function PlayerDetailModal({ player, onClose, actions }: PlayerDetailModalProps) {
+export default function PlayerDetailModal({ player, onClose, actions, par }: PlayerDetailModalProps) {
   const value = player ? playerValue(player) : 0;
 
   return (
@@ -107,7 +92,7 @@ export default function PlayerDetailModal({ player, onClose, actions }: PlayerDe
                     {group.label}
                   </Typography>
                   {group.attrs.map(({ key, label }) => (
-                    <AttrBar key={key} label={label} value={player.attributes[key]} />
+                    <AttrBar key={key} label={label} value={player.attributes[key]} par={par} />
                   ))}
                   {gi < ATTR_GROUPS.length - 1 && <Divider sx={{ mt: 1 }} />}
                 </Box>

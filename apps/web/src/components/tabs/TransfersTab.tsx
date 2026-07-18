@@ -25,8 +25,8 @@ import { calculateOverall, playerValue, valuePlayer, selectStartingXIWithSlots, 
 import type { Player } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
 import { useBuyPlayerWithConfirm } from '../../utils/transfers';
-import { SectionHeader } from '@fm2k/design-system';
-import { ScrollableTable } from '@fm2k/design-system';
+import { SectionHeader, ScrollableTable, AttrBar } from '@fm2k/design-system';
+import { useDivisionPar } from '../../hooks/useDivisionPar';
 
 const ROWS_PER_PAGE = 25;
 
@@ -46,21 +46,8 @@ const ATTR_GROUPS = [
   { label: 'Technical', keys: ['passing', 'technique', 'finishing', 'defending', 'keeping'] },
 ] as const;
 
-function AttrBar({ label, value }: { label: string; value: number }) {
-  const color = value >= 80 ? 'success.main' : value >= 65 ? 'warning.main' : 'error.light';
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-      <Typography variant="caption" sx={{ width: 76, color: 'text.secondary', flexShrink: 0, textTransform: 'capitalize' }}>{label}</Typography>
-      <Box sx={{ flex: 1, height: 6, borderRadius: 1, bgcolor: 'action.hover', overflow: 'hidden' }}>
-        <Box sx={{ height: '100%', width: `${value}%`, bgcolor: color, borderRadius: 1 }} />
-      </Box>
-      <Typography variant="caption" sx={{ width: 22, textAlign: 'right', fontWeight: 600 }}>{value}</Typography>
-    </Box>
-  );
-}
-
-function PlayerDetailPanel({ row, canAfford, windowOpen, onBuy }: {
-  row: PlayerRow; canAfford: boolean; windowOpen: boolean; onBuy: () => void;
+function PlayerDetailPanel({ row, canAfford, windowOpen, onBuy, par }: {
+  row: PlayerRow; canAfford: boolean; windowOpen: boolean; onBuy: () => void; par: number;
 }) {
   const { player } = row;
   return (
@@ -82,7 +69,7 @@ function PlayerDetailPanel({ row, canAfford, windowOpen, onBuy }: {
         {ATTR_GROUPS.map((group, gi) => (
           <Box key={group.label} sx={gi > 0 ? { mt: 1.5 } : {}}>
             <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', display: 'block', mb: 0.75 }}>{group.label}</Typography>
-            {group.keys.map((k) => <AttrBar key={k} label={k} value={player.attributes[k]} />)}
+            {group.keys.map((k) => <AttrBar key={k} label={k} value={player.attributes[k]} par={par} />)}
             {gi < ATTR_GROUPS.length - 1 && <Divider sx={{ mt: 1 }} />}
           </Box>
         ))}
@@ -122,6 +109,7 @@ export default function TransfersTab() {
   const buyPlayerWithConfirm = useBuyPlayerWithConfirm();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const par = useDivisionPar();
   const budget = clubState?.budget ?? 0;
   const windowOpen = transferWindow.open;
   const windowLabel = transferWindow.kind === 'pre_season' ? 'Pre-season'
@@ -309,6 +297,7 @@ export default function TransfersTab() {
               canAfford={budget >= selectedRow.price}
               windowOpen={windowOpen}
               onBuy={() => handleBuy(selectedRow)}
+              par={par}
             />
           </Box>
         )}

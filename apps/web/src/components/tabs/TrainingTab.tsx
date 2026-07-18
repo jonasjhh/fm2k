@@ -19,6 +19,7 @@ import { useGameStore } from '@/store/game-store';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
+import { useDivisionPar } from '../../hooks/useDivisionPar';
 
 const ATTR_SHORT: Record<keyof PlayerAttributes, string> = {
   speed: 'SPD', strength: 'STR', stamina: 'STA', passing: 'PAS', technique: 'TEC',
@@ -85,6 +86,7 @@ export default function TrainingTab() {
     setTraining: s.setTraining,
   })));
 
+  const par = useDivisionPar();
   const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'position', dir: 'asc' });
 
@@ -187,7 +189,7 @@ export default function TrainingTab() {
         </TableBody>
       </ScrollableTable>
 
-      <PlayerDetailModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+      <PlayerDetailModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} par={par} />
     </Box>
   );
 }
