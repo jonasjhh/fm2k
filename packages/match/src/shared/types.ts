@@ -91,7 +91,7 @@ export interface PlayerAttributes {
   technique: number;  // dribble-vs-tackle duels (attacking side), first touch, close control
   finishing: number;  // shot duels vs Keeping: shooting, converting chances, penalties
   defending: number;  // the defending side of dribble and pass duels: tackling, marking, reads
-  keeping: number;    // shot-stopping — the GK side of the shot duel; low for most outfielders
+  goalkeeping: number;    // shot-stopping — the GK side of the shot duel; low for most outfielders
 }
 
 export interface TeamColors {

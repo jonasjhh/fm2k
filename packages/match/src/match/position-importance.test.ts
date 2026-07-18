@@ -16,9 +16,9 @@ describe('positionAttributeImportance:', () => {
     expect(lw.finishing).toBeGreaterThan(0);
   });
 
-  it('a GK\'s keeping exposure comes from resisting shot duels and is dominant', () => {
+  it('a GK\'s goalkeeping exposure comes from resisting shot duels and is dominant', () => {
     const gk = positionAttributeImportance('GK');
-    expect(gk.keeping).toBeGreaterThan(0);
+    expect(gk.goalkeeping).toBeGreaterThan(0);
   });
 
   it('a GK takes no shot duels as the attacker, so finishing never appears', () => {

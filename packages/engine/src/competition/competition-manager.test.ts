@@ -31,7 +31,7 @@ function cupTeam(id: string): Team {
     id, name: id, formation: '4-4-2' as Formation, colors: { primary: '#fff', secondary: '#000' },
     squad: positions.map((p, i): Player => ({
       id: `${id}-p${i}`, name: `${id}-p${i}`, nationality: 'norwegian', age: 25, position: p, potential: 70,
-      attributes: { speed: 70, strength: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, keeping: 10 },
+      attributes: { speed: 70, strength: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, goalkeeping: 10 },
     })),
   };
 }

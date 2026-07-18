@@ -10,7 +10,7 @@ function player(id: string, position: PlayerPosition): Player {
     id, name: id, nationality: 'n', age: 25, position, potential: 70,
     attributes: {
       speed: 60, strength: 60, passing: 60, finishing: 60,
-      technique: 60, defending: 60, stamina: 60, keeping: 10,
+      technique: 60, defending: 60, stamina: 60, goalkeeping: 10,
     },
   };
 }

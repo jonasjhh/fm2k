@@ -266,7 +266,7 @@ describe('StateManager history & snapshots:', () => {
 
   test('given maxHistorySize then trims to the most recent snapshots', () => {
     // initial[0] + count1 + count2 = 3 entries > max 2, so the oldest (initial)
-    // is dropped, keeping exactly the two most recent in order.
+    // is dropped, goalkeeping exactly the two most recent in order.
     const sm = new StateManager<SimpleState>({ count: 0, message: 'a' }, { enableHistory: true, maxHistorySize: 2 });
     sm.updateState(d => { d.count = 1; });
     sm.updateState(d => { d.count = 2; });

@@ -1328,7 +1328,7 @@ export class GameSession {
   /** Auto-stream the player's match to the next stop: an intermission or full time,
    *  a sending-off in the player's fixture (a tactical response moment), or — when
    *  `maxMinutes` is set — the end of a streaming chunk (lets the UI interleave a
-   *  user-driven pause between chunks without any mid-tick interruption, keeping
+   *  user-driven pause between chunks without any mid-tick interruption, goalkeeping
    *  the rng stream untouched by when the pauses happen). */
   async advanceToNextStop(opts: { maxMinutes?: number } = {}): Promise<AdvanceResult> {
     if (!this.playerTeamId) { return this.idleResult(); }

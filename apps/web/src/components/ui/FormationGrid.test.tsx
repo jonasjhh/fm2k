@@ -4,7 +4,7 @@ import { FormationGrid } from './FormationGrid';
 
 const ATTRS: PlayerAttributes = {
   speed: 60, strength: 60, passing: 60, finishing: 60,
-  technique: 60, defending: 60, stamina: 60, keeping: 10,
+  technique: 60, defending: 60, stamina: 60, goalkeeping: 10,
 };
 
 function player(id: string, position: Player['position']): Player {

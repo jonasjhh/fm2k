@@ -14,7 +14,7 @@ import { formationToStyle, aiIntent } from './ai-style.ts';
 function attrs(value: number, overrides: Partial<PlayerAttributes> = {}): PlayerAttributes {
   return {
     speed: value, strength: value, passing: value, finishing: value,
-    technique: value, defending: value, stamina: value, keeping: 10,
+    technique: value, defending: value, stamina: value, goalkeeping: 10,
     ...overrides,
   };
 }

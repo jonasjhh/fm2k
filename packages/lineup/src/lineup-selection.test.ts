@@ -8,7 +8,7 @@ import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 function attrs(value: number): PlayerAttributes {
   return {
     speed: value, strength: value, passing: value, finishing: value,
-    technique: value, defending: value, stamina: value, keeping: 10,
+    technique: value, defending: value, stamina: value, goalkeeping: 10,
   };
 }
 

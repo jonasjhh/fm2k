@@ -13,7 +13,7 @@ const player = (id: string, attrs: Partial<Player['attributes']> = {}): Player =
   id, name: id, nationality: 'n', age: 25, position: 'CM', potential: 70,
   attributes: {
     speed: 50, strength: 50, stamina: 50, passing: 50,
-    technique: 50, finishing: 50, defending: 50, keeping: 10,
+    technique: 50, finishing: 50, defending: 50, goalkeeping: 10,
     ...attrs,
   },
 });
@@ -234,7 +234,7 @@ describe('shot chain:', () => {
     }),
     defending: team({
       side: 'away',
-      players: [{ id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { keeping: 60 } }],
+      players: [{ id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 60 } }],
       gkId: 'gk',
     }),
   });
@@ -298,7 +298,7 @@ describe('flowTick:', () => {
     const home = team({
       side: 'home',
       players: [
-        { id: 'gk', pos: { x: 0.5, y: 0.04 }, attrs: { keeping: 70 } },
+        { id: 'gk', pos: { x: 0.5, y: 0.04 }, attrs: { goalkeeping: 70 } },
         { id: 'cb', pos: { x: 0.5, y: 0.2 } },
       ],
       gkId: 'gk',

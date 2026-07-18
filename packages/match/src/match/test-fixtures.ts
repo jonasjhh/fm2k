@@ -5,7 +5,7 @@
 // Not exported from the package index; test-only.
 import type { Player, PlayerPosition, Team, Formation } from '../shared/types.ts';
 
-/** Position-aware profile: strong GK keeping/weak GK finishing, defending split by line. */
+/** Position-aware profile: strong GK goalkeeping/weak GK finishing, defending split by line. */
 export function createTestPlayer(id: string, name: string, position: PlayerPosition): Player {
   return {
     id,
@@ -17,7 +17,7 @@ export function createTestPlayer(id: string, name: string, position: PlayerPosit
     attributes: {
       speed: 70,
       strength: 70,
-      keeping: position === 'GK' ? 85 : 10,
+      goalkeeping: position === 'GK' ? 85 : 10,
       passing: 70,
       finishing: position === 'GK' ? 30 : 70,
       technique: 70,
@@ -34,7 +34,7 @@ export function createUniformPlayer(id: string, name: string, position: PlayerPo
     attributes: {
       speed: quality, strength: quality, passing: quality,
       finishing: quality, technique: quality, defending: quality,
-      stamina: quality === 70 ? 75 : quality, keeping: position === 'GK' ? quality : 10,
+      stamina: quality === 70 ? 75 : quality, goalkeeping: position === 'GK' ? quality : 10,
     },
   };
 }

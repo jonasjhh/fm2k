@@ -23,7 +23,7 @@ function mulberry32(seed: number): () => number {
 function attrs(v: number, stamina = v): PlayerAttributes {
   return {
     speed: v, strength: v, passing: v, finishing: v,
-    technique: v, defending: v, keeping: 10, stamina,
+    technique: v, defending: v, goalkeeping: 10, stamina,
   };
 }
 const F: [PlayerPosition, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];

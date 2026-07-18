@@ -23,7 +23,7 @@ export type SaveType = 'QUICK' | 'AUTO';
 // `countries` (mirroring the runtime `World` model) and dropped the hand-rolled pack/
 // unpack codec — old saves can't be migrated (MIN bumped too).
 // v13 reshaped PlayerAttributes from 10 to 8 (dropped agility/awareness/composure, added
-// keeping — REWORK_01.md Step 2) and removed the 'mentality' training regiment; attributes
+// goalkeeping — REWORK_01.md Step 2) and removed the 'mentality' training regiment; attributes
 // persist per-field, so old saves can't be migrated (MIN bumped too).
 // v14 added `transferFreeAgentAvailability` (per-free-agent AI pickup-delay dates; optional,
 // so v13 saves still load — a missing map just means every free agent is AI-visible).

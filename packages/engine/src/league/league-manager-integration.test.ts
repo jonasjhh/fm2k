@@ -21,7 +21,7 @@ function makePlayer(id: string): Player {
     attributes: {
       speed: 10, strength: 10,
       passing: 10, finishing: 10, technique: 10,
-      defending: 10, stamina: 10, keeping: 10,
+      defending: 10, stamina: 10, goalkeeping: 10,
     },
   };
 }

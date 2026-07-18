@@ -131,7 +131,7 @@ function renderTable(rows: ReturnType<typeof buildRow>[], nationality: string, d
       String(r.attrs.technique).padStart(3),
       String(r.attrs.finishing).padStart(3),
       String(r.attrs.defending).padStart(3),
-      String(r.attrs.keeping).padStart(3),
+      String(r.attrs.goalkeeping).padStart(3),
     ].join('  ');
     console.log(line);
   }

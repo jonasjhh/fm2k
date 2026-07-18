@@ -1,7 +1,7 @@
 import type { Player, PlayerAttributes } from './shared/types.ts';
 
 // Finishing + technique dominate, rest equal. Keeping is deliberately weightless for
-// now: v1 never rated GKs on a keeping stat, so this preserves pre-reshape overalls;
+// now: v1 never rated GKs on a goalkeeping stat, so this preserves pre-reshape overalls;
 // Step 5 rederives overall from duel exposure.
 export const OVERALL_WEIGHTS: Record<keyof PlayerAttributes, number> = {
   finishing:  0.16,
@@ -11,7 +11,7 @@ export const OVERALL_WEIGHTS: Record<keyof PlayerAttributes, number> = {
   strength:   0.13,
   defending:  0.14,
   stamina:    0.14,
-  keeping:    0,
+  goalkeeping:    0,
 };
 
 /** A player's overall rating from their attributes (weighted mean on the 1..99 scale). */

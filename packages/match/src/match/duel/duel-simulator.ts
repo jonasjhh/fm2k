@@ -159,7 +159,7 @@ export class DuelMatchSimulator {
     if (byPosition) { return byPosition.id; }
     let best: Player | null = null;
     for (const p of players) {
-      if (!best || p.attributes.keeping > best.attributes.keeping) { best = p; }
+      if (!best || p.attributes.goalkeeping > best.attributes.goalkeeping) { best = p; }
     }
     return best?.id ?? null;
   }

@@ -47,7 +47,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     attributes: {
       speed: 10, strength: 10,
       passing: 10, finishing: 10, technique: 10,
-      defending: 10, stamina: 10, keeping: 10,
+      defending: 10, stamina: 10, goalkeeping: 10,
     },
     ...overrides,
   } as Player;
@@ -1106,7 +1106,7 @@ describe('ClubManager (mutation top-up):', () => {
       expect(s.financialLog.find(t => t.type === 'transfer_out')?.description).toBe(`Sold ${name}`);
     });
 
-    test('removes a sold bench player from the bench list, keeping the others', () => {
+    test('removes a sold bench player from the bench list, goalkeeping the others', () => {
       const config = makeConfig();
       const manager = new ClubManager(config);
       const benchId = config.benchPlayers[0];
@@ -1157,7 +1157,7 @@ describe('ClubManager (mutation top-up):', () => {
 
   describe('processMatchResult', () => {
     function starterConfig(rng: () => number, bus: EventBus<GameEvents>, stamina = 10) {
-      const p = makePlayer({ attributes: { speed: 10, strength: 10, passing: 10, finishing: 10, technique: 10, defending: 10, keeping: 10, stamina } });
+      const p = makePlayer({ attributes: { speed: 10, strength: 10, passing: 10, finishing: 10, technique: 10, defending: 10, goalkeeping: 10, stamina } });
       return { p, config: makeConfig({ squad: [p], startingXI: [p.id], benchPlayers: [], eventBus: bus, rng }) };
     }
 

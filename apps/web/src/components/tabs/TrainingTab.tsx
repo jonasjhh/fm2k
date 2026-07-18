@@ -23,7 +23,7 @@ import { useDivisionPar } from '../../hooks/useDivisionPar';
 
 const ATTR_SHORT: Record<keyof PlayerAttributes, string> = {
   speed: 'SPD', strength: 'STR', stamina: 'STA', passing: 'PAS', technique: 'TEC',
-  finishing: 'FIN', defending: 'DEF', keeping: 'KEE',
+  finishing: 'FIN', defending: 'DEF', goalkeeping: 'GKE',
 };
 
 // ─── sorting ──────────────────────────────────────────────────────────────────

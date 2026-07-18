@@ -50,12 +50,12 @@ const ATTR_COLS: { key: keyof PlayerAttributes; label: string; full: string }[] 
   { key: 'technique', label: 'TEC', full: 'Technique' },
   { key: 'finishing', label: 'FIN', full: 'Finishing' },
   { key: 'defending', label: 'DEF', full: 'Defending' },
-  { key: 'keeping',   label: 'KEE', full: 'Keeping'   },
+  { key: 'goalkeeping',   label: 'GKE', full: 'Goalkeeping'   },
 ];
 
 const DEFAULT_ATTRS: PlayerAttributes = {
   speed: 50, strength: 50, stamina: 50, passing: 50, technique: 50,
-  finishing: 50, defending: 50, keeping: 50,
+  finishing: 50, defending: 50, goalkeeping: 50,
 };
 
 import { getContrastColor } from '../utils/colors';
@@ -193,7 +193,7 @@ export default function TeamEditor() {
     const rand = () => Math.floor(Math.random() * 60) + 30;
     setDraftAttrs({
       speed: rand(), strength: rand(), stamina: rand(), passing: rand(), technique: rand(),
-      finishing: rand(), defending: rand(), keeping: rand(),
+      finishing: rand(), defending: rand(), goalkeeping: rand(),
     });
   }
 

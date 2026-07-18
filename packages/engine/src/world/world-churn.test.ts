@@ -10,7 +10,7 @@ const NO_BIAS: YouthBias = {
 };
 
 function attrs(v: number): PlayerAttributes {
-  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, goalkeeping: 10 };
 }
 
 function player(over: Partial<Player> & { id: string }, attrValue = 60): Player {

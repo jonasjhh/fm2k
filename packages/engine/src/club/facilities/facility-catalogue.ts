@@ -56,7 +56,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   playerWelfareCentre: {
     name: 'Player Welfare Centre',
-    description: 'Sports psychology and concussion protocol, keeping players match-ready.',
+    description: 'Sports psychology and concussion protocol, goalkeeping players match-ready.',
     costTier: 'standard',
     buildCost: 100_000,
     tierUpkeep: [700, 1_500, 3_000],

@@ -11,7 +11,7 @@ function seq(values: number[]): () => number {
 }
 
 function attrs(v = 40): PlayerAttributes {
-  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, goalkeeping: 10 };
 }
 
 function player(over: Partial<Player> = {}, attrValue = 40): Player {

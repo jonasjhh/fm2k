@@ -34,7 +34,7 @@ const OUT_PATH = join(REPO_ROOT, 'CALIBRATION_REPORT.md');
 // ── matchup builders ──────────────────────────────────────────────────────────
 
 function attrs(v: number): PlayerAttributes {
-  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, goalkeeping: 10 };
 }
 
 const F442: [PlayerPosition, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];
@@ -43,7 +43,7 @@ function syntheticTeam(id: string, v: number): Team {
   const starters: Player[] = [];
   F442.forEach(([pos, n]) => {
     for (let i = 0; i < n; i++) {
-      const a = pos === 'GK' ? { ...attrs(v), keeping: v } : attrs(v);
+      const a = pos === 'GK' ? { ...attrs(v), goalkeeping: v } : attrs(v);
       starters.push({ id: `${id}-${pos}${i}`, name: id, nationality: 'n', age: 25, position: pos, potential: 70, attributes: a });
     }
   });
@@ -113,7 +113,7 @@ function runCell(input: DistributionInput, n: number): DistributionResult {
 function syntheticSection(lines: string[]): void {
   const N = 300;
   lines.push('## 1. Synthetic tiers — even matches', '');
-  lines.push(`Identical flat-attribute 4-4-2 teams (keeping = OVR for the GK), balanced style, neutral sliders. N=${N} per cell.`, '');
+  lines.push(`Identical flat-attribute 4-4-2 teams (goalkeeping = OVR for the GK), balanced style, neutral sliders. N=${N} per cell.`, '');
   lines.push(DIST_HEADER, DIST_ALIGN);
   const details: string[] = [];
   for (const v of [25, 40, 55, 70, 85]) {

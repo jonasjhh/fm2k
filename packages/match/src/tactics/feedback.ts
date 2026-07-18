@@ -111,7 +111,7 @@ function detectStyleMatchup(input: MatchInsightInput): ScoredInsight | null {
     insight: edge > 0
       ? {
         headline: 'Your game plan suited this opponent',
-        detail: `Playing ${style} lined up well against their defensive profile — your chances were worth more than usual. Worth keeping against similar sides.`,
+        detail: `Playing ${style} lined up well against their defensive profile — your chances were worth more than usual. Worth goalkeeping against similar sides.`,
         category: 'attack',
       }
       : {

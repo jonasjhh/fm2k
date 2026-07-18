@@ -56,7 +56,7 @@ export interface TraitProfile {
   craft: number;
   /** Finisher (+1) ↔ provider (−1): trades finishing against passing. */
   focus: number;
-  /** GK only — shot-stopper (+1) ↔ commanding sweeper (−1): trades keeping against defending/passing. */
+  /** GK only — shot-stopper (+1) ↔ commanding sweeper (−1): trades goalkeeping against defending/passing. */
   gk: number;
   /** 0 = complete player, 1 = extreme specialist; multiplies all axis displacements. */
   specialization: number;
@@ -94,7 +94,7 @@ export function traitDeltas(
     defending: -traits.craft * CRAFT_DEFENDING * s,
   };
   if (position === 'GK') {
-    d.keeping = traits.gk * GK_KEEPING * s;
+    d.goalkeeping = traits.gk * GK_KEEPING * s;
     d.defending = (d.defending ?? 0) - traits.gk * GK_DEFENDING * s;
     d.passing = (d.passing ?? 0) - traits.gk * GK_PASSING * s;
   }
@@ -168,7 +168,7 @@ export const POSITION_ARCHETYPES: Record<PlayerPosition, Record<string, Partial<
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
   'speed', 'strength', 'stamina', 'passing', 'technique',
-  'finishing', 'defending', 'keeping',
+  'finishing', 'defending', 'goalkeeping',
 ];
 
 /** Attribute groupings a caller can bias as a whole — e.g. "amateurs are technically rougher". */
@@ -176,7 +176,7 @@ export type AttributeCategory = 'physical' | 'technical';
 
 export const ATTRIBUTE_CATEGORIES: Record<AttributeCategory, (keyof PlayerAttributes)[]> = {
   physical:  ['speed', 'strength', 'stamina'],
-  technical: ['passing', 'finishing', 'technique', 'defending', 'keeping'],
+  technical: ['passing', 'finishing', 'technique', 'defending', 'goalkeeping'],
 };
 
 /** A normal distribution to sample a target overall from, instead of a fixed number. */
@@ -323,7 +323,7 @@ export class PlayerGenerator {
     // (it carries no overall weight, so this doesn't disturb the rescale above). The rare
     // outfield-keeper outlier is a Step 5.5 generator-rework concern (REWORK_01.md §10).
     if (position !== 'GK') {
-      result.keeping = clamp(1, 99, Math.round(5 + this.rng() * 15));
+      result.goalkeeping = clamp(1, 99, Math.round(5 + this.rng() * 15));
     }
     return result;
   }

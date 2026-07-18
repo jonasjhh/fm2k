@@ -105,7 +105,7 @@ describe('nearestTo:', () => {
 describe('movement:', () => {
   const player = (id: string, speed: number): Player => ({
     id, name: id, nationality: 'n', age: 25, position: 'CM', potential: 70,
-    attributes: { speed, strength: 50, stamina: 50, passing: 50, technique: 50, finishing: 50, defending: 50, keeping: 10 },
+    attributes: { speed, strength: 50, stamina: 50, passing: 50, technique: 50, finishing: 50, defending: 50, goalkeeping: 10 },
   });
 
   it('travelPerMinute scales with speed relative to the match mean, and fatigue', () => {

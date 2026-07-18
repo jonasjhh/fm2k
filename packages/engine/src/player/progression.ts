@@ -42,10 +42,10 @@ export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, numb
   playmaking:  { passing: 2, technique: 1 },
   technique:   { technique: 2, speed: 1 },
   defending:   { defending: 2, strength: 1 },
-  goalkeeping: { keeping: 3 },
+  goalkeeping: { goalkeeping: 3 },
   balanced:    {
     speed: 1, strength: 1, stamina: 1, passing: 1, technique: 1,
-    finishing: 1, defending: 1, keeping: 1,
+    finishing: 1, defending: 1, goalkeeping: 1,
   },
 };
 
@@ -53,7 +53,7 @@ export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, numb
 const DECLINE_WEIGHTS: Partial<Record<AttrKey, number>> = {
   speed: 3, stamina: 2, strength: 2,
   finishing: 1, defending: 1, passing: 1,
-  technique: 0.5, keeping: 0.5,
+  technique: 0.5, goalkeeping: 0.5,
 };
 
 // Tuning (deliberately modest — most players plateau well short of world class).

@@ -43,7 +43,7 @@ type SortDir = 'asc' | 'desc';
 
 const ATTR_GROUPS = [
   { label: 'Physical', keys: ['speed', 'strength', 'stamina'] },
-  { label: 'Technical', keys: ['passing', 'technique', 'finishing', 'defending', 'keeping'] },
+  { label: 'Technical', keys: ['passing', 'technique', 'finishing', 'defending', 'goalkeeping'] },
 ] as const;
 
 function PlayerDetailPanel({ row, canAfford, windowOpen, onBuy, par }: {

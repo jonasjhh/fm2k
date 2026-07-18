@@ -105,14 +105,14 @@ describe('attrFromJson / attrToJson:', () => {
     const json = { spd: 1, str: 2, sta: 3, pas: 4, tec: 5, fin: 6, def: 7, kee: 8 };
     expect(attrFromJson(json)).toEqual({
       speed: 1, strength: 2, stamina: 3, passing: 4, technique: 5,
-      finishing: 6, defending: 7, keeping: 8,
+      finishing: 6, defending: 7, goalkeeping: 8,
     });
   });
 
   it('given runtime attributes when converting to JSON then every key maps to its short name', () => {
     const attrs = {
       speed: 1, strength: 2, stamina: 3, passing: 4, technique: 5,
-      finishing: 6, defending: 7, keeping: 8,
+      finishing: 6, defending: 7, goalkeeping: 8,
     };
     expect(attrToJson(attrs)).toEqual({ spd: 1, str: 2, sta: 3, pas: 4, tec: 5, fin: 6, def: 7, kee: 8 });
   });
@@ -120,7 +120,7 @@ describe('attrFromJson / attrToJson:', () => {
   it('round-trips through both directions without loss', () => {
     const attrs = {
       speed: 11, strength: 22, stamina: 33, passing: 44, technique: 55,
-      finishing: 66, defending: 77, keeping: 88,
+      finishing: 66, defending: 77, goalkeeping: 88,
     };
     expect(attrFromJson(attrToJson(attrs))).toEqual(attrs);
   });

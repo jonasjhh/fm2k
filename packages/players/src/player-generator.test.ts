@@ -5,7 +5,7 @@ import {
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
   'speed', 'strength', 'stamina', 'passing', 'technique',
-  'finishing', 'defending', 'keeping',
+  'finishing', 'defending', 'goalkeeping',
 ];
 
 describe('PlayerGenerator:', () => {

@@ -45,7 +45,7 @@ function makeTeam(id: string, strength: number, formation: Formation): { team: T
     id: `${id}-${i}`, name: `${id} ${i}`, nationality: 'n', age: 25, position, potential: 80,
     attributes: {
       speed: strength, strength, stamina: strength, passing: strength, technique: strength,
-      finishing: strength, defending: strength, keeping: strength,
+      finishing: strength, defending: strength, goalkeeping: strength,
     },
   }));
   const { starters } = selectStartingXIWithSlots(squad, formation);

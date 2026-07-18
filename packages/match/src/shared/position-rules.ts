@@ -37,6 +37,6 @@ export function getEffectiveAttributes(player: Player, fieldedPosition: Formatio
     technique: Math.round(attrs.technique * modifier),
     finishing: Math.round(attrs.finishing * modifier),
     defending: Math.round(attrs.defending * modifier),
-    keeping:   Math.round(attrs.keeping   * modifier),
+    goalkeeping:   Math.round(attrs.goalkeeping   * modifier),
   };
 }

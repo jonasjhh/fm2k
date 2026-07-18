@@ -24,7 +24,7 @@ function mulberry32(seed: number): () => number {
 function attrs(v: number): PlayerAttributes {
   return {
     speed: v, strength: v, passing: v, finishing: v,
-    technique: v, defending: v, stamina: v, keeping: v,
+    technique: v, defending: v, stamina: v, goalkeeping: v,
   };
 }
 

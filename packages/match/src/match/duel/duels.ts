@@ -52,14 +52,14 @@ export const PASS_DUEL: DuelSpec = {
 /** Shot: Finishing vs Keeping. Goals are rare; the spread is flat so a hot striker
  *  against a poor keeper converts noticeably more, not absurdly more. */
 export const SHOT_DUEL: DuelSpec = {
-  type: 'shot', attackerAttr: 'finishing', defenderAttr: 'keeping',
+  type: 'shot', attackerAttr: 'finishing', defenderAttr: 'goalkeeping',
   baseChance: 0.16, spread: 800, lo: 0.02, hi: 0.45,
 };
 
 /** Penalty: heavily attacker-favoured, compressed spread — (Finishing+Technique)/2 vs
  *  Keeping (the caller blends the attacker attribute; the spec still names finishing). */
 export const PENALTY_DUEL: DuelSpec = {
-  type: 'shot', attackerAttr: 'finishing', defenderAttr: 'keeping',
+  type: 'shot', attackerAttr: 'finishing', defenderAttr: 'goalkeeping',
   baseChance: 0.76, spread: 300, lo: 0.6, hi: 0.9,
 };
 

@@ -671,7 +671,7 @@ export class ClubManager {
       id: '', name: '', nationality: this.nationality, age: 99, position: 'CM', potential: 0,
       attributes: state.squad[0]?.attributes ?? {
         speed: 0, strength: 0, stamina: 0, passing: 0, technique: 0,
-        finishing: 0, defending: 0, keeping: 0,
+        finishing: 0, defending: 0, goalkeeping: 0,
       },
     };
     const trainingAxes = FacilityManager.trainingAxes(state.facilities, referencePlayer);

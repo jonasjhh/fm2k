@@ -5,7 +5,7 @@ const basePlayer: Player = {
   id: 'p1', name: 'Test', nationality: 'norwegian', age: 25, position: 'CM', potential: 80,
   attributes: {
     speed: 80, strength: 80, passing: 80, finishing: 80,
-    technique: 80, defending: 80, stamina: 80, keeping: 10,
+    technique: 80, defending: 80, stamina: 80, goalkeeping: 10,
   },
 };
 

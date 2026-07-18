@@ -4,7 +4,7 @@ import type { Player, PlayerAttributes } from '@fm2k/match';
 function attrs(value: number): PlayerAttributes {
   return {
     speed: value, strength: value, passing: value, finishing: value,
-    technique: value, defending: value, stamina: value, keeping: 10,
+    technique: value, defending: value, stamina: value, goalkeeping: 10,
   };
 }
 
@@ -39,7 +39,7 @@ describe('playerValue:', () => {
     expect(playerValue(p({ age: 38, potential: 40, attributes: attrs(1) }))).toBe(1_000);
   });
 
-  describe('age value factor (boundaries, isolated from potential by keeping potential <= overall):', () => {
+  describe('age value factor (boundaries, isolated from potential by goalkeeping potential <= overall):', () => {
     // Same age tier → identical value; crossing a tier boundary → a strictly *lower* value
     // for the older age (not just "different" — a mutant that swaps which side of a boundary
     // wins would still produce two different numbers and slip past a plain inequality check).

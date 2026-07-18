@@ -22,7 +22,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 function attrs(v: number): PlayerAttributes {
-  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, goalkeeping: 10 };
 }
 const F: [PlayerPosition, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];
 function team(id: string, v: number): Team {

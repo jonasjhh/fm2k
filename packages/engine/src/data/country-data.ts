@@ -23,7 +23,7 @@ const ATTR_KEY_MAP: Record<keyof PlayerAttributes, keyof PlayerAttributesJson> =
   technique: 'tec',
   finishing: 'fin',
   defending: 'def',
-  keeping: 'kee',
+  goalkeeping: 'kee',
 };
 
 /** Maps a short-key on-disk row to the runtime `PlayerAttributes` shape. */

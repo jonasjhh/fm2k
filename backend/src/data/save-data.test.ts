@@ -24,7 +24,7 @@ import {
 function attrs(v: number): PlayerAttributes {
   return {
     speed: v, strength: v, passing: v, finishing: v,
-    technique: v, defending: v, stamina: v, keeping: 10,
+    technique: v, defending: v, stamina: v, goalkeeping: 10,
   };
 }
 

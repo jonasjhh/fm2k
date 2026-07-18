@@ -302,13 +302,13 @@ function resolveShot(
 ): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const gkId = defending.gkId;
-  const keeping = gkId ? attr(defending, gkId, 'keeping') : 25;
+  const goalkeeping = gkId ? attr(defending, gkId, 'goalkeeping') : 25;
   const spec = opts?.spec ?? SHOT_DUEL;
   const finishing = spec === PENALTY_DUEL
     ? (attr(attacking, shooterId, 'finishing') + attr(attacking, shooterId, 'technique')) / 2
     : attr(attacking, shooterId, 'finishing');
   const bonus = (opts?.bonus ?? 0) + shotBonus(attacking);
-  const outcome = resolveDuel(finishing, keeping, spec, rng, { bonus });
+  const outcome = resolveDuel(finishing, goalkeeping, spec, rng, { bonus });
   const shooter = name(attacking, shooterId);
   const label = opts?.label ?? 'shot';
 

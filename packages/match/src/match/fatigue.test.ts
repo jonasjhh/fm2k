@@ -8,7 +8,7 @@ import type { Player, PlayerAttributes } from '../shared/types.ts';
 function attrs(v: number, over: Partial<PlayerAttributes> = {}): PlayerAttributes {
   return {
     speed: v, strength: v, passing: v, finishing: v,
-    technique: v, defending: v, stamina: v, keeping: 10, ...over,
+    technique: v, defending: v, stamina: v, goalkeeping: 10, ...over,
   };
 }
 function player(position: Player['position'], a: PlayerAttributes): Player {
@@ -59,8 +59,8 @@ describe('fatigue — drain factors (neutral at 50):', () => {
 
 describe('fatigue — per-minute drain:', () => {
   it('a low-stamina player drains faster than a high-stamina one in the same role', () => {
-    const low = player('CM', attrs(50, { stamina: 20 , keeping: 10 }));
-    const high = player('CM', attrs(50, { stamina: 95 , keeping: 10 }));
+    const low = player('CM', attrs(50, { stamina: 20 , goalkeeping: 10 }));
+    const high = player('CM', attrs(50, { stamina: 95 , goalkeeping: 10 }));
     expect(perMinuteDrain(low, '4-4-2', NEUTRAL_PARAMS)).toBeGreaterThan(
       perMinuteDrain(high, '4-4-2', NEUTRAL_PARAMS));
   });

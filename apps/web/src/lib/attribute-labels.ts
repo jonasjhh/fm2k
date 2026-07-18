@@ -18,7 +18,7 @@ export const ATTR_GROUPS = [
       { key: 'technique', label: 'Technique' },
       { key: 'finishing', label: 'Finishing' },
       { key: 'defending', label: 'Defending' },
-      { key: 'keeping', label: 'Keeping' },
+      { key: 'goalkeeping', label: 'Goalkeeping' },
     ],
   },
 ] as const;
