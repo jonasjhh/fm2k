@@ -12,7 +12,6 @@ export { STYLE_TENDENCIES } from './style-tendencies.ts';
 
 export { formationToStyle, aiIntent } from './ai-style.ts';
 export { combine } from './translate.ts';
-export { applySquadDistortion } from './squad-influence.ts';
 export { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 export { resolveMatchParameters, TYPICAL_EFF } from './resolve.ts';
 

@@ -1,11 +1,11 @@
-import type { MatchEvent, MatchStatistics } from './types.ts';
-import type { ActionType } from './action-selector.ts';
+import type { MatchEvent, MatchStatistics, DuelTally } from './types.ts';
+import type { DuelType } from './duel/duels.ts';
 
 /** The contested outfield actions tracked in `MatchStatistics.actionBreakdown` (shots are
  *  covered by the shots/shotsOnTarget counters instead — they're resolved by the keeper,
  *  not an outfield contest). */
 export const CONTESTED_ACTION_TYPES = ['short_pass', 'long_pass', 'through_ball', 'cross', 'dribble'] as const;
-export type ContestedActionType = Extract<ActionType, (typeof CONTESTED_ACTION_TYPES)[number]>;
+export type ContestedActionType = (typeof CONTESTED_ACTION_TYPES)[number];
 
 /** Which contested actions count toward the pass-completion stat. */
 const PASS_ACTION_TYPES = new Set<string>(['short_pass', 'long_pass', 'through_ball']);
@@ -45,12 +45,17 @@ interface SideCounters {
   passesCompleted: number;
   passesAttempted: number;
   actions: ActionBreakdown;
+  duelsWon: DuelTally;
+}
+
+function emptyDuelTally(): DuelTally {
+  return { speed: 0, strength: 0, dribble: 0, pass: 0, shot: 0 };
 }
 
 function emptySide(): SideCounters {
   return {
     events: 0, shots: 0, goals: 0, lateGoals: 0, fastBreakGoals: 0, saves: 0, corners: 0, fouls: 0, yellow: 0, red: 0,
-    passesCompleted: 0, passesAttempted: 0, actions: emptyBreakdown(),
+    passesCompleted: 0, passesAttempted: 0, actions: emptyBreakdown(), duelsWon: emptyDuelTally(),
   };
 }
 
@@ -110,6 +115,13 @@ export class StatsAccumulator {
       case 'foul': side.fouls++; break;
       case 'yellow_card': side.yellow++; break;
       case 'red_card': side.red++; break;
+      }
+
+      // Duels won by type: every contested event carries the duel that resolved it
+      // (v2 metadata) — the post-match "who won the football" stat.
+      const duel = e.metadata?.duel as { duelType?: DuelType; winnerSide?: 'home' | 'away' } | undefined;
+      if (duel?.duelType && duel.winnerSide) {
+        (duel.winnerSide === 'home' ? this.home : this.away).duelsWon[duel.duelType]++;
       }
 
       if (e.playerId && RATING_DELTA[e.type] !== undefined) {
@@ -201,6 +213,7 @@ export class StatsAccumulator {
       lateGoals: { home: this.home.lateGoals, away: this.away.lateGoals },
       fastBreakGoals: { home: this.home.fastBreakGoals, away: this.away.fastBreakGoals },
       actionBreakdown: { home: this.home.actions, away: this.away.actions },
+      duelsWon: { home: { ...this.home.duelsWon }, away: { ...this.away.duelsWon } },
       playerRatings,
     };
   }

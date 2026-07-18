@@ -2,12 +2,12 @@ import type { Player } from '../shared/types.ts';
 import type { TeamTacticsIntent } from './intent-types.ts';
 import { type MatchParameters, clampParam } from './match-parameters.ts';
 import { combine } from './translate.ts';
-import { applySquadDistortion } from './squad-influence.ts';
 import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 
-/** Attack effectiveness of an even, league-average matchup — the no-edge baseline.
- *  Exported for the post-match insight detectors (matchup verdict vs "typical"). */
-export const TYPICAL_EFF = 0.46;
+/** Attack effectiveness of an even, no-edge matchup: both sides at BASELINE_SUIT
+ *  (suitability is fit-relative, so this holds at every tier). Exported for the
+ *  post-match insight detectors (matchup verdict vs "typical"). */
+export const TYPICAL_EFF = 0.426;
 
 /** Keep a suitability multiplier in a sane band so no single match explodes. */
 function clampMult(m: number): number {
@@ -17,7 +17,6 @@ function clampMult(m: number): number {
 /**
  * The single composition seam used by the session. Runs the full pipeline:
  *   intent  → translate (formation + style + sliders)
- *           → squad distortion (own XI)
  *           → asymmetric attack effectiveness (vs opponent XI, if known)
  *
  * `oppXi` is supplied when building a specific match, where both lineups are
@@ -30,7 +29,6 @@ export function resolveMatchParameters(
   oppXi?: Player[],
 ): MatchParameters {
   let params = combine(intent.formation, intent.style, intent.sliders);
-  params = applySquadDistortion(params, ownXi);
 
   if (oppXi && oppXi.length > 0) {
     const eff = attackEffectiveness(squadSuitability(intent, ownXi), defensiveSuitability(oppXi));

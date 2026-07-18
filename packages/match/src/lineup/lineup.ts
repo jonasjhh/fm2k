@@ -1,5 +1,5 @@
-import type { Formation, Player, FormationPosition, FieldedPositions, PlayerGeometry, Band } from '../shared/types.ts';
-import { BAND_OF_ROLE, BAND_TO_FIELD_LINE, BAND_ORDER, flankOfLateral, type FieldedGeometry } from '../match/action-selector.ts';
+import type { Formation, Player, FormationPosition, FieldedPositions, PlayerGeometry, TeamShapes, Band } from '../shared/types.ts';
+import { BAND_OF_ROLE, BAND_TO_FIELD_LINE, BAND_ORDER, flankOfLateral, type FieldedGeometry } from './bands.ts';
 
 /** Pitch slots (by position) for each formation, ordered back-to-front. */
 export const FORMATION_LINES: Record<Formation, string[][]> = {
@@ -62,17 +62,49 @@ export function deriveFieldedPositions(starters: Player[], formation: Formation)
   return out;
 }
 
-/** Build FieldedPositions (role) and FieldedGeometry (zone-weighting line/flank) straight
- *  from manager-chosen per-player geometry — the free-positioning counterpart to
- *  deriveFieldedPositions, used once a player's layout has departed from every predefined
- *  formation template. */
+/** The FormationPosition label a shape member's geometry implies, given their lateral
+ *  index `i` among `n` sorted band-mates. Reproduces every predefined formation's slot
+ *  names exactly when applied to its canonical geometry: a 4-or-5-wide back line gets
+ *  wide defenders on its ends (5-wide = wing-backs), a 4+-wide midfield gets LM/RM, a
+ *  3+-wide front line gets wingers; everything else is the band's central role. */
+function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number): FormationPosition {
+  const edge = n > 1 && i === 0 ? 'L' : n > 1 && i === n - 1 ? 'R' : null;
+  switch (band) {
+    case 'DEF':
+      if (n >= 4 && edge) { return n >= 5 ? (edge === 'L' ? 'LWB' : 'RWB') : (edge === 'L' ? 'LB' : 'RB'); }
+      return 'CB';
+    case 'DM': return 'DM';
+    case 'MID': return n >= 4 && edge ? (edge === 'L' ? 'LM' : 'RM') : 'CM';
+    case 'AM': return 'AM';
+    case 'ATT': return n >= 3 && edge ? (edge === 'L' ? 'LW' : 'RW') : 'ST';
+  }
+}
+
+/** Derive every member's effective FormationPosition from a shape's geometry alone —
+ *  behavioral roles no longer exist as stored state (REWORK_01.md ruling: dual shapes
+ *  replace them), so this is the single source of "what position is this player playing":
+ *  the v1 sim's fielded positions and every UI label resolve through it. Ties in lateral
+ *  are broken by id, so the result is deterministic. */
+export function deriveRolesForShape(shape: Record<string, PlayerGeometry>): Record<string, FormationPosition> {
+  const out: Record<string, FormationPosition> = {};
+  for (const band of BAND_ORDER) {
+    const members = Object.entries(shape)
+      .filter(([, g]) => g.band === band)
+      .sort((a, b) => a[1].lateral - b[1].lateral || a[0].localeCompare(b[0]));
+    members.forEach(([id], i) => { out[id] = roleForBandSlot(band, i, members.length); });
+  }
+  return out;
+}
+
+/** Build FieldedPositions (derived role labels) and FieldedGeometry (zone-weighting
+ *  line/flank) straight from one shape's manager-chosen anchors — the free-positioning
+ *  counterpart to deriveFieldedPositions. The v1 sim feeds this the defending shape. */
 export function deriveCustomFieldedPositions(
   geometry: Record<string, PlayerGeometry>,
 ): { fieldedPositions: FieldedPositions; fieldedGeometry: FieldedGeometry } {
-  const fieldedPositions: FieldedPositions = {};
+  const fieldedPositions = deriveRolesForShape(geometry);
   const fieldedGeometry: FieldedGeometry = {};
   for (const [playerId, g] of Object.entries(geometry)) {
-    fieldedPositions[playerId] = g.role;
     fieldedGeometry[playerId] = { line: BAND_TO_FIELD_LINE[g.band], flank: flankOfLateral(g.lateral) };
   }
   return { fieldedPositions, fieldedGeometry };
@@ -83,8 +115,8 @@ export function deriveCustomFieldedPositions(
  *  `FORMATION_LINES[formation].flat()` minus its leading GK entry. Derived from
  *  FORMATION_LINES + BAND_OF_ROLE rather than hand-authored, so it can't drift from the
  *  formation table: each row's band comes from its first slot's role, and each slot's
- *  lateral position is evenly spaced across its row by index. Used both to seed
- *  `customSlots` the first time a manager drags a circle off a predefined template, and to
+ *  lateral position is evenly spaced across its row by index. Used both to seed a team's
+ *  shapes the first time a manager drags a circle off a predefined template, and to
  *  detect whether an edited layout still matches one (for UI highlighting). */
 export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
   const lines = FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2'];
@@ -93,9 +125,9 @@ export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
     if (row[0] === 'GK') { continue; }
     const band = BAND_OF_ROLE[row[0] as FormationPosition] as Exclude<Band, 'GK'>;
     const n = row.length;
-    row.forEach((slotRole, i) => {
+    row.forEach((_slotRole, i) => {
       const lateral = n === 1 ? 0 : (i - (n - 1) / 2) / ((n - 1) / 2);
-      out.push({ band, lateral, role: slotRole as FormationPosition });
+      out.push({ band, lateral });
     });
   }
   return out;
@@ -103,7 +135,7 @@ export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
 
 /** A predefined formation's canonical geometry, keyed by player id instead of slot index —
  *  zips `canonicalGeometry(formation)` against the starting XI's outfielders (slot 0 is
- *  always GK, per the trust contract above). Used both to seed `customSlots` the first
+ *  always GK, per the trust contract above). Used both to seed a team's shapes the first
  *  time a manager edits a predefined layout, and by the UI to render one before any
  *  customization has happened. */
 export function seedGeometryFromFormation(
@@ -112,23 +144,20 @@ export function seedGeometryFromFormation(
   const canon = canonicalGeometry(formation);
   const outfielders = startingXI.slice(1);
   const out: Record<string, PlayerGeometry> = {};
-  outfielders.forEach((id, i) => { if (id && canon[i]) { out[id] = canon[i]; } });
+  outfielders.forEach((id, i) => { if (id && canon[i]) { out[id] = { ...canon[i] }; } });
   return out;
 }
 
-/** A fielded player's effective role: their customSlots override if free-positioned, else
- *  whatever template position they'd occupy by default. The single source of truth for "what
- *  position is this player actually playing" — every display that shows a fielded position
- *  label should resolve it through here rather than reading FORMATION_LINES/customSlots
- *  directly, so the two can never silently diverge again. */
-export function effectiveRole(
-  playerId: string | null,
-  templateRole: FormationPosition,
-  customSlots: Record<string, PlayerGeometry> | null,
-  emptySlotRole?: FormationPosition | null,
-): FormationPosition {
-  if (!playerId) { return emptySlotRole ?? templateRole; }
-  return customSlots?.[playerId]?.role ?? templateRole;
+/** Seed both shapes of a TeamShapes identically from a predefined formation — the preset
+ *  starting point; arrows appear only once the manager edits one shape away from the
+ *  other. The two records are independent copies, never shared references. */
+export function seedShapesFromFormation(
+  formation: Formation, startingXI: readonly (string | null)[],
+): TeamShapes {
+  return {
+    attacking: seedGeometryFromFormation(formation, startingXI),
+    defending: seedGeometryFromFormation(formation, startingXI),
+  };
 }
 
 /** Synthetic key for "this slot, when empty", distinct from any real player id — used both to
@@ -138,33 +167,31 @@ export function emptySlotKey(slotIndex: number): string {
   return `__empty-${slotIndex}`;
 }
 
-/** Display rank for ordering a fielded squad's pills/rows, paired with effectiveRole above for
- *  the label: when customSlots is set, ranks the GK first, then groups by band back-to-front
- *  (the reverse of BAND_ORDER, to preserve the table's existing defense-first reading and only
- *  reorder when a player's band actually changes), sorted by lateral within a band — mirroring
- *  how TacticsPitch lays the same data out. An empty slot is ranked too, keyed by
- *  `emptySlotKey` rather than a player id, using its captured `emptySlotRoles` geometry (a
- *  vacated custom-banded slot) if present, else the formation's canonical geometry for that
- *  slot — so an empty slot sorts among its actual band's pills, not its template one. Falls
- *  back to natural slot-index order (today's only behavior) when customSlots is null, so the
- *  common, non-customized case is unchanged. `slotAssignments` is the 15-length (11 starters
- *  incl. GK at index 0, then 4 bench) array from buildSlotAssignments/the lineup-editing UI's
- *  local state. */
+/** Display rank for ordering a fielded squad's pills/rows, paired with deriveRolesForShape
+ *  for the label: when a custom shape is set, ranks the GK first, then groups by band
+ *  back-to-front (the reverse of BAND_ORDER, to preserve the table's existing defense-first
+ *  reading and only reorder when a player's band actually changes), sorted by lateral within
+ *  a band — mirroring how TacticsPitch lays the same data out. An empty slot is ranked too,
+ *  keyed by `emptySlotKey` rather than a player id, at the formation's canonical geometry
+ *  for that slot. Falls back to natural slot-index order when `shape` is null, so the
+ *  common, non-customized case is unchanged. `shape` is whichever single shape the caller
+ *  is displaying (the defending shape, for list views). `slotAssignments` is the 15-length
+ *  (11 starters incl. GK at index 0, then 4 bench) array from buildSlotAssignments/the
+ *  lineup-editing UI's local state. */
 export function effectiveDisplayOrder(
   slotAssignments: readonly (string | null)[],
-  customSlots: Record<string, PlayerGeometry> | null,
+  shape: Record<string, PlayerGeometry> | null,
   formation: Formation,
-  emptySlotRoles: Partial<Record<number, PlayerGeometry>> | null,
 ): Map<string, number> {
   const order = new Map<string, number>();
-  if (!customSlots) {
+  if (!shape) {
     slotAssignments.forEach((id, i) => { if (id) { order.set(id, i); } });
     return order;
   }
   const canon = canonicalGeometry(formation);
   const geometryOf = (i: number): PlayerGeometry | undefined => {
     const id = slotAssignments[i];
-    return id ? (customSlots[id] ?? canon[i - 1]) : (emptySlotRoles?.[i] ?? canon[i - 1]);
+    return id ? (shape[id] ?? canon[i - 1]) : canon[i - 1];
   };
   let rank = 0;
   const gkId = slotAssignments[0];
@@ -181,27 +208,33 @@ export function effectiveDisplayOrder(
 
 const LATERAL_MATCH_TOLERANCE = 0.05;
 
-/** Which predefined Formation (if any) a club's current layout matches — `customSlots` if
- *  set, else `formation` as-is. Display-only (drives UI pill highlighting); never affects
- *  how a match is actually built. */
+function sameGeometry(a: PlayerGeometry | undefined, b: PlayerGeometry | undefined): boolean {
+  if (!a || !b) { return a === b; }
+  return a.band === b.band && Math.abs(a.lateral - b.lateral) < LATERAL_MATCH_TOLERANCE;
+}
+
+/** Which predefined Formation (if any) a club's current layout matches — `shapes` if set,
+ *  else `formation` as-is. A team whose two shapes differ anywhere (i.e. any arrow exists)
+ *  is always 'custom'; otherwise the (identical) defending shape is reverse-mapped against
+ *  every preset's canonical geometry. Display-only (drives UI pill highlighting); never
+ *  affects how a match is actually built. */
 export function effectiveFormationLabel(
   formation: Formation,
   startingXI: readonly (string | null)[],
-  customSlots: Record<string, PlayerGeometry> | null,
+  shapes: TeamShapes | null,
 ): Formation | 'custom' {
-  if (!customSlots) { return formation; }
+  if (!shapes) { return formation; }
 
-  const ordered = startingXI.slice(1)
-    .filter((id): id is string => id !== null)
-    .map(id => customSlots[id])
+  const ids = startingXI.slice(1).filter((id): id is string => id !== null);
+  if (ids.some(id => !sameGeometry(shapes.attacking[id], shapes.defending[id]))) { return 'custom'; }
+
+  const ordered = ids
+    .map(id => shapes.defending[id])
     .filter((g): g is PlayerGeometry => !!g);
   for (const candidate of Object.keys(FORMATION_LINES) as Formation[]) {
     const canon = canonicalGeometry(candidate);
     if (canon.length !== ordered.length) { continue; }
-    const matches = canon.every((g, i) => (
-      g.band === ordered[i].band && g.role === ordered[i].role
-      && Math.abs(g.lateral - ordered[i].lateral) < LATERAL_MATCH_TOLERANCE
-    ));
+    const matches = canon.every((g, i) => sameGeometry(g, ordered[i]));
     if (matches) { return candidate; }
   }
   return 'custom';

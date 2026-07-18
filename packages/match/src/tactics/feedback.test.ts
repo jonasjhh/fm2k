@@ -165,6 +165,62 @@ describe('buildMatchInsights:', () => {
     expect(buildMatchInsights(oneGoal)).toEqual([]);
   });
 
+  test('lopsided duel tallies fire the dominance story, both ways', () => {
+    const won = stats();
+    won.duelsWon = {
+      home: { speed: 12, strength: 5, dribble: 5, pass: 5, shot: 0 },
+      away: { speed: 3, strength: 5, dribble: 5, pass: 5, shot: 0 },
+    };
+    const wonInsights = buildMatchInsights(input({ statistics: won }));
+    const footRaces = wonInsights.find(x => x.headline === 'You won the foot races');
+    expect(footRaces?.detail).toContain('(12–3 in speed duels.)');
+
+    const lost = stats();
+    lost.duelsWon = {
+      home: { speed: 5, strength: 5, dribble: 4, pass: 5, shot: 0 },
+      away: { speed: 5, strength: 5, dribble: 11, pass: 5, shot: 0 },
+    };
+    expect(headlines(input({ statistics: lost }))).toContain('You lost the one-on-ones');
+  });
+
+  test('the duel detector picks the MOST one-sided type when several clear the bar', () => {
+    const s = stats();
+    s.duelsWon = {
+      home: { speed: 9, strength: 12, dribble: 0, pass: 0, shot: 0 },   // 64% vs 86%
+      away: { speed: 5, strength: 2, dribble: 0, pass: 0, shot: 0 },
+    };
+    expect(headlines(input({ statistics: s }))[0]).toBe('You won the physical battle');
+  });
+
+  test('the duel detector stays quiet on small samples, near-even shares, or missing tallies', () => {
+    const small = stats();
+    small.duelsWon = {
+      home: { speed: 8, strength: 0, dribble: 0, pass: 0, shot: 0 },    // total 11 < 12
+      away: { speed: 3, strength: 0, dribble: 0, pass: 0, shot: 0 },
+    };
+    expect(buildMatchInsights(input({ statistics: small }))).toEqual([]);
+
+    const even = stats();
+    even.duelsWon = {
+      home: { speed: 12, strength: 0, dribble: 0, pass: 0, shot: 0 },   // 60% < 62%
+      away: { speed: 8, strength: 0, dribble: 0, pass: 0, shot: 0 },
+    };
+    expect(buildMatchInsights(input({ statistics: even }))).toEqual([]);
+
+    const pre = stats();
+    delete pre.duelsWon; // a result recorded before Step 5
+    expect(buildMatchInsights(input({ statistics: pre }))).toEqual([]);
+  });
+
+  test('shot duels never fire the dominance story (shots on target already tell it)', () => {
+    const s = stats();
+    s.duelsWon = {
+      home: { speed: 0, strength: 0, dribble: 0, pass: 0, shot: 20 },
+      away: { speed: 0, strength: 0, dribble: 0, pass: 0, shot: 2 },
+    };
+    expect(buildMatchInsights(input({ statistics: s }))).toEqual([]);
+  });
+
   test('style matchup verdict needs intent + opponent XI, and reports a clear edge', () => {
     // without them, no matchup insight even in a lopsided game
     expect(buildMatchInsights(input({ homeScore: 4 }))).toEqual([]);

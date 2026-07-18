@@ -23,9 +23,9 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
     id: 'p1', name: 'Test Player', nationality: 'norwegian', age: 25, position: 'CM', potential: 70,
     attributes: {
-      speed: 10, strength: 10, agility: 10,
+      speed: 10, strength: 10,
       passing: 10, finishing: 10, technique: 10,
-      defending: 10, stamina: 10, awareness: 10, composure: 10,
+      defending: 10, stamina: 10,
     },
     ...overrides,
   } as Player;

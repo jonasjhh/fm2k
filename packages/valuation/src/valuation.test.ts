@@ -3,8 +3,8 @@ import type { Player, PlayerAttributes } from '@fm2k/match';
 
 function attrs(value: number): PlayerAttributes {
   return {
-    speed: value, strength: value, agility: value, passing: value, finishing: value,
-    technique: value, defending: value, stamina: value, awareness: value, composure: value,
+    speed: value, strength: value, passing: value, finishing: value,
+    technique: value, defending: value, stamina: value, keeping: 10,
   };
 }
 
@@ -81,13 +81,13 @@ describe('playerValue:', () => {
       // gap = max(0, potential - overall); both of these clamp to gap 0 — guards against the
       // floor flipping to Math.min, and against the subtraction flipping to addition (which
       // would NOT cancel out at potential == overall: it would yield 2 * overall instead of 0).
-      const atOverall = playerValue(p({ age: 21, potential: 55, attributes: attrs(50) })); // overall 55
+      const atOverall = playerValue(p({ age: 21, potential: 50, attributes: attrs(50) })); // overall 50
       const wellBelow = playerValue(p({ age: 21, potential: 30, attributes: attrs(50) }));
       expect(atOverall).toBe(wellBelow);
     });
 
     it('the same potential gap is worth strictly less as the player ages past 23, then past 26', () => {
-      const valueAt = (age: number) => playerValue(p({ age, potential: 65, attributes: attrs(50) })); // overall 55, gap 10
+      const valueAt = (age: number) => playerValue(p({ age, potential: 65, attributes: attrs(50) })); // overall 50, gap 15
       const young = valueAt(21);   // weight 0.03 (age <= 23)
       const mid = valueAt(25);     // weight 0.015 (23 < age <= 26)
       const old = valueAt(27);     // weight 0 (age > 26)
@@ -96,7 +96,7 @@ describe('playerValue:', () => {
     });
 
     it('weight tier boundaries land exactly at 23 and 26, not one age either side', () => {
-      const valueAt = (age: number) => playerValue(p({ age, potential: 65, attributes: attrs(50) })); // overall 55, gap 10
+      const valueAt = (age: number) => playerValue(p({ age, potential: 65, attributes: attrs(50) })); // overall 50, gap 15
       // 22 and 23 are both in the <=23 tier (weight 0.03) — equal.
       expect(valueAt(22)).toBe(valueAt(23));
       // 23 → 24 crosses into the <=26 tier (weight 0.015) — strictly lower.

@@ -1,17 +1,17 @@
 import type { Player, PlayerAttributes } from './shared/types.ts';
 
-// Weights from the plan: finishing + technique dominate, rest equal.
+// Finishing + technique dominate, rest equal. Keeping is deliberately weightless for
+// now: v1 never rated GKs on a keeping stat, so this preserves pre-reshape overalls;
+// Step 5 rederives overall from duel exposure.
 export const OVERALL_WEIGHTS: Record<keyof PlayerAttributes, number> = {
-  finishing:  0.15,
-  technique:  0.15,
-  passing:    0.1,
-  speed:      0.1,
-  strength:   0.1,
-  defending:  0.1,
-  stamina:    0.1,
-  agility:    0.1,
-  awareness:  0.1,
-  composure:  0.1,
+  finishing:  0.16,
+  technique:  0.16,
+  passing:    0.13,
+  speed:      0.14,
+  strength:   0.13,
+  defending:  0.14,
+  stamina:    0.14,
+  keeping:    0,
 };
 
 /** A player's overall rating from their attributes (weighted mean on the 1..99 scale). */

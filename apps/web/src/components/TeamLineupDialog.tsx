@@ -81,8 +81,7 @@ export default function TeamLineupDialog({ teamId, onClose }: Props) {
                 slotAssignments={slotAssignments}
                 squad={squad}
                 teamColors={team.colors}
-                customSlots={ownClub?.customSlots ?? null}
-                emptySlotRoles={ownClub?.emptySlotRoles ?? null}
+                shape={ownClub?.shapes?.defending ?? null}
                 onPlayerClick={setClickedPlayerId}
               />
               {!isPlayerTeam && (

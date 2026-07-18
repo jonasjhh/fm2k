@@ -1,8 +1,43 @@
 import { Player, Team, type FieldedPositions } from '../shared/types';
-import type { MatchParameterSet } from '../tactics/match-parameters.ts';
+import type { MatchParameters, MatchParameterSet } from '../tactics/match-parameters.ts';
 import type { InjuryReport, MatchInjury } from './injury.ts';
-import type { FieldedGeometry } from './action-selector.ts';
+import type { FieldedGeometry } from '../lineup/bands.ts';
 import type { ActionBreakdown } from './stats.ts';
+import type { DuelType } from './duel/duels.ts';
+
+/** Duels won, by duel type — one side's half of `MatchStatistics.duelsWon`. */
+export type DuelTally = Record<DuelType, number>;
+
+export interface MatchConfig {
+  matchDuration: number;
+  eventsPerMinute: number;
+  homeTeam: Team;
+  awayTeam: Team;
+  /** Already-resolved starting XI (slot-ordered) — resolution (AI best-fit vs the human
+   *  club's own choice) happens upstream, never inside the simulator. */
+  homeStarters: Player[];
+  awayStarters: Player[];
+  /** When the scores are level after 90', play two 15-minute halves of extra time. */
+  extraTimeIfDrawn?: boolean;
+  /** Resolved tactical parameters. Override the values carried on the Team objects;
+   *  default neutral (all 50), which reproduces the tactics-agnostic baseline. */
+  homeParams?: MatchParameters;
+  awayParams?: MatchParameters;
+  /** Starting energy 0..100 per player id (e.g. seeded from ClubPlayer.fitness so a
+   *  tired squad starts flatter). Missing players default to 100 (fresh). */
+  homeFitness?: Record<string, number>;
+  awayFitness?: Record<string, number>;
+  /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
+  rng?: () => number;
+  /** Dedicated injury stream (tests). Defaults to a mulberry32 seeded by ONE draw from
+   *  the main rng, so injury rolls never disturb the main stream beyond that draw. */
+  injuryRng?: () => number;
+}
+
+/** Phases at which a match is over (regulation, or after extra time). */
+export function isTerminalPhase(phase: MatchState['phase']): boolean {
+  return phase === 'full_time' || phase === 'extra_time_full';
+}
 
 export type EventType =
   | 'kickoff'
@@ -141,6 +176,9 @@ export interface MatchStatistics {
   fastBreakGoals: { home: number; away: number };
   /** Per contested outfield action: attempts (incl. ones a defender resolved) and successes. */
   actionBreakdown: { home: ActionBreakdown; away: ActionBreakdown };
+  /** Duels won by type (v2 legibility stat: who actually won the football). Absent on
+   *  results recorded before the duel engine's Step 5. */
+  duelsWon?: { home: DuelTally; away: DuelTally };
   /** Per-player match rating on the familiar 10-point scale (only players with events). */
   playerRatings: Record<string, number>;
 }

@@ -59,6 +59,13 @@ export function applyDelta(target: MatchParameters, delta: ParamModifiers): void
   }
 }
 
+// Home advantage as a chance-quality bump (~+10% conversion at neutral).
+// Exported so the occurrence applies the same bump when re-resolving mid-match tactics.
+const HOME_ADVANTAGE_CQ = 16;
+export function withHomeAdvantage(p: MatchParameters): MatchParameters {
+  return { ...p, chanceQuality: clampParam(p.chanceQuality + HOME_ADVANTAGE_CQ) };
+}
+
 /** Resolved parameters for both sides, handed to the simulator. */
 export interface MatchParameterSet {
   home: MatchParameters;

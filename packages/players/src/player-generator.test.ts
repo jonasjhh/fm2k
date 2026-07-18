@@ -1,11 +1,11 @@
-import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES } from './player-generator.ts';
+import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES, traitDeltas } from './player-generator.ts';
 import {
   calculateOverall, simulateMatch, type PlayerPosition, type PlayerAttributes, type Player, type Team,
 } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [
-  'speed', 'strength', 'agility', 'passing', 'finishing',
-  'technique', 'defending', 'stamina', 'awareness', 'composure',
+  'speed', 'strength', 'stamina', 'passing', 'technique',
+  'finishing', 'defending', 'keeping',
 ];
 
 describe('PlayerGenerator:', () => {
@@ -95,8 +95,8 @@ describe('PlayerGenerator:', () => {
         );
         return vals.reduce((a, b) => a + b, 0) / vals.length;
       };
-      const biased = sample({ mental: 15 }, 'composure');
-      const control = sample(undefined, 'composure');
+      const biased = sample({ physical: 15 }, 'speed');
+      const control = sample(undefined, 'speed');
       expect(biased).toBeGreaterThan(control);
     });
 
@@ -127,7 +127,7 @@ describe('PlayerGenerator:', () => {
       const gen = new PlayerGenerator('female', 'all');
       const overalls = Array.from(
         { length: 30 },
-        () => calculateOverall(gen.generatePlayer('CM', { overall: 60, categoryBias: { technical: -10, mental: -10 } }).attributes),
+        () => calculateOverall(gen.generatePlayer('CM', { overall: 60, categoryBias: { technical: -10, physical: -10 } }).attributes),
       );
       const mean = overalls.reduce((a, b) => a + b, 0) / overalls.length;
       expect(Math.abs(mean - 60)).toBeLessThan(4);
@@ -194,7 +194,7 @@ describe('PlayerGenerator:', () => {
 
       let headed = 0;
       let totalGoals = 0;
-      for (let seed = 1; seed <= 80; seed++) {
+      for (let seed = 1; seed <= 240; seed++) {
         const result = simulateMatch({
           home: { team: home, starters: home.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } } },
           away: { team: away, starters: away.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } } },
@@ -289,5 +289,71 @@ describe('ATTRIBUTE_CATEGORIES:', () => {
     const all = Object.values(ATTRIBUTE_CATEGORIES).flat();
     expect(all.sort()).toEqual([...ATTR_KEYS].sort());
     expect(new Set(all).size).toBe(all.length);
+  });
+});
+
+describe('trait model:', () => {
+  function mulberry32(seed: number): () => number {
+    return () => {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const traitDeltasOf = (traits: Parameters<typeof traitDeltas>[0]) =>
+    traitDeltas(traits, 'CM', 0, 0);
+
+  test('the physique axis trades speed against strength; the tank end drags technique', () => {
+    const sprinter = traitDeltasOf({ physique: 1, craft: 0, focus: 0, gk: 0, specialization: 1 });
+    expect(sprinter.speed).toBeGreaterThan(0);
+    expect(sprinter.strength).toBeLessThan(0);
+    expect(sprinter.technique).toBe(0);
+    const tank = traitDeltasOf({ physique: -1, craft: 0, focus: 0, gk: 0, specialization: 1 });
+    expect(tank.strength).toBeGreaterThan(0);
+    expect(tank.speed).toBeLessThan(0);
+    expect(tank.technique).toBeLessThan(0);
+  });
+
+  test('specialization 0 zeroes every axis tradeoff (the complete player)', () => {
+    const complete = traitDeltasOf({ physique: 1, craft: -1, focus: 1, gk: 0, specialization: 0 });
+    for (const v of Object.values(complete)) { expect(v).toBe(0); }
+  });
+
+  test('shared touch factor lifts technique and passing together (the dependency)', () => {
+    const d = traitDeltas(
+      { physique: 0, craft: 0, focus: 0, gk: 0, specialization: 0 }, 'CM', 1, 0,
+    );
+    expect(d.technique).toBeGreaterThan(0);
+    expect(d.passing).toBeGreaterThan(0);
+  });
+
+  test('free sampling produces real within-player spread: gaps past 25 occur, means stay put', () => {
+    const gen = new PlayerGenerator('female', 'all', mulberry32(7));
+    let maxGap = 0;
+    for (let i = 0; i < 200; i++) {
+      const a = gen.generatePlayer('CM', { overall: 55 }).attributes;
+      const outfield = [a.speed, a.strength, a.passing, a.technique, a.finishing, a.defending];
+      maxGap = Math.max(maxGap, Math.max(...outfield) - Math.min(...outfield));
+      expect(Math.round(calculateOverall(a))).toBeGreaterThanOrEqual(50);
+      expect(Math.round(calculateOverall(a))).toBeLessThanOrEqual(60);
+    }
+    expect(maxGap).toBeGreaterThan(25);
+  });
+
+  test('technique and passing correlate positively across free-sampled players', () => {
+    const gen = new PlayerGenerator('female', 'all', mulberry32(11));
+    const xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i < 400; i++) {
+      const a = gen.generatePlayer('CM', { overall: 55 }).attributes;
+      xs.push(a.technique); ys.push(a.passing);
+    }
+    const mean = (v: number[]) => v.reduce((s, n) => s + n, 0) / v.length;
+    const mx = mean(xs), my = mean(ys);
+    const cov = mean(xs.map((x, i) => (x - mx) * (ys[i] - my)));
+    const sd = (v: number[], m: number) => Math.sqrt(mean(v.map(n => (n - m) ** 2)));
+    const r = cov / (sd(xs, mx) * sd(ys, my));
+    expect(r).toBeGreaterThan(0.15);
   });
 });

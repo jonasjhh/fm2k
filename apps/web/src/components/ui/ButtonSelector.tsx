@@ -1,64 +1,17 @@
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import ToggleButton from '@mui/material/ToggleButton';
-import { darken } from '@mui/material/styles';
+import { ButtonSelector as DsButtonSelector } from '@fm2k/design-system';
+import type { SelectorOption } from '@fm2k/design-system';
+import type { ComponentProps } from 'react';
 import { useClubColors } from '../../hooks/useClubColors';
 
-export interface SelectorOption<T extends string> {
-  value: T;
-  label: string;
-  /** Optional leading glyph, e.g. a flag emoji. */
-  prefix?: string;
-}
+export type { SelectorOption };
 
-/**
- * A compact, single-select control rendered as a (optionally labelled) row of
- * toggle buttons (radio behaviour). The active button is filled with the
- * managing club's colours. Buttons wrap, so it stays tidy with many options.
- */
-export function ButtonSelector<T extends string>({
-  label, options, value, onChange,
-}: {
-  label?: string;
-  options: SelectorOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
+/** The design-system ButtonSelector with the managing club's colours injected,
+ *  so every selector row in the app is automatically club-themed. */
+export function ButtonSelector<T extends string>(
+  props: Omit<ComponentProps<typeof DsButtonSelector<T>>, 'activeColor' | 'activeContrast'>,
+) {
   const { primary, contrast } = useClubColors();
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-      {label && (
-        <Typography
-          variant="caption"
-          sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, minWidth: 70, flexShrink: 0 }}
-        >
-          {label}
-        </Typography>
-      )}
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', flex: 1 }}>
-        {options.map(o => (
-          <ToggleButton
-            key={o.value}
-            value={o.value}
-            size="small"
-            selected={value === o.value}
-            onChange={() => onChange(o.value)}
-            sx={{
-              textTransform: 'none', px: 1.25, py: 0.3, borderRadius: 2, lineHeight: 1.3,
-              border: '1px solid', borderColor: 'divider',
-              '&.Mui-selected': {
-                bgcolor: primary, color: contrast, borderColor: primary,
-                '&:hover': { bgcolor: darken(primary, 0.15) },
-              },
-            }}
-          >
-            {o.prefix && <Box component="span" sx={{ mr: 0.5 }}>{o.prefix}</Box>}
-            {o.label}
-          </ToggleButton>
-        ))}
-      </Box>
-    </Box>
-  );
+  return <DsButtonSelector {...props} activeColor={primary} activeContrast={contrast} />;
 }
 
 export default ButtonSelector;

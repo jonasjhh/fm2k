@@ -19,8 +19,8 @@ function mulberry32(seed: number): () => number {
 }
 
 const attrsOf = (v: number): PlayerAttributes => ({
-  speed: v, strength: v, agility: v, passing: v, finishing: v,
-  technique: v, defending: v, stamina: v, awareness: v, composure: v,
+  speed: v, strength: v, passing: v, finishing: v,
+  technique: v, defending: v, stamina: v, keeping: 10,
 });
 const avg = (a: PlayerAttributes) => Object.values(a).reduce((s, v) => s + v, 0) / 10;
 const total = (a: PlayerAttributes) => Object.values(a).reduce((s, v) => s + v, 0);

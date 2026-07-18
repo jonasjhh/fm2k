@@ -1,4 +1,4 @@
-import type { FacilityGroupId, WingDefinition, WingId } from './facility-types.ts'
+import type { FacilityGroupId, WingDefinition, WingId } from './facility-types.ts';
 
 /** The single source of truth for every wing's name, cost, and effect. Costs/effects are
  *  intentionally non-uniform: cheap wings give a small, broadly affordable benefit; premium
@@ -80,13 +80,13 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   surgicalTheatre: {
     name: 'Surgical Theatre',
-    description: "A club-owned surgical theatre.",
+    description: 'A club-owned surgical theatre.',
     costTier: 'premium',
     buildCost: 450_000,
     tierUpkeep: [3_000, 5_500, 8_000],
     effects: { injuryDurationReduction: 0.8, injuryChanceMult: 0.95 },
   },
-}
+};
 
 const TRAINING_CATALOGUE: Record<WingId, WingDefinition> = {
   outdoorTechnicalPitch: {
@@ -145,7 +145,7 @@ const TRAINING_CATALOGUE: Record<WingId, WingDefinition> = {
     tierUpkeep: [1_800, 3_600, 5_400],
     effects: { growthBonus: 0.04 },
   },
-}
+};
 
 const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
   homeNationsHub: {
@@ -212,17 +212,17 @@ const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
     tierUpkeep: [1_300, 2_600, 5_200],
     effects: { youthInjuryChanceMult: 0.90, youthRecoveryMult: 0.10 },
   },
-}
+};
 
 export const FACILITY_CATALOGUE: Record<FacilityGroupId, Record<WingId, WingDefinition>> = {
   medical: MEDICAL_CATALOGUE,
   training: TRAINING_CATALOGUE,
   academy: ACADEMY_CATALOGUE,
-}
+};
 
-export const MEDICAL_WING_IDS = Object.keys(MEDICAL_CATALOGUE)
-export const TRAINING_WING_IDS = Object.keys(TRAINING_CATALOGUE)
-export const ACADEMY_WING_IDS = Object.keys(ACADEMY_CATALOGUE)
+export const MEDICAL_WING_IDS = Object.keys(MEDICAL_CATALOGUE);
+export const TRAINING_WING_IDS = Object.keys(TRAINING_CATALOGUE);
+export const ACADEMY_WING_IDS = Object.keys(ACADEMY_CATALOGUE);
 
 /** Hub wings within the academy catalogue that drive recruitment bias (vs. the youth
  *  development wings, which drive growth/welfare of players already at the club). */
@@ -232,10 +232,10 @@ export const ACADEMY_HUB_WING_IDS = [
   'goalkeepingAcademyHub',
   'continentalHub',
   'southAmericanHub',
-]
+];
 
 export const ACADEMY_DEVELOPMENT_WING_IDS = [
   'youthTrainingPitchAndGym',
   'academyBoardingHouse',
   'youthSportsScienceUnit',
-]
+];

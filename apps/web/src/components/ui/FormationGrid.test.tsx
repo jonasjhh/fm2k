@@ -3,8 +3,8 @@ import type { Player, PlayerAttributes } from '@fm2k/engine';
 import { FormationGrid } from './FormationGrid';
 
 const ATTRS: PlayerAttributes = {
-  speed: 60, strength: 60, agility: 60, passing: 60, finishing: 60,
-  technique: 60, defending: 60, stamina: 60, awareness: 60, composure: 60,
+  speed: 60, strength: 60, passing: 60, finishing: 60,
+  technique: 60, defending: 60, stamina: 60, keeping: 10,
 };
 
 function player(id: string, position: Player['position']): Player {
@@ -43,7 +43,7 @@ describe('FormationGrid:', () => {
     expect(rows4231).toBe(6);
   });
 
-  test('a player with a customSlots override shows that role, not the template one', () => {
+  test('a player with a shape entry renders in that band with a derived role, not the template one', () => {
     const lines = [['GK'], ['LB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['ST', 'ST']];
     const squad: Player[] = [
       player('gk', 'GK'), player('lb', 'LB'), player('cb1', 'CB'), player('cb2', 'CB'), player('rb', 'RB'),
@@ -51,18 +51,18 @@ describe('FormationGrid:', () => {
       player('st1', 'ST'), player('st2', 'ST'),
     ];
     const slotAssignments = squad.map(p => p.id);
-    const customSlots = { cb1: { band: 'ATT' as const, lateral: 0, role: 'ST' as const } };
+    const shape = { cb1: { band: 'ATT' as const, lateral: 0 } };
     render(
       <FormationGrid
         lines={lines} slotAssignments={slotAssignments} squad={squad}
-        teamColors={COLORS} customSlots={customSlots}
+        teamColors={COLORS} shape={shape}
       />,
     );
-    expect(screen.getAllByText('ST')).toHaveLength(3); // st1, st2, and cb1's overridden role
+    expect(screen.getAllByText('ST')).toHaveLength(3); // st1, st2, and cb1 moved into the ATT band
     expect(screen.getAllByText('CB')).toHaveLength(1); // only cb2 retains the template role
   });
 
-  test('an empty slot with a matching emptySlotRoles entry shows that role, not the template one', () => {
+  test('an empty slot renders at the template position with no name', () => {
     const lines = [['GK'], ['LB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['ST', 'ST']];
     const squad: Player[] = [
       player('gk', 'GK'), player('cb1', 'CB'), player('cb2', 'CB'), player('rb', 'RB'),
@@ -71,12 +71,8 @@ describe('FormationGrid:', () => {
     ];
     const slotAssignments = ['gk', null, 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
     render(
-      <FormationGrid
-        lines={lines} slotAssignments={slotAssignments} squad={squad}
-        teamColors={COLORS} emptySlotRoles={{ 1: { band: 'DEF', lateral: -1, role: 'LWB' } }}
-      />,
+      <FormationGrid lines={lines} slotAssignments={slotAssignments} squad={squad} teamColors={COLORS} />,
     );
-    expect(screen.getByText('LWB')).toBeInTheDocument();
-    expect(screen.queryByText('LB')).not.toBeInTheDocument();
+    expect(screen.getByText('LB')).toBeInTheDocument();
   });
 });

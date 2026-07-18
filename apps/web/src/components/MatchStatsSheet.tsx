@@ -70,6 +70,17 @@ export default function MatchStatsSheet({ statistics: s, homeName, awayName, tit
         {(s.cards.red.home > 0 || s.cards.red.away > 0) && (
           <StatRow label="Red cards" home={s.cards.red.home} away={s.cards.red.away} />
         )}
+        {s.duelsWon && (
+          <>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textAlign: 'center', mt: 0.5 }}>
+              Duels won
+            </Typography>
+            <StatRow label="Foot races" home={s.duelsWon.home.speed} away={s.duelsWon.away.speed} />
+            <StatRow label="Physical battles" home={s.duelsWon.home.strength} away={s.duelsWon.away.strength} />
+            <StatRow label="One-on-ones" home={s.duelsWon.home.dribble} away={s.duelsWon.away.dribble} />
+            <StatRow label="Passing lanes" home={s.duelsWon.home.pass} away={s.duelsWon.away.pass} />
+          </>
+        )}
       </Box>
 
       {ratings.length > 0 && (

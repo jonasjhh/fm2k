@@ -21,8 +21,8 @@ import { ScrollableTable } from '@fm2k/design-system';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
 
 const ATTR_SHORT: Record<keyof PlayerAttributes, string> = {
-  speed: 'SPD', strength: 'STR', agility: 'AGI', passing: 'PAS', finishing: 'FIN',
-  technique: 'TEC', defending: 'DEF', stamina: 'STA', awareness: 'AWA', composure: 'COM',
+  speed: 'SPD', strength: 'STR', stamina: 'STA', passing: 'PAS', technique: 'TEC',
+  finishing: 'FIN', defending: 'DEF', keeping: 'KEE',
 };
 
 // ─── sorting ──────────────────────────────────────────────────────────────────

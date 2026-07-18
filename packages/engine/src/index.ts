@@ -46,11 +46,8 @@ export { getAllDivisions, attrToJson, attrFromJson } from './data/country-data.t
 
 export { positionAttributeImportance } from '@fm2k/match';
 export { MatchOccurrence } from '@fm2k/match';
-export { MatchSimulator, isTerminalPhase } from '@fm2k/match';
-export { simulateShootout } from '@fm2k/match';
-export type { ShootoutResult } from '@fm2k/match';
-export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState } from '@fm2k/match';
-export { simulateMatch, INJURY_TYPES, runDistribution, mulberry32 } from '@fm2k/match';
+export type { EventType, MatchEvent, MatchResult, MatchStatistics, DuelTally, DuelType } from '@fm2k/match';
+export { simulateMatch, runDistribution, mulberry32 } from '@fm2k/match';
 export type {
   SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate, InjuryReport,
   DistributionInput, DistributionResult,
@@ -67,7 +64,7 @@ export {
 export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
 export {
   retirementChance, makeYouth, generatorYouthFactory, churnSquad, churnFreeAgents, runAiMarket,
-  randomIntakeCap, MAX_SQUAD_SIZE, academyBiasForLevel,
+  randomIntakeCap, MAX_SQUAD_SIZE, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel,
 } from './world/world-churn.ts';
 export type {
   YouthFactory, PlayerDelta, SquadChurnOptions, SquadChurnResult, PoolChurnOptions, OverflowSpec,
@@ -84,15 +81,11 @@ export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from '@fm2k/match';
 
 export type {
   TacticalStyleId, TacticalSliders, TeamTacticsIntent,
-  MatchParameters, MatchParameterSet, ParamModifiers, StyleTendency,
-  MatchInsight, InsightCategory, MatchInsightInput,
+  MatchInsight, InsightCategory,
 } from '@fm2k/match';
 export {
-  TACTICAL_STYLE_IDS, DEFAULT_SLIDERS, defaultIntent,
-  NEUTRAL_PARAMS, NEUTRAL_VALUE, PARAM_KEYS, clampParam, clampParams, applyDelta,
-  FORMATION_TENDENCIES, STYLE_TENDENCIES, formationToStyle, aiIntent,
-  combine, applySquadDistortion,
-  squadSuitability, defensiveSuitability, attackEffectiveness,
+  TACTICAL_STYLE_IDS, defaultIntent,
+  NEUTRAL_PARAMS, STYLE_TENDENCIES, formationToStyle, aiIntent,
   resolveMatchParameters, buildMatchInsights,
 } from '@fm2k/match';
 export { v4, EventBus, StateManager, assertDefined } from '@fm2k/state';
@@ -120,11 +113,12 @@ export {
 export type { SectorKey, StadiumSectorConfig } from './stadium/stadium.ts';
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, seedGeometryFromFormation, effectiveFormationLabel, SECONDARY_POSITIONS,
-  ROLE_OPTIONS_BY_BAND, ROLE_FAMILY_OF_BAND, MAX_BAND_SIZE, BAND_ORDER, BAND_OF_ROLE, rankInBand, eligibleRoles, preferredRole,
-  effectiveRole, effectiveDisplayOrder, emptySlotKey,
+  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation,
+  deriveRolesForShape, effectiveFormationLabel,
+  MAX_BAND_SIZE, BAND_ORDER, BAND_OF_ROLE,
+  effectiveDisplayOrder, emptySlotKey,
 } from '@fm2k/match';
-export type { FieldedPositions, PlayerGeometry, Band, RoleFamily, BandRank } from '@fm2k/match';
+export type { FieldedPositions, PlayerGeometry, TeamShapes, Band } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
   carryOverLineup,

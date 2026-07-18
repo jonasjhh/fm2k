@@ -1,16 +1,18 @@
 import { assertDefined } from '@fm2k/state';
-import { TransferManager } from './transfer-manager.ts';
+import { TransferManager, aiPickupDelayDays, AI_PICKUP_MAX_DAYS } from './transfer-manager.ts';
 import type { TransferManagerConfig } from './transfer-manager.ts';
+import { createGameDateTime, addDays } from '@fm2k/timeline';
 import { ClubManager } from '../club/club-manager.ts';
+import { calculateOverall, mulberry32 } from '@fm2k/match';
 import type { Player, PlayerAttributes, Formation } from '@fm2k/match';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeAttrs(overrides: Partial<PlayerAttributes> = {}): PlayerAttributes {
   return {
-    speed: 10, strength: 10, agility: 10,
+    speed: 10, strength: 10,
     passing: 10, finishing: 10, technique: 10,
-    defending: 10, stamina: 10, awareness: 10, composure: 10,
+    defending: 10, stamina: 10, keeping: 10,
     ...overrides,
   };
 }
@@ -112,6 +114,22 @@ describe('TransferManager:', () => {
       const manager = new TransferManager({ marketSize: 4, rng: () => 0.5 });
       expect(manager.getListings()).toHaveLength(4);
       expect(manager.getListings().every(l => l.player.position === 'LM')).toBe(true);
+    });
+
+    test('generates listings across the full 40–69 OVR range (distribution test)', () => {
+      // Mint 200 listings with a seeded rng and assert the OVR spread covers all three
+      // quality bands: low (40–49), mid (50–59), high (60–69). Each band should appear
+      // in at least 20% of listings given a uniform draw.
+      const rng = mulberry32(42);
+      const manager = new TransferManager({ marketSize: 200, rng });
+      const overalls = manager.getListings().map(l => calculateOverall(l.player.attributes));
+      const low = overalls.filter(o => o >= 40 && o < 50).length;
+      const mid = overalls.filter(o => o >= 50 && o < 60).length;
+      const high = overalls.filter(o => o >= 60 && o <= 69).length;
+      expect(overalls.every(o => o >= 35 && o <= 74)).toBe(true); // ±5 generation tolerance
+      expect(low).toBeGreaterThan(40);  // ~33% expected → ≥20% guard
+      expect(mid).toBeGreaterThan(40);
+      expect(high).toBeGreaterThan(40);
     });
   });
 
@@ -278,6 +296,62 @@ describe('TransferManager:', () => {
       const club = makeClubManager(listing.askingPrice * 2);
       expect(manager.purchase(listing.id, club)).toBe(true);
       expect(manager.getListings().some(l => l.id === listing.id)).toBe(false);
+    });
+  });
+
+  describe('AI pickup delay:', () => {
+    const day0 = createGameDateTime(2026, 8, 1);
+
+    test('aiPickupDelayDays is the day of the first daily-chance hit, capped at the max', () => {
+      expect(aiPickupDelayDays(() => 0)).toBe(1);          // hit on the first day
+      const missTwice = [0.9, 0.9, 0][Symbol.iterator]();
+      expect(aiPickupDelayDays(() => missTwice.next().value as number)).toBe(3);
+      expect(aiPickupDelayDays(() => 0.99)).toBe(AI_PICKUP_MAX_DAYS); // never hits → cap
+    });
+
+    test('freshly added free agents are hidden from the AI until their delay passes', () => {
+      const manager = makeManager({ rng: () => 0.9 }); // always misses → full 28-day delay
+      const p = makePlayer();
+      manager.addFreeAgents([p], day0);
+      expect(manager.getFreeAgents().map(x => x.id)).toContain(p.id);           // manager sees them
+      expect(manager.getAiEligibleFreeAgents(day0)).toHaveLength(0);            // AI does not
+      expect(manager.getAiEligibleFreeAgents(addDays(day0, AI_PICKUP_MAX_DAYS)).map(x => x.id)).toContain(p.id);
+    });
+
+    test('players added without a listing date are AI-visible immediately (old saves, seeds)', () => {
+      const manager = makeManager();
+      const p = makePlayer();
+      manager.addFreeAgents([p]);
+      expect(manager.getAiEligibleFreeAgents(day0).map(x => x.id)).toContain(p.id);
+    });
+
+    test('setFreeAgents keeps existing stamps, stamps newcomers, and prunes departures', () => {
+      const manager = makeManager({ rng: () => 0.9 });
+      const kept = makePlayer();
+      const gone = makePlayer();
+      manager.addFreeAgents([kept, gone], day0);
+      const fresh = makePlayer();
+      const later = addDays(day0, 10);
+      manager.setFreeAgents([kept, fresh], later);
+      expect(manager.getAiEligibleFreeAgents(addDays(day0, AI_PICKUP_MAX_DAYS))).toHaveLength(1); // kept's original stamp, fresh still hidden
+      expect(manager.getAiEligibleFreeAgents(addDays(later, AI_PICKUP_MAX_DAYS))).toHaveLength(2);
+      expect(manager.getState().freeAgentAvailability?.[gone.id]).toBeUndefined();
+    });
+
+    test('restampAll redraws every stamp from the new date (season-boundary calendar reset)', () => {
+      const manager = makeManager({ rng: () => 0.9 });
+      const p = makePlayer();
+      manager.addFreeAgents([p], addDays(day0, 200)); // stamped far in the "old season"
+      manager.setFreeAgents([p], day0, true);
+      expect(manager.getAiEligibleFreeAgents(addDays(day0, AI_PICKUP_MAX_DAYS)).map(x => x.id)).toContain(p.id);
+    });
+
+    test('listing a pooled free agent on the market drops their availability stamp', () => {
+      const manager = makeManager({ marketSize: 5, listingDuration: 3, rng: () => 0.9 });
+      const p = makePlayer();
+      manager.addFreeAgents([p], day0);
+      manager.refreshMarket(3); // pulls the pool into listings
+      expect(manager.getState().freeAgentAvailability?.[p.id]).toBeUndefined();
     });
   });
 

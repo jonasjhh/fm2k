@@ -1,91 +1,105 @@
 import type { PlayerAttributes, FormationPosition } from '../shared/types.ts';
-import { SKILL_WEIGHTS } from './action-generators.ts';
+import { BAND_OF_ROLE, type Band } from '../lineup/bands.ts';
 import {
-  ACTION_TYPE_SKILL, FIELD_LINE, LINE_ZONE_WEIGHT, getPositionPreference, type ActionType,
-} from './action-selector.ts';
+  SPEED_DUEL, STRENGTH_DUEL, DRIBBLE_DUEL, PASS_DUEL, SHOT_DUEL, type DuelSpec,
+} from './duel/duels.ts';
 
 /**
- * "What attributes actually matter for this position", derived from the same tables the match
- * simulator itself uses — never hand-picked, so it can't drift from the real formulas the way a
- * separately-authored table could. Combines three real exposure sources:
- *
- * 1. Offensive — how much a position is preferred for each selectable action (`POSITION_PREFERENCE`),
- *    scaled by how often that position is even on the ball *in the zones where that action is
- *    reachable at all* (`LINE_ZONE_WEIGHT`, restricted to each action's real `canPerform` zone
- *    gate — see `ACTION_ZONES` below), times that action's attacker skill (`SKILL_WEIGHTS`).
- *    Without the zone restriction, a CB's tiny real chance of ever crossing or shooting would be
- *    counted at the same rate as a winger's, just because `POSITION_PREFERENCE` defaults to 1.0
- *    for any action/position pair it doesn't explicitly list.
- * 2. Defensive reactions — how often a position ends up as the contesting defender, read from
- *    `FIELD_LINE`/`LINE_ZONE_WEIGHT` at the defending side's own-half zones (zone indices 0–1,
- *    `home_box`/`home_third` — `selectContestingDefender` mirrors the ball into the defender's
- *    frame, so these are the zones a defending player is actually active in).
- * 3. Aerial/goalkeeping — `heading` only for the `headerAttempt` target pool (`ST`/`CB`);
- *    `gkSaving` only for `GK`.
+ * "What attributes actually matter for this position", derived from the duel engine's
+ * own specs — each band's typical exposure to the five duels (as the acting side and as
+ * the resisting side) pulls in exactly the attributes those duels read, so the table
+ * can't drift from the real mechanics the way a hand-authored one could. Delivery
+ * checks (crosses/long balls/set pieces) are Passing-gated solo checks, counted via
+ * the `delivery` exposure; Stamina matters through fatigue scaling and Speed through
+ * the movement model, counted as flat per-band exposures.
  */
 
-// Zone indices (0=home_box .. 4=away_box) where each action's own `canPerform` actually allows
-// it — read directly off each generator in `action-generators.ts`. `short_pass`/`dribble` have no
-// zone gate; `long_pass` excludes `away_box`; `through_ball`/`cross`/`shot` require the ball
-// already advanced into the final third or box.
-const ACTION_ZONES: Record<ActionType, readonly number[]> = {
-  short_pass: [0, 1, 2, 3, 4],
-  long_pass: [0, 1, 2, 3],
-  through_ball: [2, 3],
-  cross: [3, 4],
-  dribble: [0, 1, 2, 3, 4],
-  shot: [3, 4],
+interface DuelExposure {
+  /** Weight as the acting side (uses the spec's attackerAttr). */
+  atk: number;
+  /** Weight as the resisting side (uses the spec's defenderAttr). */
+  def: number;
+}
+
+interface BandExposure {
+  speed: DuelExposure;
+  strength: DuelExposure;
+  dribble: DuelExposure;
+  pass: DuelExposure;
+  shot: DuelExposure;
+  /** Solo Passing checks: crosses, long balls, set-piece delivery. */
+  delivery: number;
+  /** Fatigue exposure (drain + attribute scaling under fatigue). */
+  stamina: number;
+  /** Movement exposure beyond speed duels (travel to anchors, recovery runs). */
+  movement: number;
+}
+
+const BAND_EXPOSURE: Record<Band, BandExposure> = {
+  GK: {
+    speed: { atk: 0, def: 0.1 }, strength: { atk: 0.1, def: 0.1 },
+    dribble: { atk: 0, def: 0 }, pass: { atk: 0.5, def: 0 },
+    shot: { atk: 0, def: 3 }, delivery: 0.4, stamina: 0.1, movement: 0.1,
+  },
+  DEF: {
+    speed: { atk: 0.4, def: 0.7 }, strength: { atk: 0.5, def: 0.6 },
+    dribble: { atk: 0.1, def: 1.2 }, pass: { atk: 0.6, def: 1 },
+    shot: { atk: 0.05, def: 0 }, delivery: 0.2, stamina: 0.6, movement: 0.5,
+  },
+  DM: {
+    speed: { atk: 0.3, def: 0.4 }, strength: { atk: 0.4, def: 0.4 },
+    dribble: { atk: 0.3, def: 0.9 }, pass: { atk: 1, def: 0.9 },
+    shot: { atk: 0.1, def: 0 }, delivery: 0.3, stamina: 0.9, movement: 0.6,
+  },
+  MID: {
+    speed: { atk: 0.4, def: 0.4 }, strength: { atk: 0.3, def: 0.3 },
+    dribble: { atk: 0.6, def: 0.5 }, pass: { atk: 1.2, def: 0.5 },
+    shot: { atk: 0.3, def: 0 }, delivery: 0.5, stamina: 1, movement: 0.7,
+  },
+  AM: {
+    speed: { atk: 0.5, def: 0.2 }, strength: { atk: 0.2, def: 0.2 },
+    dribble: { atk: 1, def: 0.2 }, pass: { atk: 1, def: 0.2 },
+    shot: { atk: 0.7, def: 0 }, delivery: 0.5, stamina: 0.8, movement: 0.7,
+  },
+  ATT: {
+    speed: { atk: 0.8, def: 0.1 }, strength: { atk: 0.7, def: 0.1 },
+    dribble: { atk: 0.9, def: 0.1 }, pass: { atk: 0.4, def: 0.1 },
+    shot: { atk: 1.4, def: 0 }, delivery: 0.2, stamina: 0.7, movement: 0.6,
+  },
 };
 
-// short_pass/long_pass have no position restriction in any generator's `canPerform`; the other
-// 4 (dribble/cross/through_ball/shot) are either explicitly excluded for GK (dribble/cross/
-// through_ball) or practically unreachable for GK (shot requires the ball in the attacking
-// third/box, where GK is never the active player) — so GK's offensive exposure is the passing
-// actions only, while every other position is exposed to all 6.
-const ALL_ACTION_TYPES: ActionType[] = ['short_pass', 'long_pass', 'through_ball', 'cross', 'dribble', 'shot'];
-const GK_ACTION_TYPES: ActionType[] = ['short_pass', 'long_pass'];
+/** Wide roles live off pace and delivery into the box more than their central bandmates. */
+const WIDE_ROLES = new Set<FormationPosition>(['LB', 'RB', 'LWB', 'RWB', 'LM', 'RM', 'LW', 'RW']);
+const WIDE_SPEED_BONUS = 0.3;
+const WIDE_DELIVERY_BONUS = 0.3;
 
-// Own-half zone indices (home_box, home_third) — where the defending side's contesting defender
-// is actually drawn from.
-const DEFENDING_ZONES = [0, 1] as const;
+const DUEL_OF: Record<Exclude<keyof BandExposure, 'delivery' | 'stamina' | 'movement'>, DuelSpec> = {
+  speed: SPEED_DUEL, strength: STRENGTH_DUEL, dribble: DRIBBLE_DUEL, pass: PASS_DUEL, shot: SHOT_DUEL,
+};
 
-function addWeighted(
+function add(
   totals: Partial<Record<keyof PlayerAttributes, number>>,
-  weights: Partial<Record<keyof PlayerAttributes, number>>,
-  scale: number,
+  attr: keyof PlayerAttributes,
+  weight: number,
 ): void {
-  for (const key of Object.keys(weights) as (keyof PlayerAttributes)[]) {
-    totals[key] = (totals[key] ?? 0) + (weights[key] ?? 0) * scale;
-  }
+  if (weight <= 0) { return; }
+  totals[attr] = (totals[attr] ?? 0) + weight;
 }
 
-function lineWeightSum(position: FormationPosition, zones: readonly number[]): number {
-  const lineWeights = LINE_ZONE_WEIGHT[FIELD_LINE[position]];
-  return zones.reduce((sum: number, zone) => sum + lineWeights[zone], 0);
-}
-
-/** Accepts any `FormationPosition` (not just the 10-value `PlayerPosition`) so it also covers
- *  DM/AM, which appear in some formations (`4-2-3-1`, `4-1-4-1`, ...) but aren't a player's
- *  card position — `FIELD_LINE`/`getPositionPreference` already key on the wider set. */
 export function positionAttributeImportance(position: FormationPosition): Partial<Record<keyof PlayerAttributes, number>> {
+  const exposure = BAND_EXPOSURE[BAND_OF_ROLE[position]];
   const totals: Partial<Record<keyof PlayerAttributes, number>> = {};
 
-  const actionTypes = position === 'GK' ? GK_ACTION_TYPES : ALL_ACTION_TYPES;
-  for (const actionType of actionTypes) {
-    const onBallInZone = lineWeightSum(position, ACTION_ZONES[actionType]);
-    addWeighted(totals, SKILL_WEIGHTS[ACTION_TYPE_SKILL[actionType]], getPositionPreference(actionType, position) * onBallInZone);
+  for (const key of Object.keys(DUEL_OF) as (keyof typeof DUEL_OF)[]) {
+    const spec = DUEL_OF[key];
+    add(totals, spec.attackerAttr, exposure[key].atk);
+    add(totals, spec.defenderAttr, exposure[key].def);
   }
 
-  const reactionWeight = lineWeightSum(position, DEFENDING_ZONES);
-  addWeighted(totals, SKILL_WEIGHTS.tackling, reactionWeight);
-  addWeighted(totals, SKILL_WEIGHTS.interception, reactionWeight);
-
-  if (position === 'ST' || position === 'CB') {
-    addWeighted(totals, SKILL_WEIGHTS.heading, 1);
-  }
-  if (position === 'GK') {
-    addWeighted(totals, SKILL_WEIGHTS.gkSaving, 1);
-  }
+  const wide = WIDE_ROLES.has(position);
+  add(totals, 'passing', exposure.delivery + (wide ? WIDE_DELIVERY_BONUS : 0));
+  add(totals, 'stamina', exposure.stamina);
+  add(totals, 'speed', exposure.movement + (wide ? WIDE_SPEED_BONUS : 0));
 
   const total = Object.values(totals).reduce((sum: number, v) => sum + (v ?? 0), 0);
   if (total <= 0) { return totals; }

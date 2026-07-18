@@ -3,7 +3,7 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { createAppTheme } from '@fm2k/design-system';
+import { createAppTheme, ConfirmProvider } from '@fm2k/design-system';
 import { ToastHost } from '@fm2k/toast';
 import { useGameStore } from '@/store/game-store';
 import MainMenu from './screens/MainMenu';
@@ -38,11 +38,13 @@ export default function App() {
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {screen === 'main-menu' && <MainMenu />}
-        {screen === 'team-selection' && <TeamSelection />}
-        {screen === 'editor' && <TeamEditor />}
-        {screen === 'game' && <GameInterface />}
-        <ToastHost />
+        <ConfirmProvider>
+          {screen === 'main-menu' && <MainMenu />}
+          {screen === 'team-selection' && <TeamSelection />}
+          {screen === 'editor' && <TeamEditor />}
+          {screen === 'game' && <GameInterface />}
+          <ToastHost />
+        </ConfirmProvider>
       </ThemeProvider>
     </ColorModeContext.Provider>
   );

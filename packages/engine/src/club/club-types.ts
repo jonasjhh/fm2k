@@ -1,4 +1,4 @@
-import type { Player, Formation, PlayerAttributes, PlayerGeometry } from '@fm2k/match';
+import type { Player, Formation, PlayerAttributes, TeamShapes } from '@fm2k/match';
 import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { RegimentId } from '../player/progression.ts';
@@ -64,16 +64,9 @@ export interface ClubState {
   /** Each squad player's attributes as of the start of the current season — the baseline
    *  `recentDevelopment` is diffed against; reseeded wholesale each season-end rollover. */
   seasonStartSnapshot: Record<string, PlayerAttributes>
-  /** Manager-chosen free-positioning override, keyed by player id — `null` means the team
-   *  uses `formation`'s predefined template as-is. Reset to `null` whenever `formation`
-   *  changes (slot indices and their meaning change with it). */
-  customSlots: Record<string, PlayerGeometry> | null
-  /** A manager's pending geometry (band + lateral + role) for a currently-empty outfield slot
-   *  (keys 1-10 only; slot 0/GK is never overridable) — the slot's *former* occupant's
-   *  `customSlots` entry, captured before it was pruned, so a player moved to a non-template
-   *  band/lateral doesn't lose that placement just because they're unassigned. Has no effect
-   *  until a player is assigned to that slot, at which point it seeds their `customSlots` entry
-   *  wholesale and is cleared. Reset to `null` whenever `formation` changes, mirroring
-   *  `customSlots`. */
-  emptySlotRoles: Partial<Record<number, PlayerGeometry>> | null
+  /** Manager-chosen dual-shape override (attacking + defending anchor per outfield XI
+   *  player) — `null` means both shapes follow `formation`'s predefined template as-is.
+   *  Reset to `null` whenever `formation` changes (slot indices and their meaning change
+   *  with it). Seeded identically in both shapes on first edit; arrows are the difference. */
+  shapes: TeamShapes | null
 }

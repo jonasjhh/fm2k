@@ -6,7 +6,7 @@ import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
   StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
-  TransferWindow, FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
+  TransferWindow, PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -32,12 +32,10 @@ export interface BackendCommands {
   setTactics(intent: TeamTacticsIntent): ClubState | null;
   setTraining(playerId: string, regiment: RegimentId): ClubState | null;
   /** Move a starting-XI player to a new band/lateral position (free positioning). */
-  setPlayerGeometry(playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }): ClubState | null;
+  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null;
   /** Set a starting-XI player's instruction (e.g. LB vs LWB) without moving them. */
-  setPlayerRole(playerId: string, role: FormationPosition): ClubState | null;
   /** Set a manager's pending role choice for a currently-empty outfield slot (1-10) — takes
    *  effect once a player is assigned there. */
-  setEmptySlotRole(slotIndex: number, role: FormationPosition): ClubState | null;
   /** Queue an in-match substitution (validated: per-match limit, bench eligibility, fitness). */
   queueSubstitution(playerOutId: string, playerInId: string): boolean;
   // transfers
@@ -123,9 +121,7 @@ export function createBackend(): Backend {
     setFormation: (f) => s.setFormation(f),
     setTactics: (intent) => s.setTactics(intent),
     setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
-    setPlayerGeometry: (playerId, geometry) => s.setPlayerGeometry(playerId, geometry),
-    setPlayerRole: (playerId, role) => s.setPlayerRole(playerId, role),
-    setEmptySlotRole: (slotIndex, role) => s.setEmptySlotRole(slotIndex, role),
+    setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => s.setPlayerGeometry(shape, playerId, geometry),
     queueSubstitution: (playerOutId, playerInId) => s.queueSubstitution(playerOutId, playerInId),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),

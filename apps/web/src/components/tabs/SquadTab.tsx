@@ -16,6 +16,7 @@ import { fmt } from '../../utils/formatting';
 import { playerValue, emptySlotKey } from '@fm2k/engine';
 import { StatsCard } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
+import { useConfirm } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
 import SlotLabel from '../ui/SlotLabel';
@@ -55,6 +56,7 @@ export default function SquadTab() {
   const clubState = useGameStore((s) => s.clubState);
   const sellPlayer = useGameStore((s) => s.sellPlayer);
   const windowOpen = useGameStore((s) => s.transferWindow.open);
+  const confirm = useConfirm();
   const [selectedPlayer, setSelectedPlayer] = useState<ClubPlayer | null>(null);
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'slot', dir: 'asc' });
 
@@ -88,10 +90,16 @@ export default function SquadTab() {
     setSort((s) => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
   }
 
-  function handleSell() {
+  async function handleSell() {
     if (!selectedPlayer) {return;}
     const value = playerValue(selectedPlayer);
-    if (!confirm(`Sell ${selectedPlayer.name} for £${fmt(value)}?`)) {return;}
+    const ok = await confirm({
+      title: 'Sell player',
+      message: `Sell ${selectedPlayer.name} for £${fmt(value)}?`,
+      confirmLabel: 'Sell',
+      destructive: true,
+    });
+    if (!ok) {return;}
     sellPlayer(selectedPlayer.id);
     setSelectedPlayer(null);
   }

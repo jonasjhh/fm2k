@@ -1,55 +1,58 @@
-// @fm2k/match — the simulation core: domain types, position rules, ratings, the
-// tactics pipeline, lineup selection, and the match simulator itself.
+// @fm2k/match — the simulation core: domain types, ratings, the tactics pipeline,
+// formation layout helpers, and the match simulator itself.
+//
+// FROZEN v2 CONTRACT (REWORK_01.md §9): external consumers get the domain model,
+// `MatchOccurrence` + its config, and the event/result/statistics shapes below.
+// Simulator internals (action generation/selection, skill checks, engagement,
+// stats plumbing) are NOT exported — the v2 duel engine replaces them behind
+// this same surface.
 
 // Domain model
 export type {
   Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors,
-  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, Band,
+  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, TeamShapes, Band,
 } from './shared/types.ts';
 export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts';
-export { getEffectiveAttributes, getPositionModifier, SECONDARY_POSITIONS } from './shared/position-rules.ts';
 
 // Ratings
-export { calculateOverall, getTeamOVR, OVERALL_WEIGHTS } from './ratings.ts';
+export { calculateOverall, getTeamOVR } from './ratings.ts';
 
-// Tactics pipeline (intent → params → squad influence → resolve)
-export * from './tactics/index.ts';
+// Tactics pipeline — only the entry points the backend/UI actually consume
+export type { TacticalStyleId, TacticalSliders, TeamTacticsIntent } from './tactics/intent-types.ts';
+export { TACTICAL_STYLE_IDS, defaultIntent } from './tactics/intent-types.ts';
+export { NEUTRAL_PARAMS } from './tactics/match-parameters.ts';
+export { STYLE_TENDENCIES } from './tactics/style-tendencies.ts';
+export { formationToStyle, aiIntent } from './tactics/ai-style.ts';
+export { resolveMatchParameters } from './tactics/resolve.ts';
+export type { MatchInsight, InsightCategory } from './tactics/feedback.ts';
+export { buildMatchInsights } from './tactics/feedback.ts';
 
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  deriveCustomFieldedPositions, canonicalGeometry, seedGeometryFromFormation, effectiveFormationLabel,
-  effectiveRole, effectiveDisplayOrder, emptySlotKey,
+  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation,
+  deriveRolesForShape, effectiveFormationLabel,
+  effectiveDisplayOrder, emptySlotKey,
 } from './lineup/lineup.ts';
-export {
-  BAND_OF_ROLE, BAND_TO_FIELD_LINE, flankOfLateral, ROLE_OPTIONS_BY_BAND,
-  ROLE_FAMILY_OF_BAND, MAX_BAND_SIZE, BAND_ORDER, rankInBand, eligibleRoles, preferredRole,
-} from './match/action-selector.ts';
-export type { RoleFamily, BandRank } from './match/action-selector.ts';
+export { BAND_OF_ROLE, MAX_BAND_SIZE, BAND_ORDER } from './lineup/bands.ts';
 
-// Position attribute importance (derived from the simulator's own formulas)
+// Position attribute importance (derived from the simulator's own formulas).
+// Consumed by player generation and the tactics UI; replaced by duel-exposure
+// derivation in the v2 rework (REWORK_01.md, Step 5).
 export { positionAttributeImportance } from './match/position-importance.ts';
-export { SKILL_WEIGHTS, type Skill } from './match/action-generators.ts';
-export { ACTION_TYPE_SKILL, type ActionType } from './match/action-selector.ts';
 
-// Match simulation
-export { MatchSimulator, isTerminalPhase } from './match/match-simulator.ts';
-export type { MatchConfig } from './match/match-simulator.ts';
+// Match simulation — the boundary the backend drives
 export { MatchOccurrence } from './match/match-occurrence.ts';
 export type { MatchOccurrenceConfig } from './match/match-occurrence.ts';
-export { simulateShootout } from './match/penalty-shootout.ts';
-export type { ShootoutResult } from './match/penalty-shootout.ts';
-export type { EventType, MatchEvent, MatchResult, MatchStatistics, MatchState, BallPosition, PassTally } from './match/types.ts';
-export { StatsAccumulator, CONTESTED_ACTION_TYPES } from './match/stats.ts';
-export type { ActionBreakdown, ActionTally, ContestedActionType } from './match/stats.ts';
+export type { EventType, MatchEvent, MatchResult, MatchStatistics, DuelTally } from './match/types.ts';
+export type { DuelType } from './match/duel/duels.ts';
+export type { InjuryReport } from './match/injury.ts';
 
-// Standalone simulation contract
+// Standalone simulation contract (the /test sandbox + calibration)
 export { simulateMatch } from './match/simulate.ts';
 export type {
   SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate,
 } from './match/simulate.ts';
-export { rollInjuries, collectExposures, fatigueRiskFactor, injuryDescription, INJURY_TYPES } from './match/injury.ts';
-export type { InjuryReport, MatchInjury, InjuryTrigger } from './match/injury.ts';
 
 // Distribution harness (black-box calibration + the /test sandbox)
 export { runDistribution, mulberry32 } from './match/distribution.ts';

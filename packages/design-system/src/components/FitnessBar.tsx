@@ -2,15 +2,13 @@ import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 
-interface Props { fitness: number }
-
 function tier(fitness: number): 'success' | 'warning' | 'error' {
   return fitness >= 85 ? 'success' : fitness >= 60 ? 'warning' : 'error';
 }
 
-/** A fixed-width bar that fills/drains with a player's fitness (0–100), colored by how tired
- *  they are, with the value written on top. Replaces the old static "Fit" pill. */
-export default function FitnessBar({ fitness }: Props) {
+/** A fixed-width bar that fills/drains with a value from 0–100, colored by how low
+ *  it is (green ≥85, amber ≥60, red below), with the value written on top. */
+export function FitnessBar({ fitness }: { fitness: number }) {
   return (
     <Box sx={{ position: 'relative', width: 56, height: 18 }}>
       <LinearProgress

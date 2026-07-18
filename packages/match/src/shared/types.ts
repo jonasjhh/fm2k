@@ -1,6 +1,6 @@
 import type { MatchParameters } from '../tactics/match-parameters.ts';
 import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
-import type { Band } from '../match/action-selector.ts';
+import type { Band } from '../lineup/bands.ts';
 export type { Band };
 
 export type Formation =
@@ -46,15 +46,24 @@ export const ALL_PLAYER_POSITIONS: readonly PlayerPosition[] =
  *  opposed to Player.position (card/generation-time PlayerPosition). */
 export type FieldedPositions = Record<string, FormationPosition>;
 
-/** A manager-chosen position for one player, free of any predefined formation template:
- *  `band` is which line they play in (zone-weighting), `lateral` is where on that line
- *  (-1 far left .. 1 far right — a sort key/flank-bucket source, not a fixed column), and
- *  `role` is the instruction (e.g. LB vs LWB) that drives action preference and attribute
- *  scaling. See deriveCustomFieldedPositions/canonicalGeometry in lineup.ts. */
+/** A manager-chosen anchor point for one player, free of any predefined formation
+ *  template: `band` is which line they play in (quantized vertical — the same 5-band
+ *  resolution the presence grid reads), `lateral` is where on that line (-1 far left ..
+ *  1 far right — continuous). There is no role field: a player's effective
+ *  FormationPosition label is *derived* from where they stand relative to their
+ *  band-mates (see deriveRolesForShape in lineup.ts). */
 export interface PlayerGeometry {
   band: Exclude<Band, 'GK'>;
   lateral: number;
-  role: FormationPosition;
+}
+
+/** A team's dual formation shape (REWORK_01.md §5): one anchor per outfield XI player in
+ *  each phase. Named formations are presets that seed both shapes identically; FM-style
+ *  arrows are the rendered difference between a player's two anchors. The v1 sim reads
+ *  only `defending` (as its single formation); the v2 duel engine reads both. */
+export interface TeamShapes {
+  attacking: Record<string, PlayerGeometry>;
+  defending: Record<string, PlayerGeometry>;
 }
 
 export interface Player {
@@ -67,22 +76,22 @@ export interface Player {
   attributes: PlayerAttributes;
 }
 
+/** The 8-attribute set of the duel-engine rework (REWORK_01.md §2). Each attribute is
+ *  the acting side of at least one of the five core duels, so "80 vs 70" always has a
+ *  legible meaning. The old agility/awareness/composure were folded in (agi→speed,
+ *  awr→defending/passing, cmp→finishing/technique). */
 export interface PlayerAttributes {
   // Physical (3)
-  speed: number;      // acceleration + sprint speed, chasing balls, recovery runs
-  strength: number;   // power, duels, shielding, tackle power
-  agility: number;    // quick turns, balance, jumping, goalkeeper mobility
+  speed: number;      // speed duels: escapes, chases, races to free balls, recovery runs
+  strength: number;   // strength duels: shoulder-to-shoulder, shielding, aerial power
+  stamina: number;    // fatigue resistance — how long the other seven hold up
 
   // Technical (5)
-  passing: number;    // short passing, long passing, crossing, set piece delivery
-  finishing: number;  // shooting, converting chances, shot power, penalties
-  technique: number;  // ball control, dribbling, first touch
-  defending: number;  // tackling, marking, interceptions, defensive technique
-  stamina: number;    // fitness over time, maintaining performance, injury resistance
-
-  // Mental (2)
-  awareness: number;  // positioning, spatial intelligence, seeing opportunities, game reading, anticipation
-  composure: number;  // pressure handling, big moments, mental strength
+  passing: number;    // pass-vs-read duels + delivery checks (crosses, long balls, set pieces)
+  technique: number;  // dribble-vs-tackle duels (attacking side), first touch, close control
+  finishing: number;  // shot duels vs Keeping: shooting, converting chances, penalties
+  defending: number;  // the defending side of dribble and pass duels: tackling, marking, reads
+  keeping: number;    // shot-stopping — the GK side of the shot duel; low for most outfielders
 }
 
 export interface TeamColors {
@@ -106,9 +115,9 @@ export interface Team {
   tacticsParams?: MatchParameters;
   /** Per-player starting energy 0..100 (seeded from ClubPlayer.fitness) for this match. */
   fitness?: Record<string, number>;
-  /** Manager-chosen free-positioning override, keyed by player id — when present, the
-   *  match build uses this instead of deriving slots from `formation`/FORMATION_LINES. */
-  customSlots?: Record<string, PlayerGeometry>;
+  /** Manager-chosen dual-shape override — when present, the match build uses the
+   *  defending shape (v1 sim) instead of deriving slots from `formation`/FORMATION_LINES. */
+  shapes?: TeamShapes;
 }
 
 /** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */

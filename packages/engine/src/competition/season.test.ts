@@ -10,7 +10,7 @@ const LATE_START = createGameDateTime(2025, 8, 23, 15, 0);
 function player(id: string, position: PlayerPosition): Player {
   return {
     id, name: id, nationality: 'norwegian', age: 25, position, potential: 70,
-    attributes: { speed: 70, strength: 70, agility: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, awareness: 70, composure: 70 },
+    attributes: { speed: 70, strength: 70, passing: 70, finishing: 70, technique: 70, defending: 70, stamina: 75, keeping: 10 },
   };
 }
 

@@ -3,7 +3,7 @@ import { valuePlayer } from '@fm2k/valuation';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 
 function attrs(v: number): PlayerAttributes {
-  return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
 }
 const player: Player = { id: 'p', name: 'P', nationality: 'n', age: 26, position: 'CM', potential: 75, attributes: attrs(70) };
 

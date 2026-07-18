@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import FitnessBar from './FitnessBar';
+import { FitnessBar } from './FitnessBar';
 
 describe('FitnessBar:', () => {
   test('shows the fitness number on the bar', () => {

@@ -1,34 +1,28 @@
 import { positionAttributeImportance } from './position-importance.ts';
 
 describe('positionAttributeImportance:', () => {
-  it('closes the CB gap: interception pulls agility into a CB\'s importance', () => {
+  it('a CB gets speed exposure through speed duels and recovery movement', () => {
     const cb = positionAttributeImportance('CB');
-    expect(cb.agility).toBeGreaterThan(0);
+    expect(cb.speed).toBeGreaterThan(0);
   });
 
-  it('closes the ST gap: heading pulls strength and agility into a striker\'s importance', () => {
+  it('a striker gets strength exposure through strength duels', () => {
     const st = positionAttributeImportance('ST');
     expect(st.strength).toBeGreaterThan(0);
-    expect(st.agility).toBeGreaterThan(0);
   });
 
-  it('a winger gets finishing exposure since they can take shots in-engine', () => {
+  it('a winger gets finishing exposure through shot duels', () => {
     const lw = positionAttributeImportance('LW');
     expect(lw.finishing).toBeGreaterThan(0);
   });
 
-  it('GK\'s composure is the smallest of gkSaving\'s three attributes (composure has no other source for GK)', () => {
+  it('a GK\'s keeping exposure comes from resisting shot duels and is dominant', () => {
     const gk = positionAttributeImportance('GK');
-    expect(gk.composure).toBeGreaterThan(0);
-    expect(gk.agility).toBeGreaterThan(gk.composure ?? 0);
-    expect(gk.awareness).toBeGreaterThan(gk.composure ?? 0);
+    expect(gk.keeping).toBeGreaterThan(0);
   });
 
-  it('GK gets no exposure to GK-excluded/unreachable actions (dribble/cross/through ball/shot)', () => {
+  it('a GK takes no shot duels as the attacker, so finishing never appears', () => {
     const gk = positionAttributeImportance('GK');
-    // speed only appears via the `dribbling` skill, and finishing only via `finishing`/`heading`
-    // — none of which GK is exposed to (only short/long passing, tackling, interception, gkSaving).
-    expect(gk.speed).toBeUndefined();
     expect(gk.finishing).toBeUndefined();
   });
 
@@ -41,22 +35,22 @@ describe('positionAttributeImportance:', () => {
     }
   });
 
-  it('CB\'s defending comfortably outweighs finishing/composure (tackling+interception vs. one-off heading)', () => {
+  it('a CB\'s defending comfortably outweighs finishing', () => {
     const cb = positionAttributeImportance('CB');
     expect(cb.defending).toBeGreaterThan(cb.finishing ?? 0);
-    expect(cb.defending).toBeGreaterThan(cb.composure ?? 0);
   });
 
-  it('a wing-back (LWB/RWB) carries a real identity distinct from a plain full-back: more speed/technique (higher cross+dribble preference), less defending', () => {
+  it('wide defenders live off pace and delivery more than central ones (roles are gone; width is the identity)', () => {
+    // Behavioral roles were removed (REWORK_01 ruling #4): LWB and LB are the same
+    // band + flank, so their importance is identical — the wide/central axis is
+    // what distinguishes defenders now.
     const lb = positionAttributeImportance('LB');
     const lwb = positionAttributeImportance('LWB');
-    expect(lwb.speed).toBeGreaterThan(lb.speed ?? 0);
-    expect(lwb.technique).toBeGreaterThan(lb.technique ?? 0);
-    expect(lwb.defending ?? 0).toBeLessThan(lb.defending ?? 0);
+    expect(lwb).toEqual(lb);
 
-    const rb = positionAttributeImportance('RB');
-    const rwb = positionAttributeImportance('RWB');
-    expect(rwb.speed).toBeGreaterThan(rb.speed ?? 0);
-    expect(rwb.technique).toBeGreaterThan(rb.technique ?? 0);
+    const cb = positionAttributeImportance('CB');
+    expect(lb.speed).toBeGreaterThan(cb.speed ?? 0);
+    expect(lb.passing).toBeGreaterThan(cb.passing ?? 0);
+    expect(lb.defending ?? 0).toBeLessThan(cb.defending ?? 0);
   });
 });

@@ -6,10 +6,26 @@ import { calculateOverall, ALL_PLAYER_POSITIONS } from '@fm2k/match';
 import type { ClubPlayer } from '../club/club-types.ts';
 import type { ClubManager } from '../club/club-manager.ts';
 import type { TransferState, TransferListing } from './transfer-types.ts';
+import { addDays, isAfter, type GameDateTime } from '@fm2k/timeline';
 
 function calculateAskingPrice(attrs: PlayerAttributes): number {
   const overall = calculateOverall(attrs);
   return Math.max(1_000, Math.round(overall * overall * 500));
+}
+
+// ── AI pickup delay ─────────────────────────────────────────────────────────────
+// A newly listed free agent isn't snapped up by AI clubs instantly: each day there is a small
+// chance "someone" spots them, so most players become AI-visible after a week or two — but the
+// distribution lets it run shorter or longer. The manager always sees the whole pool.
+export const AI_PICKUP_DAILY_CHANCE = 0.12;
+export const AI_PICKUP_MAX_DAYS = 28;
+
+/** Days until an AI club may sign a fresh free agent: a geometric draw at the daily chance. */
+export function aiPickupDelayDays(rng: () => number, dailyChance = AI_PICKUP_DAILY_CHANCE, maxDays = AI_PICKUP_MAX_DAYS): number {
+  for (let day = 1; day < maxDays; day++) {
+    if (rng() < dailyChance) { return day; }
+  }
+  return maxDays;
 }
 
 export interface TransferManagerConfig {
@@ -21,6 +37,9 @@ export interface TransferManagerConfig {
    *  game, or the previous (already churned) pool carried across a season rollover. Defaults
    *  to empty. */
   readonly initialFreeAgents?: Player[]
+  /** AI-visibility dates carried along with `initialFreeAgents` (season rollover keeps the
+   *  pickup-delay drip intact for players still waiting). Defaults to none = all visible. */
+  readonly initialFreeAgentAvailability?: Record<string, GameDateTime>
 }
 
 export class TransferManager {
@@ -28,12 +47,14 @@ export class TransferManager {
   private readonly marketSize: number;
   private readonly listingDuration: number;
   private readonly playerFactory: () => Player;
+  private readonly rng: () => number;
 
   constructor(config: TransferManagerConfig = {}) {
     this.marketSize = config.marketSize ?? 10;
     this.listingDuration = config.listingDuration ?? 3;
 
     const rng = config.rng ?? Math.random.bind(Math);
+    this.rng = rng;
 
     if (config.playerFactory) {
       this.playerFactory = config.playerFactory;
@@ -41,7 +62,8 @@ export class TransferManager {
       const generator = new PlayerGenerator();
       this.playerFactory = () => {
         const position = ALL_PLAYER_POSITIONS[Math.floor(rng() * ALL_PLAYER_POSITIONS.length)];
-        return generator.generatePlayer(position, { overall: 60 });
+        const overall = 40 + Math.floor(rng() * 30); // 40–69: D3 fringe through solid D1
+        return generator.generatePlayer(position, { overall });
       };
     }
 
@@ -49,6 +71,7 @@ export class TransferManager {
       listings: this.generateListings(this.marketSize, 0),
       refreshedOnMatchday: 0,
       freeAgents: config.initialFreeAgents ?? [],
+      freeAgentAvailability: config.initialFreeAgentAvailability ?? {},
     });
   }
 
@@ -60,15 +83,51 @@ export class TransferManager {
     return this.stateManager.getState().freeAgents;
   }
 
-  /** Add players to the free-agent pool (sold players, released players, churn youth). */
-  addFreeAgents(players: Player[]): void {
-    if (players.length === 0) { return; }
-    this.stateManager.updateState(s => { s.freeAgents.push(...players); });
+  /** Free agents already visible to AI clubs at `now` — the manager sees everyone via
+   *  `getFreeAgents`, but the AI only sees a player once their pickup-delay date has passed. */
+  getAiEligibleFreeAgents(now: GameDateTime): Player[] {
+    const s = this.stateManager.getState();
+    const availability = s.freeAgentAvailability ?? {};
+    return s.freeAgents.filter(p => {
+      const from = availability[p.id];
+      return from === undefined || !isAfter(from, now);
+    });
   }
 
-  /** Replace the whole free-agent pool (used after world churn / AI market re-shuffles it). */
-  setFreeAgents(players: Player[]): void {
-    this.stateManager.updateState(s => { s.freeAgents = players; });
+  /** Add players to the free-agent pool (sold players, released players, churn youth).
+   *  With `listedOn`, each newcomer draws a pickup delay before AI clubs can see them. */
+  addFreeAgents(players: Player[], listedOn?: GameDateTime): void {
+    if (players.length === 0) { return; }
+    this.stateManager.updateState(s => {
+      s.freeAgents.push(...players);
+      if (listedOn) {
+        s.freeAgentAvailability ??= {};
+        for (const p of players) {
+          s.freeAgentAvailability[p.id] = addDays(listedOn, aiPickupDelayDays(this.rng));
+        }
+      }
+    });
+  }
+
+  /** Replace the whole free-agent pool (used after world churn / AI market re-shuffles it).
+   *  Players already in the pool keep their availability date; with `listedOn`, newcomers draw
+   *  a fresh pickup delay; stamps of departed players are pruned. `restampAll` redraws every
+   *  stamp from `listedOn` — used at the season boundary, where the game calendar resets and
+   *  old-season dates would otherwise read as far in the future. */
+  setFreeAgents(players: Player[], listedOn?: GameDateTime, restampAll = false): void {
+    this.stateManager.updateState(s => {
+      const prev = s.freeAgentAvailability ?? {};
+      const next: TransferState['freeAgentAvailability'] = {};
+      for (const p of players) {
+        if (!restampAll && prev[p.id] !== undefined) {
+          next[p.id] = prev[p.id];
+        } else if (listedOn) {
+          next[p.id] = addDays(listedOn, aiPickupDelayDays(this.rng));
+        }
+      }
+      s.freeAgents = players;
+      s.freeAgentAvailability = next;
+    });
   }
 
   getState(): TransferState {
@@ -98,6 +157,7 @@ export class TransferManager {
       let needed = this.marketSize - state.listings.length;
       while (needed > 0 && state.freeAgents.length > 0) {
         const player = state.freeAgents.shift() as Player;
+        delete state.freeAgentAvailability?.[player.id];
         state.listings.push(this.listingFor(player, currentMatchday));
         needed--;
       }

@@ -24,7 +24,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { calculateOverall, playerValue, valuePlayer, selectStartingXIWithSlots, ALL_PLAYER_POSITIONS } from '@fm2k/engine';
 import type { Player } from '@fm2k/engine';
 import { fmt } from '../../utils/formatting';
-import { buyPlayerWithConfirm } from '../../utils/transfers';
+import { useBuyPlayerWithConfirm } from '../../utils/transfers';
 import { SectionHeader } from '@fm2k/design-system';
 import { ScrollableTable } from '@fm2k/design-system';
 
@@ -42,9 +42,8 @@ type SortCol = 'name' | 'club' | 'position' | 'age' | 'ovr' | 'price';
 type SortDir = 'asc' | 'desc';
 
 const ATTR_GROUPS = [
-  { label: 'Physical', keys: ['speed', 'strength', 'agility', 'stamina'] },
-  { label: 'Technical', keys: ['passing', 'finishing', 'technique', 'defending'] },
-  { label: 'Mental', keys: ['awareness', 'composure'] },
+  { label: 'Physical', keys: ['speed', 'strength', 'stamina'] },
+  { label: 'Technical', keys: ['passing', 'technique', 'finishing', 'defending', 'keeping'] },
 ] as const;
 
 function AttrBar({ label, value }: { label: string; value: number }) {
@@ -120,6 +119,7 @@ export default function TransfersTab() {
   const [affordableOnly, setAffordableOnly] = useState(false);
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'ovr', dir: 'desc' });
   const [page, setPage] = useState(0);
+  const buyPlayerWithConfirm = useBuyPlayerWithConfirm();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const budget = clubState?.budget ?? 0;
@@ -197,8 +197,8 @@ export default function TransfersTab() {
     setPage(0);
   };
 
-  const handleBuy = (row: PlayerRow) => {
-    if (buyPlayerWithConfirm(signPlayer, row.player.name, row.player.id, row.price)) {
+  const handleBuy = async (row: PlayerRow) => {
+    if (await buyPlayerWithConfirm(signPlayer, row.player.name, row.player.id, row.price)) {
       setSelectedId(null);
     }
   };

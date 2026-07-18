@@ -4,7 +4,7 @@ import {
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays, daysBetween,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights, recentForm,
-  makeYouth, academyBiasForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
+  makeYouth, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
@@ -18,7 +18,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, MatchStatistics, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
-  FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
+  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
 } from '@fm2k/engine';
 import { buildEditableCountries } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
@@ -278,17 +278,7 @@ export class GameSession {
   }
 
   /** AI clubs have no facility levels; approximate them from division tier (top tier = best). */
-  private facilityForLevel(divisionLevel: number): number {
-    return Math.max(1, Math.min(4, 5 - divisionLevel));
-  }
-
-  /** Maps the old flat 1–4 facility level onto Training Facilities' (growthBonus, ceilingBonus)
-   *  axes — an exact equivalence (see packages/engine's progression.ts) used for AI clubs, which
-   *  approximate their facilities from division tier rather than owning real wings/staff. */
-  private trainingBonusesForLevel(level: number): { growthBonus: number; ceilingBonus: number } {
-    return [{ growthBonus: 0, ceilingBonus: 0 }, { growthBonus: 0.1, ceilingBonus: 6 },
-      { growthBonus: 0.2, ceilingBonus: 11 }, { growthBonus: 0.3, ceilingBonus: 15 }][level - 1];
-  }
+  // facilityForLevel and trainingBonusesForLevel are imported from @fm2k/engine (world-churn.ts).
 
   /** The transfer-window state for the current matchday. */
   getTransferWindow(): TransferWindow {
@@ -778,7 +768,7 @@ export class GameSession {
       if (!country) { continue; }
       for (let i = 0; i < INITIAL_FREE_AGENTS_PER_NATION; i++) {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
-        const overall = 42 + Math.floor(this.rng() * 28); // 42–69: released players + the odd gem
+        const overall = 22 + Math.floor(this.rng() * 28); // 22–49: released players + the odd gem
         seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
       }
     }
@@ -786,9 +776,11 @@ export class GameSession {
       marketSize: MARKET_SIZE,
       playerFactory: () => {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
-        return this.playerGenerator.generatePlayer(pos, { overall: 65 });
+        const overall = 40 + Math.floor(this.rng() * 30); // 40–69: D3 fringe through solid D1
+        return this.playerGenerator.generatePlayer(pos, { overall });
       },
-      initialFreeAgents: seededFreeAgents,
+      initialFreeAgents: seededFreeAgents, // no availability stamps: a new game starts with a settled market
+      rng: this.rng,
     });
 
     this.seedSquadTargets(world);
@@ -902,9 +894,12 @@ export class GameSession {
       marketSize: MARKET_SIZE,
       playerFactory: () => {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
-        return this.playerGenerator.generatePlayer(pos, { overall: 65 });
+        const overall = 40 + Math.floor(this.rng() * 30); // 40–69: D3 fringe through solid D1
+        return this.playerGenerator.generatePlayer(pos, { overall });
       },
       initialFreeAgents: prevTransfer.freeAgents,
+      initialFreeAgentAvailability: prevTransfer.freeAgentAvailability,
+      rng: this.rng,
     });
 
     this.seedSquadTargets(this.world);
@@ -948,6 +943,7 @@ export class GameSession {
       clubState: snap.clubState,
       transferListings: snap.transferListings,
       transferFreeAgents: this.transferManager?.getFreeAgents() ?? [],
+      transferFreeAgentAvailability: this.transferManager?.getState().freeAgentAvailability ?? {},
     };
   }
 
@@ -1010,6 +1006,7 @@ export class GameSession {
       listings: save.transferListings,
       refreshedOnMatchday: save.currentMatchday,
       freeAgents: save.transferFreeAgents ?? [],
+      freeAgentAvailability: save.transferFreeAgentAvailability ?? {},
     };
     built.transferManager.loadState(transferState);
 
@@ -1180,8 +1177,10 @@ export class GameSession {
           kind: (nextWindow.kind ?? prevWindow.kind) ?? 'mid_season',
           timestamp: this.now,
         });
-        if (nextWindow.open) { this.runAiMarketWindow(); } // AI clubs shop when a window opens
       }
+      // AI clubs shop every matchday of an open window — later passes are near no-ops
+      // unless the pickup-delay drip has made fresh free agents visible in the meantime.
+      if (nextWindow.open) { this.runAiMarketWindow(); }
       this.publishMatchPreviews();
     }
     this.scheduleQualifiersIfNeeded();
@@ -1230,10 +1229,10 @@ export class GameSession {
       const division = divisionForTeam(this.world, team.id);
       const country = countryForTeam(this.world, team.id);
       if (!division || !country || !this.selectedLeagueIds.includes(country.id)) { continue; }
-      const level = this.facilityForLevel(division.level);
+      const level = facilityForLevel(division.level);
       const res = churnSquad(team.squad, {
         rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
-        ...this.trainingBonusesForLevel(level), academyBias: academyBiasForLevel(level),
+        ...trainingBonusesForLevel(level), academyBias: academyBiasForLevel(level),
       });
       for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
       this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, res.squad.length));
@@ -1241,9 +1240,13 @@ export class GameSession {
     }
 
     if (this.transferManager) {
+      // The whole churned pool is restamped from SEASON_START (the clock resets at rollover):
+      // fresh mints and holdovers alike drip into AI visibility over the first week or two of
+      // the new season, so the pre-season AI window can't hoover the batch before the manager
+      // has seen it.
       this.transferManager.setFreeAgents(churnFreeAgents(this.transferManager.getFreeAgents(), {
         rng: this.rng, youthFactory: this.youthFactory, overflow,
-      }));
+      }), SEASON_START, true);
     }
   }
 
@@ -1430,7 +1433,7 @@ export class GameSession {
     this.playerTeam.formation = cs.formation;
     this.playerTeam.tacticsIntent = cs.tactics;
     this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.resolvePlayerStarters());
-    this.playerTeam.customSlots = cs.customSlots ?? undefined;
+    this.playerTeam.shapes = cs.shapes ?? undefined;
     // Seed in-match starting energy from each player's current fitness, so a tired
     // squad (fixture congestion) starts and tires flatter. ClubPlayer.fitness is 0-1000
     // internally; packages/match's energy model stays on its existing 0-100 scale.
@@ -1482,12 +1485,6 @@ export class GameSession {
     return this.clubChanged();
   }
 
-  setEmptySlotRole(slotIndex: number, role: FormationPosition): ClubState | null {
-    if (!this.clubManager) { return null; }
-    this.clubManager.setEmptySlotRole(slotIndex, role);
-    return this.clubChanged();
-  }
-
   setBench(ids: string[]): ClubState | null {
     if (!this.clubManager) { return null; }
     this.clubManager.setBenchPlayers(ids);
@@ -1512,15 +1509,9 @@ export class GameSession {
     return this.clubChanged();
   }
 
-  setPlayerGeometry(playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }): ClubState | null {
+  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null {
     if (!this.clubManager) { return null; }
-    this.clubManager.setPlayerGeometry(playerId, geometry);
-    return this.clubChanged();
-  }
-
-  setPlayerRole(playerId: string, role: FormationPosition): ClubState | null {
-    if (!this.clubManager) { return null; }
-    this.clubManager.setPlayerRole(playerId, role);
+    this.clubManager.setPlayerGeometry(shape, playerId, geometry);
     return this.clubChanged();
   }
 
@@ -1540,7 +1531,7 @@ export class GameSession {
     const sold = this.clubManager.sellPlayer(playerId, playerValue(player));
     if (!sold) { return false; }
     // The sold player joins the shared pool rather than vanishing — listed again on the next refresh.
-    this.transferManager?.addFreeAgents([sold]);
+    this.transferManager?.addFreeAgents([sold], this.now);
     this.syncPlayerTeam();
     this.notify();
     return true;
@@ -1566,7 +1557,7 @@ export class GameSession {
 
     const nationality = countryForTeam(this.world, teamId)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, teamId)?.level ?? 3;
-    const replacement = makeYouth(target.position, academyBiasForLevel(this.facilityForLevel(level)), nationality, this.youthFactory, this.rng);
+    const replacement = makeYouth(target.position, academyBiasForLevel(facilityForLevel(level)), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
     addPlayerToWorld(this.world, replacement, teamId);
 
@@ -1597,7 +1588,12 @@ export class GameSession {
     }
 
     const targetSizes = Object.fromEntries(this.squadTargets);
-    const result = runAiMarket(aiTeams, this.transferManager.getFreeAgents(), { rng: this.rng, targetSizes });
+    // The AI only sees free agents whose pickup-delay date has passed — the manager gets a
+    // window of a week or two to move on fresh listings first.
+    const aiVisible = new Set(this.transferManager.getAiEligibleFreeAgents(this.now).map(p => p.id));
+    const result = runAiMarket(aiTeams, this.transferManager.getFreeAgents(), {
+      rng: this.rng, targetSizes, canSign: p => aiVisible.has(p.id),
+    });
     if (result.moves.length === 0) { return; }
 
     for (const t of result.teams) { setTeamSquad(this.world, t.id, t.squad); }
@@ -1653,7 +1649,7 @@ export class GameSession {
 
     const nationality = countryForTeam(this.world, team.id)?.nationality ?? 'Unknown';
     const level = divisionForTeam(this.world, team.id)?.level ?? 3;
-    const replacement = makeYouth(player.position, academyBiasForLevel(this.facilityForLevel(level)), nationality, this.youthFactory, this.rng);
+    const replacement = makeYouth(player.position, academyBiasForLevel(facilityForLevel(level)), nationality, this.youthFactory, this.rng);
     removePlayerFromWorld(this.world, playerId);
     addPlayerToWorld(this.world, replacement, team.id);
     this.eventBus?.emit('player.transferred', {

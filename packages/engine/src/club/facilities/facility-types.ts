@@ -27,7 +27,7 @@ export function createEmptyFacilities(): ClubFacilities {
     medical: { wings: {} },
     training: { wings: {} },
     academy: { wings: {} },
-  }
+  };
 }
 
 export interface MedicalAxes {

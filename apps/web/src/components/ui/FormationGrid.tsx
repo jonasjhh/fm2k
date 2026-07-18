@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import type { Player, FormationPosition, PlayerAttributes, PlayerGeometry, Band } from '@fm2k/engine';
-import { positionAttributeImportance, BAND_ORDER, BAND_OF_ROLE, effectiveRole } from '@fm2k/engine';
+import { positionAttributeImportance, BAND_ORDER, BAND_OF_ROLE, deriveRolesForShape } from '@fm2k/engine';
 import { ATTR_LABELS } from '../../lib/attribute-labels';
 
 /** Short display name: "John Smith" → "J. Smith". */
@@ -26,16 +26,17 @@ function keyAttributesTooltip(pos: string): string {
  *  plus a GK row, mirroring TacticsPitch's layout — so every formation gets identical,
  *  predictable proportions regardless of how many of its own template rows use DM/AM, instead
  *  of squeezing a variable row count into the same height. Read-only counterpart to
- *  TacticsPitch: same band model and the same customSlots-aware role label, no drag/role-edit. */
+ *  TacticsPitch: same band model, shape-aware placement and derived role labels, no drag. */
 export function FormationGrid({
-  lines, slotAssignments, squad, teamColors, customSlots = null, emptySlotRoles = null, compact = false, onPlayerClick,
+  lines, slotAssignments, squad, teamColors, shape = null, compact = false, onPlayerClick,
 }: {
   lines: string[][];
   slotAssignments: (string | null)[];
   squad: Player[];
   teamColors: { primary: string; secondary: string };
-  customSlots?: Record<string, PlayerGeometry> | null;
-  emptySlotRoles?: Partial<Record<number, PlayerGeometry>> | null;
+  /** A single shape (normally the defending one) — placement and labels follow it for any
+   *  player it has an entry for; players without an entry fall back to the template slot. */
+  shape?: Record<string, PlayerGeometry> | null;
   compact?: boolean;
   onPlayerClick?: (playerId: string) => void;
 }) {
@@ -47,27 +48,34 @@ export function FormationGrid({
 
   const flat = useMemo(() => lines.flat(), [lines]);
 
+  const derivedRoles = useMemo(() => (shape ? deriveRolesForShape(shape) : null), [shape]);
+
   const byBand = useMemo(() => {
-    const out: Record<Exclude<Band, 'GK'>, { idx: number; pos: FormationPosition }[]> = {
+    const out: Record<Exclude<Band, 'GK'>, { idx: number; pos: FormationPosition; lateral: number }[]> = {
       DEF: [], DM: [], MID: [], AM: [], ATT: [],
     };
     flat.forEach((templatePos, i) => {
       if (i === 0) { return; } // slot 0 is always GK, rendered separately below
-      const band = BAND_OF_ROLE[templatePos as FormationPosition];
+      const playerId = slotAssignments[i] ?? null;
+      const g = playerId ? shape?.[playerId] : undefined;
+      const band = g?.band ?? BAND_OF_ROLE[templatePos as FormationPosition];
       if (band === 'GK') { return; }
-      out[band].push({ idx: i, pos: templatePos as FormationPosition });
+      const pos = (playerId ? derivedRoles?.[playerId] : undefined) ?? (templatePos as FormationPosition);
+      out[band].push({ idx: i, pos, lateral: g?.lateral ?? 0 });
     });
+    if (shape) {
+      for (const band of BAND_ORDER) { out[band].sort((a, b) => a.lateral - b.lateral || a.idx - b.idx); }
+    }
     return out;
-  }, [flat]);
+  }, [flat, slotAssignments, shape, derivedRoles]);
 
   const sz = compact
     ? { minHeight: 300, pad: 1.25, circle: 38, slotW: 56, posFont: 11, nameFont: 10 }
     : { minHeight: 460, pad: 2, circle: 46, slotW: 72, posFont: 13, nameFont: 11 };
 
-  function renderSlot(idx: number, templatePos: FormationPosition) {
+  function renderSlot(idx: number, pos: FormationPosition) {
     const playerId = slotAssignments[idx] ?? null;
     const player = playerId ? playerById.get(playerId) ?? null : null;
-    const pos = effectiveRole(playerId, templatePos, customSlots, emptySlotRoles?.[idx]?.role);
     return (
       <Box
         key={idx}

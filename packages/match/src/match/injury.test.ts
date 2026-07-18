@@ -2,7 +2,7 @@ import {
   collectExposures, rollInjuries, fatigueRiskFactor, injuryDescription, INJURY_TYPES,
   type MatchInjury,
 } from './injury.ts';
-import { MatchSimulator } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
 import { mulberry32 } from './rng.ts';
 import { createTestTeam, createUniformPlayer } from './test-fixtures.ts';
 import type { MatchEvent, MatchState, EventType } from './types.ts';
@@ -129,7 +129,7 @@ describe('in-match injuries (simulator integration):', () => {
   function playMatch(seed: number, injuryRng?: () => number) {
     const home = createTestTeam('home', 'Home', '4-4-2', { idPrefix: 'h-' });
     const away = createTestTeam('away', 'Away', '4-4-2', { idPrefix: 'a-' });
-    const sim = new MatchSimulator({
+    const sim = new DuelMatchSimulator({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: home, awayTeam: away,
       homeStarters: home.squad, awayStarters: away.squad,

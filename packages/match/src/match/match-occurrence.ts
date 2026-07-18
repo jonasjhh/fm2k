@@ -1,6 +1,8 @@
 import type { Occurrence, OccurrenceContext, OccurrenceEvent } from '@fm2k/timeline';
 import type { GameDateTime } from '@fm2k/timeline';
-import { MatchSimulator, isTerminalPhase, withHomeAdvantage } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
+import { isTerminalPhase } from './types.ts';
+import { withHomeAdvantage } from '../tactics/match-parameters.ts';
 import { simulateShootout } from './penalty-shootout.ts';
 import { injuriesBySide } from './injury.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
@@ -35,7 +37,7 @@ export class MatchOccurrence implements Occurrence {
   readonly scheduledTime: GameDateTime;
   readonly tickResolution = 'minute' as const;
 
-  private simulator: MatchSimulator | null = null;
+  private simulator: DuelMatchSimulator | null = null;
   private matchState!: MatchState;
   /** Signature of the player team's tactics as last applied to the live state —
    *  cheap change detection so re-resolution only happens when something changed. */
@@ -92,9 +94,9 @@ export class MatchOccurrence implements Occurrence {
    * starting XI fresh too, so a manager's pre-match changes to lineup/formation/tactics
    * take effect for that match.
    */
-  private ensureStarted(): MatchSimulator {
+  private ensureStarted(): DuelMatchSimulator {
     if (!this.simulator) {
-      this.simulator = new MatchSimulator({
+      this.simulator = new DuelMatchSimulator({
         matchDuration: 90,
         eventsPerMinute: this.eventsPerMinute,
         homeTeam: this.homeTeam,
@@ -119,12 +121,12 @@ export class MatchOccurrence implements Occurrence {
   }
 
   private tacticsSignature(team: Team): string {
-    return JSON.stringify([team.tacticsParams ?? null, team.formation, team.customSlots ?? null]);
+    return JSON.stringify([team.tacticsParams ?? null, team.formation, team.shapes ?? null]);
   }
 
   /**
    * Mid-match tactic/formation changes for the human club. The session mirrors the
-   * manager's live edits onto the Team object (tacticsParams/formation/customSlots);
+   * manager's live edits onto the Team object (tacticsParams/formation/shapes);
    * when that changed since it was last applied, rebuild the live state's params and
    * fielded positions for that side. Pure recomputation — no rng — so determinism is
    * untouched when nothing changed. AI sides deliberately never react mid-match.
@@ -142,8 +144,8 @@ export class MatchOccurrence implements Occurrence {
 
     // Re-derive positions from the slot-ordered active lineup; keep the existing
     // assignment for any on-pitch player the new map doesn't cover (e.g. a substitute
-    // not yet reflected in customSlots).
-    const custom = team.customSlots ? deriveCustomFieldedPositions(team.customSlots) : undefined;
+    // not yet reflected in the shapes).
+    const custom = team.shapes ? deriveCustomFieldedPositions(team.shapes.defending) : undefined;
     const derived = custom?.fieldedPositions ?? deriveFieldedPositions(this.getPlayerStarters(), team.formation);
     const fielded = { ...(this.matchState.fieldedPositions?.[side] ?? {}) };
     for (const p of this.matchState.currentPlayers[side]) {

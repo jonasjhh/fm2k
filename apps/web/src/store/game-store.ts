@@ -6,7 +6,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
-  FormationPosition, Band, FacilityGroupId, WingId, OperatingMode,
+  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
   MatchInsight, MatchStatistics,
 } from '@fm2k/engine';
 import type { Article } from '@fm2k/newspaper';
@@ -114,6 +114,9 @@ interface GameStore {
   streamAway: number;
   streamMinute: number;
   simDelayMs: number;
+  /** Whether the near-fullscreen match overlay is showing (opens when the player's
+   *  fixture is played or simulated; closes on Next match / explicit close). Not persisted. */
+  matchOverlayOpen: boolean;
 
   // navigation
   setScreen: (s: Screen) => void;
@@ -147,6 +150,8 @@ interface GameStore {
   skipMatch: () => Promise<void>;      // skip current match to full time
   goToNextMatch: () => void;           // focus the next fixture
   setSimDelay: (ms: number) => void;
+  openMatchOverlay: () => void;        // re-open the overlay (e.g. the match report)
+  closeMatchOverlay: () => void;
 
   // tactics
   toggleXI: (id: string) => void;
@@ -157,9 +162,7 @@ interface GameStore {
   setStyle: (style: TacticalStyleId) => void;
   setSliders: (sliders: Partial<TacticalSliders>) => void;
   setTraining: (playerId: string, regiment: RegimentId) => void;
-  setPlayerGeometry: (playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }) => void;
-  setPlayerRole: (playerId: string, role: FormationPosition) => void;
-  setEmptySlotRole: (slotIndex: number, role: FormationPosition) => void;
+  setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => void;
   /** Queue an in-match substitution; false when rejected (limit reached, ineligible). */
   queueSubstitution: (playerOutId: string, playerInId: string) => boolean;
 
@@ -271,13 +274,14 @@ export const useGameStore = create<GameStore>((set, get) => {
     streamAway: 0,
     streamMinute: 0,
     simDelayMs: loadSimDelay(),
+    matchOverlayOpen: false,
 
     // ── navigation ────────────────────────────────────────────────────────────
     setScreen: (screen) => set({ screen }),
     setActiveTab: (activeTab) => set({ activeTab }),
     goToMainMenu: () => {
       backend.commands.resetSession();
-      set({ screen: 'main-menu' });
+      set({ screen: 'main-menu', matchOverlayOpen: false });
       refresh();
     },
 
@@ -318,7 +322,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     simulateToEnd: async () => {
       set({ isStreaming: true });
       await backend.commands.simulateToEnd();
-      set({ isStreaming: false, matchEvents: [] });
+      set({ isStreaming: false, matchEvents: [], matchOverlayOpen: false });
     },
 
     // ── match centre (the game clock) ─────────────────────────────────────────────
@@ -328,7 +332,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (get().focusLive === null && get().focusFixture?.status !== 'completed') {
         set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0 });
       }
-      set({ isStreaming: true, pauseRequested: false, lastPauseReason: null, halfTimeInsights: [] });
+      set({ isStreaming: true, pauseRequested: false, lastPauseReason: null, halfTimeInsights: [], matchOverlayOpen: true });
       // Advance in short chunks so a user pause takes effect at the next boundary.
       // Chunk boundaries never interrupt a simulated minute, so where the pauses fall
       // has no effect on the rng stream (same seed ⇒ same match).
@@ -356,7 +360,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     skipMatch: async () => {
       if (get().isStreaming) { return; }
-      set({ isStreaming: true });
+      set({ isStreaming: true, matchOverlayOpen: true });
       const r = await backend.commands.skipToFullTime();
       // Show the resulting events without pacing.
       const evs = r.events.map(e => simEventFromAnim(e, r.homeTeamName, r.awayTeamName)).reverse();
@@ -365,8 +369,11 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     goToNextMatch: () => {
       backend.commands.nextMatch();
-      set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0 });
+      set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0, matchOverlayOpen: false });
     },
+
+    openMatchOverlay: () => set({ matchOverlayOpen: true }),
+    closeMatchOverlay: () => set({ matchOverlayOpen: false }),
 
     setSimDelay: (ms) => {
       const simDelayMs = clampDelay(ms);
@@ -380,9 +387,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     setBench: (ids) => { backend.commands.setBench(ids); },
     setFormation: (formation) => { backend.commands.setFormation(formation); },
     setTactics: (intent) => { backend.commands.setTactics(intent); },
-    setPlayerGeometry: (playerId, geometry) => { backend.commands.setPlayerGeometry(playerId, geometry); },
-    setPlayerRole: (playerId, role) => { backend.commands.setPlayerRole(playerId, role); },
-    setEmptySlotRole: (slotIndex, role) => { backend.commands.setEmptySlotRole(slotIndex, role); },
+    setPlayerGeometry: (shape, playerId, geometry) => { backend.commands.setPlayerGeometry(shape, playerId, geometry); },
     queueSubstitution: (playerOutId, playerInId) => backend.commands.queueSubstitution(playerOutId, playerInId),
     setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {

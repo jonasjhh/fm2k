@@ -7,15 +7,14 @@ import { TACTICAL_STYLE_IDS, defaultIntent, type TacticalStyleId } from './inten
 import { FORMATION_TENDENCIES } from './formation-tendencies.ts';
 import { STYLE_TENDENCIES } from './style-tendencies.ts';
 import { combine } from './translate.ts';
-import { applySquadDistortion } from './squad-influence.ts';
-import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
+import { squadSuitability, defensiveSuitability, attackEffectiveness, BASELINE_SUIT } from './suitability.ts';
 import { resolveMatchParameters } from './resolve.ts';
 import { formationToStyle, aiIntent } from './ai-style.ts';
 
 function attrs(value: number, overrides: Partial<PlayerAttributes> = {}): PlayerAttributes {
   return {
-    speed: value, strength: value, agility: value, passing: value, finishing: value,
-    technique: value, defending: value, stamina: value, awareness: value, composure: value,
+    speed: value, strength: value, passing: value, finishing: value,
+    technique: value, defending: value, stamina: value, keeping: 10,
     ...overrides,
   };
 }
@@ -141,55 +140,29 @@ describe('combine (translation layer):', () => {
   });
 });
 
-describe('squad influence (distortion):', () => {
-  it('given a low-stamina squad then pressing weakens and fatigue rate worsens', () => {
-    const strong = applySquadDistortion(NEUTRAL_PARAMS, squad(90));
-    const weak = applySquadDistortion(NEUTRAL_PARAMS, squad(10));
-    expect(weak.pressIntensity).toBeLessThan(strong.pressIntensity);
-    expect(weak.fatigueRate).toBeGreaterThan(strong.fatigueRate);
-  });
-
-  it('given weak mentals then effective passing risk rises', () => {
-    const composed = applySquadDistortion(NEUTRAL_PARAMS, squad(50, { composure: 90, awareness: 90 }));
-    const rash = applySquadDistortion(NEUTRAL_PARAMS, squad(50, { composure: 10, awareness: 10 }));
-    expect(rash.passingRisk).toBeGreaterThan(composed.passingRisk);
-  });
-
-  it('given a fast squad then transition speed rises', () => {
-    const slow = applySquadDistortion(NEUTRAL_PARAMS, squad(50, { speed: 15 }));
-    const fast = applySquadDistortion(NEUTRAL_PARAMS, squad(50, { speed: 95 }));
-    expect(fast.transitionSpeed).toBeGreaterThan(slow.transitionSpeed);
-  });
-
-  it('given an empty XI then distortion does not throw and stays clamped', () => {
-    const p = applySquadDistortion(NEUTRAL_PARAMS, []);
-    for (const key of PARAM_KEYS) {
-      expect(p[key]).toBeGreaterThanOrEqual(0);
-      expect(p[key]).toBeLessThanOrEqual(100);
-    }
-  });
-});
-
 describe('suitability:', () => {
   it('given a technical passing squad then it suits keep_the_ball more than long_ball', () => {
-    const technical = squad(40, { passing: 90, technique: 90, composure: 85 });
+    const technical = squad(40, { passing: 90, technique: 90 });
     const intentKeep = defaultIntent('4-3-3');
     const keep = squadSuitability({ ...intentKeep, style: 'keep_the_ball' }, technical);
     const long = squadSuitability({ ...intentKeep, style: 'long_ball' }, technical);
     expect(keep).toBeGreaterThan(long);
   });
 
-  it('given a better squad then suitability and defensive suitability are higher', () => {
+  it('given suitability is fit-relative then a uniform squad scores the baseline at any tier', () => {
     const intent = { ...defaultIntent('4-4-2'), style: 'press_high' as TacticalStyleId };
-    expect(squadSuitability(intent, squad(80))).toBeGreaterThan(squadSuitability(intent, squad(20)));
-    expect(defensiveSuitability(squad(80))).toBeGreaterThan(defensiveSuitability(squad(20)));
+    expect(squadSuitability(intent, squad(80))).toBeCloseTo(squadSuitability(intent, squad(20)), 10);
+    expect(defensiveSuitability(squad(80))).toBeCloseTo(defensiveSuitability(squad(20)), 10);
+    // A squad SHAPED for the style beats the uniform baseline regardless of tier.
+    const runners = squad(50, { stamina: 90, speed: 90 });
+    expect(squadSuitability(intent, runners)).toBeGreaterThan(squadSuitability(intent, squad(80)));
   });
 
   it('given suitability scores then they are bounded 0..1', () => {
     const intent = { ...defaultIntent('4-4-2'), style: 'balanced' as TacticalStyleId };
     expect(squadSuitability(intent, squad(99))).toBeLessThanOrEqual(1);
     expect(squadSuitability(intent, squad(1))).toBeGreaterThanOrEqual(0);
-    expect(squadSuitability(intent, [])).toBe(0.5);
+    expect(squadSuitability(intent, [])).toBe(BASELINE_SUIT);
   });
 });
 
@@ -222,8 +195,8 @@ describe('resolveMatchParameters (full pipeline):', () => {
 
   it('given a well-suited attacker vs the same opponent then chance quality beats a poorly-suited one', () => {
     const opp = squad(60);
-    const technical = squad(60, { passing: 95, technique: 95, composure: 90 });
-    const physical = squad(60, { passing: 20, technique: 20, composure: 20 });
+    const technical = squad(60, { passing: 95, technique: 95 });
+    const physical = squad(60, { passing: 20, technique: 20 });
     const keepIntent = { ...defaultIntent('4-3-3'), style: 'keep_the_ball' as TacticalStyleId };
     const good = resolveMatchParameters(keepIntent, technical, opp);
     const bad = resolveMatchParameters(keepIntent, physical, opp);

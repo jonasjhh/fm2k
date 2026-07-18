@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import type React from 'react';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_LINES, effectiveRole, effectiveDisplayOrder, MAX_BENCH_SIZE } from '@fm2k/engine';
-import type { Formation, FormationPosition } from '@fm2k/engine';
+import { FORMATION_LINES, deriveRolesForShape, effectiveDisplayOrder, MAX_BENCH_SIZE } from '@fm2k/engine';
+import type { Formation } from '@fm2k/engine';
 
 /** Bench slots are optional: pad the named subs with empty slots up to the cap. */
 function padBench(benchPlayers: string[]): (string | null)[] {
@@ -18,8 +18,7 @@ export function useLineupSlots() {
   })));
 
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
-  const customSlots = clubState?.customSlots ?? null;
-  const emptySlotRoles = clubState?.emptySlotRoles ?? null;
+  const shape = clubState?.shapes?.defending ?? null;
   const lines = useMemo(() => FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2'], [formation]);
   const starterSlots = useMemo(() => lines.flat(), [lines]);
 
@@ -40,21 +39,24 @@ export function useLineupSlots() {
     return m;
   }, [slotAssignments]);
 
-  const allSlots = useMemo(() => [
-    ...starterSlots.map((templatePos, i) => (
-      { pos: effectiveRole(slotAssignments[i], templatePos as FormationPosition, customSlots, emptySlotRoles?.[i]?.role), idx: i, isSub: false }
-    )),
-    ...Array.from({ length: MAX_BENCH_SIZE }, (_, i) => ({ pos: 'SUB', idx: 11 + i, isSub: true })),
-  ], [starterSlots, slotAssignments, customSlots, emptySlotRoles]);
+  const derivedRoles = useMemo(() => (shape ? deriveRolesForShape(shape) : null), [shape]);
 
-  // Display-only ordering for pills/table rows — derived from customSlots (the live
+  const allSlots = useMemo(() => [
+    ...starterSlots.map((templatePos, i) => {
+      const id = slotAssignments[i];
+      return { pos: (id && derivedRoles?.[id]) ?? templatePos, idx: i, isSub: false };
+    }),
+    ...Array.from({ length: MAX_BENCH_SIZE }, (_, i) => ({ pos: 'SUB', idx: 11 + i, isSub: true })),
+  ], [starterSlots, slotAssignments, derivedRoles]);
+
+  // Display-only ordering for pills/table rows — derived from the defending shape (the live
   // free-positioning geometry) when set, so a player who's been dragged to a new band shows
   // up in the right place in the list, not just under the right label. Never read by
   // handleSlotClick/handlePlayerDrop/commitAssignments below, which keep addressing slots by
   // their original index regardless of display order.
   const displayOrder = useMemo(
-    () => effectiveDisplayOrder(slotAssignments, customSlots, formation, emptySlotRoles),
-    [slotAssignments, customSlots, formation, emptySlotRoles],
+    () => effectiveDisplayOrder(slotAssignments, shape, formation),
+    [slotAssignments, shape, formation],
   );
 
   const commitAssignments = (newAssignments: (string | null)[]) => {

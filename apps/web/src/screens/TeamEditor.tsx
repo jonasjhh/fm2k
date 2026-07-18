@@ -32,6 +32,7 @@ import CasinoIcon from '@mui/icons-material/Casino';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useGameStore } from '@/store/game-store';
+import { useConfirm } from '@fm2k/design-system';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateOverall, NameGenerator, COUNTRY_COLORS, ALL_PLAYER_POSITIONS } from '@fm2k/engine';
 
@@ -44,19 +45,17 @@ import FlagIcon from '../components/FlagIcon';
 const ATTR_COLS: { key: keyof PlayerAttributes; label: string; full: string }[] = [
   { key: 'speed',     label: 'SPD', full: 'Speed'     },
   { key: 'strength',  label: 'STR', full: 'Strength'  },
-  { key: 'agility',   label: 'AGI', full: 'Agility'   },
-  { key: 'passing',   label: 'PAS', full: 'Passing'   },
-  { key: 'finishing', label: 'FIN', full: 'Finishing' },
-  { key: 'technique', label: 'TEC', full: 'Technique' },
-  { key: 'defending', label: 'DEF', full: 'Defending' },
   { key: 'stamina',   label: 'STA', full: 'Stamina'   },
-  { key: 'awareness', label: 'AWA', full: 'Awareness' },
-  { key: 'composure', label: 'COM', full: 'Composure' },
+  { key: 'passing',   label: 'PAS', full: 'Passing'   },
+  { key: 'technique', label: 'TEC', full: 'Technique' },
+  { key: 'finishing', label: 'FIN', full: 'Finishing' },
+  { key: 'defending', label: 'DEF', full: 'Defending' },
+  { key: 'keeping',   label: 'KEE', full: 'Keeping'   },
 ];
 
 const DEFAULT_ATTRS: PlayerAttributes = {
-  speed: 50, strength: 50, agility: 50, passing: 50, finishing: 50,
-  technique: 50, defending: 50, stamina: 50, awareness: 50, composure: 50,
+  speed: 50, strength: 50, stamina: 50, passing: 50, technique: 50,
+  finishing: 50, defending: 50, keeping: 50,
 };
 
 import { getContrastColor } from '../utils/colors';
@@ -113,6 +112,7 @@ export default function TeamEditor() {
   const [draftPotential, setDraftPotential] = useState(70);
   const [draftAttrs, setDraftAttrs] = useState<PlayerAttributes>({ ...DEFAULT_ATTRS });
   const [, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   const {
     setScreen, goToMainMenu, editableCountries, editingTeamId, setEditingTeamId,
@@ -192,8 +192,8 @@ export default function TeamEditor() {
   function randomiseAttrs() {
     const rand = () => Math.floor(Math.random() * 60) + 30;
     setDraftAttrs({
-      speed: rand(), strength: rand(), agility: rand(), passing: rand(), finishing: rand(),
-      technique: rand(), defending: rand(), stamina: rand(), awareness: rand(), composure: rand(),
+      speed: rand(), strength: rand(), stamina: rand(), passing: rand(), technique: rand(),
+      finishing: rand(), defending: rand(), keeping: rand(),
     });
   }
 
@@ -382,7 +382,14 @@ export default function TeamEditor() {
                   Add Player
                 </Button>
                 <Button size="small" variant="contained" color="secondary" startIcon={<CasinoIcon />}
-                  onClick={() => { if (confirm(`Replace all players in ${team.name}?`)) {generateFullTeam(team.id);} }}>
+                  onClick={async () => {
+                    if (await confirm({
+                      title: 'Replace squad',
+                      message: `Replace all players in ${team.name}?`,
+                      confirmLabel: 'Replace',
+                      destructive: true,
+                    })) { generateFullTeam(team.id); }
+                  }}>
                   Full Team
                 </Button>
               </Box>

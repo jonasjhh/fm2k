@@ -41,7 +41,7 @@ interface Props {
   clubName: string
   committedSectors: Record<string, StadiumSectorConfig>
   budget: number
-  onApply: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean
+  onApply: (sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number) => boolean | Promise<boolean>
 }
 
 export default function StadiumPlanner({ clubName, committedSectors, budget, onApply }: Props) {
@@ -114,10 +114,11 @@ export default function StadiumPlanner({ clubName, committedSectors, budget, onA
     }));
   }, [activeSector]);
 
-  const handleApply = useCallback(() => {
+  // Success/failure messaging is the consumer's job (it knows whether a false came from
+  // a cancelled confirmation or a genuine budget failure) — see StadiumSubPage.
+  const handleApply = useCallback(async () => {
     if (!canApply) { return; }
-    const ok = onApply(plannedSectors, totalCost, plannedCapacity);
-    if (!ok) { alert('Insufficient budget.'); }
+    await onApply(plannedSectors, totalCost, plannedCapacity);
   }, [canApply, onApply, plannedSectors, totalCost, plannedCapacity]);
 
   const handleDiscard = useCallback(() => {

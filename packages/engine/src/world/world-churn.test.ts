@@ -1,5 +1,5 @@
 import {
-  retirementChance, makeYouth, churnSquad, churnFreeAgents, runAiMarket, academyBiasForLevel, type YouthFactory,
+  retirementChance, makeYouth, makeBackfillPlayer, churnSquad, churnFreeAgents, runAiMarket, academyBiasForLevel, type YouthFactory,
 } from './world-churn.ts';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 import type { YouthBias } from '../club/facilities/facility-types.ts';
@@ -10,7 +10,7 @@ const NO_BIAS: YouthBias = {
 };
 
 function attrs(v: number): PlayerAttributes {
-  return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
 }
 
 function player(over: Partial<Player> & { id: string }, attrValue = 60): Player {
@@ -56,9 +56,9 @@ describe('makeYouth:', () => {
     expect(y.nationality).toBe('spanish');
     expect(y.age).toBeGreaterThanOrEqual(16);
     expect(y.age).toBeLessThanOrEqual(19);
-    // L4-equivalent potential band is [72, 96]; rng=0.5 → midpoint.
-    expect(y.potential).toBeGreaterThanOrEqual(72);
-    expect(y.potential).toBeLessThanOrEqual(96);
+    // L4-equivalent potential band is [58, 86]; rng=0.5 → midpoint.
+    expect(y.potential).toBeGreaterThanOrEqual(58);
+    expect(y.potential).toBeLessThanOrEqual(86);
   });
 
   it('better academies produce higher-potential youth on average', () => {
@@ -69,8 +69,8 @@ describe('makeYouth:', () => {
 
   it('with no bias built, falls back to the unfacilitated floor', () => {
     const y = makeYouth('ST', NO_BIAS, 'spanish', youthFactory, () => 0);
-    expect(y.potential).toBeGreaterThanOrEqual(54);
-    expect(y.potential).toBeLessThanOrEqual(72);
+    expect(y.potential).toBeGreaterThanOrEqual(40);
+    expect(y.potential).toBeLessThanOrEqual(62);
   });
 
   it('a goalkeeper intake uses the bias\'s gk-specific bonuses, not its outfield ones', () => {
@@ -87,6 +87,59 @@ describe('makeYouth:', () => {
     const bias: YouthBias = { ...NO_BIAS, nationalityPool: ['brazilian'] };
     const y = makeYouth('ST', bias, 'norwegian', youthFactory, () => 0.5);
     expect(y.nationality).toBe('brazilian');
+  });
+});
+
+describe('makeBackfillPlayer:', () => {
+  const rngOf = (...values: number[]) => {
+    let i = 0;
+    return () => values[i++ % values.length];
+  };
+  const ovrOf = (p: Player) => p.attributes.speed; // echo factory stores overall in every attr
+
+  it('the common band mints a D3/D2 filler in the 30–55 range, aged 21–32', () => {
+    // band 0.99 → filler; overall 30 + 0.5·25 = 43; age 21 + floor(0.5·12) = 27; potential 43 + 2
+    const p = makeBackfillPlayer('CM', 'n', youthFactory, rngOf(0.99, 0.5, 0.5, 0.5));
+    expect(ovrOf(p)).toBe(43);
+    expect(p.age).toBe(27);
+    expect(p.potential).toBe(45);
+  });
+
+  it('the mid band mints an upper-D2/lower-D1 player in the 55–70 range', () => {
+    // band 0.2 (elite 0.1 ≤ 0.2 < 0.4) → 55 + 0.5·15 = 62.5 → 63
+    const p = makeBackfillPlayer('ST', 'n', youthFactory, rngOf(0.2, 0.5, 0.5, 0.5));
+    expect(ovrOf(p)).toBe(63);
+  });
+
+  it('the elite band tapers above 70 with near-spent potential when the wonderkid roll misses', () => {
+    // band 0.05 → elite; overall 70 + 0.9·0.9·12 = 79.72 → 80; wonderkid roll 0.9 misses
+    const p = makeBackfillPlayer('ST', 'n', youthFactory, rngOf(0.05, 0.9, 0.9, 0.9, 0.5, 0.5));
+    expect(ovrOf(p)).toBe(80);
+    expect(p.age).toBe(27);
+    expect(p.potential).toBe(82);
+  });
+
+  it('the super-rare wonderkid branch mints an 18–19-year-old elite with big headroom', () => {
+    // band 0.05 → elite (overall 80); wonderkid roll 0 hits; potential 80 + 8 + round(0.5·7) = 92; age 19
+    const p = makeBackfillPlayer('ST', 'n', youthFactory, rngOf(0.05, 0.9, 0.9, 0, 0.5, 0.5));
+    expect(ovrOf(p)).toBe(80);
+    expect(p.age).toBe(19);
+    expect(p.potential).toBe(92);
+  });
+
+  it('over many mints the pyramid holds ≈60/30/10 with wonderkids present but rare', () => {
+    let seed = 42;
+    const rng = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const mints = Array.from({ length: 2000 }, () => makeBackfillPlayer('CM', 'n', youthFactory, rng));
+    const elite = mints.filter(p => ovrOf(p) >= 70).length / mints.length;
+    const mid = mints.filter(p => ovrOf(p) >= 55 && ovrOf(p) < 70).length / mints.length;
+    expect(elite).toBeGreaterThan(0.05);
+    expect(elite).toBeLessThan(0.16);
+    expect(mid).toBeGreaterThan(0.22);
+    expect(mid).toBeLessThan(0.38);
+    const wonderkids = mints.filter(p => p.age <= 19 && ovrOf(p) >= 70);
+    expect(wonderkids.length).toBeGreaterThan(0);
+    expect(wonderkids.length / mints.length).toBeLessThan(0.04);
   });
 });
 
@@ -188,6 +241,33 @@ describe('runAiMarket:', () => {
     expect(squad.some(p => p.id === 'w1')).toBe(false);
     expect(squad.some(p => p.id === 'w2')).toBe(false);
     expect(squad).toHaveLength(2); // 3 - 2 + 1
+  });
+
+  it('canSign hides ineligible free agents from the AI — but not from refills of its own releases', () => {
+    const team = { id: 't', squad: [player({ id: 'weak', position: 'ST' }, 60), player({ id: 'ok', position: 'CM' }, 75)] };
+    const pool = [player({ id: 'hidden', position: 'ST' }, 90)];
+    const res = runAiMarket([team], pool, {
+      rng: () => 0, activity: 1, improveThreshold: 2, targetSizes: { t: 2 }, canSign: () => false,
+    });
+    expect(res.teams[0].squad.some(p => p.id === 'hidden')).toBe(false); // the star stays invisible
+    expect(res.freeAgents.some(p => p.id === 'hidden')).toBe(true);
+  });
+
+  it('a player released during this window stays signable even when canSign says no', () => {
+    // Club A trims above the cap, releasing into the pool; club B (short of its target)
+    // may re-sign the cast-off despite the drip hiding everyone else.
+    const bigSquad = Array.from({ length: 26 }, (_, i) => player({ id: `a${i}`, position: 'CM' }, 50));
+    const teams = [
+      { id: 'a', squad: bigSquad },
+      { id: 'b', squad: [player({ id: 'b0', position: 'CM' }, 70)] },
+    ];
+    const res = runAiMarket(teams, [player({ id: 'hidden', position: 'ST' }, 90)], {
+      rng: () => 0, activity: 1, targetSizes: { a: 25, b: 2 }, canSign: () => false,
+    });
+    const bSquad = res.teams[1].squad;
+    expect(bSquad).toHaveLength(2);
+    expect(bSquad.some(p => p.id.startsWith('a'))).toBe(true); // signed the fresh cast-off
+    expect(bSquad.some(p => p.id === 'hidden')).toBe(false);
   });
 
   it('records each player movement with its team, direction, and identity (for news headlines)', () => {

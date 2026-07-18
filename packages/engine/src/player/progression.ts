@@ -12,11 +12,11 @@ type AttrKey = keyof PlayerAttributes;
 
 export type RegimentId =
   | 'physical' | 'finishing' | 'playmaking' | 'technique'
-  | 'defending' | 'mentality' | 'goalkeeping' | 'balanced';
+  | 'defending' | 'goalkeeping' | 'balanced';
 
 export const REGIMENT_IDS: readonly RegimentId[] = [
   'physical', 'finishing', 'playmaking', 'technique',
-  'defending', 'mentality', 'goalkeeping', 'balanced',
+  'defending', 'goalkeeping', 'balanced',
 ];
 
 export const DEFAULT_REGIMENT: RegimentId = 'balanced';
@@ -28,34 +28,32 @@ export const REGIMENT_LABELS: Record<RegimentId, string> = {
   playmaking: 'Playmaking',
   technique: 'Technique',
   defending: 'Defending',
-  mentality: 'Mentality',
   goalkeeping: 'Goalkeeping',
   balanced: 'Balanced',
 };
 
 /**
  * Which attributes each regiment trains, and the relative weight a gain is directed into.
- * Covers all 10 attributes across the set; `balanced` spreads thinly over everything.
+ * Covers all 8 attributes across the set; `balanced` spreads thinly over everything.
  */
 export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, number>>> = {
-  physical:    { speed: 1, strength: 1, agility: 1, stamina: 1 },
-  finishing:   { finishing: 2, composure: 1 },
-  playmaking:  { passing: 2, awareness: 1 },
-  technique:   { technique: 2, agility: 1 },
-  defending:   { defending: 2, strength: 1, awareness: 1 },
-  mentality:   { composure: 2, awareness: 1 },
-  goalkeeping: { agility: 2, awareness: 1, composure: 1 }, // the gkSaving composite
+  physical:    { speed: 1, strength: 1, stamina: 1 },
+  finishing:   { finishing: 2, technique: 1 },
+  playmaking:  { passing: 2, technique: 1 },
+  technique:   { technique: 2, speed: 1 },
+  defending:   { defending: 2, strength: 1 },
+  goalkeeping: { keeping: 3 },
   balanced:    {
-    speed: 1, strength: 1, agility: 1, passing: 1, finishing: 1,
-    technique: 1, defending: 1, stamina: 1, awareness: 1, composure: 1,
+    speed: 1, strength: 1, stamina: 1, passing: 1, technique: 1,
+    finishing: 1, defending: 1, keeping: 1,
   },
 };
 
 // Physical attributes fade first — "legs before touch" — so decline is weighted toward them.
 const DECLINE_WEIGHTS: Partial<Record<AttrKey, number>> = {
-  speed: 3, agility: 3, stamina: 2, strength: 2,
+  speed: 3, stamina: 2, strength: 2,
   finishing: 1, defending: 1, passing: 1,
-  technique: 0.5, awareness: 0.5, composure: 0.5,
+  technique: 0.5, keeping: 0.5,
 };
 
 // Tuning (deliberately modest — most players plateau well short of world class).

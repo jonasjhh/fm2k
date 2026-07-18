@@ -1,7 +1,7 @@
 import type { Player, Team } from '../shared/types.ts';
 import type { TeamTacticsIntent } from '../tactics/intent-types.ts';
 import { resolveMatchParameters } from '../tactics/resolve.ts';
-import { MatchSimulator } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
 import type { MatchEvent, MatchStatistics, MatchState } from './types.ts';
 import type { InjuryReport } from './injury.ts';
 
@@ -63,7 +63,7 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
   const homeParams = resolveMatchParameters(input.home.intent, homeXI, awayXI);
   const awayParams = resolveMatchParameters(input.away.intent, awayXI, homeXI);
 
-  const sim = new MatchSimulator({
+  const sim = new DuelMatchSimulator({
     matchDuration: input.matchDuration ?? 90,
     eventsPerMinute: input.eventsPerMinute ?? 3,
     homeTeam, awayTeam,

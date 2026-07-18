@@ -32,13 +32,11 @@ export function getEffectiveAttributes(player: Player, fieldedPosition: Formatio
   return {
     speed:     Math.round(attrs.speed     * modifier),
     strength:  Math.round(attrs.strength  * modifier),
-    agility:   Math.round(attrs.agility   * modifier),
-    passing:   Math.round(attrs.passing   * modifier),
-    finishing: Math.round(attrs.finishing * modifier),
-    technique: Math.round(attrs.technique * modifier),
-    defending: Math.round(attrs.defending * modifier),
     stamina:   Math.round(attrs.stamina   * modifier),
-    awareness: Math.round(attrs.awareness * modifier),
-    composure: Math.round(attrs.composure * modifier),
+    passing:   Math.round(attrs.passing   * modifier),
+    technique: Math.round(attrs.technique * modifier),
+    finishing: Math.round(attrs.finishing * modifier),
+    defending: Math.round(attrs.defending * modifier),
+    keeping:   Math.round(attrs.keeping   * modifier),
   };
 }

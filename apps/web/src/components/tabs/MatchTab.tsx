@@ -11,14 +11,11 @@ import {
   getTeamOVR, recentForm, FORMATION_LINES, buildXISlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
 import type { Player, Formation } from '@fm2k/engine';
+import { FormBadge } from '@fm2k/design-system';
 import { FormationGrid } from '../ui/FormationGrid';
 import MatchSimPanel from '../MatchSimPanel';
+import MatchOverlay from '../match/MatchOverlay';
 import TacticsSection from '../ui/TacticsSection';
-
-function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
-  const color = result === 'W' ? 'success' : result === 'D' ? 'warning' : 'error';
-  return <Chip label={result} size="small" color={color} sx={{ minWidth: 32, fontWeight: 700 }} />;
-}
 
 export default function MatchTab() {
   const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture, focusLive, isStreaming, setStyle, setSliders } =
@@ -76,16 +73,14 @@ export default function MatchTab() {
         // re-derive it via buildSlotAssignments.
         slotAssignments: [...clubState.startingXI, ...clubState.benchPlayers.slice(0, MAX_BENCH_SIZE)],
         squad: clubState.squad as Player[],
-        customSlots: clubState.customSlots,
-        emptySlotRoles: clubState.emptySlotRoles,
+        shape: clubState.shapes?.defending ?? null,
       };
     }
     const squad: Player[] = team ? team.squad : [];
     const formation = (team?.formation ?? '4-4-2') as Formation;
     return {
       team, formation, lines: FORMATION_LINES[formation],
-      slotAssignments: buildXISlotAssignments(squad, formation), squad, customSlots: null,
-      emptySlotRoles: null,
+      slotAssignments: buildXISlotAssignments(squad, formation), squad, shape: null,
     };
   };
 
@@ -117,7 +112,7 @@ export default function MatchTab() {
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderTop: 'none', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, p: 1 }}>
           <FormationGrid
             lines={view.lines} slotAssignments={view.slotAssignments} squad={view.squad}
-            teamColors={colors} customSlots={view.customSlots} emptySlotRoles={view.emptySlotRoles} compact
+            teamColors={colors} shape={view.shape} compact
           />
           {showStats && pos > 0 && (
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -171,6 +166,7 @@ export default function MatchTab() {
       )}
 
       <MatchSimPanel />
+      <MatchOverlay />
     </Box>
   );
 }

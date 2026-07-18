@@ -11,7 +11,7 @@ function seq(values: number[]): () => number {
 }
 
 function attrs(v = 40): PlayerAttributes {
-  return { speed: v, strength: v, agility: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, awareness: v, composure: v };
+  return { speed: v, strength: v, passing: v, finishing: v, technique: v, defending: v, stamina: v, keeping: 10 };
 }
 
 function player(over: Partial<Player> = {}, attrValue = 40): Player {
@@ -255,7 +255,7 @@ describe('regiment table:', () => {
     for (const id of REGIMENT_IDS) {
       expect(Object.keys(TRAINING_REGIMENTS[id]).length).toBeGreaterThan(0);
     }
-    // balanced trains all ten attributes
-    expect(Object.keys(TRAINING_REGIMENTS.balanced).length).toBe(10);
+    // balanced trains all eight attributes
+    expect(Object.keys(TRAINING_REGIMENTS.balanced).length).toBe(8);
   });
 });

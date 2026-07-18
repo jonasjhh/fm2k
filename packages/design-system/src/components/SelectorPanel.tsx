@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 
 /**
- * The shared bordered container that holds a tab's `ButtonSelector` rows, so the
- * selector chrome looks identical across Competitions / Fixtures / Club.
+ * The shared bordered container that holds a screen's `ButtonSelector` rows, so the
+ * selector chrome looks identical everywhere it appears.
  */
 export function SelectorPanel({ children }: { children: ReactNode }) {
   return (
@@ -15,5 +15,3 @@ export function SelectorPanel({ children }: { children: ReactNode }) {
     </Box>
   );
 }
-
-export default SelectorPanel;

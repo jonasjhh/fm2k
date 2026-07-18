@@ -1,5 +1,5 @@
 import { StatsAccumulator, CONTESTED_ACTION_TYPES } from './stats.ts';
-import { MatchSimulator } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
 import { mulberry32 } from './distribution.ts';
 import type { MatchEvent, MatchState, EventType } from './types.ts';
 import type { Team, Formation } from '../shared/types.ts';
@@ -98,6 +98,23 @@ describe('StatsAccumulator:', () => {
     expect(acc.build().fastBreakGoals).toEqual({ home: 0, away: 0 });
   });
 
+  test('duel wins tally per type for the winning side, regardless of event team', () => {
+    const acc = new StatsAccumulator();
+    acc.record([
+      ev('dribble', 'home', { metadata: { duel: { duelType: 'dribble', winnerSide: 'home', winnerId: 'a', loserId: 'b', margin: 3 } } }),
+      // a turnover event credits the defending side that won the duel:
+      ev('tackle', 'away', { metadata: { duel: { duelType: 'pass', winnerSide: 'away', winnerId: 'c', loserId: 'd', margin: 1 } } }),
+      ev('tackle', 'away', { metadata: { duel: { duelType: 'pass', winnerSide: 'away', winnerId: 'c', loserId: 'd', margin: 2 } } }),
+      // events without duel metadata are ignored:
+      ev('short_pass', 'home'),
+    ]);
+    const s = acc.build();
+    expect(s.duelsWon).toEqual({
+      home: { speed: 0, strength: 0, dribble: 1, pass: 0, shot: 0 },
+      away: { speed: 0, strength: 0, dribble: 0, pass: 2, shot: 0 },
+    });
+  });
+
   test('player ratings reward goals/saves and punish cards, clamped to the 10-point scale', () => {
     const acc = new StatsAccumulator();
     acc.record([
@@ -118,7 +135,7 @@ describe('StatsAccumulator:', () => {
   test('matches the historical statistics formulas over a full seeded match', () => {
     const home = createTestTeam('home', 'Home');
     const away = createTestTeam('away', 'Away');
-    const sim = new MatchSimulator({
+    const sim = new DuelMatchSimulator({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: home, awayTeam: away,
       homeStarters: home.squad, awayStarters: away.squad,
@@ -153,6 +170,16 @@ describe('StatsAccumulator:', () => {
         expect(s.actionBreakdown[side][t].attempts).toBeGreaterThanOrEqual(s.actionBreakdown[side][t].successes);
       }
     }
+    // duelsWon tallies exactly the events carrying duel metadata
+    if (!s.duelsWon) { throw new Error('expected duelsWon on a v2 result'); }
+    for (const side of ['home', 'away'] as const) {
+      const metaWins = events.filter(e =>
+        (e.metadata?.duel as { winnerSide?: string } | undefined)?.winnerSide === side).length;
+      const tallied = Object.values(s.duelsWon[side]).reduce((a, b) => a + b, 0);
+      expect(tallied).toBe(metaWins);
+      expect(tallied).toBeGreaterThan(0);
+    }
+
     for (const rating of Object.values(s.playerRatings)) {
       expect(rating).toBeGreaterThanOrEqual(5.0);
       expect(rating).toBeLessThanOrEqual(9.9);
@@ -162,7 +189,7 @@ describe('StatsAccumulator:', () => {
   test('mid-match getStatistics() accumulates as minutes tick', () => {
     const home = createTestTeam('home', 'Home');
     const away = createTestTeam('away', 'Away');
-    const sim = new MatchSimulator({
+    const sim = new DuelMatchSimulator({
       matchDuration: 90, eventsPerMinute: 3,
       homeTeam: home, awayTeam: away,
       homeStarters: home.squad, awayStarters: away.squad,

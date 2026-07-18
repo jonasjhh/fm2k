@@ -44,8 +44,8 @@ function makeTeam(id: string, strength: number, formation: Formation): { team: T
   const squad: Player[] = SQUAD_POSITIONS.map((position, i) => ({
     id: `${id}-${i}`, name: `${id} ${i}`, nationality: 'n', age: 25, position, potential: 80,
     attributes: {
-      speed: strength, strength, agility: strength, passing: strength, finishing: strength,
-      technique: strength, defending: strength, stamina: strength, awareness: strength, composure: strength,
+      speed: strength, strength, stamina: strength, passing: strength, technique: strength,
+      finishing: strength, defending: strength, keeping: strength,
     },
   }));
   const { starters } = selectStartingXIWithSlots(squad, formation);

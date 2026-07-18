@@ -22,8 +22,13 @@ export type SaveType = 'QUICK' | 'AUTO';
 // v12 flattened `editableCountries` into `players`/`teams`/`teamDivision`/`divisions`/
 // `countries` (mirroring the runtime `World` model) and dropped the hand-rolled pack/
 // unpack codec — old saves can't be migrated (MIN bumped too).
-export const SAVE_VERSION = 12;
-export const MIN_LOADABLE_VERSION = 12;
+// v13 reshaped PlayerAttributes from 10 to 8 (dropped agility/awareness/composure, added
+// keeping — REWORK_01.md Step 2) and removed the 'mentality' training regiment; attributes
+// persist per-field, so old saves can't be migrated (MIN bumped too).
+// v14 added `transferFreeAgentAvailability` (per-free-agent AI pickup-delay dates; optional,
+// so v13 saves still load — a missing map just means every free agent is AI-visible).
+export const SAVE_VERSION = 14;
+export const MIN_LOADABLE_VERSION = 13;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
 
@@ -55,6 +60,8 @@ export interface SaveData extends FlatWorld {
   transferListings: TransferListing[];
   /** The shared free-agent pool behind the market (sold/released players + churn youth). */
   transferFreeAgents?: Player[];
+  /** Calendar date each pooled free agent becomes visible to AI clubs (pickup-delay drip). */
+  transferFreeAgentAvailability?: Record<string, GameDateTime>;
 }
 
 export function saveKey(type: SaveType, teamName: string): string {

@@ -1,4 +1,5 @@
 import { simulateMatch, type SideInput } from './simulate.ts';
+import type { DuelType } from './duel/duels.ts';
 
 // Re-exported for existing consumers; the implementation lives in rng.ts so the
 // simulator can share it without an import cycle.
@@ -25,7 +26,18 @@ export interface DistributionResult {
     totalMax: number;
     /** total-goals → match count. */
     histogram: Record<number, number>;
+    /** Signed (home − away) goal margin → match count. */
+    marginHistogram: Record<number, number>;
   };
+  /** Fraction of matches where the side conceded nothing. */
+  cleanSheetHomePct: number;
+  cleanSheetAwayPct: number;
+  bothScoredPct: number;
+  /** Per-match mean duels won by type (0s when a result predates the stat). */
+  duelsWonHome: Record<DuelType, number>;
+  duelsWonAway: Record<DuelType, number>;
+  longThrowsPerMatch: number;
+  lastManFoulsPerMatch: number;
   /** Per-match means. */
   shotsHome: number;
   shotsAway: number;
@@ -59,8 +71,13 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
   let shotsH = 0, shotsA = 0, sotH = 0, sotA = 0, possH = 0;
   let fouls = 0, yellows = 0, reds = 0, pens = 0, corners = 0, injuries = 0;
   let energyH = 0, energyA = 0;
+  let cleanH = 0, cleanA = 0, bothScored = 0, longThrows = 0, lastManFouls = 0;
+  const zeroTally = (): Record<DuelType, number> => ({ speed: 0, strength: 0, dribble: 0, pass: 0, shot: 0 });
+  const duelsH = zeroTally();
+  const duelsA = zeroTally();
   const totals: number[] = [];
   const histogram: Record<number, number> = {};
+  const marginHistogram: Record<number, number> = {};
 
   for (let i = 0; i < n; i++) {
     const r = simulateMatch({
@@ -75,6 +92,10 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
     const total = h + a;
     totals.push(total);
     histogram[total] = (histogram[total] ?? 0) + 1;
+    marginHistogram[h - a] = (marginHistogram[h - a] ?? 0) + 1;
+    if (a === 0) { cleanH++; }
+    if (h === 0) { cleanA++; }
+    if (h > 0 && a > 0) { bothScored++; }
 
     const st = r.statistics;
     shotsH += st.shots.home; shotsA += st.shots.away;
@@ -84,7 +105,17 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
     yellows += st.cards.yellow.home + st.cards.yellow.away;
     reds += st.cards.red.home + st.cards.red.away;
     corners += st.corners.home + st.corners.away;
-    for (const e of r.events) { if (e.type === 'penalty') { pens++; } }
+    for (const e of r.events) {
+      if (e.type === 'penalty') { pens++; }
+      if (e.type === 'throw_in' && e.description.includes('long throw')) { longThrows++; }
+      if (e.type === 'foul' && e.description.includes('the last man')) { lastManFouls++; }
+    }
+    if (st.duelsWon) {
+      for (const t of Object.keys(duelsH) as DuelType[]) {
+        duelsH[t] += st.duelsWon.home[t];
+        duelsA[t] += st.duelsWon.away[t];
+      }
+    }
     injuries += r.playerUpdates.home.filter(u => u.injury).length + r.playerUpdates.away.filter(u => u.injury).length;
     const avg = (us: typeof r.playerUpdates.home) => us.reduce((s, u) => s + u.endEnergy, 0) / (us.length || 1);
     energyH += avg(r.playerUpdates.home); energyA += avg(r.playerUpdates.away);
@@ -102,7 +133,15 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
       totalMedian: median(totals),
       totalMax: Math.max(...totals),
       histogram,
+      marginHistogram,
     },
+    cleanSheetHomePct: cleanH / n,
+    cleanSheetAwayPct: cleanA / n,
+    bothScoredPct: bothScored / n,
+    duelsWonHome: Object.fromEntries(Object.entries(duelsH).map(([k, v]) => [k, v / n])) as Record<DuelType, number>,
+    duelsWonAway: Object.fromEntries(Object.entries(duelsA).map(([k, v]) => [k, v / n])) as Record<DuelType, number>,
+    longThrowsPerMatch: longThrows / n,
+    lastManFoulsPerMatch: lastManFouls / n,
     shotsHome: shotsH / n,
     shotsAway: shotsA / n,
     shotsOnTargetHome: sotH / n,

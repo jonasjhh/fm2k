@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import type { ClubPlayer } from '@fm2k/engine';
-import FitnessBar from './FitnessBar';
+import { FitnessBar } from '@fm2k/design-system';
 
 interface Props { player: Pick<ClubPlayer, 'injury' | 'suspension' | 'fitness'> }
 

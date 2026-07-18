@@ -1,4 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ConfirmProvider } from '@fm2k/design-system';
 
 // MatchSimPanel reads from the zustand store via useGameStore(selector). We mock the store
 // module (canonical '@/store/game-store' specifier, same as StatsBar.test.tsx) to drive the
@@ -12,6 +14,9 @@ vi.mock('@/store/game-store', () => ({
 
 import MatchSimPanel from './MatchSimPanel';
 
+// The panel's Sim. Season button uses the design-system confirm hook, which requires the provider.
+const render = (ui: ReactElement) => rtlRender(<ConfirmProvider>{ui}</ConfirmProvider>);
+
 function squadPlayer(id: string, suspension?: { matchesRemaining: number }, injury?: { type: string; matchesRemaining: number }) {
   return { id, name: id, suspension, injury };
 }
@@ -20,18 +25,7 @@ function baseState(overrides: Record<string, unknown> = {}) {
   return {
     focusFixture: { homeTeamName: 'Us', awayTeamName: 'Them', status: 'scheduled' },
     focusLive: null,
-    matchEvents: [],
-    isStreaming: false,
-    pauseRequested: false,
-    pausesUsed: 0,
-    lastPauseReason: null,
-    lastMatchInsights: [],
-    lastMatchStatistics: null,
-    halfTimeInsights: [],
-    editableCountries: [],
-    streamHome: 0,
-    streamAway: 0,
-    streamMinute: 0,
+    matchOverlayOpen: false,
     clubState: {
       startingXI: ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'],
       squad: [
@@ -41,10 +35,10 @@ function baseState(overrides: Record<string, unknown> = {}) {
       ],
     },
     advanceMatch: vi.fn(),
-    pauseMatch: vi.fn(),
     skipMatch: vi.fn(),
     goToNextMatch: vi.fn(),
     simulateToEnd: vi.fn(),
+    openMatchOverlay: vi.fn(),
     ...overrides,
   };
 }
@@ -104,18 +98,6 @@ describe('MatchSimPanel:', () => {
     expect(screen.getByText(/includes an injured player/i)).toBeInTheDocument();
   });
 
-  test('while streaming, the Pause button shows the remaining budget and is enabled', () => {
-    storeState = baseState({ isStreaming: true });
-    render(<MatchSimPanel />);
-    expect(screen.getByText('Pause (3 left)')).not.toBeDisabled();
-  });
-
-  test('with the pause budget spent, the Pause button is disabled', () => {
-    storeState = baseState({ isStreaming: true, pausesUsed: 3 });
-    render(<MatchSimPanel />);
-    expect(screen.getByText('No pauses left')).toBeDisabled();
-  });
-
   test('when both incomplete and suspended, the incompleteness message takes priority', () => {
     const state = baseState({
       clubState: {
@@ -131,5 +113,52 @@ describe('MatchSimPanel:', () => {
     render(<MatchSimPanel />);
     expect(screen.getByText(/starting XI is incomplete/i)).toBeInTheDocument();
     expect(screen.queryByText(/includes a suspended player/i)).not.toBeInTheDocument();
+  });
+
+  test('Sim. Season asks for confirmation in the themed modal before simulating', async () => {
+    storeState = baseState();
+    render(<MatchSimPanel />);
+    fireEvent.click(screen.getByText('Sim. Season'));
+    expect(await screen.findByText('Simulate all remaining matches?')).toBeInTheDocument();
+
+    // Cancel first: nothing happens and the dialog closes.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByText('Simulate all remaining matches?')).not.toBeInTheDocument());
+    expect(storeState.simulateToEnd).not.toHaveBeenCalled();
+
+    // Confirm: simulateToEnd fires.
+    fireEvent.click(screen.getByText('Sim. Season'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Simulate' }));
+    await waitFor(() => expect(storeState.simulateToEnd).toHaveBeenCalledTimes(1));
+  });
+
+  test('the panel hides entirely while the match overlay is up', () => {
+    storeState = baseState({ matchOverlayOpen: true });
+    const { container } = render(<MatchSimPanel />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test('a completed fixture shows the result and offers report / next match / sim season', () => {
+    storeState = baseState({
+      focusFixture: {
+        homeTeamName: 'Us', awayTeamName: 'Them', status: 'completed',
+        result: { homeScore: 2, awayScore: 1 },
+      },
+    });
+    render(<MatchSimPanel />);
+    expect(screen.getByText(/Full time: Us 2 – 1 Them/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Match report'));
+    expect(storeState.openMatchOverlay).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('Next match'));
+    expect(storeState.goToNextMatch).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Sim. Season')).toBeInTheDocument();
+  });
+
+  test('a live match with the overlay closed offers the way back in', () => {
+    storeState = baseState({ focusLive: { phase: 'second_half', minute: 61, homeScore: 0, awayScore: 0 } });
+    render(<MatchSimPanel />);
+    fireEvent.click(screen.getByText('Return to match'));
+    expect(storeState.openMatchOverlay).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Play Match')).not.toBeInTheDocument();
   });
 });

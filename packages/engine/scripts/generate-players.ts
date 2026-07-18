@@ -102,14 +102,12 @@ function renderTable(rows: ReturnType<typeof buildRow>[], nationality: string, d
     'OVR'.padStart(3),
     'Spd'.padStart(3),
     'Str'.padStart(3),
-    'Agi'.padStart(3),
-    'Pas'.padStart(3),
-    'Fin'.padStart(3),
-    'Tec'.padStart(3),
-    'Def'.padStart(3),
     'Sta'.padStart(3),
-    'Awa'.padStart(3),
-    'Com'.padStart(3),
+    'Pas'.padStart(3),
+    'Tec'.padStart(3),
+    'Fin'.padStart(3),
+    'Def'.padStart(3),
+    'Kee'.padStart(3),
   ].join('  ');
 
   const div = divisionName(nationality, divLevel);
@@ -128,14 +126,12 @@ function renderTable(rows: ReturnType<typeof buildRow>[], nationality: string, d
       String(r.overall).padStart(3),
       String(r.attrs.speed).padStart(3),
       String(r.attrs.strength).padStart(3),
-      String(r.attrs.agility).padStart(3),
-      String(r.attrs.passing).padStart(3),
-      String(r.attrs.finishing).padStart(3),
-      String(r.attrs.technique).padStart(3),
-      String(r.attrs.defending).padStart(3),
       String(r.attrs.stamina).padStart(3),
-      String(r.attrs.awareness).padStart(3),
-      String(r.attrs.composure).padStart(3),
+      String(r.attrs.passing).padStart(3),
+      String(r.attrs.technique).padStart(3),
+      String(r.attrs.finishing).padStart(3),
+      String(r.attrs.defending).padStart(3),
+      String(r.attrs.keeping).padStart(3),
     ].join('  ');
     console.log(line);
   }

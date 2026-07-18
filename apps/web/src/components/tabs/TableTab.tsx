@@ -10,12 +10,11 @@ import { COUNTRY_FLAG } from '@fm2k/engine';
 import { useGameStore, findDivisionForTeam, findCountryForTeam } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors, leagueRowBg } from '../../utils/colors';
-import { ScrollableTable } from '@fm2k/design-system';
+import { ScrollableTable, SelectorPanel } from '@fm2k/design-system';
 import TeamNameButton from '../ui/TeamNameButton';
 import TeamLineupDialog from '../TeamLineupDialog';
 import CupBracket from '../CupBracket';
 import { ButtonSelector } from '../ui/ButtonSelector';
-import { SelectorPanel } from '../ui/SelectorPanel';
 
 type CompetitionChoice = 'league' | 'cup';
 

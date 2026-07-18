@@ -12,8 +12,10 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
-import { PlayerGenerator, POSITION_ARCHETYPES } from '@fm2k/players';
-import { divisionOverallDistribution, divisionCategoryBias } from '../src/player/generation-profile.ts';
+import { PlayerGenerator, sampleNormal } from '@fm2k/players';
+import {
+  divisionOverallDistribution, divisionCategoryBias, ageOverallBump, starBonus,
+} from '../src/player/generation-profile.ts';
 import { attrToJson } from '../src/data/country-data.ts';
 import type { CountryDivisionRow, CountryTeamRow, CountryPlayerRow } from '../src/data/country-data.ts';
 import type { PlayerPosition } from '@fm2k/match';
@@ -49,13 +51,6 @@ const SQUAD_POSITIONS: PlayerPosition[] = [
 
 // ── player builder ────────────────────────────────────────────────────────────
 
-/** Picks uniformly among the position's named archetypes — every player gets a random identity
- *  (poacher, sweeper, playmaker, ...) rather than always 'balanced'. */
-function randomArchetype(position: PlayerPosition): string {
-  const names = Object.keys(POSITION_ARCHETYPES[position]);
-  return names[Math.floor(Math.random() * names.length)];
-}
-
 function buildPlayer(
   generator: PlayerGenerator,
   position: PlayerPosition,
@@ -64,10 +59,17 @@ function buildPlayer(
   nationality: string,
   clubId: string,
 ): CountryPlayerRow {
-  const overallDistribution = divisionOverallDistribution(nationalityKey, divisionLevel);
+  // Age is sampled first so the career curve can shape the target overall: youngsters
+  // arrive raw, prime-age veterans brush 70+, and the top flight gets its very rare
+  // 85+ star. Builds sample freely from trait space (no archetype preset), so the
+  // player mass shows continuous archetype clusters instead of uniform classes.
+  const age = 17 + Math.floor(Math.random() * 19);
+  const dist = divisionOverallDistribution(nationalityKey, divisionLevel);
+  const overall = Math.round(
+    sampleNormal(dist, Math.random) + ageOverallBump(age) + starBonus(divisionLevel, Math.random),
+  );
   const categoryBias = divisionCategoryBias(divisionLevel);
-  const archetype = randomArchetype(position);
-  const player = generator.generatePlayer(position, { overallDistribution, categoryBias, archetype });
+  const player = generator.generatePlayer(position, { overall, age, categoryBias });
 
   return {
     id: player.id,

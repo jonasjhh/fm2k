@@ -1,6 +1,7 @@
 import {
   FORMATION_LINES, buildSlotAssignments, canonicalGeometry, deriveCustomFieldedPositions,
-  seedGeometryFromFormation, effectiveFormationLabel, effectiveRole, effectiveDisplayOrder, emptySlotKey,
+  seedGeometryFromFormation, seedShapesFromFormation, deriveRolesForShape,
+  effectiveFormationLabel, effectiveDisplayOrder, emptySlotKey,
 } from './lineup.ts';
 import type { PlayerPosition, Player, PlayerGeometry } from '../shared/types.ts';
 
@@ -8,8 +9,8 @@ function player(id: string, position: PlayerPosition): Player {
   return {
     id, name: id, nationality: 'n', age: 25, position, potential: 70,
     attributes: {
-      speed: 60, strength: 60, agility: 60, passing: 60, finishing: 60,
-      technique: 60, defending: 60, stamina: 60, awareness: 60, composure: 60,
+      speed: 60, strength: 60, passing: 60, finishing: 60,
+      technique: 60, defending: 60, stamina: 60, keeping: 10,
     },
   };
 }
@@ -108,10 +109,9 @@ describe('canonicalGeometry:', () => {
     expect(canonicalGeometry('4-4-2')).toHaveLength(10);
   });
 
-  it('matches each slot\'s role and band to FORMATION_LINES/BAND_OF_ROLE', () => {
+  it('matches each slot\'s band to FORMATION_LINES/BAND_OF_ROLE', () => {
     const geo = canonicalGeometry('4-2-3-1');
     // ['LB','CB','CB','RB'], ['DM','DM'], ['AM','AM','AM'], ['ST']
-    expect(geo.map(g => g.role)).toEqual(['LB', 'CB', 'CB', 'RB', 'DM', 'DM', 'AM', 'AM', 'AM', 'ST']);
     expect(geo.map(g => g.band)).toEqual(['DEF', 'DEF', 'DEF', 'DEF', 'DM', 'DM', 'AM', 'AM', 'AM', 'ATT']);
   });
 
@@ -130,22 +130,49 @@ describe('canonicalGeometry:', () => {
   });
 });
 
-describe('deriveCustomFieldedPositions:', () => {
-  it('maps each player to their chosen role for FieldedPositions', () => {
-    const geometry: Record<string, PlayerGeometry> = {
-      lb: { band: 'DEF', lateral: -1, role: 'LWB' }, // a full-back pushed into a wing-back role
-      cm: { band: 'MID', lateral: 0, role: 'CM' },
-    };
-    const { fieldedPositions } = deriveCustomFieldedPositions(geometry);
-    expect(fieldedPositions).toEqual({ lb: 'LWB', cm: 'CM' });
+describe('deriveRolesForShape:', () => {
+  it('reproduces every predefined formation\'s slot labels from its canonical geometry', () => {
+    for (const [formation, lines] of Object.entries(FORMATION_LINES)) {
+      const startingXI = ['gk', ...Array.from({ length: 10 }, (_, i) => `p${i}`)];
+      const shape = seedGeometryFromFormation(formation as never, startingXI);
+      const roles = deriveRolesForShape(shape);
+      const expected = lines.flat().slice(1); // outfield slots in canonical order
+      expect(startingXI.slice(1).map(id => roles[id])).toEqual(expected);
+    }
   });
 
-  it('derives line from band (not role) and flank from lateral, independently', () => {
-    // A CB role dragged into the ATT band/right flank behaves as an ATT-line, right-flank
-    // player for zone-weighting — geometry wins over what the role label would imply.
+  it('labels a lone deep defender pair CB and only 4+-wide back lines get full-backs', () => {
+    const roles = deriveRolesForShape({
+      a: { band: 'DEF', lateral: -1 }, b: { band: 'DEF', lateral: 1 },
+    });
+    expect(roles).toEqual({ a: 'CB', b: 'CB' });
+  });
+
+  it('breaks lateral ties deterministically by id', () => {
+    const roles = deriveRolesForShape({
+      z: { band: 'ATT', lateral: 0 }, a: { band: 'ATT', lateral: 0 }, m: { band: 'ATT', lateral: 0 },
+    });
+    expect(roles).toEqual({ a: 'LW', m: 'ST', z: 'RW' });
+  });
+});
+
+describe('deriveCustomFieldedPositions:', () => {
+  it('maps each player to their geometry-derived role for FieldedPositions', () => {
     const geometry: Record<string, PlayerGeometry> = {
-      cb: { band: 'ATT', lateral: 0.8, role: 'CB' },
-      lm: { band: 'MID', lateral: -0.1, role: 'LM' }, // near-center lateral buckets to 'center'
+      lb: { band: 'DEF', lateral: -1 },
+      cb1: { band: 'DEF', lateral: -0.3 },
+      cb2: { band: 'DEF', lateral: 0.3 },
+      rb: { band: 'DEF', lateral: 1 },
+      cm: { band: 'MID', lateral: 0 },
+    };
+    const { fieldedPositions } = deriveCustomFieldedPositions(geometry);
+    expect(fieldedPositions).toEqual({ lb: 'LB', cb1: 'CB', cb2: 'CB', rb: 'RB', cm: 'CM' });
+  });
+
+  it('derives line from band and flank from lateral, independently', () => {
+    const geometry: Record<string, PlayerGeometry> = {
+      cb: { band: 'ATT', lateral: 0.8 },  // dragged forward: ATT line, right flank
+      lm: { band: 'MID', lateral: -0.1 }, // near-center lateral buckets to 'center'
     };
     const { fieldedGeometry } = deriveCustomFieldedPositions(geometry);
     expect(fieldedGeometry.cb).toEqual({ line: 'ATT', flank: 'right' });
@@ -159,60 +186,60 @@ describe('seedGeometryFromFormation:', () => {
     const seeded = seedGeometryFromFormation('4-4-2', startingXI);
     expect(Object.keys(seeded)).toHaveLength(10);
     expect(seeded.gk).toBeUndefined();
-    expect(seeded.lb).toEqual({ band: 'DEF', lateral: -1, role: 'LB' });
+    expect(seeded.lb).toEqual({ band: 'DEF', lateral: -1 });
+  });
+});
+
+describe('seedShapesFromFormation:', () => {
+  const startingXI = ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
+
+  it('seeds attacking and defending identically', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    expect(shapes.attacking).toEqual(shapes.defending);
+  });
+
+  it('the two shapes are independent copies — editing one leaves the other untouched', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    shapes.attacking.lb = { band: 'ATT', lateral: -1 };
+    expect(shapes.defending.lb).toEqual({ band: 'DEF', lateral: -1 });
   });
 });
 
 describe('effectiveFormationLabel:', () => {
   const startingXI = ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
 
-  it('returns the formation as-is when there is no custom layout', () => {
+  it('returns the formation as-is when there are no shapes', () => {
     expect(effectiveFormationLabel('4-4-2', startingXI, null)).toBe('4-4-2');
   });
 
-  it('still recognises the formation when customSlots happens to match it exactly', () => {
-    const customSlots = seedGeometryFromFormation('4-4-2', startingXI);
-    expect(effectiveFormationLabel('4-4-2', startingXI, customSlots)).toBe('4-4-2');
+  it('still recognises the formation when the shapes happen to match it exactly', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-4-2');
   });
 
-  it('returns "custom" once a player has moved off every predefined template', () => {
-    const customSlots = seedGeometryFromFormation('4-4-2', startingXI);
-    customSlots.lb = { band: 'ATT', lateral: 1, role: 'LB' };
-    expect(effectiveFormationLabel('4-4-2', startingXI, customSlots)).toBe('custom');
-  });
-});
-
-describe('effectiveRole:', () => {
-  it('falls back to the template role when customSlots is null', () => {
-    expect(effectiveRole('lb', 'LB', null)).toBe('LB');
+  it('recognises a different preset the shapes have been dragged into', () => {
+    const shapes = seedShapesFromFormation('4-3-3', startingXI);
+    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-3-3');
   });
 
-  it('falls back to the template role when the player has no customSlots entry', () => {
-    const customSlots: Record<string, PlayerGeometry> = { cb1: { band: 'DEF', lateral: 0, role: 'CB' } };
-    expect(effectiveRole('lb', 'LB', customSlots)).toBe('LB');
+  it('returns "custom" once identical shapes are off every predefined template', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    shapes.attacking.lb = { band: 'ATT', lateral: 1 };
+    shapes.defending.lb = { band: 'ATT', lateral: 1 };
+    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('custom');
   });
 
-  it('falls back to the template role for an empty slot (null playerId)', () => {
-    const customSlots: Record<string, PlayerGeometry> = { lb: { band: 'ATT', lateral: 0, role: 'ST' } };
-    expect(effectiveRole(null, 'LB', customSlots)).toBe('LB');
+  it('returns "custom" whenever any player\'s two shapes differ (an arrow exists)', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    shapes.attacking.lb = { band: 'MID', lateral: -1 }; // defending still matches 4-4-2
+    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('custom');
   });
 
-  it('prefers the customSlots override over the template role', () => {
-    const customSlots: Record<string, PlayerGeometry> = { lb: { band: 'ATT', lateral: 0, role: 'ST' } };
-    expect(effectiveRole('lb', 'LB', customSlots)).toBe('ST');
-  });
-
-  it('prefers the emptySlotRole over the template role for an empty slot (null playerId)', () => {
-    expect(effectiveRole(null, 'LB', null, 'LWB')).toBe('LWB');
-  });
-
-  it('falls back to the template role for an empty slot when emptySlotRole is omitted', () => {
-    expect(effectiveRole(null, 'LB', null)).toBe('LB');
-  });
-
-  it('ignores emptySlotRole for an occupied slot — customSlots/template resolution is unaffected', () => {
-    const customSlots: Record<string, PlayerGeometry> = { lb: { band: 'ATT', lateral: 0, role: 'ST' } };
-    expect(effectiveRole('lb', 'LB', customSlots, 'LWB')).toBe('ST');
+  it('tolerates sub-threshold lateral drift when matching a preset', () => {
+    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    shapes.defending.lb = { band: 'DEF', lateral: -1 + 0.03 };
+    shapes.attacking.lb = { band: 'DEF', lateral: -1 + 0.03 };
+    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-4-2');
   });
 });
 
@@ -222,8 +249,8 @@ describe('effectiveDisplayOrder:', () => {
     'b1', 'b2', null, null,
   ];
 
-  it('falls back to slot-index order when customSlots is null', () => {
-    const order = effectiveDisplayOrder(slotAssignments, null, '4-4-2', null);
+  it('falls back to slot-index order when shape is null', () => {
+    const order = effectiveDisplayOrder(slotAssignments, null, '4-4-2');
     expect(order.get('gk')).toBe(0);
     expect(order.get('lb')).toBe(1);
     expect(order.get('st1')).toBe(9);
@@ -232,9 +259,9 @@ describe('effectiveDisplayOrder:', () => {
   });
 
   it('ranks a player moved into a new band by band order, ahead of their old band-mates', () => {
-    const customSlots = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
-    customSlots.cb1 = { band: 'ATT', lateral: 0, role: 'ST' }; // a CB pushed forward into attack
-    const order = effectiveDisplayOrder(slotAssignments, customSlots, '4-4-2', null);
+    const shape = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
+    shape.cb1 = { band: 'ATT', lateral: 0 }; // a CB pushed forward into attack
+    const order = effectiveDisplayOrder(slotAssignments, shape, '4-4-2');
 
     expect(order.get('gk')).toBe(0); // GK always first
     // Remaining DEF band-mates (lb, cb2, rb) still rank ahead of MID, which ranks ahead of the
@@ -247,36 +274,21 @@ describe('effectiveDisplayOrder:', () => {
   });
 
   it('keeps the bench in its original order, ranked after every starter', () => {
-    const customSlots = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
-    const order = effectiveDisplayOrder(slotAssignments, customSlots, '4-4-2', null);
+    const shape = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
+    const order = effectiveDisplayOrder(slotAssignments, shape, '4-4-2');
     const starterRanks = slotAssignments.slice(0, 11).map(id => order.get(id as string) as number);
     expect(order.get('b1')).toBe(11);
     expect(order.get('b2')).toBe(12);
     expect(Math.max(...starterRanks)).toBeLessThan(order.get('b1') as number);
   });
 
-  it('ranks an empty slot with no captured geometry at its canonical band position', () => {
+  it('ranks an empty slot at its canonical band position', () => {
     const noLb = [...slotAssignments]; noLb[1] = null; // lb unassigned, nothing customized
-    const customSlots = seedGeometryFromFormation('4-4-2', noLb.slice(0, 11) as (string | null)[]);
-    const order = effectiveDisplayOrder(noLb, customSlots, '4-4-2', null);
+    const shape = seedGeometryFromFormation('4-4-2', noLb.slice(0, 11) as (string | null)[]);
+    const order = effectiveDisplayOrder(noLb, shape, '4-4-2');
     // The empty LB slot (canonical DEF) still ranks among the DEF band-mates, ahead of MID.
     const emptySlotRank = order.get(emptySlotKey(1)) as number;
     const mid = ['lm', 'cm1', 'cm2', 'rm'].map(id => order.get(id) as number);
     expect(emptySlotRank).toBeLessThan(Math.min(...mid));
-  });
-
-  it('ranks an empty slot with a captured custom-band geometry among that band\'s members, not its template band (the reported bug)', () => {
-    const noLb = [...slotAssignments]; noLb[1] = null; // lb has been unassigned
-    const customSlots = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
-    delete customSlots.lb; // their slot's geometry is now only in emptySlotRoles
-    const emptySlotRoles = { 1: { band: 'ATT' as const, lateral: 0, role: 'ST' as const } }; // captured: lb had moved to ATT
-    const order = effectiveDisplayOrder(noLb, customSlots, '4-4-2', emptySlotRoles);
-
-    const emptySlotRank = order.get(emptySlotKey(1)) as number;
-    const mid = ['lm', 'cm1', 'cm2', 'rm'].map(id => order.get(id) as number);
-    expect(Math.max(...mid)).toBeLessThan(emptySlotRank); // ranks after MID, not among it
-    // Captured lateral 0 sits between st1 (-1) and st2 (1) within the ATT band.
-    expect(order.get('st1') as number).toBeLessThan(emptySlotRank);
-    expect(emptySlotRank).toBeLessThan(order.get('st2') as number);
   });
 });

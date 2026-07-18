@@ -29,7 +29,7 @@ function clamp(lo: number, hi: number, n: number): number {
 const RETIRE_AGE_MIN = 31;       // below this age: never retires
 const RETIRE_AGE_CERTAIN = 40;   // at/above this age: effectively certain to retire
 const RETIRE_AGE_SLOPE = 0.09;   // chance gained per year past 30
-const RETIRE_SKILL_PIVOT = 60;   // overall at/below which skill offers no resistance
+const RETIRE_SKILL_PIVOT = 45;   // overall at/below which skill offers no resistance
 const RETIRE_SKILL_SPAN = 40;    // overall above the pivot for full resistance
 const RETIRE_SKILL_RESIST = 0.6; // maximum resistance an elite player gets
 
@@ -47,10 +47,27 @@ export function retirementChance(age: number, overall: number): number {
 // of an academy — widens and lifts with recruitment quality, so good academies can produce stars.
 // These are the "nothing built" floor; Regional Scouting Hubs (and, for AI clubs without real
 // wings, academyBiasForLevel) add on top via `bias`.
-const YOUTH_BASE_OVERALL = 44;
-const YOUTH_BASE_POTENTIAL_RANGE: [number, number] = [54, 72];
+const YOUTH_BASE_OVERALL = 26;
+const YOUTH_BASE_POTENTIAL_RANGE: [number, number] = [40, 62];
 const YOUTH_AGE_MIN = 16;
 const YOUTH_AGE_MAX = 19;
+
+/** Maps a division level (1 = top flight) to the 1–4 facility-quality tier used to approximate
+ *  AI clubs' training and academy — D1 gets elite (4), D2 experienced (3), D3+ junior (2 or 1). */
+export function facilityForLevel(divisionLevel: number): number {
+  return Math.max(1, Math.min(4, 5 - divisionLevel));
+}
+
+/** Maps the 1–4 facility tier to (growthBonus, ceilingBonus) used by `developOverSeason` —
+ *  the same axes as the player's Training Facilities wings, approximated for AI clubs. */
+export function trainingBonusesForLevel(level: number): { growthBonus: number; ceilingBonus: number } {
+  return ([
+    { growthBonus: 0, ceilingBonus: 0 },
+    { growthBonus: 0.1, ceilingBonus: 6 },
+    { growthBonus: 0.2, ceilingBonus: 11 },
+    { growthBonus: 0.3, ceilingBonus: 15 },
+  ] as const)[level - 1] ?? { growthBonus: 0, ceilingBonus: 0 };
+}
 
 /** Maps the old flat 1–4 academy level onto a YouthBias — an exact equivalence, used by AI
  *  clubs (which approximate their academy from division tier rather than owning real hubs). */
@@ -204,6 +221,50 @@ export interface PoolChurnOptions {
   growthBonus?: number;
   /** Ceiling-axis bonus used to develop unattached players; defaults to a neutral mid-tier value. */
   ceilingBonus?: number;
+  /** Share of pool replacements minted as ready-made backfill players instead of academy
+   *  youths, so the market always carries some signable squad players; defaults to 0.6. */
+  backfillShare?: number;
+}
+
+// ── backfill players ────────────────────────────────────────────────────────────
+// A pool made only of 16–19-year-old prospects collapses: the AI market signs anything
+// playable and leaves dregs, and clubs can't replace retirees at level. Backfill players
+// are ready-made pros released from nowhere in particular, minted along a quality pyramid
+// that spans every division: mostly D3/D2 fillers, a solid middle, and rare genuine D1
+// starters. Within the elite band a super-rare wonderkid can appear — already top-notch
+// at 18–19 with real headroom left.
+const BACKFILL_MID_SHARE = 0.3;     // OVR 55–70 (upper-D2 / lower-D1)
+const BACKFILL_ELITE_SHARE = 0.1;   // OVR 70+ tapering (genuine D1 starters)
+                                    // remainder (~0.6): OVR 30–55 (D3/D2 fillers)
+const BACKFILL_AGE_MIN = 21;
+const BACKFILL_AGE_SPAN = 12;       // 21–32 years old
+const BACKFILL_POTENTIAL_HEADROOM = 4;
+const WONDERKID_CHANCE = 0.15;      // within the elite band only → ~1.5% of all backfill
+const WONDERKID_POTENTIAL_BONUS: [number, number] = [8, 15];
+
+/** Mint a ready-made free agent along the division-spanning quality pyramid. */
+export function makeBackfillPlayer(
+  position: PlayerPosition, nationality: string, factory: YouthFactory, rng: () => number,
+): Player {
+  const band = rng();
+  if (band < BACKFILL_ELITE_SHARE) {
+    // Elite band: 70+ tapering toward 70 (rng² thins out the very top end).
+    const overall = Math.round(70 + rng() * rng() * 12);
+    if (rng() < WONDERKID_CHANCE) {
+      const [bLo, bHi] = WONDERKID_POTENTIAL_BONUS;
+      const potential = clamp(overall, 99, overall + bLo + Math.round(rng() * (bHi - bLo)));
+      const age = 18 + Math.floor(rng() * 2);
+      return factory(position, { overall, age, potential, nationality });
+    }
+    const age = BACKFILL_AGE_MIN + Math.floor(rng() * BACKFILL_AGE_SPAN);
+    const potential = clamp(overall, 99, overall + Math.round(rng() * BACKFILL_POTENTIAL_HEADROOM));
+    return factory(position, { overall, age, potential, nationality });
+  }
+  const [lo, hi] = band < BACKFILL_ELITE_SHARE + BACKFILL_MID_SHARE ? [55, 70] : [30, 55];
+  const overall = Math.round(lo + rng() * (hi - lo));
+  const age = BACKFILL_AGE_MIN + Math.floor(rng() * BACKFILL_AGE_SPAN);
+  const potential = clamp(overall, 99, overall + Math.round(rng() * BACKFILL_POTENTIAL_HEADROOM));
+  return factory(position, { overall, age, potential, nationality });
 }
 
 /**
@@ -229,8 +290,11 @@ export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[
   }
 
   const youthBias = academyBiasForLevel(youthLevel);
+  const backfillShare = opts.backfillShare ?? 0.6;
   for (const spec of [...retiredSpecs, ...opts.overflow]) {
-    next.push(makeYouth(spec.position, youthBias, spec.nationality, opts.youthFactory, opts.rng));
+    next.push(opts.rng() < backfillShare
+      ? makeBackfillPlayer(spec.position, spec.nationality, opts.youthFactory, opts.rng)
+      : makeYouth(spec.position, youthBias, spec.nationality, opts.youthFactory, opts.rng));
   }
 
   return next;
@@ -252,6 +316,9 @@ export interface AiMarketOptions {
   improveThreshold?: number;
   /** Per-club squad size to refill toward (clamped to MAX_SQUAD_SIZE). */
   targetSizes?: Record<string, number>;
+  /** AI visibility filter on the pool (the pickup-delay drip: fresh free agents stay invisible
+   *  to AI clubs for a while). Players released *during this window* are always signable. */
+  canSign?: (p: Player) => boolean;
 }
 
 /** One discrete player movement between a club and the free-agent pool, for headline/inspection use. */
@@ -287,11 +354,13 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
   const threshold = opts.improveThreshold ?? 2;
   const pool = [...freeAgents];
   const moves: AiMarketMove[] = [];
+  const releasedNow = new Set<string>();
+  const visible = (p: Player) => releasedNow.has(p.id) || (opts.canSign?.(p) ?? true);
 
   const takeBest = (predicate: (p: Player) => boolean): Player | null => {
     let best = -1;
     for (let i = 0; i < pool.length; i++) {
-      if (!predicate(pool[i])) { continue; }
+      if (!visible(pool[i]) || !predicate(pool[i])) { continue; }
       if (best === -1 || ovr(pool[i]) > ovr(pool[best])) { best = i; }
     }
     return best === -1 ? null : pool.splice(best, 1)[0];
@@ -302,6 +371,7 @@ export function runAiMarket(teams: AiMarketTeam[], freeAgents: Player[], opts: A
     const squad = [...team.squad];
     const target = Math.min(MAX_SQUAD_SIZE, opts.targetSizes?.[team.id] ?? squad.length);
     const recordMove = (player: Player, direction: 'signed' | 'released') => {
+      if (direction === 'released') { releasedNow.add(player.id); }
       moves.push({ teamId: team.id, playerId: player.id, playerName: player.name, direction });
     };
 

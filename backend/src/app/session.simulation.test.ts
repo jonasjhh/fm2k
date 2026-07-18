@@ -31,8 +31,12 @@ describe('GameSession clock:', () => {
 
   it('continuing from half time runs to full time and records the result', async () => {
     const { session, teamId } = newGame();
-    await session.advanceToNextStop();           // → half time
-    const result = await session.advanceToNextStop(); // → full time
+    await session.advanceToNextStop(); // → half time
+    // Continue until full time — intermediate stops (own-team red card / injury) are legal.
+    let result = await session.advanceToNextStop();
+    for (let guard = 0; !result.matchOver && guard < 5; guard++) {
+      result = await session.advanceToNextStop();
+    }
 
     expect(result.matchOver).toBe(true);
     expect(session.snapshot().currentMatchday).toBeGreaterThan(0);

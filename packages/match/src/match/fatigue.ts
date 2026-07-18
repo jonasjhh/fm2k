@@ -1,6 +1,6 @@
 import type { Formation, Player, PlayerAttributes, FormationPosition } from '../shared/types.ts';
 import { type MatchParameters } from '../tactics/match-parameters.ts';
-import { FIELD_LINE, type FieldLine } from './action-selector.ts';
+import { FIELD_LINE, type FieldLine } from '../lineup/bands.ts';
 
 /**
  * In-match fatigue model — pure, deterministic, and isolated here so the energy
@@ -102,7 +102,7 @@ export function skillFatigueMult(energy: number): number {
   return 0.85 + 0.15 * (Math.max(0, Math.min(100, energy)) / 100);
 }
 
-const PHYSICAL_KEYS: (keyof PlayerAttributes)[] = ['speed', 'strength', 'agility', 'stamina'];
+const PHYSICAL_KEYS: (keyof PlayerAttributes)[] = ['speed', 'strength', 'stamina'];
 
 /** A copy of the player's attributes scaled for current energy (legs before touch). */
 export function applyFatigue(attrs: PlayerAttributes, energy: number): PlayerAttributes {

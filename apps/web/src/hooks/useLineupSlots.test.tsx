@@ -19,8 +19,8 @@ function squadPlayer(id: string, position: string): ClubPlayer {
   return {
     id, name: id, nationality: 'n', age: 25, position, potential: 70,
     attributes: {
-      speed: 60, strength: 60, agility: 60, passing: 60, finishing: 60,
-      technique: 60, defending: 60, stamina: 60, awareness: 60, composure: 60,
+      speed: 60, strength: 60, passing: 60, finishing: 60,
+      technique: 60, defending: 60, stamina: 60,
     },
     fitness: 100,
   } as ClubPlayer;
@@ -94,36 +94,26 @@ describe('useLineupSlots:', () => {
     });
   });
 
-  it('with customSlots set, a player\'s effective role overrides the template label in allSlots', () => {
+  it('with a defending-shape entry, a player\'s derived role overrides the template label in allSlots', () => {
     storeState.clubState = {
       ...(storeState.clubState as Record<string, unknown>),
-      customSlots: { cb1: { band: 'ATT', lateral: 0, role: 'ST' } },
+      shapes: { attacking: {}, defending: { cb1: { band: 'ATT', lateral: 0 } } },
     };
     const { result } = renderHook(() => useLineupSlots());
     const cbSlotIdx = result.current.slotAssignments.indexOf('cb1');
     expect(result.current.allSlots[cbSlotIdx].pos).toBe('ST');
   });
 
-  it('with emptySlotRoles set, an unassigned slot\'s pos shows the captured role, not the template one (regression)', () => {
+  it('an unassigned slot keeps its template label and sorts at its canonical position', () => {
     storeState.clubState = {
       ...(storeState.clubState as Record<string, unknown>),
       startingXI: [SQUAD[0].id, null, ...SQUAD.slice(2, 11).map(p => p.id)], // lb (index 1) unassigned
-      emptySlotRoles: { 1: { band: 'DEF', lateral: -1, role: 'LWB' } },
+      shapes: { attacking: {}, defending: {} }, // shapes set (band-aware ordering active)
     };
     const { result } = renderHook(() => useLineupSlots());
-    expect(result.current.allSlots[1].pos).toBe('LWB');
-  });
-
-  it('an empty slot captured from a non-canonical band sorts among that band\'s pills, not its template band (regression)', () => {
-    storeState.clubState = {
-      ...(storeState.clubState as Record<string, unknown>),
-      startingXI: [SQUAD[0].id, null, ...SQUAD.slice(2, 11).map(p => p.id)], // lb (index 1) unassigned
-      customSlots: {}, // something has been customized (required for band-aware ordering)
-      emptySlotRoles: { 1: { band: 'ATT', lateral: 0, role: 'ST' } }, // captured: lb had moved to ATT
-    };
-    const { result } = renderHook(() => useLineupSlots());
-    const lmRank = result.current.displayOrder.get('lm') as number;
+    expect(result.current.allSlots[1].pos).toBe('LB');
     const emptySlotRank = result.current.displayOrder.get('__empty-1') as number;
-    expect(lmRank).toBeLessThan(emptySlotRank); // ranks after MID (lm), not among it
+    const lmRank = result.current.displayOrder.get('lm') as number;
+    expect(emptySlotRank).toBeLessThan(lmRank); // canonical DEF ranks before MID
   });
 });

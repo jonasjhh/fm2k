@@ -1,10 +1,10 @@
 import { StateManager } from '@fm2k/state';
-import type { Player, Formation, PlayerPosition, PlayerGeometry, FormationPosition, Band } from '@fm2k/match';
+import type { Player, Formation, PlayerPosition, PlayerGeometry, TeamShapes, Band } from '@fm2k/match';
 import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/match';
 import {
-  defaultIntent, MAX_BAND_SIZE, rankInBand, eligibleRoles, preferredRole,
-  seedGeometryFromFormation, effectiveFormationLabel as effectiveFormationLabelOf,
-  canonicalGeometry, ROLE_OPTIONS_BY_BAND, buildSlotAssignments,
+  defaultIntent, MAX_BAND_SIZE,
+  seedShapesFromFormation, effectiveFormationLabel as effectiveFormationLabelOf,
+  canonicalGeometry, buildSlotAssignments,
 } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueStanding } from '../league/league-types.ts';
@@ -116,8 +116,7 @@ export class ClubManager {
       financialLog: config.financialLog ?? [],
       recentDevelopment: config.recentDevelopment ?? [],
       seasonStartSnapshot: Object.fromEntries(squad.map(p => [p.id, p.attributes])),
-      customSlots: null,
-      emptySlotRoles: null,
+      shapes: null,
     });
   }
 
@@ -148,8 +147,7 @@ export class ClubManager {
     this.stateManager.updateState(state => {
       state.formation = formation;
       state.tactics = { ...state.tactics, formation };
-      state.customSlots = null;
-      state.emptySlotRoles = null;
+      state.shapes = null;
     });
   }
 
@@ -157,137 +155,70 @@ export class ClubManager {
     this.stateManager.updateState(state => {
       state.tactics = tactics;
       state.formation = tactics.formation;
-      state.customSlots = null;
-      state.emptySlotRoles = null;
+      state.shapes = null;
     });
   }
 
-  /** A player's geometry within `customSlots`, seeding it from the current predefined
-   *  formation (one slot per outfield XI member, in slot order) if not already custom.
-   *  `fallback`, if given, is used as the seed instead of recomputing it — callers that
-   *  already computed the seed once (to validate before this update) pass it through so
-   *  it isn't derived twice for the same state. */
-  private ensureCustomSlots(state: ClubState, fallback?: Record<string, PlayerGeometry>): Record<string, PlayerGeometry> {
-    state.customSlots ??= fallback ?? seedGeometryFromFormation(state.formation, state.startingXI);
-    return state.customSlots;
+  /** The club's shapes, seeding both from the current predefined formation (one anchor per
+   *  outfield XI member, in slot order) if not already custom. `fallback`, if given, is
+   *  used as the seed instead of recomputing it — callers that already computed the seed
+   *  once (to validate before this update) pass it through so it isn't derived twice for
+   *  the same state. */
+  private ensureShapes(state: ClubState, fallback?: TeamShapes): TeamShapes {
+    state.shapes ??= fallback ?? seedShapesFromFormation(state.formation, state.startingXI);
+    return state.shapes;
   }
 
-  /** Capture a vacated outfield slot's full custom geometry (band + lateral + role) into
-   *  `emptySlotRoles` before its former occupant's `customSlots` entry is pruned — so a
-   *  position a manager set up (by dragging a player to a non-template band/lateral) survives
-   *  the player leaving the XI, and is inherited wholesale by whoever is assigned there next
-   *  (see setStartingXI's existing inheritance logic below). Capturing just the role and
-   *  discarding the band would leave the slot's placeholder (and its pill's sort position)
-   *  snapping back to the template band while still showing the moved-to role label. Slot 0
-   *  (GK) is never captured — GK has no role options, and never has a customSlots entry to
-   *  begin with. Call with the pre-mutation startingXI, after the new startingXI has been
-   *  assigned but before pruneCustomSlots runs. */
-  private captureVacatedRoles(state: ClubState, prevXI: readonly (string | null)[]): void {
-    prevXI.forEach((prevId, i) => {
-      if (!prevId || state.startingXI[i] !== null || i === 0) { return; } // still occupied, or GK
-      const geometry = state.customSlots?.[prevId];
-      if (!geometry) { return; } // no custom geometry to preserve — template position is already correct
-      state.emptySlotRoles = { ...(state.emptySlotRoles ?? {}), [i]: geometry };
-    });
-  }
-
-  /** Drop any customSlots entries for players no longer in the (new) starting XI — keeps
-   *  the free-positioning geometry map from accumulating ghost entries for players who were
-   *  benched/dropped/sold/retired. No-op if customSlots is null or every entry is still
-   *  valid. */
-  private pruneCustomSlots(state: ClubState, xi: readonly string[]): void {
-    if (!state.customSlots) { return; }
-    const xiSet = new Set(xi);
-    const next: Record<string, PlayerGeometry> = {};
-    let changed = false;
-    for (const [id, g] of Object.entries(state.customSlots)) {
-      if (xiSet.has(id)) { next[id] = g; } else { changed = true; }
-    }
-    state.customSlots = changed ? next : state.customSlots;
-  }
-
-  /** Members of `band` within `slots`, as the `{id, lateral}` shape `rankInBand` needs. */
-  private bandMembers(
-    slots: Record<string, PlayerGeometry>, band: Exclude<Band, 'GK'>,
-  ): { id: string; lateral: number }[] {
-    return Object.entries(slots)
-      .filter(([, g]) => g.band === band)
-      .map(([id, g]) => ({ id, lateral: g.lateral }));
-  }
-
-  /** Re-derive every member's role within `band`, by rank — keeps a member's current role
-   *  if it's still eligible for their (possibly new) rank, else resets it to that rank's
-   *  preferred role. Called after any geometry change that could shift ranks: a new
-   *  arrival, a departure, or a same-band reorder. */
-  private recomputeBandRoles(slots: Record<string, PlayerGeometry>, band: Exclude<Band, 'GK'>): void {
-    const members = this.bandMembers(slots, band);
-    const count = members.length;
-    for (const { id } of members) {
-      const rank = rankInBand(id, members);
-      const eligible = eligibleRoles(band, rank, count);
-      const current = slots[id].role;
-      slots[id] = { ...slots[id], role: eligible.includes(current) ? current : preferredRole(band, rank, count) };
+  /** Drop any shape entries for players no longer in the (new) starting XI, and seed
+   *  canonical-slot anchors (in both shapes) for any newly assigned outfielder — keeps the
+   *  anchor maps exactly in sync with the XI: no ghost entries for players who were
+   *  benched/dropped/sold/retired, no missing entries for new arrivals (the match build
+   *  derives fielded positions solely from the defending shape's entries). No-op if
+   *  `shapes` is null. */
+  private syncShapesToXI(state: ClubState): void {
+    if (!state.shapes) { return; }
+    const canon = canonicalGeometry(state.formation);
+    for (const key of ['attacking', 'defending'] as const) {
+      const shape = state.shapes[key];
+      const next: Record<string, PlayerGeometry> = {};
+      state.startingXI.forEach((id, i) => {
+        if (!id || i === 0) { return; } // unfilled, or the GK slot (never has an anchor)
+        next[id] = shape[id] ?? (canon[i - 1] ? { ...canon[i - 1] } : { band: 'MID', lateral: 0 });
+      });
+      state.shapes[key] = next;
     }
   }
 
-  /** Move a starting-XI player to a new band/lateral position. Rejects (returns false, no
-   *  state change) a move that would push the destination band's headcount over
-   *  MAX_BAND_SIZE. Otherwise applies the move, then re-derives roles for every member of
-   *  both the destination band and (if different) the band the player left — a player who
-   *  gets out-ranked by a new arrival on their flank loses their L/R-type role and falls
-   *  back to center, and a player crossing into a new band gets that band's role for their
-   *  resulting rank. Seeds `customSlots` from the current predefined formation on first
-   *  use. No-op (returns false) if the player isn't in the starting XI. */
-  setPlayerGeometry(playerId: string, geometry: { band: Exclude<Band, 'GK'>; lateral: number }): boolean {
+  /** How many members `shape` has in `band`, excluding `playerId`. */
+  private bandCount(shape: Record<string, PlayerGeometry>, band: Exclude<Band, 'GK'>, playerId: string): number {
+    return Object.entries(shape).filter(([id, g]) => g.band === band && id !== playerId).length;
+  }
+
+  /** Move a starting-XI player's anchor in one shape to a new band/lateral position.
+   *  Rejects (returns false, no state change) a move that would push the destination
+   *  band's headcount over MAX_BAND_SIZE. The player's effective role label is derived
+   *  from the resulting geometry (deriveRolesForShape), never stored. Seeds both shapes
+   *  from the current predefined formation on first use. No-op (returns false) if the
+   *  player isn't in the starting XI. */
+  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): boolean {
     const state = this.stateManager.getState();
     if (!state.startingXI.includes(playerId)) { return false; }
 
-    const currentSlots = state.customSlots ?? seedGeometryFromFormation(state.formation, state.startingXI);
-    const destCount = this.bandMembers(currentSlots, geometry.band).filter(m => m.id !== playerId).length + 1;
-    if (destCount > MAX_BAND_SIZE) { return false; }
+    const currentShapes = state.shapes ?? seedShapesFromFormation(state.formation, state.startingXI);
+    if (this.bandCount(currentShapes[shape], geometry.band, playerId) + 1 > MAX_BAND_SIZE) { return false; }
 
     this.stateManager.updateState(s => {
-      const slots = this.ensureCustomSlots(s, currentSlots);
-      const sourceBand = slots[playerId]?.band;
-      // Placeholder role — recomputeBandRoles immediately re-derives it from the player's
-      // actual rank in the destination band, so any valid FormationPosition works here.
-      slots[playerId] = { ...geometry, role: slots[playerId]?.role ?? 'CM' };
-      this.recomputeBandRoles(slots, geometry.band);
-      if (sourceBand && sourceBand !== geometry.band) { this.recomputeBandRoles(slots, sourceBand); }
+      this.ensureShapes(s, currentShapes)[shape][playerId] = { ...geometry };
     });
     return true;
   }
 
-  /** Set a starting-XI player's instruction (role) without moving them — validated against
-   *  the candidate set for their current rank within their current band (eligibleRoles),
-   *  not their native position: a player deliberately placed at centre-back should be
-   *  offered the full defensive set regardless of what they're scouted as, but `LB`/`LWB`
-   *  are only on offer at the band's left edge. No-op (returns false) for a player not in
-   *  the starting XI, or a role that doesn't fit their current band/rank. */
-  setPlayerRole(playerId: string, role: FormationPosition): boolean {
-    const state = this.stateManager.getState();
-    if (!state.startingXI.includes(playerId)) { return false; }
-    const currentSlots = state.customSlots ?? seedGeometryFromFormation(state.formation, state.startingXI);
-    const existing = currentSlots[playerId];
-    if (!existing) { return false; }
-    const members = this.bandMembers(currentSlots, existing.band);
-    const rank = rankInBand(playerId, members);
-    if (!eligibleRoles(existing.band, rank, members.length).includes(role)) { return false; }
-
-    this.stateManager.updateState(s => {
-      const slots = this.ensureCustomSlots(s, currentSlots);
-      const cur = slots[playerId];
-      slots[playerId] = { band: cur.band, lateral: cur.lateral, role };
-    });
-    return true;
-  }
-
-  /** Which predefined Formation (if any) the current layout matches — `customSlots` if set,
-   *  else `formation` as-is. Display-only (drives UI pill highlighting); never affects how
-   *  a match is actually built. */
+  /** Which predefined Formation (if any) the current layout matches — `shapes` if set
+   *  (custom whenever the two shapes differ anywhere), else `formation` as-is. Display-only
+   *  (drives UI pill highlighting); never affects how a match is actually built. */
   effectiveFormationLabel(): Formation | 'custom' {
     const state = this.stateManager.getState();
-    return effectiveFormationLabelOf(state.formation, state.startingXI, state.customSlots);
+    return effectiveFormationLabelOf(state.formation, state.startingXI, state.shapes);
   }
 
   setStyle(style: TacticalStyleId): void {
@@ -303,49 +234,13 @@ export class ClubManager {
   }
 
   /** Replace the 11 slot-ordered starting-XI entries (slot 0 = GK; `null` = deliberately
-   *  unfilled). Besides pruning customSlots for anyone dropped, inherits a pending
-   *  `emptySlotRoles` instruction for any slot that just became filled — seeding the new
-   *  occupant's customSlots entry with it and clearing the pending entry, so a role chosen
-   *  while a slot was empty actually takes effect once someone is assigned there. */
+   *  unfilled), then resync the shapes: departures lose their anchors, new arrivals get
+   *  their slot's canonical anchor in both shapes (see syncShapesToXI). */
   setStartingXI(slots: (string | null)[]): void {
     this.stateManager.updateState(state => {
-      const prev = state.startingXI;
       state.startingXI = slots;
-      this.captureVacatedRoles(state, prev);
-      this.pruneCustomSlots(state, slots.filter((id): id is string => id !== null));
-      slots.forEach((id, i) => {
-        if (!id || prev[i] === id || i === 0) { return; } // unfilled, unchanged, or the GK slot
-        const geometry = state.emptySlotRoles?.[i];
-        if (!geometry || !state.emptySlotRoles) { return; }
-        this.ensureCustomSlots(state)[id] = { ...geometry };
-        delete state.emptySlotRoles[i];
-      });
+      this.syncShapesToXI(state);
     });
-  }
-
-  /** Set a manager's pending role choice for a currently-empty outfield slot (1-10; the GK
-   *  slot, 0, is never overridable). Validated and offered against the slot's *current* band —
-   *  a captured custom band from captureVacatedRoles if one exists (so a placeholder sitting in
-   *  ATT, because that's where its occupant vacated from, offers ATT roles, not its native
-   *  band's), else the slot's canonical template band. Preserves an existing captured lateral;
-   *  only ever changes the role. Has no effect until a player is assigned to that slot — see
-   *  setStartingXI. Rejects (returns false) an occupied slot, the GK slot, or a role that
-   *  doesn't belong to that band. */
-  setEmptySlotRole(slotIndex: number, role: FormationPosition): boolean {
-    const state = this.stateManager.getState();
-    if (slotIndex < 1 || slotIndex > 10) { return false; }
-    if (state.startingXI[slotIndex]) { return false; }
-    const canon = canonicalGeometry(state.formation)[slotIndex - 1];
-    if (!canon) { return false; }
-    const current = state.emptySlotRoles?.[slotIndex];
-    const band = current?.band ?? canon.band;
-    const lateral = current?.lateral ?? canon.lateral;
-    if (!ROLE_OPTIONS_BY_BAND[band].includes(role)) { return false; }
-
-    this.stateManager.updateState(s => {
-      s.emptySlotRoles = { ...(s.emptySlotRoles ?? {}), [slotIndex]: { band, lateral, role } };
-    });
-    return true;
   }
 
   setBenchPlayers(playerIds: string[]): void {
@@ -437,11 +332,9 @@ export class ClubManager {
     this.stateManager.updateState(s => {
       s.budget += salePrice;
       s.squad = s.squad.filter(p => p.id !== playerId);
-      const prevXI = s.startingXI;
       s.startingXI = s.startingXI.map(id => id === playerId ? null : id);
       s.benchPlayers = s.benchPlayers.filter(id => id !== playerId);
-      this.captureVacatedRoles(s, prevXI);
-      this.pruneCustomSlots(s, s.startingXI.filter((id): id is string => id !== null));
+      this.syncShapesToXI(s);
       s.financialLog.push(tx);
     });
 
@@ -777,8 +670,8 @@ export class ClubManager {
     const referencePlayer: Player = {
       id: '', name: '', nationality: this.nationality, age: 99, position: 'CM', potential: 0,
       attributes: state.squad[0]?.attributes ?? {
-        speed: 0, strength: 0, agility: 0, passing: 0, finishing: 0,
-        technique: 0, defending: 0, stamina: 0, awareness: 0, composure: 0,
+        speed: 0, strength: 0, stamina: 0, passing: 0, technique: 0,
+        finishing: 0, defending: 0, keeping: 0,
       },
     };
     const trainingAxes = FacilityManager.trainingAxes(state.facilities, referencePlayer);
@@ -814,11 +707,9 @@ export class ClubManager {
 
     this.stateManager.updateState(s => {
       s.squad = newSquad;
-      const prevXI = s.startingXI;
       s.startingXI = s.startingXI.map(id => id && retiredIds.has(id) ? null : id);
       s.benchPlayers = s.benchPlayers.filter(id => !retiredIds.has(id));
-      this.captureVacatedRoles(s, prevXI);
-      this.pruneCustomSlots(s, s.startingXI.filter((id): id is string => id !== null));
+      this.syncShapesToXI(s);
       s.recentDevelopment = fullSeasonDevelopment;
       s.seasonStartSnapshot = Object.fromEntries(newSquad.map(p => [p.id, p.attributes]));
     });

@@ -56,6 +56,32 @@ describe('MatchStatsSheet:', () => {
     expect(screen.getByText('Red cards')).toBeInTheDocument();
   });
 
+  test('shows the duels-won section when the statistics carry tallies, hides it otherwise', () => {
+    const { rerender } = render(
+      <MatchStatsSheet statistics={statistics()} homeName="Us" awayName="Them" title="Match stats" />,
+    );
+    // pre-Step-5 result: no duelsWon on the statistics
+    expect(screen.queryByText('Duels won')).not.toBeInTheDocument();
+    rerender(
+      <MatchStatsSheet
+        statistics={statistics({
+          duelsWon: {
+            home: { speed: 9, strength: 4, dribble: 11, pass: 22, shot: 3 },
+            away: { speed: 3, strength: 13, dribble: 6, pass: 17, shot: 2 },
+          },
+        })}
+        homeName="Us" awayName="Them" title="Match stats"
+      />,
+    );
+    expect(screen.getByText('Duels won')).toBeInTheDocument();
+    expect(screen.getByText('Foot races')).toBeInTheDocument();
+    expect(screen.getByText('Physical battles')).toBeInTheDocument();
+    expect(screen.getByText('One-on-ones')).toBeInTheDocument();
+    expect(screen.getByText('Passing lanes')).toBeInTheDocument();
+    expect(screen.getByText('22')).toBeInTheDocument();
+    expect(screen.getByText('17')).toBeInTheDocument();
+  });
+
   test('player ratings expand sorted by rating, with name, effective position and team colours', () => {
     const info: Record<string, { name: string; position: string; colors?: { primary: string; secondary: string } }> = {
       p1: { name: 'Alice', position: 'RWB', colors: { primary: 'rgb(255, 0, 0)', secondary: 'rgb(255, 255, 255)' } },

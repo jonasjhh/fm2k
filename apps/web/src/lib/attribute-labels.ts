@@ -1,6 +1,6 @@
 import type { PlayerAttributes } from '@fm2k/engine';
 
-/** Display grouping/labels for the 10 base attributes, shared by every component that lists them
+/** Display grouping/labels for the 8 base attributes, shared by every component that lists them
  *  (player detail view, the formation tooltip) so there's one place to keep them in sync. */
 export const ATTR_GROUPS = [
   {
@@ -8,7 +8,6 @@ export const ATTR_GROUPS = [
     attrs: [
       { key: 'speed', label: 'Speed' },
       { key: 'strength', label: 'Strength' },
-      { key: 'agility', label: 'Agility' },
       { key: 'stamina', label: 'Stamina' },
     ],
   },
@@ -16,16 +15,10 @@ export const ATTR_GROUPS = [
     label: 'Technical',
     attrs: [
       { key: 'passing', label: 'Passing' },
-      { key: 'finishing', label: 'Finishing' },
       { key: 'technique', label: 'Technique' },
+      { key: 'finishing', label: 'Finishing' },
       { key: 'defending', label: 'Defending' },
-    ],
-  },
-  {
-    label: 'Mental',
-    attrs: [
-      { key: 'awareness', label: 'Awareness' },
-      { key: 'composure', label: 'Composure' },
+      { key: 'keeping', label: 'Keeping' },
     ],
   },
 ] as const;

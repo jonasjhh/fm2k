@@ -1,9 +1,10 @@
-import { MatchSimulator, type MatchConfig } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
+import type { MatchConfig } from './types.ts';
 
 import type { Player, PlayerAttributes, PlayerPosition, Team } from '../shared/types.ts';
 
-function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
-  return new MatchSimulator({
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): DuelMatchSimulator {
+  return new DuelMatchSimulator({
     homeStarters: config.homeTeam.squad,
     awayStarters: config.awayTeam.squad,
     ...config,
@@ -21,8 +22,8 @@ function mulberry32(seed: number): () => number {
 }
 function attrs(v: number, stamina = v): PlayerAttributes {
   return {
-    speed: v, strength: v, agility: v, passing: v, finishing: v,
-    technique: v, defending: v, stamina, awareness: v, composure: v,
+    speed: v, strength: v, passing: v, finishing: v,
+    technique: v, defending: v, keeping: 10, stamina,
   };
 }
 const F: [PlayerPosition, number][] = [['GK', 1], ['LB', 1], ['CB', 2], ['RB', 1], ['LM', 1], ['CM', 2], ['RM', 1], ['ST', 2]];

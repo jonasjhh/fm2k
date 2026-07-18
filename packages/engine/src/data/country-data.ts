@@ -7,27 +7,23 @@ import type { Team, Player, PlayerPosition, PlayerAttributes } from '@fm2k/match
 export interface PlayerAttributesJson {
   spd: number;
   str: number;
-  agi: number;
-  pas: number;
-  fin: number;
-  tec: number;
-  def: number;
   sta: number;
-  awr: number;
-  cmp: number;
+  pas: number;
+  tec: number;
+  fin: number;
+  def: number;
+  kee: number;
 }
 
 const ATTR_KEY_MAP: Record<keyof PlayerAttributes, keyof PlayerAttributesJson> = {
   speed: 'spd',
   strength: 'str',
-  agility: 'agi',
-  passing: 'pas',
-  finishing: 'fin',
-  technique: 'tec',
-  defending: 'def',
   stamina: 'sta',
-  awareness: 'awr',
-  composure: 'cmp',
+  passing: 'pas',
+  technique: 'tec',
+  finishing: 'fin',
+  defending: 'def',
+  keeping: 'kee',
 };
 
 /** Maps a short-key on-disk row to the runtime `PlayerAttributes` shape. */

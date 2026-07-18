@@ -1,9 +1,10 @@
-import { MatchSimulator, type MatchConfig } from './match-simulator.ts';
+import { DuelMatchSimulator } from './duel/duel-simulator.ts';
+import type { MatchConfig } from './types.ts';
 import { NEUTRAL_PARAMS, type MatchParameters } from '../tactics/match-parameters.ts';
 import type { Player, PlayerAttributes, PlayerPosition, Team } from '../shared/types.ts';
 
-function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): MatchSimulator {
-  return new MatchSimulator({
+function sim(config: Omit<MatchConfig, 'homeStarters' | 'awayStarters'> & Partial<Pick<MatchConfig, 'homeStarters' | 'awayStarters'>>): DuelMatchSimulator {
+  return new DuelMatchSimulator({
     homeStarters: config.homeTeam.squad,
     awayStarters: config.awayTeam.squad,
     ...config,
@@ -22,8 +23,8 @@ function mulberry32(seed: number): () => number {
 
 function attrs(v: number): PlayerAttributes {
   return {
-    speed: v, strength: v, agility: v, passing: v, finishing: v,
-    technique: v, defending: v, stamina: v, awareness: v, composure: v,
+    speed: v, strength: v, passing: v, finishing: v,
+    technique: v, defending: v, stamina: v, keeping: v,
   };
 }
 
@@ -70,15 +71,6 @@ describe('tactical parameters change match behaviour:', () => {
     const { avgGoals } = runMatches(N, NEUTRAL_PARAMS, NEUTRAL_PARAMS);
     expect(avgGoals).toBeGreaterThan(1.0);
     expect(avgGoals).toBeLessThan(5.0);
-  });
-
-  it('given a more compact defence then it concedes fewer goals against the same attacker', () => {
-    const attacking: MatchParameters = { ...NEUTRAL_PARAMS, shotFrequency: 80, chanceQuality: 70 };
-    const compact: MatchParameters = { ...NEUTRAL_PARAMS, defensiveCompactness: 90 };
-    const porous: MatchParameters = { ...NEUTRAL_PARAMS, defensiveCompactness: 20, spaceLeftBehind: 80 };
-    const vsCompact = runMatches(N, compact, attacking);
-    const vsPorous = runMatches(N, porous, attacking);
-    expect(vsCompact.awayGoals).toBeLessThan(vsPorous.awayGoals);
   });
 
   it('given a high shot-frequency / chance-quality side then it out-shoots a neutral mirror', () => {

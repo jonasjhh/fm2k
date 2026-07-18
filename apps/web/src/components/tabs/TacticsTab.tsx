@@ -47,12 +47,10 @@ const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation, setPlayerGeometry, setPlayerRole, setEmptySlotRole } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation, setPlayerGeometry } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
     setPlayerGeometry: s.setPlayerGeometry,
-    setPlayerRole: s.setPlayerRole,
-    setEmptySlotRole: s.setEmptySlotRole,
   })));
 
   const {
@@ -69,7 +67,7 @@ export default function TacticsTab() {
   const teamColors = useClubColors();
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
   const effectiveLabel = clubState
-    ? effectiveFormationLabel(clubState.formation, clubState.startingXI, clubState.customSlots)
+    ? effectiveFormationLabel(clubState.formation, clubState.startingXI, clubState.shapes)
     : formation;
 
   const sorted = useMemo(
@@ -209,13 +207,10 @@ export default function TacticsTab() {
           <TacticsPitch
             formation={formation}
             startingXI={clubState.startingXI}
-            customSlots={clubState.customSlots}
-            emptySlotRoles={clubState.emptySlotRoles}
+            shapes={clubState.shapes}
             squad={clubState.squad}
             teamColors={teamColors}
             onPlayerMove={setPlayerGeometry}
-            onPlayerRoleChange={setPlayerRole}
-            onEmptySlotRoleChange={setEmptySlotRole}
           />
         </Box>
 

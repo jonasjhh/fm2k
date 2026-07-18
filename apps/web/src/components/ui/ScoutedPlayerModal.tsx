@@ -4,7 +4,7 @@ import type { Player } from '@fm2k/engine';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/store/game-store';
 import { fmt } from '../../utils/formatting';
-import { buyPlayerWithConfirm } from '../../utils/transfers';
+import { useBuyPlayerWithConfirm } from '../../utils/transfers';
 import PlayerDetailModal from './PlayerDetailModal';
 
 interface Props {
@@ -27,13 +27,15 @@ export default function ScoutedPlayerModal({ squad, playerId, onClose, teamId, i
     getAskingPrice: s.getAskingPrice,
   })));
 
+  const buyPlayerWithConfirm = useBuyPlayerWithConfirm();
+
   const player = playerId ? squad.find(p => p.id === playerId) ?? null : null;
   const price = (!isOwnTeam && player) ? getAskingPrice(teamId, player.id) : null;
   const canAfford = price !== null && (clubState?.budget ?? 0) >= price;
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (!player || price === null) { return; }
-    if (buyPlayerWithConfirm(signPlayer, player.name, player.id, price)) { onClose(); }
+    if (await buyPlayerWithConfirm(signPlayer, player.name, player.id, price)) { onClose(); }
   };
 
   return (

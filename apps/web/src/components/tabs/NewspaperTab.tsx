@@ -6,7 +6,6 @@ import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { ArticleCategory } from '@fm2k/newspaper';
 import { fmtDate } from '../../utils/formatting';
-import { SectionHeader } from '@fm2k/design-system';
 
 const CATEGORY_LABEL: Record<ArticleCategory, string> = {
   blowout: 'Result',
