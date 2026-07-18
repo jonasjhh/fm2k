@@ -77,7 +77,7 @@ export type { SeasonState } from './season/season-types.ts';
 export type {
   Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors, TeamTactics,
 } from '@fm2k/match';
-export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from '@fm2k/match';
+export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS, SECONDARY_POSITIONS } from '@fm2k/match';
 
 export type {
   TacticalStyleId, TacticalSliders, TeamTacticsIntent,
@@ -113,7 +113,7 @@ export {
 export type { SectorKey, StadiumSectorConfig } from './stadium/stadium.ts';
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation,
+  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
   deriveRolesForShape, effectiveFormationLabel,
   MAX_BAND_SIZE, BAND_ORDER, BAND_OF_ROLE,
   effectiveDisplayOrder, emptySlotKey,

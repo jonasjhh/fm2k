@@ -145,8 +145,12 @@ export class MatchOccurrence implements Occurrence {
     // Re-derive positions from the slot-ordered active lineup; keep the existing
     // assignment for any on-pitch player the new map doesn't cover (e.g. a substitute
     // not yet reflected in the shapes).
-    const custom = team.shapes ? deriveCustomFieldedPositions(team.shapes.defending) : undefined;
-    const derived = custom?.fieldedPositions ?? deriveFieldedPositions(this.getPlayerStarters(), team.formation);
+    const custom = team.shapes ? deriveCustomFieldedPositions(team.shapes.defending, team.roleOverrides) : undefined;
+    const basePositions = custom?.fieldedPositions ?? deriveFieldedPositions(this.getPlayerStarters(), team.formation);
+    const overrides = team.roleOverrides;
+    const derived = overrides
+      ? Object.fromEntries(Object.entries(basePositions).map(([id, pos]) => [id, overrides[id] ?? pos]))
+      : basePositions;
     const fielded = { ...(this.matchState.fieldedPositions?.[side] ?? {}) };
     for (const p of this.matchState.currentPlayers[side]) {
       if (derived[p.id]) { fielded[p.id] = derived[p.id]; }

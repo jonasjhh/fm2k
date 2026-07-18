@@ -18,7 +18,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing, TransferState,
   PlayerPosition, GameEvents, StadiumSectorConfig, Player, Formation, Team, TeamColors, GameDateTime, OccurrenceEvent,
   TeamTacticsIntent, MatchInsight, MatchStatistics, RegimentId, YouthFactory, LineupRole, TransferWindow, OverflowSpec,
-  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
+  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode, FormationPosition,
 } from '@fm2k/engine';
 import { buildEditableCountries } from '../domain/editable-country.ts';
 import type { EditableCountry } from '../domain/editable-country.ts';
@@ -1434,6 +1434,7 @@ export class GameSession {
     this.playerTeam.tacticsIntent = cs.tactics;
     this.playerTeam.tacticsParams = resolveMatchParameters(cs.tactics, this.resolvePlayerStarters());
     this.playerTeam.shapes = cs.shapes ?? undefined;
+    this.playerTeam.roleOverrides = Object.keys(cs.roleOverrides).length ? cs.roleOverrides : undefined;
     // Seed in-match starting energy from each player's current fitness, so a tired
     // squad (fixture congestion) starts and tires flatter. ClubPlayer.fitness is 0-1000
     // internally; packages/match's energy model stays on its existing 0-100 scale.
@@ -1512,6 +1513,12 @@ export class GameSession {
   setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null {
     if (!this.clubManager) { return null; }
     this.clubManager.setPlayerGeometry(shape, playerId, geometry);
+    return this.clubChanged();
+  }
+
+  setRoleOverride(playerId: string, role: FormationPosition | null): ClubState | null {
+    if (!this.clubManager) { return null; }
+    this.clubManager.setRoleOverride(playerId, role);
     return this.clubChanged();
   }
 

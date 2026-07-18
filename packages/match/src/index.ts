@@ -13,6 +13,7 @@ export type {
   TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, TeamShapes, Band,
 } from './shared/types.ts';
 export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts';
+export { SECONDARY_POSITIONS } from './shared/position-rules.ts';
 
 // Ratings
 export { calculateOverall, getTeamOVR } from './ratings.ts';
@@ -30,7 +31,7 @@ export { buildMatchInsights } from './tactics/feedback.ts';
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation,
+  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
   deriveRolesForShape, effectiveFormationLabel,
   effectiveDisplayOrder, emptySlotKey,
 } from './lineup/lineup.ts';

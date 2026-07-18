@@ -118,6 +118,9 @@ export interface Team {
   /** Manager-chosen dual-shape override — when present, the match build uses the
    *  defending shape (v1 sim) instead of deriving slots from `formation`/FORMATION_LINES. */
   shapes?: TeamShapes;
+  /** Explicit per-player role label overrides (playerId → FormationPosition). Applied on
+   *  top of the geometry-derived role so a winger can play as ST without moving their anchor. */
+  roleOverrides?: Record<string, FormationPosition>;
 }
 
 /** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */

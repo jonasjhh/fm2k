@@ -6,7 +6,7 @@ import type {
   LeagueState, CompetitionState, CompetitionFixture, LiveMatch, ClubState, TransferListing,
   Formation, Player, StadiumSectorConfig, GameDateTime, TeamColors,
   TeamTacticsIntent, TacticalStyleId, TacticalSliders, RegimentId, TransferWindow,
-  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
+  PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode, FormationPosition,
   MatchInsight, MatchStatistics,
 } from '@fm2k/engine';
 import type { Article } from '@fm2k/newspaper';
@@ -166,6 +166,7 @@ interface GameStore {
   setSliders: (sliders: Partial<TacticalSliders>) => void;
   setTraining: (playerId: string, regiment: RegimentId) => void;
   setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => void;
+  setRoleOverride: (playerId: string, role: FormationPosition | null) => void;
   /** Queue an in-match substitution; false when rejected (limit reached, ineligible). */
   queueSubstitution: (playerOutId: string, playerInId: string) => boolean;
 
@@ -391,6 +392,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     setFormation: (formation) => { backend.commands.setFormation(formation); },
     setTactics: (intent) => { backend.commands.setTactics(intent); },
     setPlayerGeometry: (shape, playerId, geometry) => { backend.commands.setPlayerGeometry(shape, playerId, geometry); },
+    setRoleOverride: (playerId, role) => { backend.commands.setRoleOverride(playerId, role); },
     queueSubstitution: (playerOutId, playerInId) => backend.commands.queueSubstitution(playerOutId, playerInId),
     setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {

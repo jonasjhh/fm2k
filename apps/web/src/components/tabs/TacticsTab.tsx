@@ -48,12 +48,13 @@ const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation, setPlayerGeometry, setStartingXI, setBench } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation, setPlayerGeometry, setStartingXI, setBench, setRoleOverride } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
     setPlayerGeometry: s.setPlayerGeometry,
     setStartingXI: s.setStartingXI,
     setBench: s.setBench,
+    setRoleOverride: s.setRoleOverride,
   })));
 
   const {
@@ -220,7 +221,9 @@ export default function TacticsTab() {
             shapes={clubState.shapes}
             squad={clubState.squad}
             teamColors={teamColors}
+            roleOverrides={clubState.roleOverrides ?? {}}
             onPlayerMove={setPlayerGeometry}
+            onRoleOverride={setRoleOverride}
           />
         </Box>
 

@@ -5,14 +5,14 @@ import type { PlayerPosition, FormationPosition, PlayerAttributes, Player } from
  *  free-positioning role picker (see PlayerGeometry/canonicalGeometry in lineup.ts). */
 export const SECONDARY_POSITIONS: Record<PlayerPosition, FormationPosition[]> = {
   GK:  [],
-  CB:  ['DM'],
-  LB:  ['LM', 'LW', 'LWB'],
-  RB:  ['RM', 'RW', 'RWB'],
-  CM:  ['AM', 'DM'],
-  LM:  ['LW', 'LB'],
-  RM:  ['RW', 'RB'],
-  LW:  ['LM', 'ST'],
-  RW:  ['RM', 'ST'],
+  CB:  ['LB', 'RB'],
+  LB:  ['LWB'],
+  RB:  ['RWB'],
+  CM:  ['LM', 'RM'],
+  LM:  ['CM'],
+  RM:  ['CM'],
+  LW:  ['ST'],
+  RW:  ['ST'],
   ST:  ['LW', 'RW'],
 };
 

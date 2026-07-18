@@ -6,7 +6,7 @@ import type { SaveData, SaveType } from '../data/save-data.ts';
 import type {
   ClubState, LeagueState, CompetitionState, LiveMatch, TransferListing, Formation, Player,
   StadiumSectorConfig, GameDateTime, TeamColors, TeamTacticsIntent, MatchInsight, RegimentId,
-  TransferWindow, PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode,
+  TransferWindow, PlayerGeometry, TeamShapes, FacilityGroupId, WingId, OperatingMode, FormationPosition,
 } from '@fm2k/engine';
 
 /** Write side — mutations. Cheap ones return the affected read-model. */
@@ -33,9 +33,8 @@ export interface BackendCommands {
   setTraining(playerId: string, regiment: RegimentId): ClubState | null;
   /** Move a starting-XI player to a new band/lateral position (free positioning). */
   setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null;
-  /** Set a starting-XI player's instruction (e.g. LB vs LWB) without moving them. */
-  /** Set a manager's pending role choice for a currently-empty outfield slot (1-10) — takes
-   *  effect once a player is assigned there. */
+  /** Pin a player's role label (e.g. LW playing as ST). Pass null to remove the override. */
+  setRoleOverride(playerId: string, role: FormationPosition | null): ClubState | null;
   /** Queue an in-match substitution (validated: per-match limit, bench eligibility, fitness). */
   queueSubstitution(playerOutId: string, playerInId: string): boolean;
   // transfers
@@ -122,6 +121,7 @@ export function createBackend(): Backend {
     setTactics: (intent) => s.setTactics(intent),
     setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
     setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => s.setPlayerGeometry(shape, playerId, geometry),
+    setRoleOverride: (playerId: string, role: FormationPosition | null) => s.setRoleOverride(playerId, role),
     queueSubstitution: (playerOutId, playerInId) => s.queueSubstitution(playerOutId, playerInId),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),

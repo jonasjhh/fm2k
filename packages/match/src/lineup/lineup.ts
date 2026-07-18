@@ -80,18 +80,44 @@ function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number): Forma
   }
 }
 
+/** Canonical lateral position for each role. Used when a role override repositions a
+ *  player: their anchor band stays as dragged, but their lateral shifts to this value so
+ *  the sim's zone-weighting and the UI both reflect the instructed position. */
+/** Canonical lateral for a role override — maps to the slot position that role would
+ *  occupy in a 5-player band (leftmost = -1, rightmost = +1, center = 0). Used to
+ *  reposition a player's geometry when a role override is applied. */
+export const ROLE_CANONICAL_LATERAL: Record<FormationPosition, number> = {
+  GK:  0,
+  LWB: -1, LB: -1, CB: 0, RB: 1, RWB: 1,
+  DM:  0,
+  LM:  -1, CM: 0, RM: 1,
+  AM:  0,
+  LW:  -1, ST: 0, RW: 1,
+};
+
 /** Derive every member's effective FormationPosition from a shape's geometry alone —
  *  behavioral roles no longer exist as stored state (REWORK_01.md ruling: dual shapes
  *  replace them), so this is the single source of "what position is this player playing":
  *  the v1 sim's fielded positions and every UI label resolve through it. Ties in lateral
- *  are broken by id, so the result is deterministic. */
-export function deriveRolesForShape(shape: Record<string, PlayerGeometry>): Record<string, FormationPosition> {
+ *  are broken by id, so the result is deterministic.
+ *
+ *  Optional `overrides` (playerId → FormationPosition) are applied as a final pass,
+ *  letting the manager pin e.g. an LW as ST without moving their anchor. */
+export function deriveRolesForShape(
+  shape: Record<string, PlayerGeometry>,
+  overrides?: Record<string, FormationPosition>,
+): Record<string, FormationPosition> {
   const out: Record<string, FormationPosition> = {};
   for (const band of BAND_ORDER) {
     const members = Object.entries(shape)
       .filter(([, g]) => g.band === band)
       .sort((a, b) => a[1].lateral - b[1].lateral || a[0].localeCompare(b[0]));
     members.forEach(([id], i) => { out[id] = roleForBandSlot(band, i, members.length); });
+  }
+  if (overrides) {
+    for (const [id, role] of Object.entries(overrides)) {
+      if (id in out) { out[id] = role; }
+    }
   }
   return out;
 }
@@ -101,11 +127,15 @@ export function deriveRolesForShape(shape: Record<string, PlayerGeometry>): Reco
  *  counterpart to deriveFieldedPositions. The v1 sim feeds this the defending shape. */
 export function deriveCustomFieldedPositions(
   geometry: Record<string, PlayerGeometry>,
+  overrides?: Record<string, FormationPosition>,
 ): { fieldedPositions: FieldedPositions; fieldedGeometry: FieldedGeometry } {
-  const fieldedPositions = deriveRolesForShape(geometry);
+  const fieldedPositions = deriveRolesForShape(geometry, overrides);
   const fieldedGeometry: FieldedGeometry = {};
   for (const [playerId, g] of Object.entries(geometry)) {
-    fieldedGeometry[playerId] = { line: BAND_TO_FIELD_LINE[g.band], flank: flankOfLateral(g.lateral) };
+    const effectiveLateral = overrides?.[playerId] !== undefined
+      ? ROLE_CANONICAL_LATERAL[overrides[playerId]]
+      : g.lateral;
+    fieldedGeometry[playerId] = { line: BAND_TO_FIELD_LINE[g.band], flank: flankOfLateral(effectiveLateral) };
   }
   return { fieldedPositions, fieldedGeometry };
 }

@@ -21,6 +21,18 @@ import {
 } from './tactical-motion.ts';
 import { flowTick, type BallState, type FlowTeam, type FlowEvent } from './flow.ts';
 
+function applyOverrides<T extends Record<string, string>>(
+  positions: T,
+  overrides: Record<string, string> | undefined,
+): T {
+  if (!overrides || Object.keys(overrides).length === 0) { return positions; }
+  const result = { ...positions };
+  for (const [id, role] of Object.entries(overrides)) {
+    if (id in result) { (result as Record<string, string>)[id] = role; }
+  }
+  return result;
+}
+
 // Same momentum model as v1 (a goal lifts the scorers, decaying per minute).
 const MOMENTUM_ON_GOAL = 35;
 const MOMENTUM_DECAY = 0.72;
@@ -107,9 +119,9 @@ export class DuelMatchSimulator {
     };
 
     const homeCustom = this.config.homeTeam.shapes?.defending
-      ? deriveCustomFieldedPositions(this.config.homeTeam.shapes.defending) : undefined;
+      ? deriveCustomFieldedPositions(this.config.homeTeam.shapes.defending, this.config.homeTeam.roleOverrides) : undefined;
     const awayCustom = this.config.awayTeam.shapes?.defending
-      ? deriveCustomFieldedPositions(this.config.awayTeam.shapes.defending) : undefined;
+      ? deriveCustomFieldedPositions(this.config.awayTeam.shapes.defending, this.config.awayTeam.roleOverrides) : undefined;
 
     const possession: Side = this.rng() < 0.5 ? 'home' : 'away';
     this.ball = this.kickoffBall(possession, homePlayers, awayPlayers);
@@ -125,8 +137,8 @@ export class DuelMatchSimulator {
       awayTeam: { ...this.config.awayTeam },
       currentPlayers: { home: homePlayers, away: awayPlayers },
       fieldedPositions: {
-        home: homeCustom?.fieldedPositions ?? deriveFieldedPositions(homePlayers, this.config.homeTeam.formation),
-        away: awayCustom?.fieldedPositions ?? deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation),
+        home: applyOverrides(homeCustom?.fieldedPositions ?? deriveFieldedPositions(homePlayers, this.config.homeTeam.formation), this.config.homeTeam.roleOverrides),
+        away: applyOverrides(awayCustom?.fieldedPositions ?? deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation), this.config.awayTeam.roleOverrides),
       },
       params: {
         home: withHomeAdvantage(this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS),

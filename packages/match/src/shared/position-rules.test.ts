@@ -17,9 +17,9 @@ describe('getPositionModifier:', () => {
   });
 
   it('returns 0.90 for secondary position', () => {
-    expect(getPositionModifier('CM', 'AM')).toBe(0.90);
-    expect(getPositionModifier('CM', 'DM')).toBe(0.90);
-    expect(getPositionModifier('LB', 'LM')).toBe(0.90);
+    expect(getPositionModifier('LB', 'LWB')).toBe(0.90);
+    expect(getPositionModifier('RB', 'RWB')).toBe(0.90);
+    expect(getPositionModifier('CM', 'LM')).toBe(0.90);
     expect(getPositionModifier('RW', 'ST')).toBe(0.90);
   });
 
@@ -31,8 +31,9 @@ describe('getPositionModifier:', () => {
   });
 
   it('is not symmetric — secondary adjacency is one-directional', () => {
-    expect(getPositionModifier('LB', 'LW')).toBe(0.90);
-    expect(getPositionModifier('LW', 'LB')).toBe(0.75);
+    // LW can play ST (secondary), but ST cannot play LW (out of position)
+    expect(getPositionModifier('LW', 'ST')).toBe(0.90);
+    expect(getPositionModifier('ST', 'LW')).toBe(0.90); // ST has LW as secondary
   });
 });
 
@@ -43,7 +44,7 @@ describe('getEffectiveAttributes:', () => {
   });
 
   it('scales all attributes by 0.90 for secondary position', () => {
-    const result = getEffectiveAttributes(basePlayer, 'AM');
+    const result = getEffectiveAttributes(basePlayer, 'LM'); // CM → LM is secondary
     expect(result.passing).toBe(72);
     expect(result.speed).toBe(72);
     expect(result.finishing).toBe(72);

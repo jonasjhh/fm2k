@@ -1,5 +1,5 @@
 import { StateManager } from '@fm2k/state';
-import type { Player, Formation, PlayerPosition, PlayerGeometry, TeamShapes, Band } from '@fm2k/match';
+import type { Player, Formation, PlayerPosition, PlayerGeometry, TeamShapes, Band, FormationPosition } from '@fm2k/match';
 import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/match';
 import {
   defaultIntent, MAX_BAND_SIZE,
@@ -117,6 +117,7 @@ export class ClubManager {
       recentDevelopment: config.recentDevelopment ?? [],
       seasonStartSnapshot: Object.fromEntries(squad.map(p => [p.id, p.attributes])),
       shapes: null,
+      roleOverrides: {},
     });
   }
 
@@ -132,6 +133,7 @@ export class ClubManager {
 
   loadState(state: ClubState): void {
     this.migrateStartingXI(state);
+    state.roleOverrides ??= {};
     this.stateManager.setState(state);
   }
 
@@ -148,6 +150,7 @@ export class ClubManager {
       state.formation = formation;
       state.tactics = { ...state.tactics, formation };
       state.shapes = null;
+      state.roleOverrides = {};
     });
   }
 
@@ -156,7 +159,19 @@ export class ClubManager {
       const formationChanged = state.formation !== tactics.formation;
       state.tactics = tactics;
       state.formation = tactics.formation;
-      if (formationChanged) { state.shapes = null; }
+      if (formationChanged) { state.shapes = null; state.roleOverrides = {}; }
+    });
+  }
+
+  /** Set or clear a per-player role override. Passing `null` removes the override for that
+   *  player, restoring the geometry-derived label. */
+  setRoleOverride(playerId: string, role: FormationPosition | null): void {
+    this.stateManager.updateState(state => {
+      if (role === null) {
+        delete state.roleOverrides[playerId];
+      } else {
+        state.roleOverrides[playerId] = role;
+      }
     });
   }
 

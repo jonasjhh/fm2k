@@ -1,4 +1,4 @@
-import type { Player, Formation, PlayerAttributes, TeamShapes } from '@fm2k/match';
+import type { Player, Formation, PlayerAttributes, TeamShapes, FormationPosition } from '@fm2k/match';
 import type { TeamTacticsIntent } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { RegimentId } from '../player/progression.ts';
@@ -69,4 +69,7 @@ export interface ClubState {
    *  Reset to `null` whenever `formation` changes (slot indices and their meaning change
    *  with it). Seeded identically in both shapes on first edit; arrows are the difference. */
   shapes: TeamShapes | null
+  /** Explicit per-player role label overrides (playerId → FormationPosition). Applied on
+   *  top of the geometry-derived role. Cleared when formation changes. */
+  roleOverrides: Record<string, FormationPosition>
 }
