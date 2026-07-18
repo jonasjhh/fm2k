@@ -1,5 +1,5 @@
 import {
-  positionLoad, staminaResistance, tempoFactor, pressFactor, fatigueRateFactor,
+  positionLoad, staminaResistance, tempoFactor, pressFactor,
   perMinuteDrain, physicalFatigueMult, skillFatigueMult, applyFatigue,
 } from './fatigue.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
@@ -45,15 +45,13 @@ describe('fatigue — position load (formation-aware):', () => {
 });
 
 describe('fatigue — drain factors (neutral at 50):', () => {
-  it('tempo/press/fatigueRate factors are exactly 1.0 at the neutral value', () => {
+  it('tempo/press factors are exactly 1.0 at the neutral value', () => {
     expect(tempoFactor(50)).toBeCloseTo(1.0);
     expect(pressFactor(50)).toBeCloseTo(1.0);
-    expect(fatigueRateFactor(50)).toBeCloseTo(1.0);
   });
   it('running harder costs more', () => {
     expect(tempoFactor(100)).toBeGreaterThan(tempoFactor(0));
     expect(pressFactor(100)).toBeGreaterThan(pressFactor(0));
-    expect(fatigueRateFactor(100)).toBeGreaterThan(fatigueRateFactor(0));
   });
   it('higher stamina resists drain', () => {
     expect(staminaResistance(20)).toBeGreaterThan(staminaResistance(99));

@@ -12,7 +12,6 @@ export interface MatchParameters {
   transitionSpeed: number;      // ↑ ball-advance distance on success (counters)
   shotFrequency: number;        // ↑ shot weight when in attacking zones
   chanceQuality: number;        // ↑ goal probability of worked chances
-  fatigueRate: number;          // Global fatigue rate multiplier — scales all drain uniformly
   spaceLeftBehind: number;      // ↑ opponent ball-advance / shot-zone access (high-line cost)
   buildUpWidth: number;         // bias flank vs centre in ball advancement
 }
@@ -24,7 +23,7 @@ export const NEUTRAL_VALUE = 50;
 
 export const PARAM_KEYS: (keyof MatchParameters)[] = [
   'pressIntensity', 'defensiveCompactness', 'passingRisk', 'tempo', 'transitionSpeed',
-  'shotFrequency', 'chanceQuality', 'fatigueRate', 'spaceLeftBehind', 'buildUpWidth',
+  'shotFrequency', 'chanceQuality', 'spaceLeftBehind', 'buildUpWidth',
 ];
 
 /** Every parameter at 50 — the "no tactics chosen" baseline. */
@@ -36,7 +35,6 @@ export const NEUTRAL_PARAMS: MatchParameters = {
   transitionSpeed: NEUTRAL_VALUE,
   shotFrequency: NEUTRAL_VALUE,
   chanceQuality: NEUTRAL_VALUE,
-  fatigueRate: NEUTRAL_VALUE,
   spaceLeftBehind: NEUTRAL_VALUE,
   buildUpWidth: NEUTRAL_VALUE,
 };

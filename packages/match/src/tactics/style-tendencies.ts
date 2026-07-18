@@ -33,7 +33,7 @@ export const STYLE_TENDENCIES: Record<TacticalStyleId, StyleTendency> = {
     blurb: 'Hunt the ball aggressively high up the pitch.',
     weakness: 'Leaves space in behind — vulnerable to balls over the top and counters.',
     modifiers: {
-      pressIntensity: +25, fatigueRate: +20, spaceLeftBehind: +14,
+      pressIntensity: +25, spaceLeftBehind: +14,
       transitionSpeed: +8, defensiveCompactness: -8,
     },
   },

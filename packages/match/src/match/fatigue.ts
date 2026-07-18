@@ -10,7 +10,7 @@ import { ROLE_CANONICAL_LATERAL } from '../lineup/lineup.ts';
  * Energy is 0..100 per player (100 = fresh). Each minute a player on the pitch
  * loses `perMinuteDrain(...)` energy; `fatigueMultiplier(...)` then scales their
  * effective attributes for that minute. The drain reacts to how hard the team is
- * being asked to run (tempo + press + the reserved `fatigueRate` param), how much
+ * being asked to run (tempo + press intensity), how much
  * the role runs (position load, shaped by the formation), and the player's own
  * stamina (resistance). All param factors are exactly 1.0 at neutral (50).
  */
@@ -93,9 +93,6 @@ export function tempoFactor(tempo: number): number { return 0.85 + 0.3 * (tempo 
 /** Press param → drain factor (1.0 at neutral 50; pressing harder costs more). */
 export function pressFactor(pressIntensity: number): number { return 0.8 + 0.4 * (pressIntensity / 100); }
 
-/** The reserved `fatigueRate` param, finally consumed (1.0 at neutral 50). */
-export function fatigueRateFactor(fatigueRate: number): number { return 0.7 + 0.6 * (fatigueRate / 100); }
-
 /** Energy a player loses this minute given the team's params and the player.
  *  When `derivedRoles` is provided, adds shape-delta drain for players whose role
  *  differs between the defending and attacking shape. */
@@ -107,7 +104,6 @@ export function perMinuteDrain(
 ): number {
   const tacticalFactors = tempoFactor(params.tempo)
     * pressFactor(params.pressIntensity)
-    * fatigueRateFactor(params.fatigueRate)
     * staminaResistance(player.attributes.stamina);
   const baseDrain = BASE_DRAIN * positionLoad(formation, player.position) * tacticalFactors;
   const deltaDrain = derivedRoles
