@@ -15,6 +15,8 @@ import { ATTR_LABELS } from '../../lib/attribute-labels';
 
 const CLICK_THRESHOLD_PX = 6;
 
+const BAND_ROW_INDEX: Record<Exclude<Band, 'GK'>, number> = { ATT: 0, AM: 1, MID: 2, DM: 3, DEF: 4 };
+
 function shortName(name: string): string {
   const parts = name.split(' ');
   return parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : parts[0];
@@ -99,6 +101,7 @@ export function TacticsPitch({
     [shapes, formation, startingXI],
   );
   const geometry = effectiveShapes[activeShape];
+  const otherGeometry = effectiveShapes[activeShape === 'defending' ? 'attacking' : 'defending'];
 
   const derivedRoles = useMemo(() => deriveRolesForShape(geometry, roleOverrides), [geometry, roleOverrides]);
   // geometry-derived roles without overrides — used to detect which role is the "natural" one
@@ -275,6 +278,10 @@ export function TacticsPitch({
     const isOverridden = member.id in roleOverrides;
     const roleOptions = eligibleRoles(player.position as FormationPosition, baseRole, rank, bandCount);
     const isDragging = drag?.playerId === member.id && drag.moved;
+    const otherBand = otherGeometry[member.id]?.band;
+    const bandDelta = otherBand !== undefined && otherBand !== member.geometry.band
+      ? BAND_ROW_INDEX[member.geometry.band] - BAND_ROW_INDEX[otherBand]
+      : 0;
 
     return (
       <Box
@@ -282,7 +289,7 @@ export function TacticsPitch({
         onClick={e => e.stopPropagation()}
         sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedId === member.id ? 10 : 1 }}
       >
-        <Box sx={{ opacity: isDragging ? 0.35 : 1 }}>
+        <Box sx={{ opacity: isDragging ? 0.35 : 1, position: 'relative' }}>
           {renderPicker(
             member.id, role, roleOptions, false, isOverridden,
             (opt) => {
@@ -293,6 +300,15 @@ export function TacticsPitch({
               }
             },
             (e) => onPointerDown(e, member.id),
+          )}
+          {bandDelta !== 0 && (
+            <Typography sx={{
+              position: 'absolute', top: -4, right: -6, fontSize: 12, fontWeight: 900,
+              lineHeight: 1, color: 'rgba(255,255,255,0.85)', pointerEvents: 'none',
+              textShadow: '0 0 3px rgba(0,0,0,0.8)',
+            }}>
+              {bandDelta > 0 ? '↑' : '↓'}
+            </Typography>
           )}
         </Box>
         <Typography sx={{
