@@ -15,7 +15,11 @@ describe('GameSession clock:', () => {
     let notified = 0;
     session.subscribe(() => { notified++; });
 
-    const result = await session.advanceToNextStop();
+    // Red cards or injuries on the player's team may cause stops before half time — skip through them.
+    let result = await session.advanceToNextStop();
+    while (!result.matchOver && result.phase !== 'half_time' && result.phase !== 'extra_time_half') {
+      result = await session.advanceToNextStop();
+    }
 
     expect(result.fixtureId).not.toBeNull();
     expect(result.atIntermission).toBe(true);
