@@ -3,6 +3,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import Divider from '@mui/material/Divider';
 import FastForwardIcon from '@mui/icons-material/FastForward';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
@@ -10,25 +11,32 @@ import ArticleIcon from '@mui/icons-material/Article';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useConfirm } from '@fm2k/design-system';
+import MatchStatsSheet from './MatchStatsSheet';
+import { buildResolvePlayer } from '../utils/resolvePlayer';
 
 /** The slim inline match card on the Match tab. It only launches things: Play/Simulate
  *  open the near-fullscreen MatchOverlay (the actual match centre); once the fixture is
  *  completed it offers Next match / the report. Hidden entirely while the overlay is up. */
 export default function MatchSimPanel() {
   const {
-    focusFixture, focusLive, matchOverlayOpen, clubState,
+    focusFixture, focusLive, matchOverlayOpen, clubState, editableCountries,
+    lastMatchStatistics,
     advanceMatch, skipMatch, goToNextMatch, simulateToEnd, openMatchOverlay,
   } = useGameStore(useShallow((s) => ({
     focusFixture: s.focusFixture,
     focusLive: s.focusLive,
     matchOverlayOpen: s.matchOverlayOpen,
     clubState: s.clubState,
+    editableCountries: s.editableCountries,
+    lastMatchStatistics: s.lastMatchStatistics,
     advanceMatch: s.advanceMatch,
     skipMatch: s.skipMatch,
     goToNextMatch: s.goToNextMatch,
     simulateToEnd: s.simulateToEnd,
     openMatchOverlay: s.openMatchOverlay,
   })));
+
+  const resolvePlayer = buildResolvePlayer(focusFixture, clubState, editableCountries);
 
   const confirm = useConfirm();
   const confirmSimSeason = async () => {
@@ -118,6 +126,20 @@ export default function MatchSimPanel() {
               ? 'Your starting XI includes a suspended player. Fix your lineup in the Tactics tab before playing.'
               : 'Your starting XI includes an injured player. Fix your lineup in the Tactics tab before playing.'}
         </Alert>
+      )}
+
+      {completed && lastMatchStatistics && (
+        <>
+          <Divider />
+          <MatchStatsSheet
+            statistics={lastMatchStatistics}
+            homeName={focusFixture.homeTeamName}
+            awayName={focusFixture.awayTeamName}
+            title="Match stats"
+            resolvePlayer={resolvePlayer}
+            defaultShowRatings
+          />
+        </>
       )}
     </Paper>
   );

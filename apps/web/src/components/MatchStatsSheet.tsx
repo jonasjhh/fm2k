@@ -24,6 +24,8 @@ interface Props {
   title: string;
   /** Resolve a player id for the ratings list; the raw id is shown when unknown. */
   resolvePlayer?: (playerId: string) => RatedPlayerInfo | undefined;
+  /** Start with the player ratings section expanded. */
+  defaultShowRatings?: boolean;
 }
 
 function StatRow({ label, home, away, suffix = '' }: { label: string; home: number; away: number; suffix?: string }) {
@@ -48,8 +50,8 @@ const completionPct = (t: { attempted: number; completed: number }): number =>
   t.attempted === 0 ? 0 : Math.round((t.completed / t.attempted) * 100);
 
 /** Two-column mirrored match statistics, with a collapsible player-ratings list. */
-export default function MatchStatsSheet({ statistics: s, homeName, awayName, title, resolvePlayer }: Props) {
-  const [showRatings, setShowRatings] = useState(false);
+export default function MatchStatsSheet({ statistics: s, homeName, awayName, title, resolvePlayer, defaultShowRatings = false }: Props) {
+  const [showRatings, setShowRatings] = useState(defaultShowRatings);
   const ratings = Object.entries(s.playerRatings).sort((a, b) => b[1] - a[1]);
 
   return (

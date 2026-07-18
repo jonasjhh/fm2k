@@ -6,7 +6,7 @@ import Alert from '@mui/material/Alert';
 import { useGameStore, findTeamById } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
-import { getContrastColor, colorDistance } from '../../utils/colors';
+import { getContrastColor, awayDisplayColors } from '../../utils/colors';
 import {
   getTeamOVR, recentForm, FORMATION_LINES, buildXISlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
@@ -86,17 +86,13 @@ export default function MatchTab() {
 
   const homeTeam = findTeamById(editableCountries, fixture.homeTeamId);
   const awayTeam = findTeamById(editableCountries, fixture.awayTeamId);
-  const awayColorsClash = homeTeam && awayTeam
-    && colorDistance(homeTeam.colors.primary, awayTeam.colors.primary) < 40;
-  const awayDisplayColors = awayColorsClash && awayTeam
-    ? { primary: awayTeam.colors.secondary, secondary: awayTeam.colors.primary }
-    : awayTeam?.colors;
+  const awayTeamColors = homeTeam && awayTeam ? awayDisplayColors(homeTeam.colors, awayTeam.colors) : awayTeam?.colors;
 
   const renderTeam = (teamId: string, showStats: boolean) => {
     const view = xiViewFor(teamId);
     if (!view.team) {return null;}
     const isAway = teamId === fixture.awayTeamId;
-    const colors = (isAway && awayDisplayColors) ? awayDisplayColors : view.team.colors;
+    const colors = (isAway && awayTeamColors) ? awayTeamColors : view.team.colors;
     const headerText = getContrastColor(colors.primary);
     const xiPlayers = view.slotAssignments.slice(0, 11)
       .map(id => (id ? view.squad.find(p => p.id === id) : undefined))

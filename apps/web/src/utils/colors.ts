@@ -38,6 +38,18 @@ export function colorDistance(hexA: string, hexB: string): number {
   return Math.sqrt((L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2);
 }
 
+/** Returns display colors for the away team, swapping primary↔secondary when the
+ *  away primary is too close to the home primary in CIELAB space (ΔE < 40). */
+export function awayDisplayColors(
+  homeColors: { primary: string; secondary: string },
+  awayColors: { primary: string; secondary: string },
+): { primary: string; secondary: string } {
+  if (colorDistance(homeColors.primary, awayColors.primary) < 40) {
+    return { primary: awayColors.secondary, secondary: awayColors.primary };
+  }
+  return awayColors;
+}
+
 export function leagueRowBg(
   isPlayer: boolean,
   pos: number,

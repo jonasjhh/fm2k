@@ -94,6 +94,8 @@ export class DuelMatchSimulator {
     this.injuryRng = this.config.injuryRng ?? mulberry32(Math.floor(this.rng() * 2 ** 31));
     const homePlayers = this.config.homeStarters;
     const awayPlayers = this.config.awayStarters;
+    for (const p of homePlayers) { this.stats.seedPlayer(p.id); }
+    for (const p of awayPlayers) { this.stats.seedPlayer(p.id); }
 
     this.shapes = {
       home: this.resolveShapes(this.config.homeTeam, homePlayers),
@@ -503,6 +505,9 @@ export class DuelMatchSimulator {
       this.currentState = nextState;
     }
 
+    for (const p of this.currentState.currentPlayers.home) { this.stats.seedPlayer(p.id); }
+    for (const p of this.currentState.currentPlayers.away) { this.stats.seedPlayer(p.id); }
+
     return {
       events: [...this.events],
       finalState: { ...this.currentState },
@@ -512,6 +517,8 @@ export class DuelMatchSimulator {
   }
 
   getStatistics(): MatchStatistics {
+    for (const p of this.currentState.currentPlayers.home) { this.stats.seedPlayer(p.id); }
+    for (const p of this.currentState.currentPlayers.away) { this.stats.seedPlayer(p.id); }
     return this.stats.build();
   }
 

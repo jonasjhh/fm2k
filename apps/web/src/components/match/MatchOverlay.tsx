@@ -13,6 +13,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import { useGameStore, findTeamById, MAX_PAUSES_PER_MATCH } from '@/store/game-store';
+import { awayDisplayColors } from '../../utils/colors';
 import type { SimEvent } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useStatusColors } from '../../utils/colors';
@@ -20,28 +21,56 @@ import { useConfirm } from '@fm2k/design-system';
 import SubstitutionPanel from '../SubstitutionPanel';
 import MatchInsightCards from '../MatchInsightCards';
 import MatchStatsSheet from '../MatchStatsSheet';
-import type { RatedPlayerInfo } from '../MatchStatsSheet';
 import TacticsSection from '../ui/TacticsSection';
-import { FORMATION_LINES, deriveRolesForShape } from '@fm2k/engine';
-import type { FormationPosition } from '@fm2k/engine';
+import { buildResolvePlayer } from '../../utils/resolvePlayer';
 
 const PHASE_LABEL: Record<string, string> = {
   first_half: '1st half', half_time: 'Half time', second_half: '2nd half', full_time: 'Full time',
   extra_time_first: 'Extra time', extra_time_half: 'ET half time', extra_time_second: 'Extra time', extra_time_full: 'After extra time',
 };
 
-function EventItem({ event }: { event: SimEvent }) {
+function contrastColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? '#000' : '#fff';
+}
+
+interface TeamColorPair { primary: string; secondary: string; }
+
+function EventItem({ event, homeColors, awayColors }: {
+  event: SimEvent;
+  homeColors?: TeamColorPair;
+  awayColors?: TeamColorPair;
+}) {
   const statusColors = useStatusColors();
-  const color =
+  const rowColor =
     event.type === 'goal'    ? statusColors.promotion  :
     event.type === 'penalty' ? statusColors.caution    :
     event.type === 'card'    ? statusColors.caution    :
     event.type === 'phase'   ? statusColors.playerTeam :
     undefined;
+
+  // Split "[TeamName] description" → label + rest
+  const match = event.text.match(/^\[([^\]]+)\] (.+)$/);
+  const teamLabel = match ? match[1] : null;
+  const description = match ? match[2] : event.text;
+
+  const teamColors = event.team === 'home' ? homeColors : event.team === 'away' ? awayColors : undefined;
+  const chipBg = teamColors?.primary;
+  const chipFg = chipBg ? contrastColor(chipBg) : undefined;
+
   return (
-    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, px: 1, bgcolor: color, borderRadius: 1 }}>
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', py: 0.5, px: 1, bgcolor: rowColor, borderRadius: 1 }}>
       {event.minute && <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32, pt: 0.2 }}>{event.minute}</Typography>}
-      <Typography variant="body2">{event.text}</Typography>
+      {teamLabel && chipBg ? (
+        <Box sx={{ display: 'inline-block', px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: chipBg, color: chipFg, fontSize: '0.7rem', fontWeight: 700, lineHeight: 1.6, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {teamLabel}
+        </Box>
+      ) : teamLabel ? (
+        <Typography variant="caption" sx={{ fontWeight: 700, flexShrink: 0, pt: 0.2 }}>{teamLabel}</Typography>
+      ) : null}
+      <Typography variant="body2">{description}</Typography>
     </Box>
   );
 }
@@ -94,6 +123,10 @@ export default function MatchOverlay() {
 
   if (!focusFixture) { return null; }
 
+  const homeColors = findTeamById(editableCountries, focusFixture.homeTeamId)?.colors;
+  const awayRaw = findTeamById(editableCountries, focusFixture.awayTeamId)?.colors;
+  const awayColors = homeColors && awayRaw ? awayDisplayColors(homeColors, awayRaw) : awayRaw;
+
   const live = focusLive;
   const completed = focusFixture.status === 'completed';
   const atIntermission = !!live && (live.phase === 'half_time' || live.phase === 'extra_time_half');
@@ -109,26 +142,7 @@ export default function MatchOverlay() {
     : live ? `${minute}' · ${PHASE_LABEL[live.phase] ?? ''}`
     : 'Kick-off';
 
-  // Player identity for the ratings list: name, effective role and team colours.
-  // Our own club derives the role from the defending shape (e.g. RWB, not RB);
-  // opponents (no shape) fall back to their card position.
-  const derivedRoles = clubState?.shapes ? deriveRolesForShape(clubState.shapes.defending) : null;
-  const resolvePlayer = (playerId: string): RatedPlayerInfo | undefined => {
-    const clubPlayer = clubState?.squad.find(p => p.id === playerId);
-    if (clubState && clubPlayer) {
-      const slotIdx = clubState.startingXI.indexOf(playerId);
-      const templatePos = slotIdx >= 0 ? FORMATION_LINES[clubState.formation].flat()[slotIdx] : undefined;
-      const position = derivedRoles?.[playerId]
-        ?? (templatePos ? (templatePos as FormationPosition) : clubPlayer.position);
-      return { name: clubPlayer.name, position, colors: findTeamById(editableCountries, clubState.clubId)?.colors };
-    }
-    for (const teamId of [focusFixture.homeTeamId, focusFixture.awayTeamId]) {
-      const team = findTeamById(editableCountries, teamId);
-      const player = team?.squad.find(p => p.id === playerId);
-      if (player) { return { name: player.name, position: player.position, colors: team?.colors }; }
-    }
-    return undefined;
-  };
+  const resolvePlayer = buildResolvePlayer(focusFixture, clubState, editableCountries);
 
   const pausesLeft = Math.max(0, MAX_PAUSES_PER_MATCH - pausesUsed);
 
@@ -210,7 +224,7 @@ export default function MatchOverlay() {
             {matchEvents.length === 0 ? (
               <Typography color="text.secondary" align="center" sx={{ p: 2 }}>Kick off…</Typography>
             ) : (
-              matchEvents.map((e, i) => <EventItem key={`${e.minute}-${i}`} event={e} />)
+              matchEvents.map((e, i) => <EventItem key={`${e.minute}-${i}`} event={e} homeColors={homeColors} awayColors={awayColors} />)
             )}
           </Box>
 

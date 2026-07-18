@@ -99,6 +99,14 @@ export class StatsAccumulator {
    *  (persists across `record()` calls since live matches feed one minute at a time). */
   private readonly recentEvents: MatchEvent[] = [];
 
+  /** Ensure a player appears in playerRatings with at least the baseline 6.5. Safe to
+   *  call multiple times for the same id — only the first call has any effect. */
+  seedPlayer(playerId: string): void {
+    if (!this.ratingDeltas.has(playerId)) {
+      this.ratingDeltas.set(playerId, 0);
+    }
+  }
+
   record(events: MatchEvent[]): void {
     for (const e of events) {
       const side = e.team === 'home' ? this.home : this.away;

@@ -27,6 +27,7 @@ export interface SimEvent {
   minute: string;
   text: string;
   type: 'goal' | 'card' | 'penalty' | 'phase' | 'normal';
+  team?: 'home' | 'away';
 }
 
 export const SIM_DELAY_MIN = 0;
@@ -51,14 +52,16 @@ function loadSimDelay(): number {
 }
 
 function simEventFromAnim(e: AnimEvent, homeName: string, awayName: string): SimEvent {
+  const isPhase = e.type === 'half_time' || e.type === 'full_time';
   return {
     minute: `${e.minute}'`,
-    text: `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
+    text: isPhase ? e.description : `[${e.team === 'home' ? homeName : awayName}] ${e.description}`,
     type: e.type === 'goal' ? 'goal'
       : (e.type === 'yellow_card' || e.type === 'red_card' || e.type === 'injury') ? 'card'
       : e.type === 'penalty' ? 'penalty'
-      : (e.type === 'half_time' || e.type === 'full_time') ? 'phase'
+      : isPhase ? 'phase'
       : 'normal',
+    team: isPhase ? undefined : (e.team as 'home' | 'away'),
   };
 }
 
