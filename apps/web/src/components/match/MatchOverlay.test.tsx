@@ -164,12 +164,12 @@ describe('MatchOverlay:', () => {
     storeState = baseState({
       isStreaming: true,
       matchEvents: [
-        { minute: '12\'', text: '[Us] Goal! A fine finish.', type: 'goal' },
-        { minute: '3\'', text: '[Them] A probing pass forward.', type: 'normal' },
+        { minute: '12\'', text: '[Us] Goal! A fine finish.', type: 'goal', team: 'home' as const },
+        { minute: '3\'', text: '[Them] A probing pass forward.', type: 'normal', team: 'away' as const },
       ],
     });
     render(<MatchOverlay />);
-    expect(screen.getByText('[Us] Goal! A fine finish.')).toBeInTheDocument();
-    expect(screen.getByText('[Them] A probing pass forward.')).toBeInTheDocument();
+    expect(screen.getByText('Goal! A fine finish.')).toBeInTheDocument();
+    expect(screen.getByText('A probing pass forward.')).toBeInTheDocument();
   });
 });

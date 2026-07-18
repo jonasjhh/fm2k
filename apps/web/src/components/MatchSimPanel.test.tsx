@@ -10,6 +10,7 @@ let storeState: Record<string, unknown>;
 vi.mock('@/store/game-store', () => ({
   useGameStore: (selector: (s: Record<string, unknown>) => unknown) => selector(storeState),
   MAX_PAUSES_PER_MATCH: 3,
+  findTeamById: () => undefined,
 }));
 
 import MatchSimPanel from './MatchSimPanel';
