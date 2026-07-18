@@ -59,13 +59,14 @@ interface SideState {
   tempo: number;
   risk: number;
   defensiveLine: number;
+  pressIntensity: number;
 }
 
 const defaultSide = (strength: number, formation: Formation): SideState =>
-  ({ strength, formation, style: 'balanced', tempo: 50, risk: 50, defensiveLine: 50 });
+  ({ strength, formation, style: 'balanced', tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
 
 const intentOf = (s: SideState): TeamTacticsIntent =>
-  ({ formation: s.formation, style: s.style, sliders: { tempo: s.tempo, risk: s.risk, defensiveLine: s.defensiveLine } });
+  ({ formation: s.formation, style: s.style, sliders: { tempo: s.tempo, risk: s.risk, defensiveLine: s.defensiveLine, pressIntensity: s.pressIntensity } });
 
 function SidePanel({ label, side, onChange }: { label: string; side: SideState; onChange: (s: SideState) => void }) {
   const set = <K extends keyof SideState>(k: K, v: SideState[K]) => onChange({ ...side, [k]: v });

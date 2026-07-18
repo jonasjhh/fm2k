@@ -25,7 +25,7 @@ function team(id: string, v: number): Team {
   return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 const intent = (formation: Team['formation']): TeamTacticsIntent =>
-  ({ formation, style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } });
+  ({ formation, style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } });
 
 /** A side's full match input: squad + intent, with starters defaulting to the whole squad. */
 function side(id: string, v: number, formation: Team['formation']) {

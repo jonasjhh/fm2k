@@ -15,7 +15,7 @@ function team(id: string, v: number): Team {
   });
   return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
-const intent: TeamTacticsIntent = { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } };
+const intent: TeamTacticsIntent = { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } };
 const matchup = (hv: number, av: number): DistributionInput => {
   const home = team('h', hv);
   const away = team('a', av);

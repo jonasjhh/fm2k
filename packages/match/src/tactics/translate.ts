@@ -25,6 +25,7 @@ export function combine(
 
   base.tempo += sliders.tempo - 50;
   base.passingRisk += sliders.risk - 50;
+  base.pressIntensity += sliders.pressIntensity - 50;
 
   // A higher defensive line concedes more space behind and is less compact.
   const lineDelta = sliders.defensiveLine - 50;

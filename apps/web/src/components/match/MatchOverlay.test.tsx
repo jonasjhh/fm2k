@@ -46,7 +46,7 @@ function clubState() {
     squad: [...XI.map(id => squadPlayer(id)), squadPlayer('sub1'), squadPlayer('sub2')],
     customSlots: null,
     emptySlotRoles: null,
-    tactics: { style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } },
+    tactics: { style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
   };
 }
 

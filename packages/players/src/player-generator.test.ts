@@ -196,8 +196,8 @@ describe('PlayerGenerator:', () => {
       let totalGoals = 0;
       for (let seed = 1; seed <= 240; seed++) {
         const result = simulateMatch({
-          home: { team: home, starters: home.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } } },
-          away: { team: away, starters: away.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } } },
+          home: { team: home, starters: home.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } } },
+          away: { team: away, starters: away.squad, intent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } } },
           rng: mulberry32(seed),
         });
         for (const event of result.events) {

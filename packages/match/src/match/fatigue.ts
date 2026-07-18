@@ -88,7 +88,7 @@ export function staminaResistance(stamina: number): number {
 }
 
 /** Tempo param → drain factor (1.0 at neutral 50; running faster costs more). */
-export function tempoFactor(tempo: number): number { return 0.7 + 0.6 * (tempo / 100); }
+export function tempoFactor(tempo: number): number { return 0.85 + 0.3 * (tempo / 100); }
 
 /** Press param → drain factor (1.0 at neutral 50; pressing harder costs more). */
 export function pressFactor(pressIntensity: number): number { return 0.8 + 0.4 * (pressIntensity / 100); }

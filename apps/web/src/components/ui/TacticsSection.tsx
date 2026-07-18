@@ -13,6 +13,7 @@ const SLIDER_DEFS: { key: keyof TacticalSliders; label: string; left: string; ri
   { key: 'tempo', label: 'Tempo', left: 'Slow', right: 'Frantic' },
   { key: 'risk', label: 'Passing risk', left: 'Safe', right: 'Ambitious' },
   { key: 'defensiveLine', label: 'Defensive line', left: 'Deep', right: 'High' },
+  { key: 'pressIntensity', label: 'Press intensity', left: 'Passive', right: 'Aggressive' },
 ];
 
 export default function TacticsSection({

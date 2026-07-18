@@ -19,13 +19,13 @@ describe('GameSession tactics:', () => {
     const cs = club(session);
     expect(cs.tactics.style).toBe('balanced');
     expect(cs.tactics.formation).toBe(cs.formation);
-    expect(cs.tactics.sliders).toEqual({ tempo: 50, risk: 50, defensiveLine: 50 });
+    expect(cs.tactics.sliders).toEqual({ tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
   });
 
   test('setTactics replaces the intent and mirrors the formation', () => {
     const { session } = newGame();
     const intent: TeamTacticsIntent = {
-      formation: '4-3-3', style: 'press_high', sliders: { tempo: 70, risk: 65, defensiveLine: 80 },
+      formation: '4-3-3', style: 'press_high', sliders: { tempo: 70, risk: 65, defensiveLine: 80, pressIntensity: 50 },
     };
     const cs = assertDefined(session.setTactics(intent), 'setTactics failed');
     expect(cs.tactics).toEqual(intent);
@@ -53,7 +53,7 @@ describe('GameSession tactics:', () => {
   test('setTactics mirrors onto the player live Team object used by matches', () => {
     const { session, teamId } = newGame();
     const intent: TeamTacticsIntent = {
-      formation: '4-3-3', style: 'press_high', sliders: { tempo: 75, risk: 60, defensiveLine: 85 },
+      formation: '4-3-3', style: 'press_high', sliders: { tempo: 75, risk: 60, defensiveLine: 85, pressIntensity: 50 },
     };
     session.setTactics(intent);
     const playerTeam = assertDefined(
@@ -73,7 +73,7 @@ describe('GameSession tactics:', () => {
   test('tactics survive a save/load round-trip', () => {
     const { session } = newGame();
     const intent: TeamTacticsIntent = {
-      formation: '4-2-3-1', style: 'keep_the_ball', sliders: { tempo: 40, risk: 30, defensiveLine: 45 },
+      formation: '4-2-3-1', style: 'keep_the_ball', sliders: { tempo: 40, risk: 30, defensiveLine: 45, pressIntensity: 50 },
     };
     session.setTactics(intent);
     const save = assertDefined(session.buildSaveData('QUICK'), 'buildSaveData failed');

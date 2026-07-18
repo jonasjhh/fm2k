@@ -87,7 +87,7 @@ describe('style tendencies (design rule — no pure-upside style):', () => {
 describe('combine (translation layer):', () => {
   it('given balanced style, any formation and neutral sliders then nothing escapes 0..100', () => {
     for (const f of ALL_FORMATIONS) {
-      const p = combine(f, 'balanced', { tempo: 50, risk: 50, defensiveLine: 50 });
+      const p = combine(f, 'balanced', { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
       for (const key of PARAM_KEYS) {
         expect(p[key]).toBeGreaterThanOrEqual(0);
         expect(p[key]).toBeLessThanOrEqual(100);
@@ -98,8 +98,8 @@ describe('combine (translation layer):', () => {
   it('given any style/formation with extreme sliders then results stay clamped', () => {
     for (const f of ALL_FORMATIONS) {
       for (const id of TACTICAL_STYLE_IDS) {
-        const p = combine(f, id, { tempo: 100, risk: 100, defensiveLine: 100 });
-        const q = combine(f, id, { tempo: 0, risk: 0, defensiveLine: 0 });
+        const p = combine(f, id, { tempo: 100, risk: 100, defensiveLine: 100, pressIntensity: 100 });
+        const q = combine(f, id, { tempo: 0, risk: 0, defensiveLine: 0, pressIntensity: 0 });
         for (const key of PARAM_KEYS) {
           expect(p[key]).toBeGreaterThanOrEqual(0);
           expect(p[key]).toBeLessThanOrEqual(100);
@@ -111,27 +111,27 @@ describe('combine (translation layer):', () => {
   });
 
   it('given press_high then pressing rises well above neutral', () => {
-    const p = combine('4-4-2', 'press_high', { tempo: 50, risk: 50, defensiveLine: 50 });
+    const p = combine('4-4-2', 'press_high', { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
     expect(p.pressIntensity).toBeGreaterThan(NEUTRAL_VALUE);
     expect(p.spaceLeftBehind).toBeGreaterThan(NEUTRAL_VALUE);
   });
 
   it('given defend_deep then attacking output drops below neutral', () => {
-    const p = combine('4-4-2', 'defend_deep', { tempo: 50, risk: 50, defensiveLine: 50 });
+    const p = combine('4-4-2', 'defend_deep', { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
     expect(p.shotFrequency).toBeLessThan(NEUTRAL_VALUE);
     expect(p.defensiveCompactness).toBeGreaterThan(NEUTRAL_VALUE);
   });
 
   it('given the tempo slider then it shifts tempo additively', () => {
-    const base = combine('4-4-2', 'balanced', { tempo: 50, risk: 50, defensiveLine: 50 });
-    const fast = combine('4-4-2', 'balanced', { tempo: 80, risk: 50, defensiveLine: 50 });
+    const base = combine('4-4-2', 'balanced', { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
+    const fast = combine('4-4-2', 'balanced', { tempo: 80, risk: 50, defensiveLine: 50, pressIntensity: 50 });
     expect(fast.tempo).toBe(base.tempo + 30);
   });
 
   it('given sliders that stack with the style then they partially cancel rather than override', () => {
     // hit_on_counter wants a deep line (low spaceLeftBehind); a high-line slider should push it back up.
-    const deep = combine('4-4-2', 'hit_on_counter', { tempo: 50, risk: 50, defensiveLine: 20 });
-    const high = combine('4-4-2', 'hit_on_counter', { tempo: 50, risk: 50, defensiveLine: 90 });
+    const deep = combine('4-4-2', 'hit_on_counter', { tempo: 50, risk: 50, defensiveLine: 20, pressIntensity: 50 });
+    const high = combine('4-4-2', 'hit_on_counter', { tempo: 50, risk: 50, defensiveLine: 90, pressIntensity: 50 });
     expect(high.spaceLeftBehind).toBeGreaterThan(deep.spaceLeftBehind);
   });
 
@@ -222,6 +222,6 @@ describe('AI style mapping:', () => {
     const intent = aiIntent('5-4-1');
     expect(intent.formation).toBe('5-4-1');
     expect(intent.style).toBe('defend_deep');
-    expect(intent.sliders).toEqual({ tempo: 50, risk: 50, defensiveLine: 50 });
+    expect(intent.sliders).toEqual({ tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 });
   });
 });

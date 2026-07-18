@@ -24,6 +24,7 @@ export interface TacticalSliders {
   tempo: number;
   risk: number;
   defensiveLine: number;
+  pressIntensity: number;
 }
 
 /** What the manager chooses — stored on ClubState. INTENT ONLY (no effects). */
@@ -33,7 +34,7 @@ export interface TeamTacticsIntent {
   sliders: TacticalSliders;
 }
 
-export const DEFAULT_SLIDERS: TacticalSliders = { tempo: 50, risk: 50, defensiveLine: 50 };
+export const DEFAULT_SLIDERS: TacticalSliders = { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 };
 
 export function defaultIntent(formation: Formation): TeamTacticsIntent {
   return { formation, style: 'balanced', sliders: { ...DEFAULT_SLIDERS } };

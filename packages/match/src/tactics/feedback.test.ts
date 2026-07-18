@@ -107,7 +107,7 @@ describe('buildMatchInsights:', () => {
     const s = stats({ passes: { home: { attempted: 20, completed: 10 }, away: { attempted: 0, completed: 0 } } });
     const i = input({
       statistics: s,
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
     });
     expect(headlines(i)).toContain('High tempo cost you control');
   });
@@ -116,13 +116,13 @@ describe('buildMatchInsights:', () => {
     const s = stats({ passes: { home: { attempted: 20, completed: 18 }, away: { attempted: 0, completed: 0 } } });
     const patient = input({
       statistics: s,
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 30, risk: 50, defensiveLine: 50 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 30, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
     });
     expect(headlines(patient)).toContain('Patient tempo kept things tidy');
 
     const mid = input({
       statistics: s,
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
     });
     expect(headlines(mid)).not.toContain('Patient tempo kept things tidy');
     expect(headlines(mid)).not.toContain('High tempo cost you control');
@@ -131,7 +131,7 @@ describe('buildMatchInsights:', () => {
   test('no tempo insight fires without a passes sample or without chosen sliders', () => {
     const tinySample = input({
       statistics: stats({ passes: { home: { attempted: 3, completed: 1 }, away: { attempted: 0, completed: 0 } } }),
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 70, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
     });
     expect(buildMatchInsights(tinySample)).toEqual([]);
 
@@ -145,7 +145,7 @@ describe('buildMatchInsights:', () => {
     const s = stats({ fastBreakGoals: { home: 0, away: 2 } });
     const i = input({
       statistics: s,
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80, pressIntensity: 50 } },
     });
     expect(headlines(i)).toContain('Your high line got exposed on the counter');
   });
@@ -154,13 +154,13 @@ describe('buildMatchInsights:', () => {
     const s = stats({ fastBreakGoals: { home: 0, away: 2 } });
     const lowLine = input({
       statistics: s,
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 40 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 40, pressIntensity: 50 } },
     });
     expect(buildMatchInsights(lowLine)).toEqual([]);
 
     const oneGoal = input({
       statistics: stats({ fastBreakGoals: { home: 0, away: 1 } }),
-      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80 } },
+      playerIntent: { formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 80, pressIntensity: 50 } },
     });
     expect(buildMatchInsights(oneGoal)).toEqual([]);
   });
@@ -225,7 +225,7 @@ describe('buildMatchInsights:', () => {
     // without them, no matchup insight even in a lopsided game
     expect(buildMatchInsights(input({ homeScore: 4 }))).toEqual([]);
     const withMatchup = input({
-      playerIntent: { formation: '4-4-2', style: 'attack_the_wings', sliders: { tempo: 50, risk: 50, defensiveLine: 50 } },
+      playerIntent: { formation: '4-4-2', style: 'attack_the_wings', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
       opponentXi: createTestXI('a-'),
     });
     // the verdict fires only when |eff − typical| clears the threshold; whichever way it
@@ -248,7 +248,7 @@ describe('buildMatchInsights:', () => {
       return { id, name: id, formation: '4-4-2', squad, colors: { primary: '#fff', secondary: '#000' } };
     };
     const intent: TeamTacticsIntent = {
-      formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50 },
+      formation: '4-4-2', style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 },
     };
     const strong = uniformTeam('strong', 75);
     const weak = uniformTeam('weak', 40);

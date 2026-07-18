@@ -12,7 +12,7 @@ export interface MatchParameters {
   transitionSpeed: number;      // ↑ ball-advance distance on success (counters)
   shotFrequency: number;        // ↑ shot weight when in attacking zones
   chanceQuality: number;        // ↑ goal probability of worked chances
-  fatigueRate: number;          // RESERVED — no effect until in-match fatigue ships
+  fatigueRate: number;          // Global fatigue rate multiplier — scales all drain uniformly
   spaceLeftBehind: number;      // ↑ opponent ball-advance / shot-zone access (high-line cost)
   buildUpWidth: number;         // bias flank vs centre in ball advancement
 }
