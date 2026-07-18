@@ -10,6 +10,7 @@
     "test:mutation": "pnpm --filter @fm2k/engine test:mutation",
     "test:mutation:all": "pnpm -r test:mutation",
     "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm lint && pnpm typecheck && pnpm test"
   },

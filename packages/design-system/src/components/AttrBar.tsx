@@ -10,11 +10,11 @@ interface Props {
 
 function attrColor(value: number, par: number): string {
   const delta = value - par;
-  if (delta >= 20)  return '#00cc44'; // well above par — bright green
-  if (delta >= 10)  return '#44aa22'; // above par — green
-  if (delta >= 0)   return '#e8d000'; // slightly above par — yellow
-  if (delta >= -10) return '#dd8800'; // slightly below par — amber
-  if (delta >= -20) return '#cc2200'; // below par — red
+  if (delta >= 20)  {return '#00cc44';} // well above par — bright green
+  if (delta >= 10)  {return '#44aa22';} // above par — green
+  if (delta >= 0)   {return '#e8d000';} // slightly above par — yellow
+  if (delta >= -10) {return '#dd8800';} // slightly below par — amber
+  if (delta >= -20) {return '#cc2200';} // below par — red
   return '#881030';                   // well below par — burgundy
 }
 

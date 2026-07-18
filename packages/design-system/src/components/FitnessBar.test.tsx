@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { FitnessBar } from './FitnessBar';
+import { FitnessBar, fitnessColor } from './FitnessBar';
 
 describe('FitnessBar:', () => {
   test('shows the fitness number on the bar', () => {
@@ -12,16 +12,22 @@ describe('FitnessBar:', () => {
     expect(screen.getByText('74')).toBeInTheDocument();
   });
 
-  test.each([
-    [100, 'colorSuccess'],
-    [85, 'colorSuccess'],
-    [84, 'colorWarning'],
-    [60, 'colorWarning'],
-    [59, 'colorError'],
-    [0, 'colorError'],
-  ])('fitness %i renders the %s tier', (fitness, expectedClass) => {
-    const { container } = render(<FitnessBar fitness={fitness} />);
-    const bar = container.querySelector('.MuiLinearProgress-root');
-    expect(bar?.className).toContain(expectedClass);
+  describe('fitnessColor', () => {
+    test.each([
+      [100, '#00cc44'],
+      [95, '#00cc44'],
+      [94, '#44aa22'],
+      [85, '#44aa22'],
+      [84, '#e8d000'],
+      [70, '#e8d000'],
+      [69, '#dd8800'],
+      [55, '#dd8800'],
+      [54, '#cc2200'],
+      [40, '#cc2200'],
+      [39, '#881030'],
+      [0, '#881030'],
+    ])('fitness %i → %s', (fitness, expected) => {
+      expect(fitnessColor(fitness)).toBe(expected);
+    });
   });
 });

@@ -13,9 +13,9 @@ export function divisionLevel(divisionId: string): number {
 const STOPS: [number, [number, number, number]][] = [
   [-30, [0x4a, 0x00, 0x10]], // dark burgundy
   [-15, [0xcc, 0x22, 0x00]], // red
-  [  0, [0xdd, 0x88, 0x00]], // amber (at par)
-  [ 15, [0x88, 0xbb, 0x00]], // yellow-green
-  [ 30, [0x00, 0xcc, 0x44]], // bright green
+  [0, [0xdd, 0x88, 0x00]], // amber (at par)
+  [15, [0x88, 0xbb, 0x00]], // yellow-green
+  [30, [0x00, 0xcc, 0x44]], // bright green
 ];
 
 function lerp(a: number, b: number, t: number) {
@@ -36,5 +36,5 @@ export function attrColor(value: number, par: number): string {
       return `rgb(${r},${g},${b})`;
     }
   }
-  return `rgb(0,204,68)`; // bright green fallback
+  return 'rgb(0,204,68)'; // bright green fallback
 }

@@ -1,12 +1,12 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
-function fitnessColor(fitness: number): string {
-  if (fitness >= 95) return '#00cc44';
-  if (fitness >= 85) return '#44aa22';
-  if (fitness >= 70) return '#e8d000';
-  if (fitness >= 55) return '#dd8800';
-  if (fitness >= 40) return '#cc2200';
+export function fitnessColor(fitness: number): string {
+  if (fitness >= 95) {return '#00cc44';}
+  if (fitness >= 85) {return '#44aa22';}
+  if (fitness >= 70) {return '#e8d000';}
+  if (fitness >= 55) {return '#dd8800';}
+  if (fitness >= 40) {return '#cc2200';}
   return '#881030';
 }
 

@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:mutation": "stryker run",
     "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint --fix src/**/*.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
