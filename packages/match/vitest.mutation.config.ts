@@ -12,7 +12,12 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     exclude: [
       ...configDefaults.exclude,
+      // Statistical/calibration suites — run hundreds of full matches; poor mutant killers
       'src/**/*.calibration.test.ts',
+      'src/**/distribution.test.ts',
+      // Integration suites — test emergent match behaviour, not individual units
+      'src/**/simulate.test.ts',
+      'src/**/tactics-integration.test.ts',
       'src/**/action-vocabulary.test.ts',
       'src/**/discipline-setpieces.test.ts',
       'src/**/fatigue-integration.test.ts',

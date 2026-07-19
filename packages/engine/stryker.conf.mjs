@@ -2,6 +2,7 @@ const config = {
   packageManager: 'pnpm',
   reporters: ['clear-text', 'progress', 'html', 'json'],
   testRunner: 'vitest',
+  vitest: { configFile: 'vitest.mutation.config.ts' },
   plugins: ['@stryker-mutator/vitest-runner', '@stryker-mutator/typescript-checker'],
   checkers: ['typescript'],
   mutate: [
