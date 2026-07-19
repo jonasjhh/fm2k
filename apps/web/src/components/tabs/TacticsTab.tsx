@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -13,13 +12,14 @@ import { useGameStore } from '@/store/game-store';
 import { useClubColors } from '../../hooks/useClubColors';
 import { useShallow } from 'zustand/react/shallow';
 import type { ClubPlayer, Formation } from '@fm2k/engine';
-import { FORMATION_LINES, effectiveFormationLabel, emptySlotKey, selectStartingXIWithSlots, MAX_BENCH_SIZE } from '@fm2k/engine';
+import { effectiveFormationLabel, emptySlotKey, selectStartingXIWithSlots, MAX_BENCH_SIZE } from '@fm2k/engine';
 import { ScrollableTable } from '@fm2k/design-system';
 import PlayerStatusChip from '../ui/PlayerStatusChip';
 import PlayerDetailModal from '../ui/PlayerDetailModal';
 import { useDivisionPar } from '../../hooks/useDivisionPar';
 import LineupPills from '../ui/LineupPills';
 import { TacticsPitch } from '../ui/TacticsPitch';
+import FormationSelector from '../ui/FormationSelector';
 import { useLineupSlots } from '../../hooks/useLineupSlots';
 
 // ─── sorting ──────────────────────────────────────────────────────────────────
@@ -40,10 +40,6 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
     return dir === 'asc' ? cmp : -cmp;
   });
 }
-
-// ─── formation selector data ──────────────────────────────────────────────────
-
-const FORMATIONS_QUICK = Object.keys(FORMATION_LINES) as Formation[];
 
 // ─── main component ───────────────────────────────────────────────────────────
 
@@ -114,25 +110,8 @@ export default function TacticsTab() {
   return (
     <Box>
       {/* Formation selector */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
-        {FORMATIONS_QUICK.map((f) => (
-          <Button
-            key={f}
-            variant={effectiveLabel === f ? 'contained' : 'outlined'}
-            onClick={() => setFormation(f)}
-            sx={{ px: 1.5, py: 0.75, minWidth: 54, fontSize: 12, fontWeight: 700, lineHeight: 1 }}
-          >
-            {f}
-          </Button>
-        ))}
-        {/* Status-only — there's no "switch to custom" action; dragging a circle on the
-            pitch below is what gets you here, this pill just reflects that it happened. */}
-        <Chip
-          label="Custom"
-          color={effectiveLabel === 'custom' ? 'secondary' : 'default'}
-          variant={effectiveLabel === 'custom' ? 'filled' : 'outlined'}
-          sx={{ fontSize: 12, fontWeight: 700 }}
-        />
+      <Box sx={{ mb: 1.5 }}>
+        <FormationSelector effectiveLabel={effectiveLabel} onFormation={setFormation} />
       </Box>
 
       <LineupPills

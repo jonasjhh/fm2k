@@ -22,6 +22,10 @@ import SubstitutionPanel from '../SubstitutionPanel';
 import MatchInsightCards from '../MatchInsightCards';
 import MatchStatsSheet from '../MatchStatsSheet';
 import TacticsSection from '../ui/TacticsSection';
+import FormationSelector from '../ui/FormationSelector';
+import { FormationGrid } from '../ui/FormationGrid';
+import { effectiveFormationLabel, FORMATION_LINES } from '@fm2k/engine';
+import { useClubColors } from '../../hooks/useClubColors';
 import { buildResolvePlayer } from '../../utils/resolvePlayer';
 
 const PHASE_LABEL: Record<string, string> = {
@@ -84,7 +88,7 @@ export default function MatchOverlay() {
     matchOverlayOpen, focusFixture, focusLive, matchEvents, isStreaming, pauseRequested, pausesUsed,
     lastPauseReason, streamHome, streamAway, streamMinute, lastMatchInsights, lastMatchStatistics,
     halfTimeInsights, editableCountries, clubState,
-    advanceMatch, pauseMatch, skipMatch, goToNextMatch, simulateToEnd, closeMatchOverlay, setStyle, setSliders,
+    advanceMatch, pauseMatch, skipMatch, goToNextMatch, simulateToEnd, closeMatchOverlay, setStyle, setSliders, setFormation,
   } = useGameStore(useShallow((s) => ({
     matchOverlayOpen: s.matchOverlayOpen,
     focusFixture: s.focusFixture,
@@ -110,11 +114,13 @@ export default function MatchOverlay() {
     closeMatchOverlay: s.closeMatchOverlay,
     setStyle: s.setStyle,
     setSliders: s.setSliders,
+    setFormation: s.setFormation,
   })));
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const confirm = useConfirm();
+  const teamColors = useClubColors();
   const confirmSimSeason = async () => {
     if (await confirm({ title: 'Simulate season', message: 'Simulate all remaining matches?', confirmLabel: 'Simulate' })) {
       simulateToEnd();
@@ -232,9 +238,9 @@ export default function MatchOverlay() {
             flex: { md: '1 1 45%' }, minHeight: { md: 0 }, overflowY: { md: 'auto' },
             display: 'flex', flexDirection: 'column', gap: 2,
           }}>
-            {/* Tactics are editable whenever the clock is stopped (half time, red card,
-                user pause, pre-kick-off) — changes re-resolve into the live simulation.
-                Mid-match formation changes (TASK_02) will slot in right below this. */}
+            {/* Tactics + formation are editable whenever the clock is stopped (half time,
+                red card, user pause, pre-kick-off) — changes re-resolve into the live
+                simulation via applyPendingTactics() on every subsequent tick. */}
             {clubState && !completed && (
               <TacticsSection
                 style={clubState.tactics.style}
@@ -244,6 +250,31 @@ export default function MatchOverlay() {
                 disabled={isStreaming}
               />
             )}
+            {clubState && !completed && (() => {
+              const effectiveLabel = effectiveFormationLabel(
+                clubState.formation, clubState.startingXI, clubState.shapes,
+              );
+              const lines = FORMATION_LINES[clubState.formation as keyof typeof FORMATION_LINES] ?? [];
+              return (
+                <Box>
+                  <FormationSelector
+                    effectiveLabel={effectiveLabel}
+                    onFormation={setFormation}
+                    disabled={isStreaming}
+                  />
+                  <Box sx={{ mt: 1 }}>
+                    <FormationGrid
+                      lines={lines}
+                      slotAssignments={clubState.startingXI}
+                      squad={clubState.squad}
+                      teamColors={teamColors}
+                      shape={clubState.shapes?.defending ?? null}
+                      compact
+                    />
+                  </Box>
+                </Box>
+              );
+            })()}
 
             {!isStreaming && live && !completed && clubState && (
               <Paper variant="outlined">

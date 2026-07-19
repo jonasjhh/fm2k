@@ -46,6 +46,8 @@ function clubState() {
     squad: [...XI.map(id => squadPlayer(id)), squadPlayer('sub1'), squadPlayer('sub2')],
     customSlots: null,
     emptySlotRoles: null,
+    shapes: null,
+    roleOverrides: {},
     tactics: { style: 'balanced', sliders: { tempo: 50, risk: 50, defensiveLine: 50, pressIntensity: 50 } },
   };
 }
@@ -67,6 +69,7 @@ function baseState(overrides: Record<string, unknown> = {}) {
     lastMatchStatistics: null,
     halfTimeInsights: [],
     editableCountries: [],
+    playerTeamId: 'us',
     clubState: clubState(),
     advanceMatch: vi.fn(),
     pauseMatch: vi.fn(),
@@ -77,6 +80,7 @@ function baseState(overrides: Record<string, unknown> = {}) {
     queueSubstitution: vi.fn(),
     setStyle: vi.fn(),
     setSliders: vi.fn(),
+    setFormation: vi.fn(),
     ...overrides,
   };
 }
@@ -158,6 +162,22 @@ describe('MatchOverlay:', () => {
     expect((storeState.closeMatchOverlay as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('Next match'));
     expect((storeState.goToNextMatch as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+  });
+
+  test('formation selector is visible and enabled while paused, calls setFormation on click', () => {
+    storeState = baseState({ focusLive: liveMatch() });
+    render(<MatchOverlay />);
+    const btn442 = screen.getByRole('button', { name: '4-4-2' });
+    expect(btn442).not.toBeDisabled();
+    fireEvent.click(btn442);
+    expect((storeState.setFormation as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('4-4-2');
+  });
+
+  test('formation selector buttons are disabled while streaming', () => {
+    storeState = baseState({ isStreaming: true });
+    render(<MatchOverlay />);
+    const btn442 = screen.getByRole('button', { name: '4-4-2' });
+    expect(btn442).toBeDisabled();
   });
 
   test('ticker events render in the left pane', () => {
