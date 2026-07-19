@@ -43,11 +43,32 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | 11 | `TASK_11.md` | **Gap-20 win rate tuning** — engine delivers ~57% wins at a 20-point OVR gap; target ~65%. Reduce duel spread constants in `duels.ts`, re-run calibration report, then tighten the test bound from > 0.50 to ~0.62 | None; but trigger TASK_07 after to re-lock the gates |
 | 12 | `TASK_12.md` | **Mundane fouls** — add tactical press fouls, set-piece shirt pulls, time-wasting yellows, and 50/50 reckless challenges to bring yellow rate from ~0.7–1.0/match toward ~3–4/match | Can be done anytime; raise the fouls test floor in `distribution.calibration.test.ts` from 0.9 to ~2.5 after completion |
 | 13 | `TASK_13.md` | **Adaptive AI tactics** — three stages: (A) pre-match slider adaptation vs opponent strength, (B) half-time adjustments on the scoreline, (C) substitution reactions | None; stages are independent — ship A before starting B |
+| 14 | `TASK_14.md` | **Player rating overhaul** — extract rating logic into `rating-engine.ts`, add assists, clean-sheet bonus, position-weighted event deltas, defensive-duel penalty; encapsulated so swapping the model later is trivial | None; self-contained within `packages/match` |
+| 15 | `TASK_15.md` | **Match simulation richness** — raise `eventsPerMinute` for realistic pass counts (400–600/team), rewrite `pickReceiver` with temperature-weighted sampling so all players get touches, add `loose_ball` outcome for narrow interceptions | Do before TASK_14 (rating overhaul needs realistic event volume to be meaningful); coordinate calibration gates with TASK_12 |
 
-### Notes on ordering
+### Recommended execution order
 
-- **TASK_11 before TASK_07**: if you tune the duel spreads for gap-20, the calibration numbers shift and the gates need re-locking.
-- **TASK_12 before TASK_07**: mundane fouls will raise `foulsPerMatch` above the current 0.9 floor — the gate needs updating after.
-- **TASK_01 (transfer negotiation)** is the most complex UI task; best picked up when there's time for a multi-session effort.
-- **TASK_02, 03, 04, 05** are all self-contained feature additions with no engine dependencies — any of them can be picked up independently.
-- **TASK_06** should be read carefully against the v2 match engine before starting — some of the original spec may now be achievable differently.
+**Wave 1 — Engine foundation** (these interact; do in sequence)
+1. `TASK_02` — formation bug fix; quick win, no engine risk, good warm-up
+2. `TASK_15` — simulation richness (volume + receiver variety + loose ball); all downstream engine tasks depend on this
+3. `TASK_11` — gap-20 win rate tuning; spread constants behave differently at 12 epm vs 3, so tune *after* TASK_15
+4. `TASK_12` — mundane fouls; TASK_15 already raises foul counts incidentally, top up to target range afterwards
+
+**Wave 2 — Lock the calibration gates**
+5. `TASK_07` — recalibrate and re-lock all test gates once the engine has stopped moving
+
+**Wave 3 — Match quality layer** (needs good event volume to be meaningful)
+6. `TASK_14` — player rating overhaul; meaningless at 20 passes/team, excellent at 400+
+7. `TASK_06` — deeper match insights; detectors need event density to fire reliably
+8. `TASK_13` — adaptive AI tactics (stages A → B → C independently)
+
+**Wave 4 — Standalone UI features** (no engine dependency; interleave freely)
+- `TASK_03` — newspaper transfer rumours
+- `TASK_04` — academy intake day
+- `TASK_05` — records / top scorers
+- `TASK_01` — transfer negotiation (most complex; reserve for a multi-session slot)
+
+### Dependency notes
+- TASK_15 is the forcing function: it shifts calibration baselines, foul counts, and rating data; everything in Waves 2–3 is downstream of it.
+- TASK_07 must always be the last engine task in any wave — it locks gates that earlier tasks open.
+- TASK_01 (transfer negotiation) is the most complex UI task; best picked up when there's time for a multi-session effort.
