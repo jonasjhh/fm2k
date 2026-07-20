@@ -51,6 +51,7 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | 11 | `TASK_11.md` | **Possession scaling + spread tuning** — engine delivers ~57% wins at gap-20, possession/shots don't scale with OVR. Tighten PASS/DRIBBLE spreads (1200→500, 1000→500), adjust GK long-ball baseline, add defensive-team and strong-striker calibration scenarios | None; trigger TASK_07 after to re-lock gates |
 | 12 | `TASK_12.md` | **Mundane fouls** — add tactical press fouls, set-piece shirt pulls, time-wasting yellows, and 50/50 reckless challenges to bring yellow rate from ~0.7–1.0/match toward ~3–4/match | Can be done anytime; raise the fouls test floor in `distribution.calibration.test.ts` from 0.9 to ~2.5 after completion |
 | 16 | `TASK_16.md` | **Quality-weighted receiver selection (anti-siphoning)** — `pickReceiver` scores receivers purely by position; a poor second striker siphons shots from the good one. Add finishing-weighted bonus in the attacking third so better finishers attract more of the ball, and poor finishers prefer to lay off | Do after TASK_11 (spread changes affect softmax balance); before TASK_07 |
+| 17 | `TASK_17.md` | **Recorded-form momentum** — feed real recent results (cross-competition, capped ±5) into TASK_11's per-team match-sharpness modifier so winning runs play sharper and slumps flatter, without ever locking a team. Gameplay-only; not calibratable by the harness | **Depends on TASK_11** (Piece 1 must ship the sharpness modifier first) |
 | 13 | `TASK_13.md` | **Adaptive AI tactics** — three stages: (A) pre-match slider adaptation vs opponent strength, (B) half-time adjustments on the scoreline, (C) substitution reactions | None; stages are independent — ship A before starting B |
 | 14 | `TASK_14.md` | **Player rating overhaul** — extract rating logic into `rating-engine.ts`, add assists, clean-sheet bonus, position-weighted event deltas, defensive-duel penalty; encapsulated so swapping the model later is trivial | None; self-contained within `packages/match` |
 | 15 | `TASK_15.md` | ✅ **Match simulation richness** — DONE. 15A–15E all shipped. Real-football reference targets stored as comments in `flow.ts`. Remaining calibration gaps (through balls, corners, loose balls, carries) deferred to TASK_07 after TASK_11. | — |
@@ -60,9 +61,10 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 **Wave 1 — Engine foundation** (these interact; do in sequence)
 1. ✅ `TASK_02` — DONE
 2. ✅ `TASK_15` — DONE (15A–15E)
-3. `TASK_11` — possession scaling + spread tuning; **do next**
+3. `TASK_11` — possession scaling + spread tuning + match-sharpness variance (Piece 1); **do next**
 4. `TASK_12` — mundane fouls; top up yellow/foul rate after TASK_11
 5. `TASK_16` — anti-siphoning; do after TASK_11 (spread changes affect softmax balance)
+6. `TASK_17` — recorded-form momentum (Piece 2); depends on TASK_11's sharpness modifier
 
 **Wave 2 — Lock the calibration gates**
 5. `TASK_07` — recalibrate and re-lock all test gates once the engine has stopped moving

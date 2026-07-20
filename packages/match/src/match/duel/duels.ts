@@ -27,26 +27,26 @@ export interface DuelSpec {
 /** Symmetric physical races/contests: even odds at equal skill, meaningfully skill-elastic. */
 export const SPEED_DUEL: DuelSpec = {
   type: 'speed', attackerAttr: 'speed', defenderAttr: 'speed',
-  baseChance: 0.5, spread: 900, lo: 0.08, hi: 0.92,
+  baseChance: 0.5, spread: 700, lo: 0.08, hi: 0.92,
 };
 
 export const STRENGTH_DUEL: DuelSpec = {
   type: 'strength', attackerAttr: 'strength', defenderAttr: 'strength',
-  baseChance: 0.5, spread: 900, lo: 0.08, hi: 0.92,
+  baseChance: 0.5, spread: 700, lo: 0.08, hi: 0.92,
 };
 
 /** Take-on: Technique vs Defending. The defender is slightly favoured at equal skill —
  *  beating your man should feel earned. */
 export const DRIBBLE_DUEL: DuelSpec = {
   type: 'dribble', attackerAttr: 'technique', defenderAttr: 'defending',
-  baseChance: 0.44, spread: 1000, lo: 0.08, hi: 0.9,
+  baseChance: 0.44, spread: 650, lo: 0.08, hi: 0.9,
 };
 
 /** Pass vs read: Passing vs Defending. Most passes complete — the duel is against the
  *  best-positioned reader, and interceptions are the exception, not the rule. */
 export const PASS_DUEL: DuelSpec = {
   type: 'pass', attackerAttr: 'passing', defenderAttr: 'defending',
-  baseChance: 0.78, spread: 1200, lo: 0.45, hi: 0.97,
+  baseChance: 0.78, spread: 700, lo: 0.45, hi: 0.97,
 };
 
 /** Shot: Finishing vs Keeping. Goals are rare; the spread is flat so a hot striker
@@ -136,7 +136,7 @@ export const CROSS_DELIVERY: DeliverySpec = { baseChance: 0.55, spread: 250, lo:
 /** Long throw into the box (§4): checked against the taker's STRENGTH, not Passing.
  *  Anchored at 80 — a 65-strength taker barely clears the bar, a 90 is a weapon. */
 export const LONG_THROW_DELIVERY: DeliverySpec = { baseChance: 0.5, spread: 60, lo: 0.15, hi: 0.85, anchor: 80 };
-export const LONG_BALL_DELIVERY: DeliverySpec = { baseChance: 0.6, spread: 250, lo: 0.25, hi: 0.92 };
+export const LONG_BALL_DELIVERY: DeliverySpec = { baseChance: 0.55, spread: 250, lo: 0.25, hi: 0.92 };
 export const THROUGH_BALL_DELIVERY: DeliverySpec = { baseChance: 0.5, spread: 220, lo: 0.15, hi: 0.88 };
 export const SET_PIECE_DELIVERY: DeliverySpec = { baseChance: 0.65, spread: 250, lo: 0.3, hi: 0.94 };
 
