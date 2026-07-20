@@ -55,6 +55,14 @@ describe('match distribution — calibration gates:', () => {
     expect(big.goals.homeMean).toBeGreaterThan(big.goals.awayMean * 2.5);
   });
 
+  it('pass volume is in the hundreds per match (both teams combined)', () => {
+    for (const m of even) {
+      const r = runDistribution(m, N, 1);
+      expect(r.passesAttemptedPerMatch).toBeGreaterThan(150);
+      expect(r.passesAttemptedPerMatch).toBeLessThan(1200);
+    }
+  });
+
   it('discipline & set pieces sit at sane, roughly tier-flat per-match rates', () => {
     for (const m of even) {
       const r = runDistribution(m, N, 1);

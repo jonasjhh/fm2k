@@ -311,6 +311,8 @@ export class DuelMatchSimulator {
       params: state.params?.[side] ?? NEUTRAL_PARAMS,
       momentum: state.momentum?.[side] ?? 0,
       gkId: this.gkIdOf(state, side),
+      fieldedPositions: state.fieldedPositions?.[side],
+      bookedPlayers: new Set(state.bookings.yellow.filter(b => b.team === side).map(b => b.playerId)),
     };
   }
 

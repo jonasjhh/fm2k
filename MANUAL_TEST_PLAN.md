@@ -1,6 +1,6 @@
 # FM2K — Manual test plan
 
-**Status (2026-07-17):** Rework Steps 1–3 are manually verified and removed from this plan. Steps 4, 5 and the review follow-ups (last-man fouls, long throws) were verified by simulating matches and look OK; the sim nuances that can't be eyeballed (slider effects, discipline/set-piece rates, distribution shape) are assessed by the calibration harness instead (`pnpm --filter @fm2k/engine calibration-report` → `CALIBRATION_REPORT.md`, Step 6b/6c — in progress). Everything below is still an **open checklist**. Dev status lives in the plan file (`right-but-show-it-agile-rose.md`), not here.
+**Status (2026-07-20):** Rework Steps 1–5 are manually verified and removed from this plan. TASK_15 (simulation richness, 15A–15E) is complete — 328 tests green. Engine calibration now at realistic football volumes. Everything below is still an **open checklist**. Dev status lives in the plan file (`right-but-show-it-agile-rose.md`), not here.
 
 ## In-match injuries (Steps 9A/9B)
 
@@ -61,7 +61,7 @@ Setup: new game, Match tab. Injuries average ~1 per team per 3–4 matches, so p
 ## Calibration test gates (Step 7)
 
 34. **Run the calibration test suite**: `mise exec -- pnpm --filter @fm2k/match test:calibration` — all tests should pass. These gates lock the engine's settled output; they are not meant to be eyeballed, just green/red. If any fail after a duel-knob change, the knob has pushed a number outside the agreed band.
-35. **Gap-20 win rate note**: the gate for a 20-point OVR gap (65v45) is set to `> 50%` — the engine currently delivers ~57%. This is intentionally loose for now; real football reference is ~65–75%. See plan file for how to tune this when it becomes a priority.
+35. **Gap-20 win rate note**: the gate for a 20-point OVR gap (65v45) is set to `> 50%` — the engine currently delivers ~57% due to wide duel spread constants (800–1200). TASK_11 will tighten these to hit ~65%. Until then the gate stays loose.
 
 ---
 

@@ -65,7 +65,7 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
 
   const sim = new DuelMatchSimulator({
     matchDuration: input.matchDuration ?? 90,
-    eventsPerMinute: input.eventsPerMinute ?? 3,
+    eventsPerMinute: input.eventsPerMinute ?? 13,
     homeTeam, awayTeam,
     homeStarters: homeXI, awayStarters: awayXI,
     homeParams, awayParams,

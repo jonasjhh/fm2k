@@ -20,7 +20,7 @@ export class SeasonManager {
   private readonly eventsPerMinute: number;
 
   constructor(config: SeasonManagerConfig) {
-    this.eventsPerMinute = config.eventsPerMinute ?? 3;
+    this.eventsPerMinute = config.eventsPerMinute ?? 12;
     this.teamMap = new Map(Object.entries(config.teamMap));
 
     const clubDivisionMap: Record<string, string> = {};

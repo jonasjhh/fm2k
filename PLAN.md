@@ -1,6 +1,6 @@
 # FM2K — Match & skills rework ("duel engine" / match sim v2)
 
-Status (2026-07-18): **6c complete (all 7 steps done).** 1,460 tests green. Next: Step 8 (mundane fouls) or Step 9 (adaptive AI) — user to choose.
+Status (2026-07-20): **TASK_02, TASK_15 fully complete.** 328 tests green. Next: TASK_11 (gap-20 win rate / duel spread tuning).
 
 ## Standing rules
 
@@ -16,12 +16,20 @@ Duel knobs in `packages/match/src/match/duel/duels.ts`:
 - Pass: baseChance 0.78, spread 1200, clamp 0.45–0.97
 - Dribble: baseChance 0.44, spread 1000, clamp 0.08–0.9
 - Speed/Strength: baseChance 0.5, spread 900, clamp 0.08–0.92
-- Shot vs keeper: baseChance 0.16, spread 800, clamp 0.02–0.45
+- Shot vs keeper: baseChance **0.10**, spread 800, clamp 0.02–0.35  ← updated 15E
 - Penalty: baseChance 0.76, spread 300, clamp 0.6–0.9
+
+Flow knobs in `packages/match/src/match/duel/flow.ts` (post-15E):
+- EPM: 13
+- YELLOW_CHANCE: 0.38 (inflated — only ~1/3 real foul count; drops to ~0.18 after TASK_12)
+- YELLOW_SECOND_BOOKING_MODIFIER: 0.40 (~15% second-booking rate)
+- RED_MARGIN: 0.45, RED_CHANCE: 0.01, PRO_FOUL_RED_CHANCE: 0.03
+- REBOUND_CHANCE: 0.20 (D7 scramble gate)
+- Throw-in gate: 25% of touchline tackles go out of play
 
 25-season churn (Norway harness): D1 59→62, D2 39→50, D3 28→41; pool OVR stabilises ~30 by season 17.
 
-Cards: YELLOW_CHANCE 0.55 (independent roll), RED_MARGIN 0.45, RED_CHANCE 0.18 (upgrade roll on badly-beaten defenders).
+Cards: see flow knobs above (updated; old values are stale).
 
 Market: listing factory draws OVR `40 + floor(rng() * 30)` (40–69); seeded free agents 22–49.
 
@@ -40,19 +48,21 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | 5 | `TASK_05.md` | **Records / top scorers** — persistent season-by-season records for goals, clean sheets, longest win streaks, etc. | None |
 | 6 | `TASK_06.md` | **Deeper match insights** — expand the half-time and full-time insight cards; add more detector types beyond the current 7 | Read `packages/match/src/tactics/feedback.ts` first; re-verify against v2 match engine |
 | 7 | `TASK_07.md` | **Recalibration** — re-run the calibration harness after any duel-knob change (TASK_11) and lock the new numbers; also covers pace mechanic knobs from the old TASK_11 spec | Do after TASK_11 |
-| 11 | `TASK_11.md` | **Gap-20 win rate tuning** — engine delivers ~57% wins at a 20-point OVR gap; target ~65%. Reduce duel spread constants in `duels.ts`, re-run calibration report, then tighten the test bound from > 0.50 to ~0.62 | None; but trigger TASK_07 after to re-lock the gates |
+| 11 | `TASK_11.md` | **Possession scaling + spread tuning** — engine delivers ~57% wins at gap-20, possession/shots don't scale with OVR. Tighten PASS/DRIBBLE spreads (1200→500, 1000→500), adjust GK long-ball baseline, add defensive-team and strong-striker calibration scenarios | None; trigger TASK_07 after to re-lock gates |
 | 12 | `TASK_12.md` | **Mundane fouls** — add tactical press fouls, set-piece shirt pulls, time-wasting yellows, and 50/50 reckless challenges to bring yellow rate from ~0.7–1.0/match toward ~3–4/match | Can be done anytime; raise the fouls test floor in `distribution.calibration.test.ts` from 0.9 to ~2.5 after completion |
+| 16 | `TASK_16.md` | **Quality-weighted receiver selection (anti-siphoning)** — `pickReceiver` scores receivers purely by position; a poor second striker siphons shots from the good one. Add finishing-weighted bonus in the attacking third so better finishers attract more of the ball, and poor finishers prefer to lay off | Do after TASK_11 (spread changes affect softmax balance); before TASK_07 |
 | 13 | `TASK_13.md` | **Adaptive AI tactics** — three stages: (A) pre-match slider adaptation vs opponent strength, (B) half-time adjustments on the scoreline, (C) substitution reactions | None; stages are independent — ship A before starting B |
 | 14 | `TASK_14.md` | **Player rating overhaul** — extract rating logic into `rating-engine.ts`, add assists, clean-sheet bonus, position-weighted event deltas, defensive-duel penalty; encapsulated so swapping the model later is trivial | None; self-contained within `packages/match` |
-| 15 | `TASK_15.md` | **Match simulation richness** — raise `eventsPerMinute` for realistic pass counts (400–600/team), rewrite `pickReceiver` with temperature-weighted sampling so all players get touches, add `loose_ball` outcome for narrow interceptions | Do before TASK_14 (rating overhaul needs realistic event volume to be meaningful); coordinate calibration gates with TASK_12 |
+| 15 | `TASK_15.md` | ✅ **Match simulation richness** — DONE. 15A–15E all shipped. Real-football reference targets stored as comments in `flow.ts`. Remaining calibration gaps (through balls, corners, loose balls, carries) deferred to TASK_07 after TASK_11. | — |
 
 ### Recommended execution order
 
 **Wave 1 — Engine foundation** (these interact; do in sequence)
-1. `TASK_02` — formation bug fix; quick win, no engine risk, good warm-up
-2. `TASK_15` — simulation richness (volume + receiver variety + loose ball); all downstream engine tasks depend on this
-3. `TASK_11` — gap-20 win rate tuning; spread constants behave differently at 12 epm vs 3, so tune *after* TASK_15
-4. `TASK_12` — mundane fouls; TASK_15 already raises foul counts incidentally, top up to target range afterwards
+1. ✅ `TASK_02` — DONE
+2. ✅ `TASK_15` — DONE (15A–15E)
+3. `TASK_11` — possession scaling + spread tuning; **do next**
+4. `TASK_12` — mundane fouls; top up yellow/foul rate after TASK_11
+5. `TASK_16` — anti-siphoning; do after TASK_11 (spread changes affect softmax balance)
 
 **Wave 2 — Lock the calibration gates**
 5. `TASK_07` — recalibrate and re-lock all test gates once the engine has stopped moving

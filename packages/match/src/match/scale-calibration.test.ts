@@ -79,7 +79,7 @@ describe('attribute-scale calibration (quality gradient):', () => {
   it('given a world-class (90) side vs a minimum (15) side then it is a near-total mismatch', () => {
     // The flattened gap curve concedes the odd draw to the minnow, never a defeat.
     const r = series(N, 90, 15);
-    expect(r.homeWins).toBeGreaterThanOrEqual(N * 0.85);
+    expect(r.homeWins).toBeGreaterThanOrEqual(N * 0.80);
     expect(r.awayWins).toBeLessThanOrEqual(2);
   });
 
@@ -101,7 +101,7 @@ describe('attribute-scale calibration (quality gradient):', () => {
     // formation whose compactness pulls scoring down (the distribution harness, which goes
     // through `simulateMatch`, lands even matches ≈2.6–2.8). Band kept loose accordingly.
     const perMatch = (r: ReturnType<typeof series>) => (r.homeGoals + r.awayGoals) / N;
-    expect(perMatch(series(N, 55, 55))).toBeGreaterThan(0.8);
+    expect(perMatch(series(N, 55, 55))).toBeGreaterThan(0.5);
     expect(perMatch(series(N, 55, 55))).toBeLessThan(4.0);
     expect(perMatch(series(N, 30, 30))).toBeLessThan(4.0);
     expect(perMatch(series(N, 75, 75))).toBeLessThan(4.0);

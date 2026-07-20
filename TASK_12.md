@@ -54,6 +54,12 @@ Yellow rate: ~2.5–3.5 per match (still below real football's ~3–4 because so
 After implementation, retune the calibration test floor in `distribution.calibration.test.ts`:
 - `foulsPerMatch > 0.9` → raise to `> 2.5`
 
+## Card probability rebalancing after TASK_12
+
+When fouls reach the target ~22/match, `YELLOW_CHANCE` in `flow.ts` must be recalibrated. It is currently set artificially high (~0.38) to compensate for the low foul count (~8.5/match — roughly 1/3 of reality). Once TASK_12 brings fouls to target, lower `YELLOW_CHANCE` to approximately **0.18** (matching the real ~18% booking rate per foul) to keep yellow cards in the 3.8–4.6/match target range.
+
+`YELLOW_SECOND_BOOKING_MODIFIER` (currently 0.40) should also be re-evaluated at that point.
+
 ## Notes for implementation
 
 - Keep the rng injection pattern: every new foul type should take `rng` from the duel simulator context, not `Math.random()`.

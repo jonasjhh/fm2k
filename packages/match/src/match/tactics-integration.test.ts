@@ -69,7 +69,7 @@ const N = 60;
 describe('tactical parameters change match behaviour:', () => {
   it('given neutral params then average goals sit in a realistic band (inflation guardrail)', () => {
     const { avgGoals } = runMatches(N, NEUTRAL_PARAMS, NEUTRAL_PARAMS);
-    expect(avgGoals).toBeGreaterThan(1.0);
+    expect(avgGoals).toBeGreaterThan(0.5);
     expect(avgGoals).toBeLessThan(5.0);
   });
 

@@ -53,7 +53,7 @@ export const PASS_DUEL: DuelSpec = {
  *  against a poor keeper converts noticeably more, not absurdly more. */
 export const SHOT_DUEL: DuelSpec = {
   type: 'shot', attackerAttr: 'finishing', defenderAttr: 'goalkeeping',
-  baseChance: 0.16, spread: 800, lo: 0.02, hi: 0.45,
+  baseChance: 0.10, spread: 800, lo: 0.02, hi: 0.35,
 };
 
 /** Penalty: heavily attacker-favoured, compressed spread — (Finishing+Technique)/2 vs
@@ -190,7 +190,7 @@ export function foulChance(outcome: DuelOutcome): number {
 
 export const PRO_FOUL_REACH = 0.35;       // race margins beyond this put the runner out of reach
 export const PRO_FOUL_CHANCE = 0.4;       // the choice: cynical foul vs trust the keeper
-export const PRO_FOUL_RED_CHANCE = 0.7;   // denying a clear goalscoring chance
+export const PRO_FOUL_RED_CHANCE = 0.03;  // denying a clear goalscoring chance
 
 /** Probability the beaten last man commits a professional foul. The caller is
  *  responsible for the positional conditions (final band, no spare man). */

@@ -4,11 +4,11 @@ import type { DuelType } from './duel/duels.ts';
 /** The contested outfield actions tracked in `MatchStatistics.actionBreakdown` (shots are
  *  covered by the shots/shotsOnTarget counters instead — they're resolved by the keeper,
  *  not an outfield contest). */
-export const CONTESTED_ACTION_TYPES = ['short_pass', 'long_pass', 'through_ball', 'cross', 'dribble'] as const;
+export const CONTESTED_ACTION_TYPES = ['short_pass', 'long_pass', 'through_ball', 'cross', 'dribble', 'back_pass', 'progressive_carry', 'cutback'] as const;
 export type ContestedActionType = (typeof CONTESTED_ACTION_TYPES)[number];
 
 /** Which contested actions count toward the pass-completion stat. */
-const PASS_ACTION_TYPES = new Set<string>(['short_pass', 'long_pass', 'through_ball']);
+const PASS_ACTION_TYPES = new Set<string>(['short_pass', 'long_pass', 'through_ball', 'cross', 'back_pass', 'cutback']);
 
 export interface ActionTally { attempts: number; successes: number }
 export type ActionBreakdown = Record<ContestedActionType, ActionTally>;
@@ -75,6 +75,12 @@ const RATING_DELTA: Record<string, number> = {
   through_ball: 0.08,
   cross: 0.05,
   dribble: 0.05,
+  back_pass: 0.01,
+  progressive_carry: 0.06,
+  gk_short: 0.01,
+  gk_long: 0.03,
+  blocked_shot: 0.08,
+  cutback: 0.04,
   foul: -0.1,
   yellow_card: -0.3,
   red_card: -1.0,

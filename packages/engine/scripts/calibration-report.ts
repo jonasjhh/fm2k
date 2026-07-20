@@ -94,7 +94,7 @@ function distRow(label: string, r: DistributionResult): string {
 function distDetail(label: string, r: DistributionResult): string {
   return `- **${label}** — margins: ${marginLine(r.goals.marginHistogram, r.n)}; duels won (h–a): ${duelLine(r)};`
     + ` long throws ${f2(r.longThrowsPerMatch)}/m, last-man fouls ${f2(r.lastManFoulsPerMatch)}/m,`
-    + ` injuries ${f2(r.injuriesPerMatch)}/m, end energy ${f1(r.endEnergyHome)}/${f1(r.endEnergyAway)}`;
+    + ` injuries ${f2(r.injuriesPerMatch)}/m, passes ${f1(r.passesAttemptedPerMatch)}/m, end energy ${f1(r.endEnergyHome)}/${f1(r.endEnergyAway)}`;
 }
 
 // Every cell gets its own fixed seed block so adding/removing cells never reshuffles others.

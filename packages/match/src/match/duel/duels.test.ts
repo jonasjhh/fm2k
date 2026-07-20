@@ -15,7 +15,7 @@ describe('duelChance:', () => {
   it('equal attributes give exactly the base chance', () => {
     expect(duelChance(60, 60, SPEED_DUEL)).toBe(0.5);
     expect(duelChance(60, 60, PASS_DUEL)).toBe(0.78);
-    expect(duelChance(60, 60, SHOT_DUEL)).toBe(0.16);
+    expect(duelChance(60, 60, SHOT_DUEL)).toBe(0.10);
   });
 
   it('the attribute difference shifts the chance by diff/spread', () => {

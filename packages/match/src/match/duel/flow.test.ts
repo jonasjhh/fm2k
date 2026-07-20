@@ -133,8 +133,17 @@ describe('short pass chain:', () => {
 
   it('a lost pass duel is an interception carrying the stats metadata', () => {
     const { attacking, defending } = setup();
-    const out = resolveSituation('short_pass', attacking, defending, 'carrier', rngOf(0.99));
-    expect(out.ball).toEqual({ mode: 'carried', side: 'away', carrierId: 'reader' });
+    // Low passing (20) + 2 extra pressers (maxing secondDefenderPenalty at 0.15) drops the
+    // effective chance to ~0.60. Roll 0.99 → margin -0.39 < -0.3 → clean interception.
+    attacking.players.find(p => p.id === 'carrier')!.attributes.passing = 20;
+    defending.players.push(
+      player('press1', { defending: 60 }),
+      player('press2', { defending: 60 }),
+    );
+    defending.positions['press1'] = { x: 0.45, y: 0.5 };
+    defending.positions['press2'] = { x: 0.46, y: 0.5 };
+    const out = resolveSituation('short_pass', attacking, defending, 'carrier', rngOf(0.5, 0.99));
+    expect(out.ball).toMatchObject({ mode: 'carried', side: 'away' });
     const pick = out.events.find(e => e.type === 'interception')!;
     expect(pick.team).toBe('away');
     expect(pick.metadata).toMatchObject({
@@ -219,7 +228,8 @@ describe('through ball chain:', () => {
       side: 'away',
       players: [{ id: 'cover', pos: { x: 0.5, y: 0.75 }, attrs: { speed: 90 } }],
     });
-    const out = resolveSituation('through_ball', attacking, defending, 'carrier', rngOf(0.1, 0.99));
+    // softmax draw 0.5 (only one receiver so any value picks it), delivery 0.1, race 0.99 (lost)
+    const out = resolveSituation('through_ball', attacking, defending, 'carrier', rngOf(0.5, 0.1, 0.99));
     expect(out.ball.mode).toBe('carried');
     expect((out.ball as any).side).toBe('away');
     expect(out.events.find(e => e.type === 'interception')?.metadata?.contestedAction).toBe('through_ball');
@@ -249,8 +259,9 @@ describe('shot chain:', () => {
 
   it('a saved shot credits the keeper (shots-on-target contract)', () => {
     const { attacking, defending } = setup();
-    // shot roll just above the chance → save; corner roll 0.9 → no corner
-    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.3, 0.9));
+    // chance ≈ 0.1125 (finishing 70, gk 60, baseChance 0.10). Roll 0.18 → comfortable save
+    // (margin -0.0675 > -0.1, so no D7 rebound check). Corner roll 0.9 → no corner → ball to GK.
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.18, 0.9));
     expect(out.goal).toBeUndefined();
     expect(out.events.map(e => e.type)).toEqual(['shot', 'save']);
     expect(out.events[1].playerId).toBe('gk');
@@ -259,8 +270,10 @@ describe('shot chain:', () => {
 
   it('a scrambled save can concede a corner, which chains a set-piece delivery', () => {
     const { attacking, defending } = setup();
-    // shot saved (0.3), corner roll 0.05 → corner; delivery roll 0.99 (poor, margin < -0.25 → loose)
-    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.3, 0.05, 0.99));
+    // chance ≈ 0.1125. Roll 0.22 → narrow save (margin -0.1075 < -0.1 → D7 rebound check).
+    // Rebound gate 0.9 → no rebound. Corner check 0.05 < 0.3 → corner!
+    // Delivery draw 0.99 → poor delivery (margin -0.34 < -0.2) → GK claims, no new shot.
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.22, 0.9, 0.05, 0.99));
     expect(out.events.some(e => e.type === 'corner')).toBe(true);
   });
 });
@@ -294,7 +307,7 @@ describe('flowTick:', () => {
     expect(out.ball.mode).toBe('carried');
   });
 
-  it('a keeper in possession distributes rather than dribbling', () => {
+  it('a keeper in possession emits gk_short then distributes short', () => {
     const home = team({
       side: 'home',
       players: [
@@ -304,10 +317,27 @@ describe('flowTick:', () => {
       gkId: 'gk',
     });
     const away = team({ side: 'away', players: [{ id: 'st', pos: { x: 0.5, y: 0.3 } }] });
-    // distribution roll 0.9 → short pass branch; pass duel roll 0.1 → completed
-    const out = flowTick(home, away, { mode: 'carried', side: 'home', carrierId: 'gk' }, rngOf(0.9, 0.1));
-    expect(out.events[0].type).toBe('short_pass');
+    // distribution roll 0.9 (>= 0.5 neutral direct) → gk_short; softmax 0.5 → cb; pass duel 0.1 → success
+    const out = flowTick(home, away, { mode: 'carried', side: 'home', carrierId: 'gk' }, rngOf(0.9, 0.5, 0.1));
+    expect(out.events[0].type).toBe('gk_short');
+    expect(out.events[1].type).toBe('short_pass');
     expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'cb' });
+  });
+
+  it('a keeper launches long using goalkeeping attribute for the delivery', () => {
+    const home = team({
+      side: 'home',
+      players: [
+        { id: 'gk', pos: { x: 0.5, y: 0.04 }, attrs: { goalkeeping: 80, passing: 20 } },
+        { id: 'st', pos: { x: 0.5, y: 0.75 }, attrs: { strength: 80 } },
+      ],
+      gkId: 'gk',
+    });
+    const away = team({ side: 'away', players: [{ id: 'cb', pos: { x: 0.5, y: 0.78 }, attrs: { defending: 50, strength: 50 } }] });
+    // distribution roll 0.1 (< 0.5 neutral) → gk_long; delivery roll 0.1 (on target); strength duel 0.1 → st wins header
+    const out = flowTick(home, away, { mode: 'carried', side: 'home', carrierId: 'gk' }, rngOf(0.1, 0.1, 0.1));
+    expect(out.events[0].type).toBe('gk_long');
+    expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'st' });
   });
 
   it('a vanished carrier (sub/red card) turns the ball loose', () => {
@@ -338,11 +368,11 @@ describe('last-man professional foul:', () => {
 
   it('a beaten last man can haul the runner down: red card and a penalty', () => {
     const { attacking, defending } = setup();
-    // delivery 0.2 (on target, margin 0.3), race 0.42 → margin 0.25–0.33 (no
-    // escalation, reachable), pro-foul roll 0.1 → foul, red roll 0.05 → red;
-    // in the box → penalty, roll (cycled 0.2) → goal
+    // softmax draw 0.5 (one receiver), delivery 0.2 (on target, margin 0.3),
+    // race 0.42 → margin 0.25–0.33 (no escalation, reachable), pro-foul 0.1 → foul,
+    // red 0.02 < PRO_FOUL_RED_CHANCE (0.03) → red; in the box → penalty, roll (cycled) → goal
     const out = resolveSituation('through_ball', attacking, defending, 'carrier',
-      rngOf(0.2, 0.42, 0.1, 0.05));
+      rngOf(0.5, 0.2, 0.42, 0.1, 0.02));
     const foul = out.events.find(e => e.type === 'foul');
     expect(foul?.playerId).toBe('cover');
     expect(foul?.metadata?.duel.duelType).toBe('speed');
@@ -377,11 +407,12 @@ describe('throw-ins:', () => {
 
   it('a strong taker in the final third launches a long throw into the box', () => {
     const { attacking, defending } = setup(80);
-    // dribble 0.5 → tackled out; go-long gate 0.1 < longThrowChance(80)=0.25;
+    // dribble 0.5 → tackled near touchline; throw-in gate 0.1 < 0.25 → throw-in fires;
+    // long-throw gate 0.2 < longThrowChance(80)=0.25 → long throw!
     // delivery (Strength 80 vs anchor 80 → 0.5) 0.3 → on target, margin 0.2;
     // box strength duel 0.2 → target wins → header shot 0.9 → off target
     const out = resolveSituation('dribble', attacking, defending, 'carrier',
-      rngOf(0.5, 0.1, 0.3, 0.2, 0.9));
+      rngOf(0.5, 0.1, 0.2, 0.3, 0.2, 0.9));
     const throwIn = out.events.find(e => e.type === 'throw_in');
     expect(throwIn?.playerId).toBe('giant');
     expect(throwIn?.description).toContain('long throw');
@@ -390,9 +421,236 @@ describe('throw-ins:', () => {
 
   it('without a strong enough taker the throw stays a quick restart', () => {
     const { attacking, defending } = setup(60);
-    const out = resolveSituation('dribble', attacking, defending, 'carrier', rngOf(0.5));
+    // draw 1: 0.5 → dribble loss; draw 2: 0.1 < 0.25 → throw-in gate fires;
+    // strength=60 < LONG_THROW_MIN_STRENGTH(65) → quick restart
+    const out = resolveSituation('dribble', attacking, defending, 'carrier', rngOf(0.5, 0.1));
     const throwIn = out.events.find(e => e.type === 'throw_in');
     expect(throwIn?.description).toContain('takes it quickly');
     expect(out.ball.mode).toBe('carried');
+  });
+});
+
+describe('back pass:', () => {
+  it('a routine back pass lands with the GK', () => {
+    const attacking = team({
+      side: 'home',
+      players: [
+        { id: 'cb', pos: { x: 0.5, y: 0.3 } },
+        { id: 'gk', pos: { x: 0.5, y: 0.05 } },
+      ],
+      gkId: 'gk',
+    });
+    const defending = team({ side: 'away', players: [{ id: 'st', pos: { x: 0.5, y: 0.6 } }] });
+    // pass duel roll 0.1 → well below baseChance (0.78) → success
+    const out = resolveSituation('back_pass', attacking, defending, 'cb', rngOf(0.1));
+    expect(out.events[0].type).toBe('back_pass');
+    expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'gk' });
+  });
+
+  it('a fumbled back pass is intercepted by the pressing forward', () => {
+    const attacking = team({
+      side: 'home',
+      players: [
+        { id: 'cb', pos: { x: 0.5, y: 0.3 }, attrs: { passing: 20 } },
+        { id: 'gk', pos: { x: 0.5, y: 0.05 } },
+      ],
+      gkId: 'gk',
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'st', pos: { x: 0.5, y: 0.25 }, attrs: { defending: 90 } }],
+    });
+    // Roll 0.99 — well above the heavily-reduced resist chance; pass fails
+    const out = resolveSituation('back_pass', attacking, defending, 'cb', rngOf(0.99));
+    expect(out.events[0].type).toBe('interception');
+    expect((out.ball as { carrierId: string }).carrierId).toBe('st');
+  });
+
+  it('with no target behind the carrier, falls through to a short pass', () => {
+    const attacking = team({
+      side: 'home',
+      players: [
+        { id: 'st', pos: { x: 0.5, y: 0.85 } },
+        { id: 'am', pos: { x: 0.5, y: 0.7 } },
+      ],
+    });
+    const defending = team({ side: 'away', players: [{ id: 'd', pos: { x: 0.9, y: 0.9 } }] });
+    // No one behind the striker — falls through; softmax draw then pass duel win
+    const out = resolveSituation('back_pass', attacking, defending, 'st', rngOf(0.5, 0.1));
+    expect(out.ball.mode).toBe('carried');
+    expect((out.ball as { side: string }).side).toBe('home');
+  });
+});
+
+describe('D1 — loose ball on narrow interception:', () => {
+  it('a narrowly intercepted short pass produces a loose ball instead of a clean turnover', () => {
+    const attacking = team({
+      side: 'home',
+      players: [
+        { id: 'carrier', pos: { x: 0.5, y: 0.4 }, attrs: { passing: 50 } },
+        { id: 'mate', pos: { x: 0.5, y: 0.55 } },
+      ],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'reader', pos: { x: 0.45, y: 0.5 }, attrs: { defending: 50 } }],
+    });
+    // PASS_DUEL baseChance 0.78, passing 50 vs defending 50 → chance = 0.78
+    // margin = 0.78 - roll. For loose_ball we need margin in (-0.2, 0): roll in (0.78, 0.98)
+    // softmax draw 0.5 (picks mate), pass duel 0.85 → margin = 0.78 - 0.85 = -0.07 (narrow)
+    const out = resolveSituation('short_pass', attacking, defending, 'carrier', rngOf(0.5, 0.85));
+    expect(out.events[0].type).toBe('loose_ball');
+    expect(out.ball.mode).toBe('carried'); // someone wins the speed race
+  });
+});
+
+describe('D2 — blocked shot:', () => {
+  it('a defender in the shooting lane blocks the shot', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'striker', pos: { x: 0.5, y: 0.85 }, attrs: { finishing: 50 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [
+        { id: 'cb', pos: { x: 0.5, y: 0.9 }, attrs: { technique: 80 } },
+        { id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 60 } },
+      ],
+      gkId: 'gk',
+    });
+    // block duel: cb technique 80 vs striker finishing 50 → chance ≈ 0.44 + 30/1000 = 0.47
+    // roll 0.1 → cb wins block; corner roll 0.99 → no corner
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.1, 0.99));
+    expect(out.events.some(e => e.type === 'blocked_shot' && e.playerId === 'cb')).toBe(true);
+    expect(out.events.some(e => e.type === 'shot')).toBe(false);
+  });
+
+  it('a defender outside the lane does not attempt a block', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'striker', pos: { x: 0.5, y: 0.85 }, attrs: { finishing: 70 } }],
+    });
+    const defending = team({
+      side: 'away',
+      // Defender is wide — not in the shooting lane to goal centre at (0.5, 1)
+      players: [
+        { id: 'rb', pos: { x: 0.95, y: 0.8 }, attrs: { technique: 80 } },
+        { id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 60 } },
+      ],
+      gkId: 'gk',
+    });
+    // Shot should reach keeper (no block); roll 0.01 → goal
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.01));
+    expect(out.events.some(e => e.type === 'blocked_shot')).toBe(false);
+    expect(out.goal).toBe('home');
+  });
+});
+
+describe('D5 — cutback:', () => {
+  it('a byline winger cuts back for a teammate who shoots', () => {
+    const attacking = team({
+      side: 'home',
+      players: [
+        { id: 'winger', pos: { x: 0.05, y: 0.92 }, attrs: { passing: 70, technique: 70 } },
+        // am is slightly behind and infield — score = (0.88-0.92) - dist*0.5 ≈ -0.15, passes the -0.3 filter
+        { id: 'am', pos: { x: 0.3, y: 0.88 }, attrs: { finishing: 50 } },
+      ],
+    });
+    const defending = team({
+      side: 'away',
+      players: [
+        { id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 50 } },
+      ],
+      gkId: 'gk',
+    });
+    // softmax 0.5 → am; pass duel roll 0.1 → cutback succeeds; shot roll 0.01 → goal
+    const out = resolveSituation('cutback', attacking, defending, 'winger', rngOf(0.5, 0.1, 0.01));
+    expect(out.events.some(e => e.type === 'cutback' && e.playerId === 'winger')).toBe(true);
+    expect(out.events.some(e => e.type === 'shot')).toBe(true);
+  });
+});
+
+describe('D7 — penalty area scramble:', () => {
+  it('a narrow save produces a rebound and a scramble for possession', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'striker', pos: { x: 0.5, y: 0.85 }, attrs: { finishing: 70 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 60 } }],
+      gkId: 'gk',
+    });
+    // chance ≈ 0.1725. Roll 0.35 → margin = -0.1775 → in (-0.3, -0.1) → narrow save.
+    // Rebound gate roll 0.1 < REBOUND_CHANCE (0.2) → rebound fires.
+    // Rebound at y=0.88; no outfield defender → striker picks it up.
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.35, 0.1));
+    expect(out.events.some(e => e.type === 'rebound')).toBe(true);
+    expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'striker' });
+  });
+
+  it('a comfortable save goes cleanly to the keeper, no rebound', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'striker', pos: { x: 0.5, y: 0.85 }, attrs: { finishing: 70 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'gk', pos: { x: 0.5, y: 0.96 }, attrs: { goalkeeping: 60 } }],
+      gkId: 'gk',
+    });
+    // chance ≈ 0.1125 (baseChance 0.10, finishing 70 vs gk 60). Roll 0.18 → margin = -0.0675 >
+    // -0.1 → comfortable save, D7 rebound check skipped entirely. Corner roll 0.9 → no corner.
+    const out = resolveSituation('shot', attacking, defending, 'striker', rngOf(0.18, 0.9));
+    // Note: no rebound gate roll needed — margin > -0.1 skips the check entirely.
+    expect(out.events.some(e => e.type === 'rebound')).toBe(false);
+    expect(out.ball).toEqual({ mode: 'carried', side: 'away', carrierId: 'gk' });
+  });
+});
+
+describe('progressive carry:', () => {
+  it('a technical CB drives forward and advances position', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'cb', pos: { x: 0.5, y: 0.25 }, attrs: { technique: 80, speed: 70 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'dm', pos: { x: 0.5, y: 0.45 }, attrs: { defending: 50 } }],
+    });
+    // duel roll 0.1 → attacker (80 + 70*0.3 = 101 vs 50) wins; foul roll 0.99 → no foul
+    const out = resolveSituation('progressive_carry', attacking, defending, 'cb', rngOf(0.1, 0.99));
+    expect(out.events[0].type).toBe('progressive_carry');
+    expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'cb' });
+    // CB's y should have advanced toward goal
+    expect(attacking.positions['cb'].y).toBeGreaterThan(0.25);
+  });
+
+  it('a dispossessed carry produces a loose ball', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'cb', pos: { x: 0.5, y: 0.25 }, attrs: { technique: 30, speed: 30 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'dm', pos: { x: 0.5, y: 0.4 }, attrs: { defending: 90 } }],
+    });
+    // Roll 0.99 → attacker (30 + 30*0.3 = 39 vs 90) loses; foul roll also above threshold
+    const out = resolveSituation('progressive_carry', attacking, defending, 'cb', rngOf(0.99, 0.99));
+    expect(out.events[0].type).toBe('tackle');
+  });
+
+  it('with no opponent ahead the carrier advances freely', () => {
+    const attacking = team({
+      side: 'home',
+      players: [{ id: 'cb', pos: { x: 0.5, y: 0.2 } }],
+    });
+    const defending = team({
+      side: 'away',
+      players: [{ id: 'st', pos: { x: 0.5, y: 0.9 } }], // far up the pitch, not ahead of cb
+    });
+    const out = resolveSituation('progressive_carry', attacking, defending, 'cb', rngOf(0.5));
+    expect(out.events[0].type).toBe('progressive_carry');
+    expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'cb' });
   });
 });

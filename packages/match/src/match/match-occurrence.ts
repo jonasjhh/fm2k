@@ -62,7 +62,7 @@ export class MatchOccurrence implements Occurrence {
     this.rng = config.rng ?? Math.random;
     this.homeTeam = config.homeTeam;
     this.awayTeam = config.awayTeam;
-    this.eventsPerMinute = config.eventsPerMinute ?? 3;
+    this.eventsPerMinute = config.eventsPerMinute ?? 12;
 
     if (config.playerTeamId) {
       this.playerTeamSide =

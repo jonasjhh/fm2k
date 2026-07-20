@@ -22,7 +22,7 @@ const input: DistributionInput = (() => {
   return { home: { team: home, starters: home.squad, intent }, away: { team: away, starters: away.squad, intent } };
 })();
 
-const N = 20;
+const N = 50;
 
 describe('runDistribution aggregation:', () => {
   const r = runDistribution(input, N, 7);

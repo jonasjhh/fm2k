@@ -52,6 +52,8 @@ export interface DistributionResult {
   injuriesPerMatch: number;
   endEnergyHome: number;
   endEnergyAway: number;
+  /** Per-match mean passes attempted (home + away). */
+  passesAttemptedPerMatch: number;
 }
 
 const median = (xs: number[]): number => {
@@ -69,7 +71,7 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
   let homeWin = 0, draw = 0, awayWin = 0;
   let hG = 0, aG = 0;
   let shotsH = 0, shotsA = 0, sotH = 0, sotA = 0, possH = 0;
-  let fouls = 0, yellows = 0, reds = 0, pens = 0, corners = 0, injuries = 0;
+  let fouls = 0, yellows = 0, reds = 0, pens = 0, corners = 0, injuries = 0, passesAttempted = 0;
   let energyH = 0, energyA = 0;
   let cleanH = 0, cleanA = 0, bothScored = 0, longThrows = 0, lastManFouls = 0;
   const zeroTally = (): Record<DuelType, number> => ({ speed: 0, strength: 0, dribble: 0, pass: 0, shot: 0 });
@@ -83,7 +85,7 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
     const r = simulateMatch({
       home: input.home,
       away: input.away,
-      eventsPerMinute: input.eventsPerMinute ?? 3,
+      eventsPerMinute: input.eventsPerMinute ?? 13,
       rng: mulberry32(seedBase + i),
     });
     const { home: h, away: a } = r.score;
@@ -102,6 +104,7 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
     sotH += st.shotsOnTarget.home; sotA += st.shotsOnTarget.away;
     possH += st.possession.home;
     fouls += st.fouls.home + st.fouls.away;
+    passesAttempted += st.passes.home.attempted + st.passes.away.attempted;
     yellows += st.cards.yellow.home + st.cards.yellow.away;
     reds += st.cards.red.home + st.cards.red.away;
     corners += st.corners.home + st.corners.away;
@@ -155,5 +158,6 @@ export function runDistribution(input: DistributionInput, n: number, seedBase = 
     injuriesPerMatch: injuries / n,
     endEnergyHome: energyH / n,
     endEnergyAway: energyA / n,
+    passesAttemptedPerMatch: passesAttempted / n,
   };
 }

@@ -21,6 +21,7 @@ import {
   type XY, type Side, projectPresence, cellOf, presenceAt, spareManSurplus,
   nearestTo, distance,
 } from './field.ts';
+import { BAND_OF_ROLE, type Band } from '../../lineup/bands.ts';
 
 // ── flow state ───────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,10 @@ export interface FlowTeam {
   /** Short-lived attacking momentum (0 = none) — small shot-duel bonus. */
   momentum: number;
   gkId: string | null;
+  /** Formation role per player id (e.g. 'CB', 'CM') — used for band-aware situation weights. */
+  fieldedPositions?: Record<string, string>;
+  /** Player ids that already have a yellow card this match — reduces their yellow chance. */
+  bookedPlayers?: Set<string>;
 }
 
 /** A not-yet-wrapped MatchEvent: the simulator adds id/minute/resultingState. */
@@ -56,6 +61,18 @@ export interface FlowTickResult {
   /** Set when the chain ended in a goal for that side. */
   goal?: Side;
 }
+
+// ── real-football reference targets (combined both teams, per match) ─────────────
+// Goals: 2.6–3.1        Shots on target: 7.5–9.0     Shots off/blocked: 14–17
+// Corners: 9.5–11       Through balls: 2–4            Crosses attempted: 30–36
+// Crosses completed: 6.5–8.5                          Dribble attempts: 36–44
+// Successful dribbles: 16–21                          Progressive carries: 34–42
+// Loose ball recoveries: 95–112                       Interceptions: 15–19
+// Tackles attempted: 31–36   Tackles won: 17.5–21.5  Clearances: 28–35
+// Fouls: 20–24 (low until TASK_12)                   Yellow cards: 3.8–4.6
+// Red cards: 0.1–0.15   GK saves: 5–6.8              GK short passes: 24–31
+// GK long passes: 14.5–19.5
+// ─────────────────────────────────────────────────────────────────────────────────
 
 // ── tuning knobs (calibration targets, Step 6) ───────────────────────────────────
 
@@ -83,12 +100,17 @@ export const WALL_PENALTY = 0.08;
 /** Chance a save/clearance near goal concedes a corner. */
 export const CORNER_CHANCE_ON_SAVE = 0.3;
 export const CORNER_CHANCE_ON_CLEARANCE = 0.2;
+/** D7: probability a narrow save spills into a scramble (vs keeper smothering it). */
+export const REBOUND_CHANCE = 0.2;
 /** Card severity from foul margin.
  *  Every foul rolls independently for a yellow first; bad fouls (margin > RED_MARGIN)
  *  then roll a second time for a red upgrade on top of that yellow. */
-export const YELLOW_CHANCE = 0.55;    // raised: bad fouls should almost always book
+export const YELLOW_CHANCE = 0.38;
+/** Fraction of YELLOW_CHANCE applied when the fouler already has a yellow — models
+ *  the "calm down after a booking" effect that prevents unrealistic double-bookings. */
+export const YELLOW_SECOND_BOOKING_MODIFIER = 0.40;
 export const RED_MARGIN = 0.45;       // margin threshold to be eligible for a red
-export const RED_CHANCE = 0.18;       // upgrade chance when margin clears the threshold
+export const RED_CHANCE = 0.01;       // upgrade chance when margin clears the threshold
 /** Attacking-frame y beyond which a beaten cover defender counts as the last man. */
 export const LAST_MAN_Y = 0.75;
 /** Minimum Strength for a touchline restart in the final third to go long (§4) —
@@ -101,6 +123,16 @@ export const LONG_THROW_CHANCE_CAP = 0.5;
 export function longThrowChance(strength: number): number {
   if (strength < LONG_THROW_MIN_STRENGTH) { return 0; }
   return Math.min(LONG_THROW_CHANCE_CAP, (strength - LONG_THROW_MIN_STRENGTH) / LONG_THROW_CHANCE_SPREAD);
+}
+
+/** Perpendicular distance from point `p` to the line segment `a`→`b`. */
+function linePointDistance(a: XY, b: XY, p: XY): number {
+  const ab = { x: b.x - a.x, y: b.y - a.y };
+  const ap = { x: p.x - a.x, y: p.y - a.y };
+  const len2 = ab.x * ab.x + ab.y * ab.y;
+  if (len2 < 1e-9) { return distance(a, p); }
+  const t = Math.max(0, Math.min(1, (ap.x * ab.x + ap.y * ab.y) / len2));
+  return distance(p, { x: a.x + t * ab.x, y: a.y + t * ab.y });
 }
 
 // ── frame helpers ────────────────────────────────────────────────────────────────
@@ -157,21 +189,35 @@ function nearestDefender(defending: FlowTeam, point: XY): string | null {
   return nearestTo(point, defending.positions, defending.gkId ? new Set([defending.gkId]) : undefined)[0] ?? null;
 }
 
-/** Best forward-ish teammate to receive: prefers players ahead of the ball, by a
- *  progress-minus-distance score. Returns null if the carrier is alone. */
-function pickReceiver(attacking: FlowTeam, from: XY, opts?: { advanced?: boolean }): string | null {
+/** Best forward-ish teammate to receive: prefers players ahead of the ball by a
+ *  progress-minus-distance score, then samples from viable candidates using softmax
+ *  temperature weighting so the ball distributes across the squad rather than always
+ *  going to the single highest-scoring player. Returns null if the carrier is alone. */
+function pickReceiver(
+  attacking: FlowTeam, from: XY, rng: () => number,
+  opts?: { advanced?: boolean },
+): string | null {
   const carrierY = attackY(from, attacking.side);
-  let best: string | null = null;
-  let bestScore = -Infinity;
+  const scored: Array<{ id: string; score: number }> = [];
   for (const id of outfieldIds(attacking)) {
     const pos = attacking.positions[id];
     if (pos === from) { continue; }
     const progress = attackY(pos, attacking.side) - carrierY;
     if (opts?.advanced && progress <= 0.05) { continue; }
     const score = progress - distance(from, pos) * 0.5;
-    if (score > bestScore) { bestScore = score; best = id; }
+    if (score <= -0.3) { continue; }
+    scored.push({ id, score });
   }
-  return best;
+  if (scored.length === 0) { return null; }
+  const T = 0.3;
+  const weights = scored.map(e => Math.exp(e.score / T));
+  const total = weights.reduce((s, w) => s + w, 0);
+  let r = rng() * total;
+  for (let i = 0; i < scored.length; i++) {
+    r -= weights[i];
+    if (r <= 0) { return scored[i].id; }
+  }
+  return scored[scored.length - 1].id;
 }
 
 // ── local-numbers modifiers (§6) ─────────────────────────────────────────────────
@@ -202,11 +248,32 @@ export function localNumbers(attacking: FlowTeam, defending: FlowTeam, ballAt: X
 
 export type Situation =
   | 'short_pass' | 'through_ball' | 'long_ball' | 'cross'
+  | 'back_pass' | 'progressive_carry' | 'cutback'
   | 'dribble' | 'shot' | 'shield' | 'clear';
 
+/** Per-band multipliers for each situation. Shapes who does what on the pitch. */
+const BAND_WEIGHTS: Record<Band, Partial<Record<Situation, number>>> = {
+  GK:  { short_pass: 1.5, back_pass: 0,   progressive_carry: 0,   through_ball: 0,   shot: 0,   dribble: 0,   clear: 0.5, cutback: 0   },
+  DEF: { short_pass: 1.3, back_pass: 1.2, progressive_carry: 1.8, through_ball: 0.3, shot: 0.15, dribble: 0.4, clear: 1.5, cutback: 0   },
+  DM:  { short_pass: 1.2, back_pass: 1.2, progressive_carry: 1.5, through_ball: 0.7, shot: 0.20, dribble: 0.5, clear: 1.0, cutback: 0   },
+  MID: { short_pass: 1.0, back_pass: 0.5, progressive_carry: 0.3, through_ball: 1.0, shot: 0.6, dribble: 1.0, clear: 0.5, cutback: 0   },
+  AM:  { short_pass: 1.0, back_pass: 0,   progressive_carry: 0,   through_ball: 1.2, shot: 1.2, dribble: 1.3, clear: 0,   cutback: 0.5 },
+  ATT: { short_pass: 0.9, back_pass: 0,   progressive_carry: 0,   through_ball: 0.8, shot: 1.5, dribble: 1.4, clear: 0,   cutback: 2.5 },
+};
+
+function carrierBand(carrier: Player, team: FlowTeam): Band {
+  const fp = team.fieldedPositions?.[carrier.id];
+  if (fp && fp in BAND_OF_ROLE) { return BAND_OF_ROLE[fp as keyof typeof BAND_OF_ROLE]; }
+  // Fall back to the player's registered position.
+  const pos = carrier.position as string;
+  if (pos in BAND_OF_ROLE) { return BAND_OF_ROLE[pos as keyof typeof BAND_OF_ROLE]; }
+  return 'MID';
+}
+
 /** Weighted situation menu for a carrier: geography (where they are), ability (what
- *  they're good at), sliders (directness/shotFrequency) and local numbers (an
- *  outnumbered carrier protects the ball). Exported for chooser tests. */
+ *  they're good at), sliders (directness/shotFrequency), local numbers (an outnumbered
+ *  carrier protects the ball), and band (a CB plays out differently to a striker).
+ *  Exported for chooser tests. */
 export function situationWeights(
   carrier: Player, pos: XY, team: FlowTeam, local: LocalNumbers,
 ): Record<Situation, number> {
@@ -223,19 +290,24 @@ export function situationWeights(
   const mean = Math.max(10, (a.passing + a.technique + a.finishing + a.strength) / 4);
   const rel = (attrValue: number) => attrValue / mean;
 
+  const band = carrierBand(carrier, team);
+  const bw = BAND_WEIGHTS[band];
+  const bm = (s: Situation, def = 1) => bw[s] ?? def;
+
   return {
-    short_pass: 2.4 * rel(a.passing) * (2 - directness) * 0.5 + 1.2,
-    through_ball: y > 0.35 && y < 0.85 ? 0.7 * directness * rel(a.passing) : 0,
+    short_pass: bm('short_pass') * (2.4 * rel(a.passing) * (2 - directness) * 0.5 + 1.2),
+    back_pass:  bm('back_pass', 0) * (y < 0.20 ? 1.5 * (2 - directness) : 0),
+    through_ball: bm('through_ball') * (y > 0.35 && y < 0.85 ? 0.7 * directness * rel(a.passing) : 0),
     long_ball: y < 0.6 ? 0.5 * directness : 0,
-    cross: wide && y > 0.6 ? 1.6 * rel(a.passing) : 0,
-    dribble: 0.9 * rel(a.technique) * (0.6 + y * 0.8),
-    // Directness also gates penetration: a low-risk side keeps the ball but needs
-    // more phases to manufacture a shooting position (risk slider tradeoff).
-    shot: y > SHOT_RANGE_Y
-      ? 3.1 * ((y - SHOT_RANGE_Y) / (1 - SHOT_RANGE_Y)) * shotFreq * rel(a.finishing) * (0.45 + 0.55 * directness)
-      : 0,
-    shield: outnumbered > 0.4 ? 1.2 * outnumbered * rel(a.strength) : 0,
-    clear: y < 0.25 && outnumbered > 0.4 ? 1.4 * outnumbered : 0,
+    cross: wide && y > 0.6 ? 0.7 * rel(a.passing) : 0,
+    progressive_carry: bm('progressive_carry', 0) * (y < 0.65 ? 1.2 * rel(a.technique) * (1 - directness * 0.3) : 0),
+    dribble: bm('dribble') * (0.25 * rel(a.technique) * (0.6 + y * 0.8)),
+    cutback: bm('cutback', 0) * (y > 0.88 && (pos.x < 0.18 || pos.x > 0.82) ? 2.0 : 0),
+    shot: bm('shot', 0) * (y > SHOT_RANGE_Y
+      ? 0.45 * ((y - SHOT_RANGE_Y) / (1 - SHOT_RANGE_Y)) * shotFreq * rel(a.finishing) * (0.45 + 0.55 * directness)
+      : 0),
+    shield: outnumbered > 0.6 ? 1.2 * outnumbered * rel(a.strength) : 0,
+    clear: bm('clear') * (y < 0.25 && outnumbered > 0.4 ? 1.4 * outnumbered : 0),
   };
 }
 
@@ -345,6 +417,17 @@ function resolveShot(
       type: 'save', team: defending.side, playerId: gkId,
       description: `${name(defending, gkId)} saves the ${label} from ${shooter}`,
     });
+    // D7: narrow save (keeper barely got there) — ball spills loose for a scramble.
+    // REBOUND_CHANCE gates frequency; rebound lands at the edge of the six-yard box
+    // so defenders can contest rather than the attacker collecting unopposed.
+    if (outcome.margin < -0.1 && rng() < REBOUND_CHANCE) {
+      events.push({
+        type: 'rebound', team: attacking.side,
+        description: `${name(defending, gkId)} can't hold it — rebound!`,
+      });
+      const reboundAt = { x: 0.5, y: attacking.side === 'home' ? 0.88 : 0.12 };
+      return resolveLooseBall(ctx, reboundAt, { includeGk: true });
+    }
     if (rng() < CORNER_CHANCE_ON_SAVE) { return resolveCorner(ctx); }
     return { events, ball: { mode: 'carried', side: defending.side, carrierId: gkId } };
   }
@@ -374,8 +457,10 @@ function maybeFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, defenderId
     metadata: { attackerId: carrierId, ...duelMeta(outcome, attacking.side, carrierId, defenderId) },
   });
 
-  // Yellow first: any foul can be booked; bad fouls almost always are.
-  if (rng() < YELLOW_CHANCE) {
+  // Yellow first. Already-booked players are more cautious — reduced chance.
+  const alreadyBooked = ctx.defending.bookedPlayers?.has(defenderId) ?? false;
+  const yellowP = alreadyBooked ? YELLOW_CHANCE * YELLOW_SECOND_BOOKING_MODIFIER : YELLOW_CHANCE;
+  if (rng() < yellowP) {
     events.push({
       type: 'yellow_card', team: defending.side, playerId: defenderId,
       description: `${name(defending, defenderId)} is booked`,
@@ -503,7 +588,7 @@ function resolveDeliveryIntoBox(
     // A poor ball: the keeper claims or it runs loose.
     if (defending.gkId && delivery.margin > -0.25) {
       events.push({
-        type: 'save', team: defending.side, playerId: defending.gkId,
+        type: 'gk_claim', team: defending.side, playerId: defending.gkId,
         description: `${name(defending, defending.gkId)} claims the ${label}`,
       });
       return { events, ball: { mode: 'carried', side: defending.side, carrierId: defending.gkId } };
@@ -535,7 +620,7 @@ function resolveDeliveryIntoBox(
 function resolveShortPass(ctx: Ctx, carrierId: string): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const from = attacking.positions[carrierId];
-  const receiverId = pickReceiver(attacking, from);
+  const receiverId = pickReceiver(attacking, from, rng);
   if (!receiverId) { return resolveDribble(ctx, carrierId); }
   const to = attacking.positions[receiverId];
   const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
@@ -554,6 +639,15 @@ function resolveShortPass(ctx: Ctx, carrierId: string): FlowTickResult {
     });
     return { events, ball: { mode: 'carried', side: attacking.side, carrierId: receiverId } };
   }
+  // D1: narrow interception — the ball breaks loose rather than going cleanly to the reader
+  if (outcome.margin > -0.3) {
+    events.push({
+      type: 'loose_ball', team: attacking.side, playerId: carrierId,
+      description: `The pass from ${name(attacking, carrierId)} breaks loose`,
+      metadata: { contestedAction: 'short_pass', attackingTeam: attacking.side, attackerId: carrierId },
+    });
+    return resolveLooseBall(ctx, midpoint);
+  }
   const reader = readerId ?? defending.gkId ?? '';
   events.push(turnoverEvent(
     'interception', defending, reader,
@@ -566,8 +660,8 @@ function resolveShortPass(ctx: Ctx, carrierId: string): FlowTickResult {
 function resolveThroughBall(ctx: Ctx, carrierId: string): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const from = attacking.positions[carrierId];
-  const runnerId = pickReceiver(attacking, from, { advanced: true })
-    ?? pickReceiver(attacking, from);
+  const runnerId = pickReceiver(attacking, from, rng, { advanced: true })
+    ?? pickReceiver(attacking, from, rng);
   if (!runnerId) { return resolveDribble(ctx, carrierId); }
 
   const target = carryForward(attacking.positions[runnerId], attacking.side, 0.15);
@@ -601,6 +695,15 @@ function resolveThroughBall(ctx: Ctx, carrierId: string): FlowTickResult {
   );
 
   if (!outcome.attackerWins) {
+    // D1: narrow race loss — the ball bobbles through loosely
+    if (outcome.margin > -0.3) {
+      events.push({
+        type: 'loose_ball', team: attacking.side, playerId: carrierId,
+        description: `The through ball breaks loose`,
+        metadata: { contestedAction: 'through_ball', attackingTeam: attacking.side, attackerId: carrierId },
+      });
+      return resolveLooseBall(ctx, target);
+    }
     const cover = coverId ?? defending.gkId ?? '';
     events.push(turnoverEvent(
       'interception', defending, cover,
@@ -645,23 +748,33 @@ function resolveThroughBall(ctx: Ctx, carrierId: string): FlowTickResult {
   return { events, ball: { mode: 'carried', side: attacking.side, carrierId: runnerId } };
 }
 
-function resolveLongBall(ctx: Ctx, carrierId: string): FlowTickResult {
+function resolveLongBall(ctx: Ctx, carrierId: string, opts?: { deliverySkill?: number }): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const targetId = bestBy(attacking, p => p.attributes.strength);
   const landing = carryForward(attacking.positions[targetId], attacking.side, 0.05);
   const readerId = nearestDefender(defending, landing);
   const delivery = deliveryCheck(
-    attr(attacking, carrierId, 'passing'), LONG_BALL_DELIVERY, rng,
+    opts?.deliverySkill ?? attr(attacking, carrierId, 'passing'), LONG_BALL_DELIVERY, rng,
     readerId ? attr(defending, readerId, 'defending') : teamAvg(defending, 'defending'),
   );
-  if (!delivery.onTarget && delivery.margin < -0.2) {
-    events.push(turnoverEvent(
-      'interception', defending, nearestDefender(defending, landing) ?? defending.gkId ?? '',
-      'The long ball sails through to the defence',
-      attacking, carrierId, 'long_pass',
-    ));
-    const takerId = nearestDefender(defending, landing) ?? defending.gkId ?? '';
-    return { events, ball: { mode: 'carried', side: defending.side, carrierId: takerId } };
+  if (!delivery.onTarget) {
+    if (delivery.margin < -0.2) {
+      // Badly overhit — clean interception
+      events.push(turnoverEvent(
+        'interception', defending, nearestDefender(defending, landing) ?? defending.gkId ?? '',
+        'The long ball sails through to the defence',
+        attacking, carrierId, 'long_pass',
+      ));
+      const takerId = nearestDefender(defending, landing) ?? defending.gkId ?? '';
+      return { events, ball: { mode: 'carried', side: defending.side, carrierId: takerId } };
+    }
+    // D1: narrow miss — loose ball in the landing zone
+    events.push({
+      type: 'loose_ball', team: attacking.side, playerId: carrierId,
+      description: `The long ball drops loose in midfield`,
+      metadata: { contestedAction: 'long_pass', attackingTeam: attacking.side, attackerId: carrierId },
+    });
+    return resolveLooseBall(ctx, landing);
   }
   const markerId = nearestDefender(defending, landing);
   const outcome = resolveDuel(
@@ -725,7 +838,8 @@ function resolveDribble(ctx: Ctx, carrierId: string): FlowTickResult {
       `${name(defending, defenderId)} times the tackle on ${name(attacking, carrierId)}`,
       attacking, carrierId, 'dribble', outcome,
     ));
-    if (nearTouch) {
+    if (nearTouch && rng() < 0.25) {
+      // ~25% of touchline tackles send the ball out of play; the rest stay in.
       // In the final third a strong enough taker launches it into the box (§4);
       // otherwise it's a cheap quick restart.
       const throwerId = bestBy(attacking, p => p.attributes.strength);
@@ -740,7 +854,7 @@ function resolveDribble(ctx: Ctx, carrierId: string): FlowTickResult {
           ctx, throwerId, LONG_THROW_DELIVERY, 'long throw', attr(attacking, throwerId, 'strength'),
         );
       }
-      const takerId = pickReceiver(attacking, at) ?? carrierId;
+      const takerId = pickReceiver(attacking, at, rng) ?? carrierId;
       events.push({
         type: 'throw_in', team: attacking.side, playerId: takerId,
         description: `Out for a throw-in — ${name(attacking, takerId)} takes it quickly`,
@@ -826,10 +940,11 @@ function resolveClear(ctx: Ctx, carrierId: string): FlowTickResult {
 
 /** Free-ball pickup (§4b): a speed race between the nearest player of each side,
  *  escalating to strength on a narrow win. */
-export function resolveLooseBall(ctx: Ctx, at: XY): FlowTickResult {
+export function resolveLooseBall(ctx: Ctx, at: XY, opts?: { includeGk?: boolean }): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const atkId = nearestTo(at, attacking.positions, attacking.gkId ? new Set([attacking.gkId]) : undefined)[0];
-  const defId = nearestTo(at, defending.positions, defending.gkId ? new Set([defending.gkId]) : undefined)[0];
+  const defExclude = (!opts?.includeGk && defending.gkId) ? new Set([defending.gkId]) : undefined;
+  const defId = nearestTo(at, defending.positions, defExclude)[0];
   if (!atkId && !defId) { return { events, ball: { mode: 'free', at } }; }
   if (!atkId || !defId) {
     const team = atkId ? attacking : defending;
@@ -859,6 +974,138 @@ export function resolveLooseBall(ctx: Ctx, at: XY): FlowTickResult {
   return { events, ball: { mode: 'carried', side: winner.side, carrierId: winnerId } };
 }
 
+/** Back pass: carrier plays the ball backward to the GK or the deepest available
+ *  teammate. Very low resistance — almost always succeeds unless under extreme pressure. */
+function resolveBackPass(ctx: Ctx, carrierId: string): FlowTickResult {
+  const { attacking, defending, rng, events } = ctx;
+  const from = attacking.positions[carrierId];
+  const carrierY = attackY(from, attacking.side);
+
+  // Target: prefer GK; otherwise the deepest outfield player behind the carrier.
+  let targetId: string | null = attacking.gkId ?? null;
+  if (!targetId || targetId === carrierId) {
+    let bestY = Infinity;
+    for (const id of outfieldIds(attacking)) {
+      if (id === carrierId) { continue; }
+      const y = attackY(attacking.positions[id], attacking.side);
+      if (y < carrierY && y < bestY) { bestY = y; targetId = id; }
+    }
+  }
+  if (!targetId) { return resolveShortPass(ctx, carrierId); }
+
+  // Nearest defender to the passing lane — back passes are still intercept-able.
+  const to = attacking.positions[targetId];
+  const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+  const readerId = nearestDefender(defending, midpoint);
+  // Low resist (25) — this is a routine ball; only heavy pressure intercepts it.
+  const outcome = resolveDuel(
+    attr(attacking, carrierId, 'passing'),
+    readerId ? attr(defending, readerId, 'defending') * 0.4 : 25,
+    PASS_DUEL, rng,
+  );
+  if (outcome.attackerWins) {
+    events.push({
+      type: 'back_pass', team: attacking.side, playerId: carrierId,
+      description: `${name(attacking, carrierId)} plays it back to ${name(attacking, targetId)}`,
+      metadata: { receiverId: targetId },
+    });
+    return { events, ball: { mode: 'carried', side: attacking.side, carrierId: targetId } };
+  }
+  const reader = readerId ?? defending.gkId ?? '';
+  events.push(turnoverEvent(
+    'interception', defending, reader,
+    `${name(defending, reader)} pounces on the sloppy back pass`,
+    attacking, carrierId, 'back_pass', outcome,
+  ));
+  return { events, ball: { mode: 'carried', side: defending.side, carrierId: reader } };
+}
+
+/** Progressive carry: a defender or DM drives forward with the ball into space.
+ *  Single duel: (technique + speed bonus) vs the nearest opponent ahead.
+ *  Win → carrier advances; lose → loose ball at the carry point. */
+function resolveProgressiveCarry(ctx: Ctx, carrierId: string): FlowTickResult {
+  const { attacking, defending, rng, events } = ctx;
+  const at = attacking.positions[carrierId];
+  const target = carryForward(at, attacking.side, 0.18);
+
+  const potentialDefId = nearestDefender(defending, target);
+  // Only contest carries when a defender is actually close enough to challenge.
+  const defenderId = potentialDefId && distance(defending.positions[potentialDefId], target) < 0.35
+    ? potentialDefId : null;
+  if (!defenderId) {
+    // No opposition ahead — free run forward.
+    attacking.positions[carrierId] = target;
+    events.push({
+      type: 'progressive_carry', team: attacking.side, playerId: carrierId,
+      description: `${name(attacking, carrierId)} drives forward into space`,
+    });
+    return { events, ball: { mode: 'carried', side: attacking.side, carrierId } };
+  }
+
+  // Single duel: technique + speed bonus vs defender's defending.
+  const attackerSkill = attr(attacking, carrierId, 'technique')
+    + attr(attacking, carrierId, 'speed') * 0.3;
+  const outcome = resolveDuel(attackerSkill, attr(defending, defenderId, 'defending'), DRIBBLE_DUEL, rng);
+
+  if (outcome.attackerWins) {
+    const foul = maybeFoul(ctx, outcome, carrierId, defenderId, at);
+    if (foul) { return foul; }
+    attacking.positions[carrierId] = target;
+    defending.positions[defenderId] = carryForward(at, attacking.side, -0.03);
+    events.push({
+      type: 'progressive_carry', team: attacking.side, playerId: carrierId,
+      description: `${name(attacking, carrierId)} carries past ${name(defending, defenderId)} into midfield`,
+      metadata: duelMeta(outcome, attacking.side, carrierId, defenderId),
+    });
+    return { events, ball: { mode: 'carried', side: attacking.side, carrierId } };
+  }
+
+  const foul = maybeFoul(ctx, outcome, carrierId, defenderId, at);
+  if (foul) { return foul; }
+  events.push(turnoverEvent(
+    'tackle', defending, defenderId,
+    `${name(defending, defenderId)} stops ${name(attacking, carrierId)}'s run`,
+    attacking, carrierId, 'progressive_carry', outcome,
+  ));
+  return resolveLooseBall(ctx, at);
+}
+
+/** Cutback from near the byline: deliver to an infield runner for a first-time finish.
+ *  Uses passing+technique blend for delivery; on target → technique vs keeper (DRIBBLE_DUEL
+ *  — harder than a normal shot, but keeper is stretched). */
+function resolveCutback(ctx: Ctx, carrierId: string): FlowTickResult {
+  const { attacking, defending, rng, events } = ctx;
+  const from = attacking.positions[carrierId];
+  const receiverId = pickReceiver(attacking, from, rng);
+  if (!receiverId) { return resolveCross(ctx, carrierId); }
+  const to = attacking.positions[receiverId];
+  const readerId = nearestDefender(defending, to);
+  const deliveryAttr = (attr(attacking, carrierId, 'passing') + attr(attacking, carrierId, 'technique')) / 2;
+  const outcome = resolveDuel(
+    deliveryAttr,
+    readerId ? attr(defending, readerId, 'defending') : 25,
+    PASS_DUEL, rng,
+  );
+  if (!outcome.attackerWins) {
+    const reader = readerId ?? defending.gkId ?? '';
+    events.push(turnoverEvent(
+      'interception', defending, reader,
+      `The cutback from ${name(attacking, carrierId)} is cut out`,
+      attacking, carrierId, 'cutback', outcome,
+    ));
+    if (rng() < CORNER_CHANCE_ON_CLEARANCE) { return resolveCorner(ctx); }
+    return { events, ball: { mode: 'carried', side: defending.side, carrierId: reader } };
+  }
+  events.push({
+    type: 'cutback', team: attacking.side, playerId: carrierId,
+    description: `${name(attacking, carrierId)} cuts it back to ${name(attacking, receiverId)}`,
+    metadata: { receiverId },
+  });
+  attacking.positions[receiverId] = { ...to };
+  // First-time finish: DRIBBLE_DUEL vs keeper (keeper is stretched, different angle)
+  return resolveShot(ctx, receiverId, { spec: DRIBBLE_DUEL, label: 'first-time finish' });
+}
+
 // ── the flow tick ────────────────────────────────────────────────────────────────
 
 const RESOLVERS: Record<Situation, (ctx: Ctx, carrierId: string) => FlowTickResult> = {
@@ -866,8 +1113,44 @@ const RESOLVERS: Record<Situation, (ctx: Ctx, carrierId: string) => FlowTickResu
   through_ball: resolveThroughBall,
   long_ball: resolveLongBall,
   cross: resolveCross,
+  back_pass: resolveBackPass,
+  progressive_carry: resolveProgressiveCarry,
+  cutback: resolveCutback,
   dribble: resolveDribble,
-  shot: (ctx, id) => resolveShot(ctx, id),
+  shot: (ctx, id) => {
+    const { attacking, defending, rng, events } = ctx;
+    const at = attacking.positions[id];
+    const goal = goalPoint(attacking.side);
+
+    // D2: blocked shot — nearest outfield defender in the shooting lane gets a block attempt
+    const blockerId = nearestDefender(defending, at);
+    if (blockerId) {
+      const bPos = defending.positions[blockerId];
+      const inLane = linePointDistance(at, goal, bPos) < 0.1;
+      const betweenShooterAndGoal = distance(bPos, goal) < distance(at, goal);
+      if (inLane && betweenShooterAndGoal) {
+        const blockOutcome = resolveDuel(
+          attr(defending, blockerId, 'technique'),
+          attr(attacking, id, 'finishing'),
+          DRIBBLE_DUEL, rng,
+        );
+        if (blockOutcome.attackerWins) {
+          events.push({
+            type: 'blocked_shot', team: defending.side, playerId: blockerId,
+            description: `${name(defending, blockerId)} blocks the shot`,
+            metadata: duelMeta(blockOutcome, defending.side, blockerId, id),
+          });
+          if (rng() < CORNER_CHANCE_ON_CLEARANCE) { return resolveCorner(ctx); }
+          return { events, ball: { mode: 'free', at: carryForward(at, defending.side, 0.05) } };
+        }
+      }
+    }
+
+    // D6: long shot distance penalty when outside the box
+    const yAttack = attackY(at, attacking.side);
+    const isLongShot = yAttack < 0.83;
+    return resolveShot(ctx, id, isLongShot ? { bonus: -0.08, label: 'long shot' } : undefined);
+  },
   shield: resolveShield,
   clear: resolveClear,
 };
@@ -893,10 +1176,22 @@ export function flowTick(home: FlowTeam, away: FlowTeam, ball: BallState, rng: (
   const carrierId = ball.carrierId;
   const ctx: Ctx = { attacking, defending, rng, events: [] };
 
-  // A GK in possession just distributes: short pass or long ball, never dribbles out.
+  // 15C: GK distribution — emit a narrative event then delegate to the appropriate resolver.
+  // GK uses goalkeeping attribute for long kicks (delivery quality), passing for short roll-outs.
   if (carrierId === attacking.gkId) {
-    const direct = (attacking.params.passingRisk ?? 50) / 100;
-    return rng() < direct ? resolveLongBall(ctx, carrierId) : resolveShortPass(ctx, carrierId);
+    const direct = (attacking.params.passingRisk ?? 50) / 100 * 0.75;
+    const isLong = rng() < direct;
+    ctx.events.push({
+      type: isLong ? 'gk_long' : 'gk_short',
+      team: attacking.side, playerId: carrierId,
+      description: isLong
+        ? `${name(attacking, carrierId)} launches it long`
+        : `${name(attacking, carrierId)} rolls it out`,
+    });
+    if (isLong) {
+      return resolveLongBall(ctx, carrierId, { deliverySkill: attr(attacking, carrierId, 'goalkeeping') });
+    }
+    return resolveShortPass(ctx, carrierId);
   }
 
   const carrier = byId(attacking, carrierId);
@@ -907,6 +1202,33 @@ export function flowTick(home: FlowTeam, away: FlowTeam, ball: BallState, rng: (
   }
 
   const local = localNumbers(attacking, defending, pos);
+
+  // D3: press duel — when carrier is heavily pressured, the presser gets a pre-situation
+  // challenge. Fires probabilistically scaled by pressIntensity slider.
+  const pressIntensity = (attacking.params.pressIntensity ?? 50) / 100;
+  if (local.secondDefenderPenalty >= SECOND_DEFENDER_CAP * 0.8) {
+    const presserId = nearestDefender(defending, pos);
+    if (presserId && rng() < pressIntensity * 0.4) {
+      const pressOutcome = resolveDuel(
+        attr(attacking, carrierId, 'technique'),
+        attr(defending, presserId, 'defending'),
+        DRIBBLE_DUEL, rng,
+      );
+      if (!pressOutcome.attackerWins) {
+        ctx.events.push(turnoverEvent(
+          'tackle', defending, presserId,
+          `${name(defending, presserId)} wins the ball with a high press`,
+          attacking, carrierId, 'dribble', pressOutcome,
+        ));
+        if (pressOutcome.margin > -0.3) {
+          return resolveLooseBall(ctx, pos);
+        }
+        return { events: ctx.events, ball: { mode: 'carried', side: defending.side, carrierId: presserId } };
+      }
+      // Carrier survives the press — continue to normal situation choice
+    }
+  }
+
   const situation = chooseSituation(situationWeights(carrier, pos, attacking, local), rng);
   return RESOLVERS[situation](ctx, carrierId);
 }

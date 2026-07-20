@@ -1,6 +1,6 @@
 import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES, traitDeltas } from './player-generator.ts';
 import {
-  calculateOverall, type PlayerPosition, type PlayerAttributes, type Player,
+  calculateOverall, type PlayerPosition, type PlayerAttributes,
 } from '@fm2k/match';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = [

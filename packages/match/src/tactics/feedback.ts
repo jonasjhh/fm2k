@@ -17,6 +17,9 @@ const EXPECTED_SUCCESS: Record<ContestedActionType, number> = {
   through_ball: THROUGH_BALL_DELIVERY.baseChance,
   cross: CROSS_DELIVERY.baseChance,
   dribble: DRIBBLE_DUEL.baseChance,
+  back_pass: PASS_DUEL.baseChance,
+  progressive_carry: DRIBBLE_DUEL.baseChance,
+  cutback: PASS_DUEL.baseChance,
 };
 import { squadSuitability, defensiveSuitability, attackEffectiveness } from './suitability.ts';
 import { TYPICAL_EFF } from './resolve.ts';
@@ -84,6 +87,9 @@ const ACTION_LABEL: Record<ContestedActionType, string> = {
   through_ball: 'Through balls',
   cross: 'Crosses',
   dribble: 'Dribbles',
+  back_pass: 'Back passes',
+  progressive_carry: 'Progressive carries',
+  cutback: 'Cutbacks',
 };
 
 const ACTION_CATEGORY: Record<ContestedActionType, InsightCategory> = {
@@ -92,6 +98,9 @@ const ACTION_CATEGORY: Record<ContestedActionType, InsightCategory> = {
   through_ball: 'attack',
   cross: 'attack',
   dribble: 'attack',
+  back_pass: 'defense',
+  progressive_carry: 'transition',
+  cutback: 'attack',
 };
 
 const pct = (n: number): string => `${Math.round(n * 100)}%`;

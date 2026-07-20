@@ -19,8 +19,8 @@ function statistics(overrides: Partial<MatchStatistics> = {}): MatchStatistics {
     lateGoals: { home: 0, away: 0 },
     fastBreakGoals: { home: 0, away: 0 },
     actionBreakdown: {
-      home: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally },
-      away: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally },
+      home: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally, back_pass: zeroTally, progressive_carry: zeroTally, cutback: zeroTally },
+      away: { short_pass: zeroTally, long_pass: zeroTally, through_ball: zeroTally, cross: zeroTally, dribble: zeroTally, back_pass: zeroTally, progressive_carry: zeroTally, cutback: zeroTally },
     },
     playerRatings: { p1: 8.2, p2: 5.5, p3: 6.9 },
     ...overrides,
