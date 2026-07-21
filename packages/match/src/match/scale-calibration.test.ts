@@ -42,11 +42,18 @@ function team(id: string, value: number): Team {
   return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
 
-function series(n: number, homeVal: number, awayVal: number) {
+/** A flat team with per-player attribute tweaks applied (e.g. one lethal striker). */
+function teamWith(id: string, value: number, tweak: (p: Player) => void): Team {
+  const t = team(id, value);
+  t.squad.forEach(tweak);
+  return t;
+}
+
+function series(n: number, homeVal: number, awayVal: number, epm = 3) {
   let homeWins = 0, awayWins = 0, homeGoals = 0, awayGoals = 0, completed = 0, homeShots = 0, awayShots = 0;
   for (let s = 0; s < n; s++) {
     const localSim = sim({
-      matchDuration: 90, eventsPerMinute: 3,
+      matchDuration: 90, eventsPerMinute: epm,
       homeTeam: team('home', homeVal), awayTeam: team('away', awayVal), rng: mulberry32(s + 1),
     });
     const r = localSim.simulate();
@@ -70,17 +77,30 @@ function series(n: number, homeVal: number, awayVal: number) {
 const N = 80;
 
 describe('attribute-scale calibration (quality gradient):', () => {
-  it('given a tier-1 (75) side vs a tier-3 (25) side then the stronger side dominates', () => {
-    const r = series(N, 75, 25);
-    expect(r.homeWins).toBeGreaterThan(r.awayWins * 5);
-    expect(r.homeGoals).toBeGreaterThan(r.awayGoals);
+  it('given a tier-1 (75) side vs a tier-3 (25) side then the stronger side clearly dominates', () => {
+    // gap 50, beyond DUEL_GAP_CAP: the duel engine saturates it to ~gap-28, so the stronger
+    // side dominates decisively but no longer by an unbounded margin (see the cup-tie note below).
+    const r = series(N, 75, 25, 13);
+    expect(r.homeWins).toBeGreaterThan(r.awayWins * 2);
+    expect(r.homeGoals).toBeGreaterThan(r.awayGoals * 1.8);
   });
 
-  it('given a world-class (90) side vs a minimum (15) side then it is a near-total mismatch', () => {
-    // The flattened gap curve concedes the odd draw to the minnow, never a defeat.
-    const r = series(N, 90, 15);
-    expect(r.homeWins).toBeGreaterThanOrEqual(N * 0.80);
-    expect(r.awayWins).toBeLessThanOrEqual(2);
+  it('given any-given-Sunday then even a tier-3 side beats a tier-1 side sometimes', () => {
+    // The saturation ceiling (~75% for the favourite) is a *floor* under the minnow: over a
+    // season-length sample the underdog nicks at least one win — a hot-form day (conversion
+    // swing) against the favourite's cold day. Skill dominates the table; it never guarantees
+    // a single result.
+    const r = series(N, 75, 25, 13);
+    expect(r.awayWins).toBeGreaterThan(0);
+  });
+
+  it('given a world-class (90) side vs a minimum (15) side then the mismatch saturates (no 100%)', () => {
+    // gap 75 also clamps to the cap, so it plays no more lopsidedly than the 75v25 tie — the
+    // minnow keeps the same real puncher's chance. Dominant, never total.
+    const r = series(N, 90, 15, 13);
+    expect(r.homeWins).toBeGreaterThan(r.awayWins * 2);   // still clearly on top
+    expect(r.awayWins).toBeGreaterThan(0);                // but the upset remains possible
+    expect(r.homeWins).toBeLessThan(N);                   // saturation: never a clean sweep
   });
 
   it('given matches at any tier then every match still completes to full time', () => {
@@ -111,5 +131,50 @@ describe('attribute-scale calibration (quality gradient):', () => {
     // The weak side should be starved of shots, not merely miss the ones it gets.
     const r = series(N, 75, 25);
     expect(r.homeShots).toBeGreaterThan(r.awayShots * 1.7);
+  });
+
+  it('given a lethal striker against a leaky keeper then home goals spike over a flat even match', () => {
+    // Individual quality at the decisive moment — finishing vs goalkeeping in the shot duel —
+    // must move the scoreline, not just the aggregate OVR. One 90-finisher + one 20-keeper.
+    const baseline = series(N, 55, 55, 13);
+    const homeSharp = teamWith('home', 55, p => { if (p.id === 'home-ST0') { p.attributes.finishing = 90; } });
+    const awayLeaky = teamWith('away', 55, p => { if (p.id === 'away-GK0') { p.attributes.goalkeeping = 20; } });
+    let homeGoals = 0;
+    for (let s = 0; s < N; s++) {
+      const r = sim({
+        matchDuration: 90, eventsPerMinute: 13,
+        homeTeam: homeSharp, awayTeam: awayLeaky, rng: mulberry32(s + 1),
+      }).simulate();
+      homeGoals += r.finalState.homeScore;
+    }
+    expect(homeGoals).toBeGreaterThan(baseline.homeGoals);
+  });
+
+  it('given a strong, poor-finishing striker then his headers convert better than his ground shots', () => {
+    // The header-conversion blend must make a physical striker a real aerial threat despite weak
+    // finishing. Comparing the SAME player's header vs open-play conversion removes every confound
+    // (open-play ability, headed-share skew): the only difference is that a header finishes off
+    // (strength+finishing)/2 while a ground shot finishes off finishing alone. With strength 85 /
+    // finishing 35 the header attr is 60 vs 35 on the ground — so headers should go in at a higher
+    // rate. This assertion FAILS under the old pure-finishing conversion (both rates equal).
+    const home = teamWith('home', 55, p => {
+      if (p.id === 'home-ST0') { p.attributes.strength = 85; p.attributes.finishing = 35; }
+    });
+    const away = team('away', 55);
+    let headerShots = 0, headerGoals = 0, openShots = 0, openGoals = 0;
+    for (let s = 0; s < N; s++) {
+      const r = sim({
+        matchDuration: 90, eventsPerMinute: 13, homeTeam: home, awayTeam: away, rng: mulberry32(s + 1),
+      }).simulate();
+      for (const e of r.events) {
+        if (e.playerId !== 'home-ST0') { continue; }
+        if (e.type === 'shot') { e.description.includes('header') ? headerShots++ : openShots++; }
+        if (e.type === 'goal') { e.description.includes('heads') ? headerGoals++ : openGoals++; }
+      }
+    }
+    // Enough of each shot type to make the conversion ratios meaningful.
+    expect(headerShots).toBeGreaterThan(20);
+    expect(openShots).toBeGreaterThan(20);
+    expect(headerGoals / headerShots).toBeGreaterThan(openGoals / openShots);
   });
 });

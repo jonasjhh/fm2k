@@ -1,6 +1,6 @@
 # FM2K — Match & skills rework ("duel engine" / match sim v2)
 
-Status (2026-07-20): **TASK_02, TASK_15 fully complete.** 328 tests green. Next: TASK_11 (gap-20 win rate / duel spread tuning).
+Status (2026-07-21): **TASK_02, TASK_15, TASK_11 complete.** Repo check green. Next: TASK_12 (mundane fouls) or TASK_16 (anti-siphoning).
 
 ## Standing rules
 
@@ -12,20 +12,37 @@ Status (2026-07-20): **TASK_02, TASK_15 fully complete.** 328 tests green. Next:
 
 ## Settled calibration numbers (reference)
 
-Duel knobs in `packages/match/src/match/duel/duels.ts`:
-- Pass: baseChance 0.78, spread 1200, clamp 0.45–0.97
-- Dribble: baseChance 0.44, spread 1000, clamp 0.08–0.9
-- Speed/Strength: baseChance 0.5, spread 900, clamp 0.08–0.92
-- Shot vs keeper: baseChance **0.10**, spread 800, clamp 0.02–0.35  ← updated 15E
+Duel knobs in `packages/match/src/match/duel/duels.ts` (post-TASK_11):
+- Pass: baseChance 0.78, spread **850**, clamp 0.45–0.97
+- Dribble: baseChance 0.44, spread **750**, clamp 0.08–0.9
+- Speed/Strength: baseChance 0.5, spread **700**, clamp 0.08–0.92
+- Shot vs keeper: baseChance **0.095**, spread 800, clamp 0.02–0.35
 - Penalty: baseChance 0.76, spread 300, clamp 0.6–0.9
+- LONG_BALL_DELIVERY baseChance **0.55** (GK long kick ≈ 50/50, modified by passing)
+- **Gap saturation (soft knee):** `saturateGap` — GAP_SATURATION_KNEE 22, GAP_SATURATION_SOFTNESS 3.
+  Applied in `duelChance` AND `deliveryCheck`. Below the knee skill counts fully; above it each
+  raw point counts 1/3, so mismatches taper (gap-50/75 saturate ~78–80% wins, never 100%; upsets
+  get rarer as the gap grows). SOFTNESS=1 = off, ∞ = hard cap.
 
-Flow knobs in `packages/match/src/match/duel/flow.ts` (post-15E):
+Match-form variance in `packages/match/src/match/rng.ts` (TASK_11):
+- Per-team, per-match `MatchForm { attack, defense }` in shot-conversion points; folded into the
+  shot duel's bonus only (never territory). σ (MATCH_FORM_SIGMA) 0.05, clamp ±0.10 (Gaussian).
+- Three-way contract: inject `homeForm`/`awayForm` (gameplay/TASK_17) · absent → sim draws its own
+  (harness, so σ is tunable) · `NEUTRAL_MATCH_FORM` → deterministic. Only bites when teams differ.
+
+Flow knobs in `packages/match/src/match/duel/flow.ts`:
 - EPM: 13
+- **Header conversion:** a won header finishes off `headerFinishAttr = 0.5·strength + 0.5·finishing`
+  (AERIAL_STRENGTH_WEIGHT / AERIAL_FINISHING_WEIGHT) — physical strikers head despite ground-biased
+  finishing. `str==fin` → no-op (calibration-safe).
 - YELLOW_CHANCE: 0.38 (inflated — only ~1/3 real foul count; drops to ~0.18 after TASK_12)
 - YELLOW_SECOND_BOOKING_MODIFIER: 0.40 (~15% second-booking rate)
 - RED_MARGIN: 0.45, RED_CHANCE: 0.01, PRO_FOUL_RED_CHANCE: 0.03
 - REBOUND_CHANCE: 0.20 (D7 scramble gate)
 - Throw-in gate: 25% of touchline tackles go out of play
+
+TASK_11 result — gap curve (win%): gap-10 ~63, gap-20 ~72, gap-30 ~73, gap-40/50 ~78–80 (saturated).
+Even matches ~3.1 goals, draws ~20–24%. Upsets always possible (a tier-3 side beats a tier-1 sometimes).
 
 25-season churn (Norway harness): D1 59→62, D2 39→50, D3 28→41; pool OVR stabilises ~30 by season 17.
 
@@ -42,16 +59,16 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | # | File | What it is | Suggested prereqs |
 |---|------|-----------|-------------------|
 | 1 | `TASK_01.md` | **Transfer negotiation** — multi-round bid/counter-offer for club-to-club transfers; incoming AI offers for your players | None (standalone UI + backend feature) |
-| 2 | `TASK_02.md` | **Mid-match formation change** — bug: formation changes made during a live match don't take effect until the next match; UI lives in the match overlay's right pane (slot is commented out) | None |
+| 2 | `TASK_02.md` | ✅ **Mid-match formation change** — DONE. `FormationSelector` extracted, wired into `MatchOverlay` with `FormationGrid`. Engine already handled it via `applyPendingTactics()`. | None |
 | 3 | `TASK_03.md` | **Newspaper: transfer rumours** — add a rumour article category to the newspaper tab driven by transfer window activity | None |
 | 4 | `TASK_04.md` | **Academy intake day** — annual event surfacing your youth academy graduates with stats, potential, and a decision to promote or release | None |
 | 5 | `TASK_05.md` | **Records / top scorers** — persistent season-by-season records for goals, clean sheets, longest win streaks, etc. | None |
 | 6 | `TASK_06.md` | **Deeper match insights** — expand the half-time and full-time insight cards; add more detector types beyond the current 7 | Read `packages/match/src/tactics/feedback.ts` first; re-verify against v2 match engine |
 | 7 | `TASK_07.md` | **Recalibration** — re-run the calibration harness after any duel-knob change (TASK_11) and lock the new numbers; also covers pace mechanic knobs from the old TASK_11 spec | Do after TASK_11 |
-| 11 | `TASK_11.md` | **Possession scaling + spread tuning** — engine delivers ~57% wins at gap-20, possession/shots don't scale with OVR. Tighten PASS/DRIBBLE spreads (1200→500, 1000→500), adjust GK long-ball baseline, add defensive-team and strong-striker calibration scenarios | None; trigger TASK_07 after to re-lock gates |
+| 11 | `TASK_11.md` | ✅ **Possession scaling + spread tuning + match-form variance** — DONE 2026-07-21. Spreads retuned (pass 850, dribble 750, speed/strength 700), soft-knee gap saturation, per-match form variance (conversion-only), header conversion blend, GK long-ball 0.55. Gap-20 ~72%, saturates high-70s, upsets always possible. | Trigger TASK_07 after to re-lock gates |
 | 12 | `TASK_12.md` | **Mundane fouls** — add tactical press fouls, set-piece shirt pulls, time-wasting yellows, and 50/50 reckless challenges to bring yellow rate from ~0.7–1.0/match toward ~3–4/match | Can be done anytime; raise the fouls test floor in `distribution.calibration.test.ts` from 0.9 to ~2.5 after completion |
 | 16 | `TASK_16.md` | **Quality-weighted receiver selection (anti-siphoning)** — `pickReceiver` scores receivers purely by position; a poor second striker siphons shots from the good one. Add finishing-weighted bonus in the attacking third so better finishers attract more of the ball, and poor finishers prefer to lay off | Do after TASK_11 (spread changes affect softmax balance); before TASK_07 |
-| 17 | `TASK_17.md` | **Recorded-form momentum** — feed real recent results (cross-competition, capped ±5) into TASK_11's per-team match-sharpness modifier so winning runs play sharper and slumps flatter, without ever locking a team. Gameplay-only; not calibratable by the harness | **Depends on TASK_11** (Piece 1 must ship the sharpness modifier first) |
+| 17 | `TASK_17.md` | **Recorded-form momentum** — feed real recent results (cross-competition, capped) into TASK_11's per-team `MatchForm` (the `homeForm`/`awayForm` inject point, shipped) so winning runs play sharper and slumps flatter, without ever locking a team. Gameplay-only; not calibratable by the harness. NOTE: `MatchForm` is conversion-only `{attack,defense}`, not an attribute shift — TASK_17 must map form → those two knobs | **Depends on TASK_11** (`MatchForm` inject point shipped) |
 | 13 | `TASK_13.md` | **Adaptive AI tactics** — three stages: (A) pre-match slider adaptation vs opponent strength, (B) half-time adjustments on the scoreline, (C) substitution reactions | None; stages are independent — ship A before starting B |
 | 14 | `TASK_14.md` | **Player rating overhaul** — extract rating logic into `rating-engine.ts`, add assists, clean-sheet bonus, position-weighted event deltas, defensive-duel penalty; encapsulated so swapping the model later is trivial | None; self-contained within `packages/match` |
 | 15 | `TASK_15.md` | ✅ **Match simulation richness** — DONE. 15A–15E all shipped. Real-football reference targets stored as comments in `flow.ts`. Remaining calibration gaps (through balls, corners, loose balls, carries) deferred to TASK_07 after TASK_11. | — |
@@ -61,10 +78,10 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 **Wave 1 — Engine foundation** (these interact; do in sequence)
 1. ✅ `TASK_02` — DONE
 2. ✅ `TASK_15` — DONE (15A–15E)
-3. `TASK_11` — possession scaling + spread tuning + match-sharpness variance (Piece 1); **do next**
-4. `TASK_12` — mundane fouls; top up yellow/foul rate after TASK_11
+3. ✅ `TASK_11` — DONE (spread tuning + soft-knee saturation + match-form variance + header blend)
+4. `TASK_12` — mundane fouls; top up yellow/foul rate — **do next**
 5. `TASK_16` — anti-siphoning; do after TASK_11 (spread changes affect softmax balance)
-6. `TASK_17` — recorded-form momentum (Piece 2); depends on TASK_11's sharpness modifier
+6. `TASK_17` — recorded-form momentum (Piece 2); depends on TASK_11's `MatchForm` injection (shipped)
 
 **Wave 2 — Lock the calibration gates**
 5. `TASK_07` — recalibrate and re-lock all test gates once the engine has stopped moving

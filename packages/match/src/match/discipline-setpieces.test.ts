@@ -86,15 +86,19 @@ describe('discipline & set pieces (behavioural):', () => {
   });
 
   it('given a goal then the scoring side carries brief momentum that then decays', () => {
-    const localSim = sim({ matchDuration: 90, eventsPerMinute: 4, homeTeam: team('h', 80), awayTeam: team('a', 30), rng: mulberry32(5) });
-    let state = localSim.getCurrentState();
+    // Match-form variance means any single match can be a goalless cold day, so sweep a
+    // few seeds until a goal (hence momentum) appears — the bound must always hold.
     let sawMomentum = false;
-    for (let m = 0; m < 90; m++) {
-      const { nextState } = localSim.simulateMinute(state);
-      state = nextState;
-      if ((state.momentum?.home ?? 0) > 0 || (state.momentum?.away ?? 0) > 0) { sawMomentum = true; }
-      expect(state.momentum?.home ?? 0).toBeLessThanOrEqual(40);
-      expect(state.momentum?.away ?? 0).toBeLessThanOrEqual(40);
+    for (let seed = 1; seed <= 8 && !sawMomentum; seed++) {
+      const localSim = sim({ matchDuration: 90, eventsPerMinute: 4, homeTeam: team('h', 80), awayTeam: team('a', 30), rng: mulberry32(seed) });
+      let state = localSim.getCurrentState();
+      for (let m = 0; m < 90; m++) {
+        const { nextState } = localSim.simulateMinute(state);
+        state = nextState;
+        if ((state.momentum?.home ?? 0) > 0 || (state.momentum?.away ?? 0) > 0) { sawMomentum = true; }
+        expect(state.momentum?.home ?? 0).toBeLessThanOrEqual(40);
+        expect(state.momentum?.away ?? 0).toBeLessThanOrEqual(40);
+      }
     }
     expect(sawMomentum).toBe(true);
   });

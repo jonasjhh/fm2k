@@ -62,9 +62,16 @@ describe('runDistribution aggregation:', () => {
 
   it('reports per-match duels won for both sides, favouring the stronger side overall', () => {
     const sum = (t: Record<string, number>) => Object.values(t).reduce((s, x) => s + x, 0);
-    expect(sum(r.duelsWonHome)).toBeGreaterThan(0);
-    expect(sum(r.duelsWonAway)).toBeGreaterThan(0);
-    expect(sum(r.duelsWonHome)).toBeGreaterThan(sum(r.duelsWonAway));
+    // A clear quality gap (70 v 40) so the stronger side's duel edge is unambiguous — at the
+    // shared 60 v 50 the totals are a near-tie once match-form variance is in play.
+    const gapped: DistributionInput = {
+      home: { team: team('h', 70), starters: team('h', 70).squad, intent },
+      away: { team: team('a', 40), starters: team('a', 40).squad, intent },
+    };
+    const g = runDistribution(gapped, N, 7);
+    expect(sum(g.duelsWonHome)).toBeGreaterThan(0);
+    expect(sum(g.duelsWonAway)).toBeGreaterThan(0);
+    expect(sum(g.duelsWonHome)).toBeGreaterThan(sum(g.duelsWonAway));
   });
 
   it('event-derived rates are finite non-negative per-match means', () => {

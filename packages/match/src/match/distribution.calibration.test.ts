@@ -22,6 +22,14 @@ const matchup = (hv: number, av: number): DistributionInput => {
   return { home: { team: home, starters: home.squad, intent }, away: { team: away, starters: away.squad, intent } };
 };
 
+// Two cagey, low-tempo sides — the classic recipe for a goalless stalemate.
+const defensiveIntent: TeamTacticsIntent = { formation: '4-4-2', style: 'defend_deep', sliders: { tempo: 15, risk: 20, defensiveLine: 25, pressIntensity: 35 } };
+const defensiveMatchup = (v: number): DistributionInput => {
+  const home = team('h', v);
+  const away = team('a', v);
+  return { home: { team: home, starters: home.squad, intent: defensiveIntent }, away: { team: away, starters: away.squad, intent: defensiveIntent } };
+};
+
 const N = 400;
 
 /**
@@ -45,14 +53,23 @@ describe('match distribution — calibration gates:', () => {
     expect(r.drawPct).toBeLessThan(0.38);
   });
 
-  it('a clear quality gap is usually decisive; a big gap nearly always is', () => {
-    // Gap-20 (65v45): engine delivers ~57% wins. Real football reference for a comparable
-    // mismatch (top-flight vs second-tier in a cup) is ~65–75%. The gap exists because of
-    // the high-variance "any given Sunday" design — see plan file for tuning guidance.
-    expect(runDistribution(matchup(65, 45), N, 1).homeWinPct).toBeGreaterThan(0.50);
+  it('a clear quality gap is decisive; a big gap saturates but never to certainty', () => {
+    // Gap-20 (65v45) → ~72% wins after the spread + match-form tuning (TASK_11). A big gap
+    // (75v25 = gap 50) is soft-saturated by the duel gap knee: dominant (high-70s/low-80s)
+    // but the minnow keeps a real "any given Sunday" upset chance — never near-total.
+    expect(runDistribution(matchup(65, 45), N, 1).homeWinPct).toBeGreaterThan(0.62);
     const big = runDistribution(matchup(75, 25), N, 1);
-    expect(big.homeWinPct).toBeGreaterThan(0.93);
+    expect(big.homeWinPct).toBeGreaterThan(0.68);
+    expect(big.homeWinPct).toBeLessThan(0.92);   // saturation: not a near-total mismatch
     expect(big.goals.homeMean).toBeGreaterThan(big.goals.awayMean * 2.5);
+  });
+
+  it('two defensive setups produce fewer goals and more 0-0s than an open, balanced game', () => {
+    const zeroPct = (r: ReturnType<typeof runDistribution>) => (r.goals.histogram[0] ?? 0) / r.n;
+    const open = runDistribution(matchup(55, 55), N, 1);
+    const cagey = runDistribution(defensiveMatchup(55), N, 1);
+    expect(cagey.goals.totalMean).toBeLessThan(open.goals.totalMean);
+    expect(zeroPct(cagey)).toBeGreaterThan(zeroPct(open));
   });
 
   it('pass volume is in the hundreds per match (both teams combined)', () => {

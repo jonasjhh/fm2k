@@ -1,6 +1,20 @@
-# TASK 11 — Possession scaling + spread tuning + match-form variance
+# TASK 11 — Possession scaling + spread tuning + match-form variance ✅ DONE (2026-07-21)
 
 > Conventions: run everything via `mise exec -- pnpm <cmd>`, never commit, never run the calibration harness unprompted. Tuning loop: edit knobs → `mise exec -- pnpm --filter @fm2k/engine calibration-report` (~54s) → diff `CALIBRATION_REPORT.md`.
+
+## ✅ Outcome (settled values)
+
+- **Spreads** (`duels.ts`): pass 1200→**850**, dribble 1000→**750**, speed/strength 900→**700**, shot baseChance 0.10→**0.095**, `LONG_BALL_DELIVERY` 0.60→**0.55**.
+- **Soft-knee gap saturation** (`saturateGap`, KNEE 22 / SOFTNESS 3) in `duelChance` *and* `deliveryCheck` — replaced the idea of a hard cap. Big gaps taper (gap-40/50 saturate ~78–80% wins, never 100%); upsets get rarer as the gap widens but never vanish.
+- **Match-form variance** (`rng.ts` `MatchForm`/`drawMatchForm`, σ=0.05, clamp ±0.10) — per-team, per-match conversion-only variance folded into the shot-duel bonus (`shotBonus`), never territory. Injectable three-way (inject / draw / `NEUTRAL_MATCH_FORM`). Gives demolitions + 0-0s + upsets without moving possession.
+- **Header conversion blend** (`headerFinishAttr = 0.5·strength + 0.5·finishing`) — a won header finishes off strength+finishing so a physical striker is an aerial threat despite ground-biased finishing. `str==fin` → no-op (calibration-safe). NOT the spread — the spread idea was a symptom-fix, dropped.
+- **Result**: gap-10 ~63%, gap-20 ~72%, gap-30 ~73%, gap-40/50 ~78–80% (saturated); even matches ~3.1 goals, draws ~20–24%.
+- **Tests**: gap gates retuned; two scenarios added (defensive teams → more 0-0s; lethal striker vs leaky keeper); flaky generated-player aerial test replaced by a hard-coded engine conversion test (match) + a fast generator stat test (players); `headerFinishAttr` unit test locks the `str==fin` invariant.
+- **Next**: TASK_07 re-locks all gates once the engine stops moving.
+
+---
+
+## Original brief (for reference)
 
 ## What this is
 

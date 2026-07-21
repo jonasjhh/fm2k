@@ -9,6 +9,7 @@
 
 import type { Player, PlayerAttributes } from '../../shared/types.ts';
 import type { EventType } from '../types.ts';
+import type { MatchForm } from '../rng.ts';
 import type { MatchParameters } from '../../tactics/match-parameters.ts';
 import {
   SPEED_DUEL, STRENGTH_DUEL, DRIBBLE_DUEL, PASS_DUEL, SHOT_DUEL, PENALTY_DUEL,
@@ -44,6 +45,8 @@ export interface FlowTeam {
   fieldedPositions?: Record<string, string>;
   /** Player ids that already have a yellow card this match — reduces their yellow chance. */
   bookedPlayers?: Set<string>;
+  /** This team's per-match form (final-third conversion variance). Absent → neutral. */
+  form?: MatchForm;
 }
 
 /** A not-yet-wrapped MatchEvent: the simulator adds id/minute/resultingState. */
@@ -91,6 +94,20 @@ export const PASS_TARGET_CAP = 0.1;
 /** Spare-man rule (§6): back-band surplus needed for the covering defender to join
  *  through-ball races at full strength (below it, the runner gets a bonus). */
 export const SPARE_MAN_BONUS = 0.08;
+/** Header conversion attribute = AERIAL_STRENGTH_WEIGHT·strength + AERIAL_FINISHING_WEIGHT·finishing.
+ *  A header is a physical finish, so a won header is scored off a blend of strength (rise +
+ *  power) and finishing (direction) — an aerial target man converts the headers he wins even
+ *  with modest finishing. Both 0.5 = neutral blend; raise strength to make big men more
+ *  menacing in the air. Only affects `aerial` shots; open-play shots stay pure finishing. */
+export const AERIAL_STRENGTH_WEIGHT = 0.5;
+export const AERIAL_FINISHING_WEIGHT = 0.5;
+
+/** Attribute a *won header* is finished with. Note: when strength == finishing this returns
+ *  that same value, so flat-attribute teams (the calibration harness) are unaffected — the
+ *  blend only bites when a player's strength and finishing differ. */
+export function headerFinishAttr(strength: number, finishing: number): number {
+  return AERIAL_STRENGTH_WEIGHT * strength + AERIAL_FINISHING_WEIGHT * finishing;
+}
 /** Momentum → shot-duel bonus conversion. */
 export const MOMENTUM_SHOT_SCALE = 0.002;
 /** chanceQuality slider → shot-duel bonus conversion (carries home advantage). */
@@ -361,10 +378,14 @@ interface Ctx {
   events: FlowEvent[];
 }
 
-/** Shot-duel bonus from momentum + the chanceQuality slider (home advantage). */
-function shotBonus(team: FlowTeam): number {
-  return team.momentum * MOMENTUM_SHOT_SCALE
-    + ((team.params.chanceQuality ?? 50) - 50) * CHANCE_QUALITY_SHOT_SCALE;
+/** Shot-duel bonus: momentum + chanceQuality slider (home advantage) + match form —
+ *  the attacking team's clinical day lifts it, the defending team's solid day lowers it.
+ *  Form is the only per-match variance that touches conversion; it never touches territory. */
+function shotBonus(attacking: FlowTeam, defending: FlowTeam): number {
+  return attacking.momentum * MOMENTUM_SHOT_SCALE
+    + ((attacking.params.chanceQuality ?? 50) - 50) * CHANCE_QUALITY_SHOT_SCALE
+    + (attacking.form?.attack ?? 0)
+    - (defending.form?.defense ?? 0);
 }
 
 /** Shot duel → shot event + chained goal/save/off-target result. `aerial` tags headers
@@ -376,11 +397,13 @@ function resolveShot(
   const gkId = defending.gkId;
   const goalkeeping = gkId ? attr(defending, gkId, 'goalkeeping') : 25;
   const spec = opts?.spec ?? SHOT_DUEL;
-  const finishing = spec === PENALTY_DUEL
+  const shotAttr = spec === PENALTY_DUEL
     ? (attr(attacking, shooterId, 'finishing') + attr(attacking, shooterId, 'technique')) / 2
-    : attr(attacking, shooterId, 'finishing');
-  const bonus = (opts?.bonus ?? 0) + shotBonus(attacking);
-  const outcome = resolveDuel(finishing, goalkeeping, spec, rng, { bonus });
+    : opts?.aerial
+      ? headerFinishAttr(attr(attacking, shooterId, 'strength'), attr(attacking, shooterId, 'finishing'))
+      : attr(attacking, shooterId, 'finishing');
+  const bonus = (opts?.bonus ?? 0) + shotBonus(attacking, defending);
+  const outcome = resolveDuel(shotAttr, goalkeeping, spec, rng, { bonus });
   const shooter = name(attacking, shooterId);
   const label = opts?.label ?? 'shot';
 

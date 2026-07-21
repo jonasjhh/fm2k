@@ -127,7 +127,7 @@ function syntheticSection(lines: string[]): void {
   lines.push(`Home is the stronger side. N=${N} per cell.`, '');
   lines.push(DIST_HEADER, DIST_ALIGN);
   const gapDetails: string[] = [];
-  for (const gap of [10, 20, 30]) {
+  for (const gap of [10, 20, 30, 40, 50]) {
     const hv = 55 + gap / 2, av = 55 - gap / 2;
     const r = runCell({ home: syntheticSide('h', hv), away: syntheticSide('a', av) }, N);
     lines.push(distRow(`${hv} v ${av} (gap ${gap})`, r));

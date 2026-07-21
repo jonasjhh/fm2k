@@ -10,7 +10,7 @@ import { StatsAccumulator } from '../stats.ts';
 import { NEUTRAL_PARAMS, withHomeAdvantage } from '../../tactics/match-parameters.ts';
 import { perMinuteDrain, applyFatigue } from '../fatigue.ts';
 import { rollInjuries, injuryDescription, injuriesBySide } from '../injury.ts';
-import { mulberry32 } from '../rng.ts';
+import { mulberry32, drawMatchForm, type MatchForm } from '../rng.ts';
 import {
   deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation, deriveRolesForShape,
 } from '../../lineup/lineup.ts';
@@ -65,6 +65,7 @@ export class DuelMatchSimulator {
   private currentState!: MatchState;
   private stats = new StatsAccumulator();
   private injuryRng!: () => number;
+  private form!: { home: MatchForm; away: MatchForm };
   private eventSeq = 0;
 
   // v2-only live state (ephemeral; never on MatchState, never persisted).
@@ -105,6 +106,12 @@ export class DuelMatchSimulator {
   private createInitialState(): MatchState {
     // Injury sub-stream from exactly ONE main draw (v1's rng discipline).
     this.injuryRng = this.config.injuryRng ?? mulberry32(Math.floor(this.rng() * 2 ** 31));
+    // Per-match form: injected verbatim (real gameplay / TASK_17), else drawn from the
+    // main stream so standalone & harness sims still get final-third variance.
+    this.form = {
+      home: this.config.homeForm ?? drawMatchForm(this.rng),
+      away: this.config.awayForm ?? drawMatchForm(this.rng),
+    };
     const homePlayers = this.config.homeStarters;
     const awayPlayers = this.config.awayStarters;
     for (const p of homePlayers) { this.stats.seedPlayer(p.id); }
@@ -313,6 +320,7 @@ export class DuelMatchSimulator {
       gkId: this.gkIdOf(state, side),
       fieldedPositions: state.fieldedPositions?.[side],
       bookedPlayers: new Set(state.bookings.yellow.filter(b => b.team === side).map(b => b.playerId)),
+      form: this.form[side],
     };
   }
 

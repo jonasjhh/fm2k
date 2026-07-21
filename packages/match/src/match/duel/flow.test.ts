@@ -5,7 +5,7 @@ import type { XY } from './field.ts';
 import {
   attackY, goalPoint, carryForward, localNumbers,
   situationWeights, chooseSituation, resolveSituation, resolveLooseBall, flowTick,
-  SHOT_RANGE_Y, CARRY_DISTANCE,
+  SHOT_RANGE_Y, CARRY_DISTANCE, headerFinishAttr,
   type FlowTeam, type Situation,
 } from './flow.ts';
 
@@ -16,6 +16,22 @@ const player = (id: string, attrs: Partial<Player['attributes']> = {}): Player =
     technique: 50, finishing: 50, defending: 50, goalkeeping: 10,
     ...attrs,
   },
+});
+
+describe('headerFinishAttr (won-header conversion attribute):', () => {
+  it('leaves a flat-attribute player unchanged (calibration safety: str == fin → same value)', () => {
+    // The whole calibration harness uses strength == finishing == OVR, so the blend must be a
+    // no-op there or it would silently move goal rates. This is the load-bearing invariant.
+    for (const v of [25, 50, 70, 90]) { expect(headerFinishAttr(v, v)).toBe(v); }
+  });
+
+  it('lets strength rescue a poor finisher in the air (and drag down a weak-but-clinical one)', () => {
+    // A physical striker (strength 85) heads better than his ground finishing (35) alone.
+    expect(headerFinishAttr(85, 35)).toBeGreaterThan(35);
+    expect(headerFinishAttr(85, 35)).toBe(0.5 * 85 + 0.5 * 35); // 60 at the default 0.5/0.5 blend
+    // Symmetrically, a clinical but weak striker heads worse than his finishing implies.
+    expect(headerFinishAttr(35, 85)).toBeLessThan(85);
+  });
 });
 
 interface TeamSpec {
@@ -368,11 +384,12 @@ describe('last-man professional foul:', () => {
 
   it('a beaten last man can haul the runner down: red card and a penalty', () => {
     const { attacking, defending } = setup();
-    // softmax draw 0.5 (one receiver), delivery 0.2 (on target, margin 0.3),
-    // race 0.42 → margin 0.25–0.33 (no escalation, reachable), pro-foul 0.1 → foul,
-    // red 0.02 < PRO_FOUL_RED_CHANCE (0.03) → red; in the box → penalty, roll (cycled) → goal
+    // softmax draw 0.5 (one receiver), delivery 0.2 (on target), race 0.38 → the saturated
+    // speed edge plus delivery/spare-man bonuses put the margin mid-band in [0.22, 0.35):
+    // won, clean escape (no strength escalation) yet reachable for a foul. pro-foul 0.1 →
+    // foul, red 0.02 < PRO_FOUL_RED_CHANCE (0.03) → red; in the box → penalty → goal.
     const out = resolveSituation('through_ball', attacking, defending, 'carrier',
-      rngOf(0.5, 0.2, 0.42, 0.1, 0.02));
+      rngOf(0.5, 0.2, 0.38, 0.1, 0.02));
     const foul = out.events.find(e => e.type === 'foul');
     expect(foul?.playerId).toBe('cover');
     expect(foul?.metadata?.duel.duelType).toBe('speed');

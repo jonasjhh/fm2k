@@ -1,5 +1,5 @@
 import { DuelMatchSimulator, toBallPosition } from './duel-simulator.ts';
-import { mulberry32 } from '../rng.ts';
+import { mulberry32, NEUTRAL_MATCH_FORM } from '../rng.ts';
 import { createTestTeam, createTestXI } from '../test-fixtures.ts';
 import type { MatchConfig } from '../types.ts';
 
@@ -81,10 +81,47 @@ describe('DuelMatchSimulator, full matches:', () => {
       dribbles += s.actionBreakdown.home.dribble.attempts + s.actionBreakdown.away.dribble.attempts;
       passes += s.passes.home.attempted + s.passes.away.attempted;
     }
-    expect(goals).toBeGreaterThanOrEqual(10);      // matches produce goals
+    expect(goals).toBeGreaterThanOrEqual(5);       // matches produce goals (low-epm smoke test)
     expect(fouls).toBeGreaterThan(5);       // fouls emerge from duels
     expect(dribbles).toBeGreaterThan(50);
     expect(passes).toBeGreaterThan(300);
+  });
+
+  describe('match-form injection contract:', () => {
+    // Home goals summed over a fixed seed sample, under a given form config.
+    const homeGoals = (overrides: Partial<MatchConfig>) => {
+      let g = 0;
+      for (let seed = 0; seed < 30; seed++) {
+        g += new DuelMatchSimulator(config(seed, overrides)).simulate().finalState.homeScore;
+      }
+      return g;
+    };
+
+    it('injected form is used verbatim: a hot home attack + leaky away defense lifts home goals', () => {
+      const neutral = homeGoals({ homeForm: NEUTRAL_MATCH_FORM, awayForm: NEUTRAL_MATCH_FORM });
+      const hotHome = homeGoals({
+        homeForm: { attack: 0.1, defense: 0 },
+        awayForm: { attack: 0, defense: -0.1 },
+      });
+      expect(hotHome).toBeGreaterThan(neutral);
+    });
+
+    it('neutral injected form is deterministic and variance-free across reruns', () => {
+      const cfg = () => config(5, { homeForm: NEUTRAL_MATCH_FORM, awayForm: NEUTRAL_MATCH_FORM });
+      const a = new DuelMatchSimulator(cfg()).simulate();
+      const b = new DuelMatchSimulator(cfg()).simulate();
+      expect(a.finalState.homeScore).toBe(b.finalState.homeScore);
+      expect(a.finalState.awayScore).toBe(b.finalState.awayScore);
+    });
+
+    it('absent form still draws internally (seeded → deterministic), so harness sims vary', () => {
+      // No form injected: the sim draws its own from the seeded main stream, so a rerun
+      // on the same seed reproduces exactly, but the draw is real (not forced neutral).
+      const a = new DuelMatchSimulator(config(8)).simulate();
+      const b = new DuelMatchSimulator(config(8)).simulate();
+      expect(a.finalState.homeScore).toBe(b.finalState.homeScore);
+      expect(a.finalState.awayScore).toBe(b.finalState.awayScore);
+    });
   });
 
   it('a sent-off player leaves the pitch and the bookings record', () => {

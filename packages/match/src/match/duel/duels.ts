@@ -39,21 +39,21 @@ export const STRENGTH_DUEL: DuelSpec = {
  *  beating your man should feel earned. */
 export const DRIBBLE_DUEL: DuelSpec = {
   type: 'dribble', attackerAttr: 'technique', defenderAttr: 'defending',
-  baseChance: 0.44, spread: 650, lo: 0.08, hi: 0.9,
+  baseChance: 0.44, spread: 750, lo: 0.08, hi: 0.9,
 };
 
 /** Pass vs read: Passing vs Defending. Most passes complete — the duel is against the
  *  best-positioned reader, and interceptions are the exception, not the rule. */
 export const PASS_DUEL: DuelSpec = {
   type: 'pass', attackerAttr: 'passing', defenderAttr: 'defending',
-  baseChance: 0.78, spread: 700, lo: 0.45, hi: 0.97,
+  baseChance: 0.78, spread: 850, lo: 0.45, hi: 0.97,
 };
 
 /** Shot: Finishing vs Keeping. Goals are rare; the spread is flat so a hot striker
  *  against a poor keeper converts noticeably more, not absurdly more. */
 export const SHOT_DUEL: DuelSpec = {
   type: 'shot', attackerAttr: 'finishing', defenderAttr: 'goalkeeping',
-  baseChance: 0.10, spread: 800, lo: 0.02, hi: 0.35,
+  baseChance: 0.095, spread: 800, lo: 0.02, hi: 0.35,
 };
 
 /** Penalty: heavily attacker-favoured, compressed spread — (Finishing+Technique)/2 vs
@@ -87,12 +87,38 @@ function clamp(lo: number, hi: number, n: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
-/** Attacker win probability for a duel, before the roll. */
+// ── skill-gap saturation (soft knee) ────────────────────────────────────────────
+// A skill difference feeds every duel linearly (diff/spread), so across ~200 duels a
+// large gap would compound to near-certainty. To let mismatches saturate — a D1-vs-D3
+// cup tie stays dominant but never marches to 100%, and the upset gets rarer the wider
+// the gap — the raw difference passes through a piecewise-linear soft knee before use.
+
+/** Below the knee (in attribute-difference points) skill counts fully (slope 1); ordinary
+ *  league gaps (≤ ~20) are untouched. Above it, diminishing returns kick in. */
+export const GAP_SATURATION_KNEE = 22;
+/** Reciprocal of the post-knee slope: past the knee it takes SOFTNESS raw points to buy
+ *  one effective point. 1 = no saturation, ∞ = hard cap; 3 = a gentle knee. */
+export const GAP_SATURATION_SOFTNESS = 3;
+
+/** Soft-saturate a raw attribute difference: identity up to the knee, then 1/SOFTNESS
+ *  slope. Continuous at the knee; preserves sign. */
+export function saturateGap(diff: number): number {
+  const a = Math.abs(diff);
+  const s = a <= GAP_SATURATION_KNEE
+    ? a
+    : GAP_SATURATION_KNEE + (a - GAP_SATURATION_KNEE) / GAP_SATURATION_SOFTNESS;
+  return Math.sign(diff) * s;
+}
+
+/** Attacker win probability for a duel, before the roll. The skill difference is passed
+ *  through the soft-knee saturation so extreme mismatches taper rather than compound to
+ *  certainty. */
 export function duelChance(
   attackerSkill: number, defenderSkill: number, spec: DuelSpec, mods?: DuelModifiers,
 ): number {
+  const diff = saturateGap(attackerSkill - defenderSkill);
   return clamp(spec.lo, spec.hi,
-    spec.baseChance + (attackerSkill - defenderSkill) / spec.spread + (mods?.bonus ?? 0));
+    spec.baseChance + diff / spec.spread + (mods?.bonus ?? 0));
 }
 
 /** Resolve one duel. Consumes exactly one rng draw. */
@@ -154,7 +180,10 @@ export function deliveryCheck(
   passing: number, spec: DeliverySpec, rng: () => number, resist?: number,
 ): DeliveryOutcome {
   const bar = resist ?? spec.anchor ?? 50;
-  const chance = clamp(spec.lo, spec.hi, spec.baseChance + (passing - bar) / spec.spread);
+  // Same soft-knee saturation as the duels: a huge passing edge over the read doesn't keep
+  // making deliveries more accurate, so chance *volume* saturates on big mismatches too.
+  const diff = saturateGap(passing - bar);
+  const chance = clamp(spec.lo, spec.hi, spec.baseChance + diff / spec.spread);
   const roll = rng();
   return { onTarget: roll < chance, margin: chance - roll };
 }

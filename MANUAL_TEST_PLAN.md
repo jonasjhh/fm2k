@@ -1,6 +1,6 @@
 # FM2K — Manual test plan
 
-**Status (2026-07-20):** Rework Steps 1–5 are manually verified and removed from this plan. TASK_15 (simulation richness, 15A–15E) is complete — 328 tests green. Engine calibration now at realistic football volumes. Everything below is still an **open checklist**. Dev status lives in the plan file (`right-but-show-it-agile-rose.md`), not here.
+**Status (2026-07-21):** Rework Steps 1–5 are manually verified and removed from this plan. TASK_15 (simulation richness) and TASK_11 (spread tuning + soft-knee gap saturation + match-form variance + header conversion blend) are complete — repo check green. Engine calibration now at realistic football volumes with a proper skill gradient (gap-20 ~72% wins, big gaps saturate ~78–80% and never reach 100%, upsets always possible). Everything below is still an **open checklist**. Dev status lives in the plan file (`right-but-show-it-agile-rose.md`), not here.
 
 ## In-match injuries (Steps 9A/9B)
 
@@ -61,7 +61,7 @@ Setup: new game, Match tab. Injuries average ~1 per team per 3–4 matches, so p
 ## Calibration test gates (Step 7)
 
 34. **Run the calibration test suite**: `mise exec -- pnpm --filter @fm2k/match test:calibration` — all tests should pass. These gates lock the engine's settled output; they are not meant to be eyeballed, just green/red. If any fail after a duel-knob change, the knob has pushed a number outside the agreed band.
-35. **Gap-20 win rate note**: the gate for a 20-point OVR gap (65v45) is set to `> 50%` — the engine currently delivers ~57% due to wide duel spread constants (800–1200). TASK_11 will tighten these to hit ~65%. Until then the gate stays loose.
+35. **Gap-20 win rate note (TASK_11 done)**: after the spread retune + match-form variance, a 20-point OVR gap (65v45) now delivers ~72% wins and the gate is `> 0.62`. Big gaps soft-saturate (gap-40/50 ~78–80%, never 100%) via the `saturateGap` knee, and upsets stay possible at every gap (a tier-3 side beats a tier-1 sometimes) — verify this "any given Sunday" feel holds in play, and that a strong-but-modest-finisher target man is a genuine header threat.
 
 ---
 

@@ -27,6 +27,12 @@ export interface MatchConfig {
    *  tired squad starts flatter). Missing players default to 100 (fresh). */
   homeFitness?: Record<string, number>;
   awayFitness?: Record<string, number>;
+  /** Per-team match "form" (final-third conversion variance). Injected → used verbatim
+   *  (real gameplay computes it from recorded results, TASK_17); absent → the sim draws
+   *  its own from Normal(0, σ) so standalone/harness sims still vary; pass NEUTRAL_MATCH_FORM
+   *  for a fully deterministic, variance-free match. Only affects the shot duel. */
+  homeForm?: import('./rng.ts').MatchForm;
+  awayForm?: import('./rng.ts').MatchForm;
   /** Injected randomness (default Math.random) — makes a whole match deterministic in tests. */
   rng?: () => number;
   /** Dedicated injury stream (tests). Defaults to a mulberry32 seeded by ONE draw from

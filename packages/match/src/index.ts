@@ -58,3 +58,7 @@ export type {
 // Distribution harness (black-box calibration + the /test sandbox)
 export { runDistribution, mulberry32 } from './match/distribution.ts';
 export type { DistributionInput, DistributionResult } from './match/distribution.ts';
+
+// Per-match form (final-third conversion variance; computed outside the sim, injected in)
+export { drawMatchForm, NEUTRAL_MATCH_FORM, MATCH_FORM_SIGMA, MATCH_FORM_CAP } from './match/rng.ts';
+export type { MatchForm } from './match/rng.ts';

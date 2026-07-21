@@ -1,6 +1,7 @@
 import {
   SPEED_DUEL, STRENGTH_DUEL, DRIBBLE_DUEL, PASS_DUEL, SHOT_DUEL, PENALTY_DUEL,
   duelChance, resolveDuel, escalates, CLEAN_ESCAPE_MARGIN,
+  saturateGap, GAP_SATURATION_KNEE, GAP_SATURATION_SOFTNESS,
   deliveryCheck, deliveryBonus, CROSS_DELIVERY,
   foulChance, FOUL_MARGIN_FLOOR, FOUL_CHANCE_CAP,
   lastManFoulChance, PRO_FOUL_REACH, PRO_FOUL_CHANCE,
@@ -15,16 +16,37 @@ describe('duelChance:', () => {
   it('equal attributes give exactly the base chance', () => {
     expect(duelChance(60, 60, SPEED_DUEL)).toBe(0.5);
     expect(duelChance(60, 60, PASS_DUEL)).toBe(0.78);
-    expect(duelChance(60, 60, SHOT_DUEL)).toBe(0.10);
+    expect(duelChance(60, 60, SHOT_DUEL)).toBe(0.095);
   });
 
-  it('the attribute difference shifts the chance by diff/spread', () => {
-    // speed 80 vs 50: 0.5 + 30/900
-    expect(duelChance(80, 50, SPEED_DUEL)).toBeCloseTo(0.5 + 30 / SPEED_DUEL.spread, 10);
-    // strength 65 vs 50: 0.5 + 15/900
+  it('the attribute difference shifts the chance by diff/spread (within the gap cap)', () => {
+    // speed 70 vs 50: 0.5 + 20/700 (diff 20 < DUEL_GAP_CAP)
+    expect(duelChance(70, 50, SPEED_DUEL)).toBeCloseTo(0.5 + 20 / SPEED_DUEL.spread, 10);
+    // strength 65 vs 50: 0.5 + 15/700
     expect(duelChance(65, 50, STRENGTH_DUEL)).toBeCloseTo(0.5 + 15 / STRENGTH_DUEL.spread, 10);
     // dribble 70 vs 70: defender favoured at equal skill
     expect(duelChance(70, 70, DRIBBLE_DUEL)).toBeLessThan(0.5);
+  });
+
+  it('the skill difference passes through a soft knee (identity below, discounted above)', () => {
+    const K = GAP_SATURATION_KNEE;
+    // Below the knee: identity.
+    expect(saturateGap(K - 2)).toBeCloseTo(K - 2, 10);
+    expect(saturateGap(0)).toBe(0);
+    // At the knee: continuous.
+    expect(saturateGap(K)).toBeCloseTo(K, 10);
+    // Above the knee: each extra raw point counts 1/SOFTNESS.
+    expect(saturateGap(K + 30)).toBeCloseTo(K + 30 / GAP_SATURATION_SOFTNESS, 10);
+    // Sign-preserving and symmetric.
+    expect(saturateGap(-(K + 30))).toBeCloseTo(-(K + 30 / GAP_SATURATION_SOFTNESS), 10);
+  });
+
+  it('saturation makes a mismatch taper: a huge gap shifts the chance far less than linearly', () => {
+    // A raw 70-point gap would be 0.5 + 70/spread unsaturated; the soft knee tapers it.
+    const linear = 0.5 + 70 / SPEED_DUEL.spread;
+    const saturated = duelChance(50 + 70, 50, SPEED_DUEL);
+    expect(saturated).toBeLessThan(linear);
+    expect(saturated).toBeCloseTo(0.5 + saturateGap(70) / SPEED_DUEL.spread, 10);
   });
 
   it('clamps to lo and hi', () => {
@@ -94,9 +116,9 @@ describe('delivery checks:', () => {
     const avg = deliveryCheck(50, CROSS_DELIVERY, rngOf(0.55));
     expect(avg.onTarget).toBe(false);
     expect(avg.margin).toBeCloseTo(0, 10);
-    const good = deliveryCheck(77, CROSS_DELIVERY, rngOf(0.55));
-    expect(good.onTarget).toBe(true); // 0.55 + 27/250 = 0.658
-    expect(good.margin).toBeCloseTo(27 / CROSS_DELIVERY.spread, 10);
+    const good = deliveryCheck(70, CROSS_DELIVERY, rngOf(0.55)); // diff 20 < saturation knee
+    expect(good.onTarget).toBe(true); // 0.55 + 20/250 = 0.63
+    expect(good.margin).toBeCloseTo(20 / CROSS_DELIVERY.spread, 10);
   });
 
   it('deliveryBonus scales the margin and clamps at ±0.1', () => {
