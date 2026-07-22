@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import { useGameStore, findTeamById } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import { sfx, fmtDate } from '../../utils/formatting';
@@ -18,7 +19,7 @@ import MatchOverlay from '../match/MatchOverlay';
 import TacticsSection from '../ui/TacticsSection';
 
 export default function MatchTab() {
-  const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture, focusLive, isStreaming, setStyle, setSliders } =
+  const { leagueState, cupStates, clubState, playerTeamId, editableCountries, seasonComplete, focusFixture, focusLive, isStreaming, simulateToEnd, setStyle, setSliders } =
     useGameStore(useShallow((s) => ({
       leagueState: s.leagueState,
       cupStates: s.cupStates,
@@ -29,6 +30,7 @@ export default function MatchTab() {
       focusFixture: s.focusFixture,
       focusLive: s.focusLive,
       isStreaming: s.isStreaming,
+      simulateToEnd: s.simulateToEnd,
       setStyle: s.setStyle,
       setSliders: s.setSliders,
     })));
@@ -45,7 +47,19 @@ export default function MatchTab() {
   }
 
   const fixture = focusFixture;
-  if (!fixture) {return <Alert severity="info">No upcoming fixtures for your club.</Alert>;}
+  if (!fixture) {
+    return (
+      <Alert severity="info" sx={{ mt: 2 }}>
+        <Typography sx={{ fontWeight: 600 }}>No upcoming fixtures for your club.</Typography>
+        <Typography variant="body2" sx={{ mb: 1.5 }}>
+          Your club&apos;s season is done, but other competitions are still being played. Simulate the rest to finish the season.
+        </Typography>
+        <Button variant="contained" onClick={() => { void simulateToEnd(); }} disabled={isStreaming}>
+          {isStreaming ? 'Simulating…' : 'Simulate to end of season'}
+        </Button>
+      </Alert>
+    );
+  }
 
   const isCup = fixture.competitionId in cupStates;
   const isHome = fixture.homeTeamId === playerTeamId;

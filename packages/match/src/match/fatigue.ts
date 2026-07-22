@@ -87,11 +87,11 @@ export function staminaResistance(stamina: number): number {
   return 1.5 - 0.9 * norm(stamina);
 }
 
-/** Tempo param → drain factor (1.0 at neutral 50; running faster costs more). */
-export function tempoFactor(tempo: number): number { return 0.85 + 0.3 * (tempo / 100); }
+/** Tempo param → drain factor (1.0 at neutral 50; ±10% across the slider — running faster costs more). */
+export function tempoFactor(tempo: number): number { return 0.90 + 0.2 * (tempo / 100); }
 
-/** Press param → drain factor (1.0 at neutral 50; pressing harder costs more). */
-export function pressFactor(pressIntensity: number): number { return 0.8 + 0.4 * (pressIntensity / 100); }
+/** Press param → drain factor (1.0 at neutral 50; ±10% across the slider — pressing harder costs more). */
+export function pressFactor(pressIntensity: number): number { return 0.90 + 0.2 * (pressIntensity / 100); }
 
 /** Energy a player loses this minute given the team's params and the player.
  *  When `derivedRoles` is provided, adds shape-delta drain for players whose role

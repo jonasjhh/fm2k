@@ -1161,13 +1161,13 @@ describe('ClubManager (mutation top-up):', () => {
       return { p, config: makeConfig({ squad: [p], startingXI: [p.id], benchPlayers: [], eventBus: bus, rng }) };
     }
 
-    test('drains starter fitness by (25 - floor(stamina/2)) * 10', () => {
+    test('drains starter fitness by (25 - floor(stamina/2)) * 7', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus); // 0.99 avoids injury
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other');
-      // stamina 10 -> drain max(5, 25-5) = 20, scaled *10 onto the 0-1000 fitness range
-      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(800);
+      // stamina 10 -> drain max(5, 25-5) = 20, scaled *7 onto the 0-1000 fitness range
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(860);
     });
 
     test('processes a match where the club is the away team', () => {
@@ -1182,7 +1182,7 @@ describe('ClubManager (mutation top-up):', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
-      for (let i = 0; i < 6; i++) { emitMatch(bus, 'club-1', 'other'); } // 6 * 200 drain >> 1000
+      for (let i = 0; i < 8; i++) { emitMatch(bus, 'club-1', 'other'); } // 8 * 140 drain > 1000
       expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(0);
     });
 
@@ -1322,15 +1322,15 @@ describe('ClubManager.recoverFitness:', () => {
     expect(manager.getState().squad[0].fitness).toBe(before);
   });
 
-  test('recovers ~+150 over 7 elapsed days at high stamina (99) — close to the old +15/week baseline', () => {
+  test('recovers ~+210 over 7 elapsed days at high stamina (99) — the +21/week baseline', () => {
     const manager = new ClubManager(makeConfig());
     const state = manager.getState();
     state.squad[0].fitness = 500;
     state.squad[0].attributes.stamina = 99;
     manager.loadState(state);
     manager.recoverFitness(7);
-    // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = (150/7)*7*1.1 = 165
-    expect(manager.getState().squad[0].fitness).toBeCloseTo(665, 5);
+    // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = (210/7)*7*1.1 = 231
+    expect(manager.getState().squad[0].fitness).toBeCloseTo(731, 5);
   });
 
   test('a higher-stamina player recovers more than a lower-stamina one over the same days', () => {

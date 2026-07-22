@@ -569,7 +569,7 @@ export class ClubManager {
         const energySpent = ourEnergy?.[player.id] !== undefined
           ? 100 - ourEnergy[player.id]
           : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
-        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * 10);
+        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * 7);
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
         const trainingAxes = FacilityManager.trainingAxes(s.facilities, player);
@@ -654,8 +654,8 @@ export class ClubManager {
     }
   }
 
-  // Tenths-of-a-point/day; matches the old +15/week baseline at neutral (50) stamina.
-  private static readonly FITNESS_RECOVERY_PER_DAY = 150 / 7;
+  // Tenths-of-a-point/day; ~+21/week baseline at neutral (50) stamina.
+  private static readonly FITNESS_RECOVERY_PER_DAY = 210 / 7;
 
   /** Passive fitness recovery scaled by actual elapsed game-calendar days, and very slightly
    *  by the player's own stamina (fitter players shake off fatigue marginally faster) — a

@@ -71,7 +71,7 @@ export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, numb
 };
 
 /** Extra fitness recovery multiplier applied when a player is on the Recovery regiment. */
-export const RECOVERY_REGIMENT_MULT = 1.5;
+export const RECOVERY_REGIMENT_MULT = 2.2;
 
 // Physical attributes fade first — "legs before touch" — so decline is weighted toward them.
 const DECLINE_WEIGHTS: Partial<Record<AttrKey, number>> = {
