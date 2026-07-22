@@ -127,10 +127,14 @@ export default function TrainingTab() {
     );
   }
 
+  // Fitness is 0–1000 (UI shows ÷10); anyone below 70% goes on Recovery to rebuild, everyone
+  // else takes their position/age default regiment.
+  const RECOVERY_FITNESS_THRESHOLD = 700;
   function handleAutoAssign() {
     if (!clubState) { return; }
     for (const p of clubState.squad) {
-      setTraining(p.id, defaultRegiment(p.position, p.age));
+      const regiment = p.fitness < RECOVERY_FITNESS_THRESHOLD ? 'recovery' : defaultRegiment(p.position, p.age);
+      setTraining(p.id, regiment);
     }
   }
 

@@ -116,14 +116,18 @@ export function perMinuteDrain(
 // Tiredness hits the legs before the touch: physical attributes fall further than
 // technical/mental ones at the same energy. Both are 1.0 when fresh.
 
-/** Physical multiplier: 100→1.0, 50→~0.86, 0→~0.72. */
+/** Physical multiplier: convex fade — near-flat above ~70, biting ever harder toward empty
+ *  (running on fumes is brutal). 100→1.00, 70→0.955, 50→0.875, 20→0.68, 0→0.50. */
 export function physicalFatigueMult(energy: number): number {
-  return 0.72 + 0.28 * (Math.max(0, Math.min(100, energy)) / 100);
+  const deficit = 1 - Math.max(0, Math.min(100, energy)) / 100;
+  return 1 - 0.5 * deficit * deficit;
 }
 
-/** Skill multiplier: 100→1.0, 50→~0.93, 0→~0.85 (touch degrades more slowly). */
+/** Skill multiplier: same convex shape, gentler (touch degrades more slowly than legs).
+ *  100→1.00, 70→0.973, 50→0.925, 20→0.808, 0→0.70. */
 export function skillFatigueMult(energy: number): number {
-  return 0.85 + 0.15 * (Math.max(0, Math.min(100, energy)) / 100);
+  const deficit = 1 - Math.max(0, Math.min(100, energy)) / 100;
+  return 1 - 0.3 * deficit * deficit;
 }
 
 const PHYSICAL_KEYS: (keyof PlayerAttributes)[] = ['speed', 'strength', 'stamina'];
