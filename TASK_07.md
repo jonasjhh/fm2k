@@ -6,6 +6,11 @@ Merges what were formerly "Step 9C" and a deferred "Step 12 upset audit" — the
 
 **Trigger**: the user runs `mise exec -- pnpm --filter @fm2k/match test:calibration` and reports the failures. Do NOT run it yourself unprompted.
 
+> ⚠️ **Scope update (2026-07-21) — this task is stale; refresh it when actually run.** Parts A/B below predate the v2 duel engine and TASK_11:
+> - **Part B is largely DONE.** TASK_11 shipped the "day form / upset" mechanism (per-match `MatchForm` conversion variance in `rng.ts`) and a soft-knee gap saturation (`saturateGap` in `duels.ts`). The `75v25 > 0.93` gate in Part A is now **wrong** — big gaps deliberately saturate ~78–80% and never reach certainty. Update gates to the TASK_11 curve (gap-20 > 0.62, big gaps bounded *above*, upset floor > 0).
+> - **The knobs to tune are now the v2 ones**: `duels.ts` spreads + `saturateGap` KNEE/SOFTNESS, `MATCH_FORM_SIGMA`, `flow.ts` `AERIAL_*_WEIGHT`, and — added by TASK_18/19 — the **foul/card system**: `loserFoulChance` / `ATTACKER_LOSS_FOUL_SCALE` (TASK_18), `YELLOW_CHANCE` / `YELLOW_SECOND_BOOKING_MODIFIER` / `foulChance` scales, and TASK_19's cover-shift + lateral-fatigue constants. **This task owns the final holistic lock of all foul/card knobs** (total rate, def/atk split ~60/40, position distribution, card %) once TASK_18 + TASK_19 have landed.
+> - `skill-checks.ts` / `action-generators.ts` / `VISION_SPECS` / `ENGAGEMENT_*` references below are pre-v2 and mostly no longer exist — ignore or re-map before using.
+
 ## Part A — baseline gates
 
 Pre-existing harness: `packages/match/src/match/distribution.calibration.test.ts`. Gates: even-match total goals 2.0–3.2 at every tier; draw% < 0.38; 65v45 home win > 0.72; 75v25 home win > 0.93 with ≥2.5× goals; fouls 2–20; penalties < 0.45; reds < 0.18; corners > 6; injuries per match < 0.6. Tune, in this order of preference:

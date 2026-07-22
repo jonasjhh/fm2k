@@ -63,6 +63,14 @@ Setup: new game, Match tab. Injuries average ~1 per team per 3–4 matches, so p
 34. **Run the calibration test suite**: `mise exec -- pnpm --filter @fm2k/match test:calibration` — all tests should pass. These gates lock the engine's settled output; they are not meant to be eyeballed, just green/red. If any fail after a duel-knob change, the knob has pushed a number outside the agreed band.
 35. **Gap-20 win rate note (TASK_11 done)**: after the spread retune + match-form variance, a 20-point OVR gap (65v45) now delivers ~72% wins and the gate is `> 0.62`. Big gaps soft-saturate (gap-40/50 ~78–80%, never 100%) via the `saturateGap` knee, and upsets stay possible at every gap (a tier-3 side beats a tier-1 sometimes) — verify this "any given Sunday" feel holds in play, and that a strong-but-modest-finisher target man is a genuine header threat.
 
+## Foul distribution (TASK_18 / TASK_19)
+
+Current reality (measured, TASK_12 analysis): fouls ~8.3/match, yellows ~3.2/match (already realistic **volume**), but the **distribution is broken** — fullbacks ~59% of yellows, forwards ~3%, GK 0%. Root causes: fouls only fire when the attacker wins a duel (charged to the beaten defender → attackers never booked), and wide defenders are isolated 1v1 (no ball-side cover).
+
+36. **Attackers get booked (TASK_18)**: after the symmetric-foul-attribution fix, watch the ticker/discipline over several matches — forwards and attacking mids should now pick up yellows (a dispossessed attacker fouling to stop the counter), not just defenders. No position should sit at 0%.
+37. **Fullback skew reduced (TASK_19)**: after defensive cover shifts the back line ball-side, wide fullbacks should no longer dominate bookings; the near centre back visibly tucks across to cover. Yellows should spread toward a realistic shape (central mids highest, fullbacks middling, forwards a fair share).
+38. **Lateral fatigue tradeoff (TASK_19)**: play/sim with a thin back line (3 at the back) vs a 5-back over a full match — the 3-back defenders should end visibly more tired (lower end-energy), because each covers more width laterally. Confirm a 4-back sits between the two.
+
 ---
 
-Then Task 7 (`TASK_07.md`): run `mise exec -- pnpm --filter @fm2k/match test:calibration` and report failures.
+Then Task 7 (`TASK_07.md`): run `mise exec -- pnpm --filter @fm2k/match test:calibration` and report failures (**required after TASK_19**).
