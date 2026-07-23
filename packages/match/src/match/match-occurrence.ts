@@ -30,6 +30,9 @@ export interface MatchOccurrenceConfig {
   readonly knockout?: boolean
   /** Injectable RNG for the shootout (deterministic tests). */
   readonly rng?: () => number
+  /** Per-team form bias (in MatchForm probability points). Absent → sim draws pure noise. */
+  readonly homeForm?: import('./rng.ts').MatchForm
+  readonly awayForm?: import('./rng.ts').MatchForm
 }
 
 export class MatchOccurrence implements Occurrence {
@@ -51,6 +54,8 @@ export class MatchOccurrence implements Occurrence {
   private readonly homeTeam: Team;
   private readonly awayTeam: Team;
   private readonly eventsPerMinute: number;
+  private readonly homeForm?: import('./rng.ts').MatchForm;
+  private readonly awayForm?: import('./rng.ts').MatchForm;
 
   constructor(config: MatchOccurrenceConfig) {
     this.id = config.id;
@@ -63,6 +68,8 @@ export class MatchOccurrence implements Occurrence {
     this.homeTeam = config.homeTeam;
     this.awayTeam = config.awayTeam;
     this.eventsPerMinute = config.eventsPerMinute ?? 12;
+    this.homeForm = config.homeForm;
+    this.awayForm = config.awayForm;
 
     if (config.playerTeamId) {
       this.playerTeamSide =
@@ -107,6 +114,8 @@ export class MatchOccurrence implements Occurrence {
         awayFitness: this.awayTeam.fitness,
         extraTimeIfDrawn: this.knockout,
         rng: this.rng,
+        homeForm: this.homeForm,
+        awayForm: this.awayForm,
       });
       this.matchState = this.simulator.getCurrentState();
       if (this.playerTeamSide) {

@@ -1,4 +1,4 @@
-import { recentForm, leagueZone } from './form.ts';
+import { recentForm, recentFormAcross, formModifier, leagueZone, FORM_BIAS_CAP } from './form.ts';
 import type { Fixture } from './league-types.ts';
 
 function fixture(id: string, matchday: number, home: string, away: string, hs: number, as: number): Fixture {
@@ -29,6 +29,71 @@ describe('recentForm:', () => {
 
   it('reads results from the away perspective correctly', () => {
     expect(recentForm(fixtures, 'B')).toEqual(['L']);
+  });
+});
+
+describe('recentFormAcross:', () => {
+  // Two competitions with the same team — a league game on day 1 and a cup game on day 3.
+  // recentFormAcross must sort by scheduledTime, not matchday (matchday is per-competition).
+  const leagueFixture = fixture('l1', 1, 'A', 'B', 2, 0); // A win, day 1
+  const cupFixture: Fixture = {
+    ...fixture('c1', 1, 'C', 'A', 0, 1), // A win (away), but matchday=1 too
+    scheduledTime: { year: 2025, month: 8, day: 3, hour: 15, minute: 0 } as Fixture['scheduledTime'],
+  };
+  const leagueFixture2: Fixture = {
+    ...fixture('l2', 2, 'A', 'D', 0, 2), // A loss, day 2
+    scheduledTime: { year: 2025, month: 8, day: 2, hour: 15, minute: 0 } as Fixture['scheduledTime'],
+  };
+
+  it('orders cross-competition results by scheduledTime, not matchday', () => {
+    // Chronological order: l1 (day1 win), l2 (day2 loss), c1 (day3 win) → W, L, W
+    expect(recentFormAcross([cupFixture, leagueFixture2, leagueFixture], 'A')).toEqual(['W', 'L', 'W']);
+  });
+
+  it('limits to the requested count, taking the most recent', () => {
+    expect(recentFormAcross([cupFixture, leagueFixture2, leagueFixture], 'A', 2)).toEqual(['L', 'W']);
+  });
+
+  it('returns empty for a team with no completed fixtures', () => {
+    expect(recentFormAcross([], 'A')).toEqual([]);
+  });
+});
+
+describe('formModifier:', () => {
+  it('returns 0 for an empty sequence (season start)', () => {
+    expect(formModifier([])).toBe(0);
+  });
+
+  it('returns a positive value for a winning run', () => {
+    expect(formModifier(['W', 'W', 'W', 'W', 'W'])).toBeGreaterThan(0);
+  });
+
+  it('returns a negative value for a losing run', () => {
+    expect(formModifier(['L', 'L', 'L', 'L', 'L'])).toBeLessThan(0);
+  });
+
+  it('returns 0 for an all-draw run', () => {
+    expect(formModifier(['D', 'D', 'D'])).toBe(0);
+  });
+
+  it('caps at ±FORM_BIAS_CAP regardless of how dominant the run is', () => {
+    const wins = formModifier(['W', 'W', 'W', 'W', 'W']);
+    const losses = formModifier(['L', 'L', 'L', 'L', 'L']);
+    expect(wins).toBeLessThanOrEqual(FORM_BIAS_CAP);
+    expect(losses).toBeGreaterThanOrEqual(-FORM_BIAS_CAP);
+  });
+
+  it('scales down for fewer than 5 games', () => {
+    const full = formModifier(['W', 'W', 'W', 'W', 'W']);
+    const partial = formModifier(['W', 'W']);
+    expect(partial).toBeLessThan(full);
+  });
+
+  it('weights recent results more than older ones', () => {
+    // W at the end (most recent) should give more bias than W at the start
+    const recentWin = formModifier(['L', 'L', 'L', 'L', 'W']);
+    const oldWin = formModifier(['W', 'L', 'L', 'L', 'L']);
+    expect(recentWin).toBeGreaterThan(oldWin);
   });
 });
 

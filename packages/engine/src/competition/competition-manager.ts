@@ -28,6 +28,9 @@ export interface CompetitionManagerConfig {
    *  eager best-fit default every other team gets. */
   readonly playerTeamId?: string;
   readonly getPlayerStarters?: () => Player[];
+  /** Optional: return a form bias value (in MatchForm probability points) for a team.
+   *  Called at kickoff scheduling time. Absent in harness/standalone sims → pure noise. */
+  readonly getFormBias?: (teamId: string) => number;
 }
 
 /** The record-worthy event types the per-competition EventLog retains. */
@@ -71,6 +74,7 @@ export class CompetitionManager {
   private readonly eventBus?: EventBus<GameEvents>;
   private readonly playerTeamId?: string;
   private readonly getPlayerStarters?: () => Player[];
+  private readonly getFormBias?: (teamId: string) => number;
 
   constructor(config: CompetitionManagerConfig) {
     this.format = config.format;
@@ -79,6 +83,7 @@ export class CompetitionManager {
     this.startDate = config.startDate;
     this.playerTeamId = config.playerTeamId;
     this.getPlayerStarters = config.getPlayerStarters;
+    this.getFormBias = config.getFormBias;
 
     this.ctx = {
       competitionId: config.competitionId,
@@ -196,6 +201,8 @@ export class CompetitionManager {
 
   private scheduleAll(matches: ScheduledMatch[]): void {
     for (const m of matches) {
+      const homeBias = this.getFormBias?.(m.homeTeam.id) ?? 0;
+      const awayBias = this.getFormBias?.(m.awayTeam.id) ?? 0;
       this.engine.schedule(new MatchOccurrence({
         id: m.fixtureId,
         scheduledTime: m.scheduledTime,
@@ -208,6 +215,8 @@ export class CompetitionManager {
         eventsPerMinute: this.eventsPerMinute,
         knockout: m.knockout,
         rng: this.ctx.rng,
+        homeForm: homeBias !== 0 ? { attack: homeBias, defense: homeBias } : undefined,
+        awayForm: awayBias !== 0 ? { attack: awayBias, defense: awayBias } : undefined,
       }));
     }
   }

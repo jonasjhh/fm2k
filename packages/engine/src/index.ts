@@ -125,7 +125,7 @@ export {
   carryOverLineup,
 } from '@fm2k/lineup';
 export type { SelectionOptions } from '@fm2k/lineup';
-export { recentForm, leagueZone } from './league/form.ts';
+export { recentForm, recentFormAcross, formModifier, leagueZone, FORM_BIAS_CAP } from './league/form.ts';
 export { computeLadderMovements } from './season/promotion.ts';
 export type { LadderDivision } from './season/promotion.ts';
 export type { FormResult } from './league/form.ts';

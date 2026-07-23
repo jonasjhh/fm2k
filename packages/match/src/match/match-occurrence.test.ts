@@ -24,6 +24,7 @@ function makeOccurrence(overrides: Partial<MatchOccurrenceConfig> = {}): MatchOc
     homeStarters: homeTeam.squad.slice(0, 11),
     awayStarters: awayTeam.squad.slice(0, 11),
     eventsPerMinute: 2,
+    rng: mulberry32(42),
     ...overrides,
   });
 }

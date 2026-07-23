@@ -4,6 +4,7 @@ import {
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
   isBefore, addMinutes, addDays, daysBetween,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights, recentForm,
+  recentFormAcross, formModifier,
   makeYouth, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
   churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments, MAX_BENCH_SIZE,
@@ -574,6 +575,7 @@ export class GameSession {
           eventBus: isPlayerDivision ? eventBus : undefined,
           playerTeamId: isPlayerDivision ? teamId : undefined,
           getPlayerStarters: isPlayerDivision ? () => this.resolvePlayerStarters() : undefined,
+          getFormBias: (tid) => this.makeGetFormBias()(tid),
         });
         leagueManagers[div.id] = lm;
         competitions.push(lm);
@@ -601,6 +603,7 @@ export class GameSession {
         eventBus: isPlayerNation ? eventBus : undefined,
         playerTeamId: isPlayerNation ? teamId : undefined,
         getPlayerStarters: isPlayerNation ? () => this.resolvePlayerStarters() : undefined,
+        getFormBias: (tid) => this.makeGetFormBias()(tid),
       });
       cupManagers[cupId] = cup;
       competitions.push(cup);
@@ -657,6 +660,7 @@ export class GameSession {
           eventBus: isPlayerMatch ? this.eventBus ?? undefined : undefined,
           playerTeamId: isPlayerMatch ? this.playerTeamId ?? undefined : undefined,
           getPlayerStarters: isPlayerMatch ? () => this.resolvePlayerStarters() : undefined,
+          getFormBias: (tid) => this.makeGetFormBias()(tid),
         });
         this.qualifierManagers[boundaryKey] = qm;
         this.scheduledQualifierBoundaries.add(boundaryKey);
@@ -1462,6 +1466,27 @@ export class GameSession {
    *  each tick, which is what makes queued substitutions reach the simulator. */
   private resolvePlayerStarters(): Player[] {
     return this.clubManager?.getActiveLineup() ?? [];
+  }
+
+  /** Gather completed fixtures for a team across all active competition managers. */
+  private allCompletedFixtures(teamId: string) {
+    const managers = [
+      ...Object.values(this.leagueManagers),
+      ...Object.values(this.cupManagers),
+      ...Object.values(this.qualifierManagers),
+      ...(this.playerCupManager ? [this.playerCupManager] : []),
+    ];
+    return managers.flatMap(m => m.getState().fixtures)
+      .filter(f => f.homeTeamId === teamId || f.awayTeamId === teamId);
+  }
+
+  /** Form bias callback for a team — passed into CompetitionManager at season init. */
+  private makeGetFormBias(): (teamId: string) => number {
+    return (teamId: string) => {
+      const fixtures = this.allCompletedFixtures(teamId);
+      const results = recentFormAcross(fixtures, teamId);
+      return formModifier(results);
+    };
   }
 
   /** Queue an in-match substitution for the player's club (validated by ClubManager:
