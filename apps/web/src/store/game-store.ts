@@ -165,8 +165,8 @@ interface GameStore {
   setStyle: (style: TacticalStyleId) => void;
   setSliders: (sliders: Partial<TacticalSliders>) => void;
   setTraining: (playerId: string, regiment: RegimentId) => void;
-  setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => void;
-  setRoleOverride: (playerId: string, role: FormationPosition | null) => void;
+  setSlotGeometry: (shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry) => void;
+  setSlotRoleOverride: (slot: number, role: FormationPosition | null) => void;
   /** Queue an in-match substitution; false when rejected (limit reached, ineligible). */
   queueSubstitution: (playerOutId: string, playerInId: string) => boolean;
 
@@ -391,8 +391,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     setBench: (ids) => { backend.commands.setBench(ids); },
     setFormation: (formation) => { backend.commands.setFormation(formation); },
     setTactics: (intent) => { backend.commands.setTactics(intent); },
-    setPlayerGeometry: (shape, playerId, geometry) => { backend.commands.setPlayerGeometry(shape, playerId, geometry); },
-    setRoleOverride: (playerId, role) => { backend.commands.setRoleOverride(playerId, role); },
+    setSlotGeometry: (shape, slot, geometry) => { backend.commands.setSlotGeometry(shape, slot, geometry); },
+    setSlotRoleOverride: (slot, role) => { backend.commands.setSlotRoleOverride(slot, role); },
     queueSubstitution: (playerOutId, playerInId) => backend.commands.queueSubstitution(playerOutId, playerInId),
     setTraining: (playerId, regiment) => { backend.commands.setTraining(playerId, regiment); },
     setStyle: (style) => {

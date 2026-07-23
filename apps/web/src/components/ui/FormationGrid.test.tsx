@@ -51,7 +51,7 @@ describe('FormationGrid:', () => {
       player('st1', 'ST'), player('st2', 'ST'),
     ];
     const slotAssignments = squad.map(p => p.id);
-    const shape = { cb1: { band: 'ATT' as const, lateral: 0 } };
+    const shape = { 2: { band: 'ATT' as const, lateral: 0 } }; // slot 2 = cb1, pushed into attack
     render(
       <FormationGrid
         lines={lines} slotAssignments={slotAssignments} squad={squad}

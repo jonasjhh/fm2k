@@ -55,11 +55,22 @@ export interface PlayerGeometry {
   lateral: number;
 }
 
-/** A team's dual formation shape (REWORK_01.md §5): one anchor per outfield XI player in
- *  each phase. Named formations are presets that seed both shapes identically; FM-style
- *  arrows are the rendered difference between a player's two anchors. The v1 sim reads
- *  only `defending` (as its single formation); the v2 duel engine reads both. */
+/** A team's dual formation shape (REWORK_01.md §5): one anchor per outfield SLOT in each
+ *  phase, keyed by the slot's index in the 11-long starting XI (0 = GK, never present;
+ *  outfield 1–10). Keying by slot — not player — means the layout is a property of the
+ *  FORMATION, independent of who fills it: selling, retiring, clearing or swapping a
+ *  player never disturbs it. Named formations are presets that seed both shapes
+ *  identically; FM-style arrows are the rendered difference between a slot's two anchors.
+ *  The match maps slot → player (via the slot-ordered starters) at kickoff — see
+ *  `slotShapesToPlayers` in lineup.ts. */
 export interface TeamShapes {
+  attacking: Record<number, PlayerGeometry>;
+  defending: Record<number, PlayerGeometry>;
+}
+
+/** The match engine's internal, player-keyed view of a shape after slot→player mapping
+ *  (the counterpart to the slot-keyed stored TeamShapes). Never persisted. */
+export interface PlayerShapes {
   attacking: Record<string, PlayerGeometry>;
   defending: Record<string, PlayerGeometry>;
 }
@@ -116,9 +127,10 @@ export interface Team {
   /** Manager-chosen dual-shape override — when present, the match build uses the
    *  defending shape (v1 sim) instead of deriving slots from `formation`/FORMATION_LINES. */
   shapes?: TeamShapes;
-  /** Explicit per-player role label overrides (playerId → FormationPosition). Applied on
-   *  top of the geometry-derived role so a winger can play as ST without moving their anchor. */
-  roleOverrides?: Record<string, FormationPosition>;
+  /** Explicit role label overrides keyed by outfield slot index (1–10; GK slot 0 never
+   *  overridden), like `shapes`. Applied on top of the geometry-derived role so the player
+   *  in a slot can be pinned to e.g. ST without moving the anchor. */
+  roleOverrides?: Record<number, FormationPosition>;
 }
 
 /** @deprecated Superseded by TeamTacticsIntent + the resolved MatchParameters. */

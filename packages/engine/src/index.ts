@@ -113,12 +113,13 @@ export {
 export type { SectorKey, StadiumSectorConfig } from './stadium/stadium.ts';
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
+  canonicalGeometry, slotGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
+  slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
   deriveRolesForShape, effectiveFormationLabel,
   MAX_BAND_SIZE, BAND_ORDER, BAND_OF_ROLE,
   effectiveDisplayOrder, emptySlotKey,
 } from '@fm2k/match';
-export type { FieldedPositions, PlayerGeometry, TeamShapes, Band } from '@fm2k/match';
+export type { FieldedPositions, PlayerGeometry, TeamShapes, PlayerShapes, Band } from '@fm2k/match';
 export {
   positionFit, selectStartingXI, selectStartingXIWithSlots, calculateBestFormation, buildXISlotAssignments,
   carryOverLineup,

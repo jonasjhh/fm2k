@@ -31,10 +31,10 @@ export interface BackendCommands {
   setFormation(formation: Formation): ClubState | null;
   setTactics(intent: TeamTacticsIntent): ClubState | null;
   setTraining(playerId: string, regiment: RegimentId): ClubState | null;
-  /** Move a starting-XI player to a new band/lateral position (free positioning). */
-  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null;
-  /** Pin a player's role label (e.g. LW playing as ST). Pass null to remove the override. */
-  setRoleOverride(playerId: string, role: FormationPosition | null): ClubState | null;
+  /** Move an outfield slot (1–10) to a new band/lateral position (free positioning). */
+  setSlotGeometry(shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry): ClubState | null;
+  /** Pin an outfield slot's role label (e.g. as ST). Pass null to remove the override. */
+  setSlotRoleOverride(slot: number, role: FormationPosition | null): ClubState | null;
   /** Queue an in-match substitution (validated: per-match limit, bench eligibility, fitness). */
   queueSubstitution(playerOutId: string, playerInId: string): boolean;
   // transfers
@@ -120,8 +120,8 @@ export function createBackend(): Backend {
     setFormation: (f) => s.setFormation(f),
     setTactics: (intent) => s.setTactics(intent),
     setTraining: (playerId, regiment) => s.setTraining(playerId, regiment),
-    setPlayerGeometry: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => s.setPlayerGeometry(shape, playerId, geometry),
-    setRoleOverride: (playerId: string, role: FormationPosition | null) => s.setRoleOverride(playerId, role),
+    setSlotGeometry: (shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry) => s.setSlotGeometry(shape, slot, geometry),
+    setSlotRoleOverride: (slot: number, role: FormationPosition | null) => s.setSlotRoleOverride(slot, role),
     queueSubstitution: (playerOutId, playerInId) => s.queueSubstitution(playerOutId, playerInId),
     buyPlayer: (id) => s.buyPlayer(id),
     sellPlayer: (id) => s.sellPlayer(id),

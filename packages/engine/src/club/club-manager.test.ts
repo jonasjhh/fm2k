@@ -166,8 +166,7 @@ describe('ClubManager:', () => {
 
     test('clears shapes back to null', () => {
       const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      manager.setPlayerGeometry('defending', xi[1], { band: 'MID', lateral: 0 }); // seeds shapes
+      manager.setSlotGeometry('defending', 1, { band: 'MID', lateral: 0 }); // seeds shapes
       expect(manager.getState().shapes).not.toBeNull();
       manager.setFormation('4-3-3');
       expect(manager.getState().shapes).toBeNull();
@@ -180,31 +179,6 @@ describe('ClubManager:', () => {
       const newXI = manager.getState().squad.slice(0, 11).map(p => p.id).reverse();
       manager.setStartingXI(newXI);
       expect(manager.getState().startingXI).toEqual(newXI);
-    });
-
-    test('drops shape entries for players removed from the new XI, in both shapes', () => {
-      const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      const [, lb, cb1] = xi;
-      manager.setPlayerGeometry('defending', lb, { band: 'MID', lateral: -0.5 }); // seeds shapes for all 10 outfielders
-      const newXI = xi.filter(id => id !== lb); // drop lb from the XI
-      manager.setStartingXI(newXI);
-      const shapes = assertDefined(manager.getState().shapes, 'shapes should still be seeded');
-      expect(shapes.defending[lb]).toBeUndefined();
-      expect(shapes.attacking[lb]).toBeUndefined();
-      expect(shapes.defending[cb1]).toBeDefined(); // a player who stayed in the XI keeps their entry
-    });
-
-    test('dropping a player leaves the remaining players\' geometry untouched', () => {
-      const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      const [, lb] = xi;
-      manager.setPlayerGeometry('defending', lb, { band: 'MID', lateral: -0.5 });
-      const before = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      const cb1Before = { ...before.defending[xi[2]] };
-      manager.setStartingXI(xi.filter(id => id !== xi[3])); // drop rb, a DEF band-mate of cb1
-      const after = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      expect(after.defending[xi[2]]).toEqual(cb1Before); // unchanged — a pure removal
     });
 
     test('clearing a slot preserves a null hole instead of compacting the array', () => {
@@ -221,31 +195,17 @@ describe('ClubManager:', () => {
       expect(after.slice(1)).toEqual(xi.slice(1));
     });
 
-    test('a newly-assigned player gets seeded with their slot\'s canonical geometry in both shapes', () => {
+    test('the custom slot layout is player-agnostic — it survives clearing and re-picking the XI', () => {
       const manager = new ClubManager(make442Config());
       const xi = xiOf(manager);
-      manager.setPlayerGeometry('defending', xi[1], { band: 'MID', lateral: -0.5 }); // seeds shapes
-      const bench = manager.getState().benchPlayers;
-      const next: (string | null)[] = [...xi];
-      next[9] = bench[0]; // swap a bench player into the first ST slot
-      manager.setStartingXI(next);
-      const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      // Canonical ST slot 9 in 4-4-2 is ATT, lateral -1.
-      expect(shapes.defending[bench[0]]).toEqual({ band: 'ATT', lateral: -1 });
-      expect(shapes.attacking[bench[0]]).toEqual({ band: 'ATT', lateral: -1 });
-      expect(shapes.defending[xi[9]]).toBeUndefined(); // the displaced starter is dropped
-    });
+      manager.setSlotGeometry('defending', 1, { band: 'MID', lateral: -0.5 }); // slot 1 (LB) pushed up
+      const custom = { ...assertDefined(manager.getState().shapes, 'seeded').defending[1] };
 
-    test('a shape edit survives an unrelated XI change', () => {
-      const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      manager.setPlayerGeometry('attacking', xi[1], { band: 'AM', lateral: -1 });
-      const bench = manager.getState().benchPlayers;
-      const next: (string | null)[] = [...xi];
-      next[9] = bench[0];
-      manager.setStartingXI(next);
-      const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      expect(shapes.attacking[xi[1]]).toEqual({ band: 'AM', lateral: -1 });
+      manager.setStartingXI(Array(11).fill(null)); // "Clear team"
+      expect(assertDefined(manager.getState().shapes, 'kept through clear').defending[1]).toEqual(custom);
+
+      manager.setStartingXI(xi); // re-pick — the slot layout is exactly as it was
+      expect(assertDefined(manager.getState().shapes, 're-picked').defending[1]).toEqual(custom);
     });
   });
 
@@ -258,60 +218,55 @@ describe('ClubManager:', () => {
     });
   });
 
-  describe('setPlayerGeometry:', () => {
+  describe('setSlotGeometry:', () => {
     test('seeds both shapes from the predefined formation on first use, editing only the target', () => {
       const manager = new ClubManager(make442Config());
-      const [, lb] = xiOf(manager);
-      manager.setPlayerGeometry('defending', lb, { band: 'MID', lateral: -0.5 });
+      manager.setSlotGeometry('defending', 1, { band: 'MID', lateral: -0.5 }); // slot 1 = LB
       const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      // The other 9 outfielders get seeded too, with the 4-4-2 canonical geometry.
+      // All 10 outfield slots get seeded, with the 4-4-2 canonical geometry.
       expect(Object.keys(shapes.defending)).toHaveLength(10);
       expect(Object.keys(shapes.attacking)).toHaveLength(10);
-      expect(shapes.defending[lb]).toEqual({ band: 'MID', lateral: -0.5 });
+      expect(shapes.defending[1]).toEqual({ band: 'MID', lateral: -0.5 });
       // The attacking shape keeps the canonical seed — only the edited shape moves.
-      expect(shapes.attacking[lb]).toEqual({ band: 'DEF', lateral: -1 });
+      expect(shapes.attacking[1]).toEqual({ band: 'DEF', lateral: -1 });
     });
 
     test('edits the attacking shape independently of the defending one', () => {
       const manager = new ClubManager(make442Config());
-      const [, lb] = xiOf(manager);
-      manager.setPlayerGeometry('attacking', lb, { band: 'AM', lateral: -1 });
+      manager.setSlotGeometry('attacking', 1, { band: 'AM', lateral: -1 });
       const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      expect(shapes.attacking[lb]).toEqual({ band: 'AM', lateral: -1 });
-      expect(shapes.defending[lb]).toEqual({ band: 'DEF', lateral: -1 });
+      expect(shapes.attacking[1]).toEqual({ band: 'AM', lateral: -1 });
+      expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -1 });
     });
 
-    test('returns false and makes no change for a player not in the starting XI', () => {
+    test('returns false and makes no change for an out-of-range slot', () => {
       const manager = new ClubManager(make442Config());
-      const result = manager.setPlayerGeometry('defending', 'not-in-xi', { band: 'MID', lateral: 0 });
-      expect(result).toBe(false);
+      expect(manager.setSlotGeometry('defending', 0, { band: 'MID', lateral: 0 })).toBe(false);  // GK slot
+      expect(manager.setSlotGeometry('defending', 11, { band: 'MID', lateral: 0 })).toBe(false); // past outfield
       expect(manager.getState().shapes).toBeNull();
     });
 
-    test('rejects a 6th player into a band that already has 5, per shape', () => {
+    test('rejects a 6th slot into a band that already has 5, per shape', () => {
       const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      const st1 = xi[9]; const st2 = xi[10];
-      // Pack 5 into MID (the existing LM/CM/CM/RM plus one more).
-      manager.setPlayerGeometry('defending', st1, { band: 'MID', lateral: 0.9 });
+      // Pack 5 into MID (the canonical LM/CM/CM/RM plus slot 9).
+      manager.setSlotGeometry('defending', 9, { band: 'MID', lateral: 0.9 });
       const fullMid = assertDefined(manager.getState().shapes, 'shapes should be seeded');
       expect(Object.values(fullMid.defending).filter(g => g.band === 'MID')).toHaveLength(5);
 
-      const result = manager.setPlayerGeometry('defending', st2, { band: 'MID', lateral: 0.95 });
+      const result = manager.setSlotGeometry('defending', 10, { band: 'MID', lateral: 0.95 });
       expect(result).toBe(false);
       const after = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      expect(after.defending[st2].band).toBe('ATT'); // unchanged
+      expect(after.defending[10].band).toBe('ATT'); // unchanged
       expect(Object.values(after.defending).filter(g => g.band === 'MID')).toHaveLength(5);
 
       // The attacking shape's MID band is unaffected by the defending one being full.
-      expect(manager.setPlayerGeometry('attacking', st2, { band: 'MID', lateral: 0.95 })).toBe(true);
+      expect(manager.setSlotGeometry('attacking', 10, { band: 'MID', lateral: 0.95 })).toBe(true);
     });
 
     test('a same-band lateral move within a full band is still allowed', () => {
       const manager = new ClubManager(make442Config());
-      const xi = xiOf(manager);
-      manager.setPlayerGeometry('defending', xi[9], { band: 'MID', lateral: 0.9 }); // MID now has 5
-      expect(manager.setPlayerGeometry('defending', xi[5], { band: 'MID', lateral: -0.2 })).toBe(true);
+      manager.setSlotGeometry('defending', 9, { band: 'MID', lateral: 0.9 }); // MID now has 5
+      expect(manager.setSlotGeometry('defending', 5, { band: 'MID', lateral: -0.2 })).toBe(true);
     });
   });
 
@@ -323,16 +278,14 @@ describe('ClubManager:', () => {
 
     test('still detects the same predefined formation after a no-op geometry edit', () => {
       const manager = new ClubManager(make442Config());
-      const [, lb] = xiOf(manager);
       expect(manager.getState().shapes).toBeNull(); // not yet seeded
-      manager.setPlayerGeometry('defending', lb, { band: 'DEF', lateral: -1 }); // identical to the 4-4-2 seed
+      manager.setSlotGeometry('defending', 1, { band: 'DEF', lateral: -1 }); // identical to the 4-4-2 seed
       expect(manager.effectiveFormationLabel()).toBe('4-4-2');
     });
 
-    test('returns "custom" once a player is moved off the predefined layout', () => {
+    test('returns "custom" once a slot is moved off the predefined layout', () => {
       const manager = new ClubManager(make442Config());
-      const [, lb] = xiOf(manager);
-      manager.setPlayerGeometry('defending', lb, { band: 'ATT', lateral: 1 });
+      manager.setSlotGeometry('defending', 1, { band: 'ATT', lateral: 1 });
       expect(manager.effectiveFormationLabel()).toBe('custom');
     });
   });
@@ -562,14 +515,13 @@ describe('ClubManager:', () => {
       expect(manager.getState().benchPlayers).not.toContain(playerId);
     });
 
-    test('drops the sold player\'s shape entries (both shapes)', () => {
+    test('selling a player leaves the slot layout intact (the shape is player-agnostic)', () => {
       const manager = new ClubManager(make442Config());
       const [, lb] = xiOf(manager);
-      manager.setPlayerGeometry('defending', lb, { band: 'MID', lateral: -0.5 }); // seeds shapes
-      manager.sellPlayer(lb, 100_000);
-      const shapes = assertDefined(manager.getState().shapes, 'shapes should still be seeded');
-      expect(shapes.defending[lb]).toBeUndefined();
-      expect(shapes.attacking[lb]).toBeUndefined();
+      manager.setSlotGeometry('defending', 1, { band: 'MID', lateral: -0.5 }); // slot 1 (LB) pushed up
+      const custom = { ...assertDefined(manager.getState().shapes, 'seeded').defending[1] };
+      manager.sellPlayer(lb, 100_000); // the LB is gone, but slot 1's layout stays
+      expect(assertDefined(manager.getState().shapes, 'kept').defending[1]).toEqual(custom);
     });
 
     test('records transfer_out transaction', () => {
@@ -1474,7 +1426,7 @@ describe('ClubManager training & development:', () => {
     expect(makeSetup(true).potential).toBe(42);
   });
 
-  test('handleSeasonComplete drops a retiree\'s shape entries', () => {
+  test('handleSeasonComplete removes retirees from the XI but keeps the slot layout intact', () => {
     const positions: PlayerPosition[] = ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'ST', 'ST'];
     const xi = positions.map(position => makePlayer({ position, age: 40 })); // certain to retire
     const bench = makeSquad(4);
@@ -1482,13 +1434,14 @@ describe('ClubManager training & development:', () => {
       squad: [...xi, ...bench], startingXI: xi.map(p => p.id), benchPlayers: bench.map(p => p.id), rng: () => 0,
     }));
     const lb = xi[1].id;
-    manager.setPlayerGeometry('defending', lb, { band: 'MID', lateral: -0.5 }); // seeds shapes
+    manager.setSlotGeometry('defending', 1, { band: 'MID', lateral: -0.5 }); // slot 1 (LB) pushed up
+    const custom = { ...assertDefined(manager.getState().shapes, 'seeded').defending[1] };
 
     manager.handleSeasonComplete();
 
-    expect(manager.getState().startingXI).not.toContain(lb); // retired
-    expect(manager.getState().shapes?.defending[lb]).toBeUndefined();
-    expect(manager.getState().shapes?.attacking[lb]).toBeUndefined();
+    expect(manager.getState().startingXI).not.toContain(lb); // retired, cleared from the XI
+    // The layout is a property of the slot, not the retiree — it survives untouched.
+    expect(manager.getState().shapes?.defending[1]).toEqual(custom);
   });
 
   test('does not train players on a match our club did not play', () => {

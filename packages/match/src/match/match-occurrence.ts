@@ -6,7 +6,7 @@ import { withHomeAdvantage } from '../tactics/match-parameters.ts';
 import { simulateShootout } from './penalty-shootout.ts';
 import { injuriesBySide } from './injury.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
-import { deriveFieldedPositions, deriveCustomFieldedPositions } from '../lineup/lineup.ts';
+import { deriveFieldedPositions, deriveCustomFieldedPositions, slotShapeToPlayers, slotOverridesToPlayers } from '../lineup/lineup.ts';
 import type { MatchState, MatchEvent, MatchStatistics } from './types.ts';
 import type { Team, Player, MatchOutcomeDecidedBy } from '../shared/types.ts';
 
@@ -145,9 +145,11 @@ export class MatchOccurrence implements Occurrence {
     // Re-derive positions from the slot-ordered active lineup; keep the existing
     // assignment for any on-pitch player the new map doesn't cover (e.g. a substitute
     // not yet reflected in the shapes).
-    const custom = team.shapes ? deriveCustomFieldedPositions(team.shapes.defending, team.roleOverrides) : undefined;
-    const basePositions = custom?.fieldedPositions ?? deriveFieldedPositions(this.getPlayerStarters(), team.formation);
-    const overrides = team.roleOverrides;
+    const starters = this.getPlayerStarters();
+    const overrides = slotOverridesToPlayers(team.roleOverrides, starters);
+    const custom = team.shapes
+      ? deriveCustomFieldedPositions(slotShapeToPlayers(team.shapes.defending, starters), overrides) : undefined;
+    const basePositions = custom?.fieldedPositions ?? deriveFieldedPositions(starters, team.formation);
     const derived = overrides
       ? Object.fromEntries(Object.entries(basePositions).map(([id, pos]) => [id, overrides[id] ?? pos]))
       : basePositions;

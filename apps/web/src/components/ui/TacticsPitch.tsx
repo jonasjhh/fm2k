@@ -8,8 +8,8 @@ import type {
   Player, PlayerAttributes, FormationPosition, Formation, PlayerGeometry, TeamShapes, Band,
 } from '@fm2k/engine';
 import {
-  positionAttributeImportance, seedShapesFromFormation, canonicalGeometry,
-  deriveRolesForShape, BAND_ORDER, BAND_OF_ROLE, emptySlotKey, SECONDARY_POSITIONS, ROLE_CANONICAL_LATERAL,
+  positionAttributeImportance, seedShapesFromFormation,
+  deriveRolesForShape, BAND_ORDER, BAND_OF_ROLE, SECONDARY_POSITIONS, ROLE_CANONICAL_LATERAL,
 } from '@fm2k/engine';
 import { ATTR_LABELS } from '../../lib/attribute-labels';
 
@@ -63,7 +63,7 @@ function eligibleRoles(
 }
 
 interface DragState {
-  playerId: string;
+  slotIndex: number;
   startX: number;
   startY: number;
   x: number;
@@ -71,24 +71,24 @@ interface DragState {
   moved: boolean;
 }
 
-type BandMember =
-  | { kind: 'player'; id: string; geometry: PlayerGeometry }
-  | { kind: 'empty'; slotIndex: number; geometry: PlayerGeometry };
+/** One outfield slot (1–10) on the pitch: its geometry (slot-keyed, always present) plus the
+ *  player filling it, if any. The layout belongs to the slot, not the player. */
+type BandMember = { slotIndex: number; playerId: string | null; geometry: PlayerGeometry };
 
 export function TacticsPitch({
-  formation, startingXI, shapes, squad, teamColors, roleOverrides, onPlayerMove, onRoleOverride,
+  formation, startingXI, shapes, squad, teamColors, roleOverrides, onSlotMove, onSlotRoleOverride,
 }: {
   formation: Formation;
   startingXI: (string | null)[];
   shapes: TeamShapes | null;
   squad: Player[];
   teamColors: { primary: string; secondary: string };
-  roleOverrides: Record<string, FormationPosition>;
-  onPlayerMove: (shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry) => void;
-  onRoleOverride: (playerId: string, role: FormationPosition | null) => void;
+  roleOverrides: Record<number, FormationPosition>;
+  onSlotMove: (shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry) => void;
+  onSlotRoleOverride: (slot: number, role: FormationPosition | null) => void;
 }) {
   const [activeShape, setActiveShape] = useState<keyof TeamShapes>('defending');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const playerById = useMemo(() => {
     const m = new Map<string, Player>();
@@ -97,21 +97,20 @@ export function TacticsPitch({
   }, [squad]);
 
   const effectiveShapes = useMemo(
-    () => shapes ?? seedShapesFromFormation(formation, startingXI),
-    [shapes, formation, startingXI],
+    () => shapes ?? seedShapesFromFormation(formation),
+    [shapes, formation],
   );
   const geometry = effectiveShapes[activeShape];
   const otherGeometry = effectiveShapes[activeShape === 'defending' ? 'attacking' : 'defending'];
 
+  // Slot-keyed geometry → slot-keyed derived roles (deriveRolesForShape is key-agnostic).
   const derivedRoles = useMemo(() => deriveRolesForShape(geometry, roleOverrides), [geometry, roleOverrides]);
   // geometry-derived roles without overrides — used to detect which role is the "natural" one
   const baseRoles = useMemo(() => deriveRolesForShape(geometry), [geometry]);
 
   const getEffectiveLateral = (member: BandMember): number => {
-    if (member.kind === 'player') {
-      const override = roleOverrides[member.id];
-      if (override !== undefined) { return ROLE_CANONICAL_LATERAL[override]; }
-    }
+    const override = roleOverrides[member.slotIndex];
+    if (override !== undefined) { return ROLE_CANONICAL_LATERAL[override]; }
     return member.geometry.lateral;
   };
 
@@ -119,19 +118,17 @@ export function TacticsPitch({
     const out: Record<Exclude<Band, 'GK'>, BandMember[]> = {
       DEF: [], DM: [], MID: [], AM: [], ATT: [],
     };
-    for (const [id, g] of Object.entries(geometry)) { out[g.band].push({ kind: 'player', id, geometry: g }); }
-    const canon = canonicalGeometry(formation);
-    startingXI.forEach((id, i) => {
-      if (id || i === 0) { return; }
-      const canonSlot = canon[i - 1];
-      if (!canonSlot) { return; }
-      out[canonSlot.band].push({ kind: 'empty', slotIndex: i, geometry: canonSlot });
-    });
-    // Sort by effective lateral so overridden players appear in the correct relative order.
+    // Every outfield slot 1–10 has geometry (the shape is fully seeded); the player may be null.
+    for (let slot = 1; slot <= 10; slot++) {
+      const g = geometry[slot];
+      if (!g) { continue; }
+      out[g.band].push({ slotIndex: slot, playerId: startingXI[slot] ?? null, geometry: g });
+    }
+    // Sort by effective lateral so overridden slots appear in the correct relative order.
     for (const band of BAND_ORDER) { out[band].sort((a, b) => getEffectiveLateral(a) - getEffectiveLateral(b)); }
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geometry, startingXI, formation, roleOverrides]);
+  }, [geometry, startingXI, roleOverrides]);
 
   const gkId = startingXI[0] ?? null;
   const gk = gkId ? playerById.get(gkId) ?? null : null;
@@ -142,9 +139,9 @@ export function TacticsPitch({
 
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  function onPointerDown(e: React.PointerEvent, playerId: string) {
+  function onPointerDown(e: React.PointerEvent, slotIndex: number) {
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({ playerId, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, moved: false });
+    setDrag({ slotIndex, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, moved: false });
   }
 
   function onPointerMove(e: React.PointerEvent) {
@@ -158,7 +155,7 @@ export function TacticsPitch({
   function onPointerUp(e: React.PointerEvent) {
     if (!drag) { return; }
     if (!drag.moved) {
-      setExpandedId(id => id === drag.playerId ? null : drag.playerId);
+      setExpandedKey(k => k === String(drag.slotIndex) ? null : String(drag.slotIndex));
       setDrag(null);
       return;
     }
@@ -168,7 +165,7 @@ export function TacticsPitch({
       const rect = el.getBoundingClientRect();
       if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
         const lateral = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1));
-        onPlayerMove(activeShape, drag.playerId, { band, lateral });
+        onSlotMove(activeShape, drag.slotIndex, { band, lateral });
         break;
       }
     }
@@ -188,7 +185,7 @@ export function TacticsPitch({
     onPick: (role: FormationPosition) => void,
     onAnchorPointerDown?: (e: React.PointerEvent) => void,
   ) {
-    const isExpanded = expandedId === anchorKey;
+    const isExpanded = expandedKey === anchorKey;
     const spacing = sz.circle + 8;
     return (
       <Box sx={{ position: 'relative', width: sz.circle, height: sz.circle, flexShrink: 0 }}>
@@ -197,7 +194,7 @@ export function TacticsPitch({
             onPointerDown={onAnchorPointerDown}
             onPointerMove={onAnchorPointerDown ? onPointerMove : undefined}
             onPointerUp={onAnchorPointerDown ? onPointerUp : undefined}
-            onClick={onAnchorPointerDown ? undefined : () => setExpandedId(id => id === anchorKey ? null : anchorKey)}
+            onClick={onAnchorPointerDown ? undefined : () => setExpandedKey(id => id === anchorKey ? null : anchorKey)}
             sx={{
               position: 'absolute', top: 0, left: 0,
               width: sz.circle, height: sz.circle, borderRadius: '50%',
@@ -230,7 +227,7 @@ export function TacticsPitch({
           return (
             <Box
               key={opt}
-              onClick={() => { onPick(opt); setExpandedId(null); }}
+              onClick={() => { onPick(opt); setExpandedKey(null); }}
               sx={{
                 position: 'absolute', top: 0, left: 0,
                 width: sz.circle, height: sz.circle, borderRadius: '50%',
@@ -259,10 +256,35 @@ export function TacticsPitch({
   }
 
   function renderMember(member: BandMember, rank: number, bandCount: number) {
-    if (member.kind === 'empty') {
+    const slotKey = String(member.slotIndex);
+    const player = member.playerId ? playerById.get(member.playerId) ?? null : null;
+    const role = derivedRoles[member.slotIndex] ?? (member.geometry.band as FormationPosition);
+    const isDragging = drag?.slotIndex === member.slotIndex && drag.moved;
+    const otherBand = otherGeometry[member.slotIndex]?.band;
+    const bandDelta = otherBand !== undefined && otherBand !== member.geometry.band
+      ? BAND_ROW_INDEX[member.geometry.band] - BAND_ROW_INDEX[otherBand]
+      : 0;
+
+    const arrow = bandDelta !== 0 ? (
+      <Typography sx={{
+        position: 'absolute', top: -4, right: -6, fontSize: 12, fontWeight: 900,
+        lineHeight: 1, color: 'rgba(255,255,255,0.85)', pointerEvents: 'none',
+        textShadow: '0 0 3px rgba(0,0,0,0.8)',
+      }}>
+        {bandDelta > 0 ? '↑' : '↓'}
+      </Typography>
+    ) : null;
+
+    // Empty slot: still a real, draggable position in the shape — the layout is the slot's,
+    // not the player's, so it persists and stays editable even with nobody assigned.
+    if (!player) {
       return (
-        <Box key={emptySlotKey(member.slotIndex)} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative' }}>
-          {renderPicker(emptySlotKey(member.slotIndex), member.geometry.band as FormationPosition, [], true, false, () => {})}
+        <Box key={slotKey} onClick={e => e.stopPropagation()}
+          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedKey === slotKey ? 10 : 1 }}>
+          <Box sx={{ opacity: isDragging ? 0.35 : 1, position: 'relative' }}>
+            {renderPicker(slotKey, role, [], true, false, () => {}, (e) => onPointerDown(e, member.slotIndex))}
+            {arrow}
+          </Box>
           <Typography sx={{ fontSize: sz.nameFont, color: 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 1, fontStyle: 'italic' }}>
             Unassigned
           </Typography>
@@ -270,46 +292,23 @@ export function TacticsPitch({
       );
     }
 
-    const player = playerById.get(member.id);
-    if (!player) { return null; }
-
-    const role = derivedRoles[member.id] ?? (player.position as FormationPosition);
-    const baseRole = baseRoles[member.id] ?? (player.position as FormationPosition);
-    const isOverridden = member.id in roleOverrides;
+    const baseRole = baseRoles[member.slotIndex] ?? (player.position as FormationPosition);
+    const isOverridden = member.slotIndex in roleOverrides;
     const roleOptions = eligibleRoles(player.position as FormationPosition, baseRole, rank, bandCount);
-    const isDragging = drag?.playerId === member.id && drag.moved;
-    const otherBand = otherGeometry[member.id]?.band;
-    const bandDelta = otherBand !== undefined && otherBand !== member.geometry.band
-      ? BAND_ROW_INDEX[member.geometry.band] - BAND_ROW_INDEX[otherBand]
-      : 0;
 
     return (
       <Box
-        key={member.id}
+        key={slotKey}
         onClick={e => e.stopPropagation()}
-        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedId === member.id ? 10 : 1 }}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedKey === slotKey ? 10 : 1 }}
       >
         <Box sx={{ opacity: isDragging ? 0.35 : 1, position: 'relative' }}>
           {renderPicker(
-            member.id, role, roleOptions, false, isOverridden,
-            (opt) => {
-              if (opt === baseRole) {
-                onRoleOverride(member.id, null);
-              } else {
-                onRoleOverride(member.id, opt);
-              }
-            },
-            (e) => onPointerDown(e, member.id),
+            slotKey, role, roleOptions, false, isOverridden,
+            (opt) => onSlotRoleOverride(member.slotIndex, opt === baseRole ? null : opt),
+            (e) => onPointerDown(e, member.slotIndex),
           )}
-          {bandDelta !== 0 && (
-            <Typography sx={{
-              position: 'absolute', top: -4, right: -6, fontSize: 12, fontWeight: 900,
-              lineHeight: 1, color: 'rgba(255,255,255,0.85)', pointerEvents: 'none',
-              textShadow: '0 0 3px rgba(0,0,0,0.8)',
-            }}>
-              {bandDelta > 0 ? '↑' : '↓'}
-            </Typography>
-          )}
+          {arrow}
         </Box>
         <Typography sx={{
           fontSize: sz.nameFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center',
@@ -327,14 +326,14 @@ export function TacticsPitch({
         <ButtonGroup size="small">
           <Button
             variant={activeShape === 'defending' ? 'contained' : 'outlined'}
-            onClick={() => { setActiveShape('defending'); setExpandedId(null); }}
+            onClick={() => { setActiveShape('defending'); setExpandedKey(null); }}
             sx={{ px: 2, fontSize: 12, fontWeight: 700 }}
           >
             Defending
           </Button>
           <Button
             variant={activeShape === 'attacking' ? 'contained' : 'outlined'}
-            onClick={() => { setActiveShape('attacking'); setExpandedId(null); }}
+            onClick={() => { setActiveShape('attacking'); setExpandedKey(null); }}
             sx={{ px: 2, fontSize: 12, fontWeight: 700 }}
           >
             Attacking
@@ -349,7 +348,7 @@ export function TacticsPitch({
           justifyContent: 'space-evenly', border: '2px solid', borderColor: 'success.dark',
           minHeight: 460, position: 'relative',
         }}
-        onClick={() => setExpandedId(null)}
+        onClick={() => setExpandedKey(null)}
       >
         {BAND_ORDER.map(band => (
           <Box
@@ -385,9 +384,8 @@ export function TacticsPitch({
         </Box>
 
         {drag?.moved && (() => {
-          const player = playerById.get(drag.playerId);
-          if (!player) { return null; }
-          const role = derivedRoles[drag.playerId] ?? player.position;
+          const role = derivedRoles[drag.slotIndex] ?? (geometry[drag.slotIndex]?.band as FormationPosition);
+          if (!role) { return null; }
           return (
             <Box sx={{
               position: 'fixed', left: drag.x, top: drag.y, transform: 'translate(-50%, -50%)',

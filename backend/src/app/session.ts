@@ -35,6 +35,7 @@ import type { LastMatchResult } from '../domain/match-result.ts';
 import {
   writeSave, SAVE_VERSION, type SaveData, type SaveType,
 } from '../data/save-data.ts';
+import { dropLegacyPlayerKeyedShapes } from '../data/legacy-shape-migration.ts';
 import {
   BUDGET_START, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
   MARKET_REFRESH_INTERVAL, ALL_PLAYER_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
@@ -1001,7 +1002,9 @@ export class GameSession {
     }
     savedClubState.recentDevelopment ??= [];
     savedClubState.seasonStartSnapshot ??= {};
-    built.clubManager.loadState(savedClubState);
+    // Legacy saves keyed shapes/roleOverrides by player id — drop them (revert to formation
+    // default) since the model is now slot-keyed. Remove this shim when old saves are gone.
+    built.clubManager.loadState(dropLegacyPlayerKeyedShapes(savedClubState));
     const transferState: TransferState = {
       listings: save.transferListings,
       refreshedOnMatchday: save.currentMatchday,
@@ -1510,15 +1513,15 @@ export class GameSession {
     return this.clubChanged();
   }
 
-  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): ClubState | null {
+  setSlotGeometry(shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry): ClubState | null {
     if (!this.clubManager) { return null; }
-    this.clubManager.setPlayerGeometry(shape, playerId, geometry);
+    this.clubManager.setSlotGeometry(shape, slot, geometry);
     return this.clubChanged();
   }
 
-  setRoleOverride(playerId: string, role: FormationPosition | null): ClubState | null {
+  setSlotRoleOverride(slot: number, role: FormationPosition | null): ClubState | null {
     if (!this.clubManager) { return null; }
-    this.clubManager.setRoleOverride(playerId, role);
+    this.clubManager.setSlotRoleOverride(slot, role);
     return this.clubChanged();
   }
 

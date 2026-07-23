@@ -1,4 +1,4 @@
-import type { Formation, Player, FormationPosition, FieldedPositions, PlayerGeometry, TeamShapes, Band } from '../shared/types.ts';
+import type { Formation, Player, FormationPosition, FieldedPositions, PlayerGeometry, TeamShapes, PlayerShapes, Band } from '../shared/types.ts';
 import { BAND_OF_ROLE, BAND_TO_FIELD_LINE, BAND_ORDER, flankOfLateral, type FieldedGeometry } from './bands.ts';
 
 /** Pitch slots (by position) for each formation, ordered back-to-front. */
@@ -163,31 +163,51 @@ export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
   return out;
 }
 
-/** A predefined formation's canonical geometry, keyed by player id instead of slot index —
- *  zips `canonicalGeometry(formation)` against the starting XI's outfielders (slot 0 is
- *  always GK, per the trust contract above). Used both to seed a team's shapes the first
- *  time a manager edits a predefined layout, and by the UI to render one before any
- *  customization has happened. */
-export function seedGeometryFromFormation(
-  formation: Formation, startingXI: readonly (string | null)[],
-): Record<string, PlayerGeometry> {
+/** A predefined formation's canonical geometry keyed by outfield slot index (1–10; the GK
+ *  slot 0 is excluded). Zips `canonicalGeometry(formation)` (slot order) onto slot indices. */
+export function slotGeometryFromFormation(formation: Formation): Record<number, PlayerGeometry> {
   const canon = canonicalGeometry(formation);
-  const outfielders = startingXI.slice(1);
-  const out: Record<string, PlayerGeometry> = {};
-  outfielders.forEach((id, i) => { if (id && canon[i]) { out[id] = { ...canon[i] }; } });
+  const out: Record<number, PlayerGeometry> = {};
+  canon.forEach((g, i) => { out[i + 1] = { ...g }; });
   return out;
 }
 
-/** Seed both shapes of a TeamShapes identically from a predefined formation — the preset
- *  starting point; arrows appear only once the manager edits one shape away from the
- *  other. The two records are independent copies, never shared references. */
-export function seedShapesFromFormation(
-  formation: Formation, startingXI: readonly (string | null)[],
-): TeamShapes {
+/** Seed both phases of a TeamShapes identically from a predefined formation — the preset
+ *  starting point; arrows appear only once the manager edits one shape away from the other.
+ *  Slot-keyed and player-agnostic, so it never needs the XI. Independent copies per phase. */
+export function seedShapesFromFormation(formation: Formation): TeamShapes {
   return {
-    attacking: seedGeometryFromFormation(formation, startingXI),
-    defending: seedGeometryFromFormation(formation, startingXI),
+    attacking: slotGeometryFromFormation(formation),
+    defending: slotGeometryFromFormation(formation),
   };
+}
+
+/** Map a slot-keyed shape to a player-keyed one via the slot-ordered starters (index 0 =
+ *  GK, skipped). This is the single slot→player boundary the match crosses at kickoff. */
+export function slotShapeToPlayers(
+  slot: Record<number, PlayerGeometry>, starters: readonly Player[],
+): Record<string, PlayerGeometry> {
+  const out: Record<string, PlayerGeometry> = {};
+  starters.forEach((p, i) => { if (i > 0 && slot[i]) { out[p.id] = { ...slot[i] }; } });
+  return out;
+}
+
+/** Map both phases of a slot-keyed TeamShapes to the match's player-keyed PlayerShapes. */
+export function slotShapesToPlayers(shapes: TeamShapes, starters: readonly Player[]): PlayerShapes {
+  return {
+    attacking: slotShapeToPlayers(shapes.attacking, starters),
+    defending: slotShapeToPlayers(shapes.defending, starters),
+  };
+}
+
+/** Map slot-keyed role overrides to player ids via the slot-ordered starters; empty → undefined. */
+export function slotOverridesToPlayers(
+  overrides: Record<number, FormationPosition> | undefined, starters: readonly Player[],
+): Record<string, FormationPosition> | undefined {
+  if (!overrides) { return undefined; }
+  const out: Record<string, FormationPosition> = {};
+  starters.forEach((p, i) => { if (i > 0 && overrides[i] !== undefined) { out[p.id] = overrides[i]; } });
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** Synthetic key for "this slot, when empty", distinct from any real player id — used both to
@@ -210,7 +230,7 @@ export function emptySlotKey(slotIndex: number): string {
  *  lineup-editing UI's local state. */
 export function effectiveDisplayOrder(
   slotAssignments: readonly (string | null)[],
-  shape: Record<string, PlayerGeometry> | null,
+  shape: Record<number, PlayerGeometry> | null,
   formation: Formation,
 ): Map<string, number> {
   const order = new Map<string, number>();
@@ -219,10 +239,8 @@ export function effectiveDisplayOrder(
     return order;
   }
   const canon = canonicalGeometry(formation);
-  const geometryOf = (i: number): PlayerGeometry | undefined => {
-    const id = slotAssignments[i];
-    return id ? (shape[id] ?? canon[i - 1]) : canon[i - 1];
-  };
+  // Slot-keyed: slot i's geometry is its custom anchor if set, else the formation canonical.
+  const geometryOf = (i: number): PlayerGeometry | undefined => shape[i] ?? canon[i - 1];
   let rank = 0;
   const gkId = slotAssignments[0];
   order.set(gkId ?? emptySlotKey(0), rank++); // GK always first, occupied or not
@@ -250,16 +268,16 @@ function sameGeometry(a: PlayerGeometry | undefined, b: PlayerGeometry | undefin
  *  affects how a match is actually built. */
 export function effectiveFormationLabel(
   formation: Formation,
-  startingXI: readonly (string | null)[],
   shapes: TeamShapes | null,
 ): Formation | 'custom' {
   if (!shapes) { return formation; }
 
-  const ids = startingXI.slice(1).filter((id): id is string => id !== null);
-  if (ids.some(id => !sameGeometry(shapes.attacking[id], shapes.defending[id]))) { return 'custom'; }
+  const slots = Array.from({ length: 10 }, (_, k) => k + 1); // outfield slots 1..10
+  // Any slot whose two phases differ = an arrow exists = a custom layout.
+  if (slots.some(s => !sameGeometry(shapes.attacking[s], shapes.defending[s]))) { return 'custom'; }
 
-  const ordered = ids
-    .map(id => shapes.defending[id])
+  const ordered = slots
+    .map(s => shapes.defending[s])
     .filter((g): g is PlayerGeometry => !!g);
   for (const candidate of Object.keys(FORMATION_LINES) as Formation[]) {
     const canon = canonicalGeometry(candidate);

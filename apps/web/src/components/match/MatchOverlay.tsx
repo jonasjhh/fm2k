@@ -251,9 +251,7 @@ export default function MatchOverlay() {
               />
             )}
             {clubState && !completed && (() => {
-              const effectiveLabel = effectiveFormationLabel(
-                clubState.formation, clubState.startingXI, clubState.shapes,
-              );
+              const effectiveLabel = effectiveFormationLabel(clubState.formation, clubState.shapes);
               const lines = FORMATION_LINES[clubState.formation as keyof typeof FORMATION_LINES] ?? [];
               return (
                 <Box>

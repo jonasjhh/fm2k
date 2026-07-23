@@ -1,6 +1,6 @@
 import {
   FORMATION_LINES, buildSlotAssignments, canonicalGeometry, deriveCustomFieldedPositions,
-  seedGeometryFromFormation, seedShapesFromFormation, deriveRolesForShape,
+  slotGeometryFromFormation, seedShapesFromFormation, deriveRolesForShape,
   effectiveFormationLabel, effectiveDisplayOrder, emptySlotKey,
 } from './lineup.ts';
 import type { PlayerPosition, Player, PlayerGeometry } from '../shared/types.ts';
@@ -133,11 +133,10 @@ describe('canonicalGeometry:', () => {
 describe('deriveRolesForShape:', () => {
   it('reproduces every predefined formation\'s slot labels from its canonical geometry', () => {
     for (const [formation, lines] of Object.entries(FORMATION_LINES)) {
-      const startingXI = ['gk', ...Array.from({ length: 10 }, (_, i) => `p${i}`)];
-      const shape = seedGeometryFromFormation(formation as never, startingXI);
+      const shape = slotGeometryFromFormation(formation as never); // slot-keyed 1..10
       const roles = deriveRolesForShape(shape);
       const expected = lines.flat().slice(1); // outfield slots in canonical order
-      expect(startingXI.slice(1).map(id => roles[id])).toEqual(expected);
+      expect(Array.from({ length: 10 }, (_, i) => roles[i + 1])).toEqual(expected);
     }
   });
 
@@ -180,66 +179,59 @@ describe('deriveCustomFieldedPositions:', () => {
   });
 });
 
-describe('seedGeometryFromFormation:', () => {
-  it('keys the canonical geometry by player id, skipping the GK at slot 0', () => {
-    const startingXI = ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
-    const seeded = seedGeometryFromFormation('4-4-2', startingXI);
+describe('slotGeometryFromFormation:', () => {
+  it('keys the canonical geometry by outfield slot index (1–10), excluding the GK', () => {
+    const seeded = slotGeometryFromFormation('4-4-2');
     expect(Object.keys(seeded)).toHaveLength(10);
-    expect(seeded.gk).toBeUndefined();
-    expect(seeded.lb).toEqual({ band: 'DEF', lateral: -1 });
+    expect(seeded[0]).toBeUndefined();                       // GK slot has no anchor
+    expect(seeded[1]).toEqual({ band: 'DEF', lateral: -1 }); // slot 1 = LB
   });
 });
 
 describe('seedShapesFromFormation:', () => {
-  const startingXI = ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
-
   it('seeds attacking and defending identically', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
+    const shapes = seedShapesFromFormation('4-4-2');
     expect(shapes.attacking).toEqual(shapes.defending);
   });
 
   it('the two shapes are independent copies — editing one leaves the other untouched', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
-    shapes.attacking.lb = { band: 'ATT', lateral: -1 };
-    expect(shapes.defending.lb).toEqual({ band: 'DEF', lateral: -1 });
+    const shapes = seedShapesFromFormation('4-4-2');
+    shapes.attacking[1] = { band: 'ATT', lateral: -1 };
+    expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -1 });
   });
 });
 
 describe('effectiveFormationLabel:', () => {
-  const startingXI = ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'];
-
   it('returns the formation as-is when there are no shapes', () => {
-    expect(effectiveFormationLabel('4-4-2', startingXI, null)).toBe('4-4-2');
+    expect(effectiveFormationLabel('4-4-2', null)).toBe('4-4-2');
   });
 
   it('still recognises the formation when the shapes happen to match it exactly', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
-    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-4-2');
+    expect(effectiveFormationLabel('4-4-2', seedShapesFromFormation('4-4-2'))).toBe('4-4-2');
   });
 
   it('recognises a different preset the shapes have been dragged into', () => {
-    const shapes = seedShapesFromFormation('4-3-3', startingXI);
-    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-3-3');
+    expect(effectiveFormationLabel('4-4-2', seedShapesFromFormation('4-3-3'))).toBe('4-3-3');
   });
 
   it('returns "custom" once identical shapes are off every predefined template', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
-    shapes.attacking.lb = { band: 'ATT', lateral: 1 };
-    shapes.defending.lb = { band: 'ATT', lateral: 1 };
-    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('custom');
+    const shapes = seedShapesFromFormation('4-4-2');
+    shapes.attacking[1] = { band: 'ATT', lateral: 1 };
+    shapes.defending[1] = { band: 'ATT', lateral: 1 };
+    expect(effectiveFormationLabel('4-4-2', shapes)).toBe('custom');
   });
 
-  it('returns "custom" whenever any player\'s two shapes differ (an arrow exists)', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
-    shapes.attacking.lb = { band: 'MID', lateral: -1 }; // defending still matches 4-4-2
-    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('custom');
+  it('returns "custom" whenever any slot\'s two shapes differ (an arrow exists)', () => {
+    const shapes = seedShapesFromFormation('4-4-2');
+    shapes.attacking[1] = { band: 'MID', lateral: -1 }; // defending still matches 4-4-2
+    expect(effectiveFormationLabel('4-4-2', shapes)).toBe('custom');
   });
 
   it('tolerates sub-threshold lateral drift when matching a preset', () => {
-    const shapes = seedShapesFromFormation('4-4-2', startingXI);
-    shapes.defending.lb = { band: 'DEF', lateral: -1 + 0.03 };
-    shapes.attacking.lb = { band: 'DEF', lateral: -1 + 0.03 };
-    expect(effectiveFormationLabel('4-4-2', startingXI, shapes)).toBe('4-4-2');
+    const shapes = seedShapesFromFormation('4-4-2');
+    shapes.defending[1] = { band: 'DEF', lateral: -1 + 0.03 };
+    shapes.attacking[1] = { band: 'DEF', lateral: -1 + 0.03 };
+    expect(effectiveFormationLabel('4-4-2', shapes)).toBe('4-4-2');
   });
 });
 
@@ -259,8 +251,8 @@ describe('effectiveDisplayOrder:', () => {
   });
 
   it('ranks a player moved into a new band by band order, ahead of their old band-mates', () => {
-    const shape = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
-    shape.cb1 = { band: 'ATT', lateral: 0 }; // a CB pushed forward into attack
+    const shape = slotGeometryFromFormation('4-4-2');
+    shape[2] = { band: 'ATT', lateral: 0 }; // a CB pushed forward into attack
     const order = effectiveDisplayOrder(slotAssignments, shape, '4-4-2');
 
     expect(order.get('gk')).toBe(0); // GK always first
@@ -274,7 +266,7 @@ describe('effectiveDisplayOrder:', () => {
   });
 
   it('keeps the bench in its original order, ranked after every starter', () => {
-    const shape = seedGeometryFromFormation('4-4-2', slotAssignments.slice(0, 11) as string[]);
+    const shape = slotGeometryFromFormation('4-4-2');
     const order = effectiveDisplayOrder(slotAssignments, shape, '4-4-2');
     const starterRanks = slotAssignments.slice(0, 11).map(id => order.get(id as string) as number);
     expect(order.get('b1')).toBe(11);
@@ -284,7 +276,7 @@ describe('effectiveDisplayOrder:', () => {
 
   it('ranks an empty slot at its canonical band position', () => {
     const noLb = [...slotAssignments]; noLb[1] = null; // lb unassigned, nothing customized
-    const shape = seedGeometryFromFormation('4-4-2', noLb.slice(0, 11) as (string | null)[]);
+    const shape = slotGeometryFromFormation('4-4-2');
     const order = effectiveDisplayOrder(noLb, shape, '4-4-2');
     // The empty LB slot (canonical DEF) still ranks among the DEF band-mates, ahead of MID.
     const emptySlotRank = order.get(emptySlotKey(1)) as number;

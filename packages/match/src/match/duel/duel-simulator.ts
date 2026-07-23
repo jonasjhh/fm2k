@@ -5,7 +5,7 @@
 // minute/phase skeleton) is shared with v1's design unchanged.
 
 import { isTerminalPhase, type MatchConfig, type MatchState, type MatchEvent, type MatchResult, type MatchStatistics, type EventType, type BallPosition } from '../types.ts';
-import type { Player, Team, TeamShapes } from '../../shared/types.ts';
+import type { Player, Team, PlayerShapes } from '../../shared/types.ts';
 import { StatsAccumulator } from '../stats.ts';
 import { NEUTRAL_PARAMS, withHomeAdvantage } from '../../tactics/match-parameters.ts';
 import { perMinuteDrain, applyFatigue } from '../fatigue.ts';
@@ -13,6 +13,7 @@ import { rollInjuries, injuryDescription, injuriesBySide } from '../injury.ts';
 import { mulberry32, drawMatchForm, type MatchForm } from '../rng.ts';
 import {
   deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation, deriveRolesForShape,
+  slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
 } from '../../lineup/lineup.ts';
 import { type XY, type Side, targetsForShape, phaseOf, anchorXY, toAbsolute, BAND_Y, nearestTo } from './field.ts';
 import { advancePositions } from './movement.ts';
@@ -70,7 +71,7 @@ export class DuelMatchSimulator {
 
   // v2-only live state (ephemeral; never on MatchState, never persisted).
   private positions!: { home: Record<string, XY>; away: Record<string, XY> };
-  private shapes!: { home: TeamShapes; away: TeamShapes };
+  private shapes!: { home: PlayerShapes; away: PlayerShapes };
   private derivedRoles!: { home: { defending: Record<string, string>; attacking: Record<string, string> }; away: { defending: Record<string, string>; attacking: Record<string, string> } };
   private ball!: BallState;
 
@@ -84,14 +85,15 @@ export class DuelMatchSimulator {
     return `duel-event-${++this.eventSeq}`;
   }
 
-  /** A side's dual shapes: the team's own when set, else seeded from its formation
-   *  preset (AI teams never author shapes). Starters are slot-ordered, GK at 0. */
-  private resolveShapes(team: Team, starters: Player[]): TeamShapes {
-    return team.shapes ?? seedShapesFromFormation(team.formation, starters.map(p => p.id));
+  /** A side's dual shapes, mapped to the player-keyed internal view: the team's own
+   *  slot-keyed shape when set, else its formation preset (AI teams never author shapes),
+   *  converted via the slot-ordered starters (GK at 0). */
+  private resolveShapes(team: Team, starters: Player[]): PlayerShapes {
+    return slotShapesToPlayers(team.shapes ?? seedShapesFromFormation(team.formation), starters);
   }
 
   /** Everyone starts the match at their defending anchor (kickoff shape). */
-  private initialPositions(shapes: TeamShapes, starters: Player[], side: Side): Record<string, XY> {
+  private initialPositions(shapes: PlayerShapes, starters: Player[], side: Side): Record<string, XY> {
     const out: Record<string, XY> = {};
     const gkId = starters[0]?.id;
     for (const p of starters) {
@@ -130,10 +132,13 @@ export class DuelMatchSimulator {
       away: this.initialPositions(this.shapes.away, awayPlayers, 'away'),
     };
 
+    // Map the stored slot-keyed shape/overrides to player-keyed via the slot-ordered starters.
+    const homeOverrides = slotOverridesToPlayers(this.config.homeTeam.roleOverrides, homePlayers);
+    const awayOverrides = slotOverridesToPlayers(this.config.awayTeam.roleOverrides, awayPlayers);
     const homeCustom = this.config.homeTeam.shapes?.defending
-      ? deriveCustomFieldedPositions(this.config.homeTeam.shapes.defending, this.config.homeTeam.roleOverrides) : undefined;
+      ? deriveCustomFieldedPositions(slotShapeToPlayers(this.config.homeTeam.shapes.defending, homePlayers), homeOverrides) : undefined;
     const awayCustom = this.config.awayTeam.shapes?.defending
-      ? deriveCustomFieldedPositions(this.config.awayTeam.shapes.defending, this.config.awayTeam.roleOverrides) : undefined;
+      ? deriveCustomFieldedPositions(slotShapeToPlayers(this.config.awayTeam.shapes.defending, awayPlayers), awayOverrides) : undefined;
 
     const possession: Side = this.rng() < 0.5 ? 'home' : 'away';
     this.ball = this.kickoffBall(possession, homePlayers, awayPlayers);
@@ -149,8 +154,8 @@ export class DuelMatchSimulator {
       awayTeam: { ...this.config.awayTeam },
       currentPlayers: { home: homePlayers, away: awayPlayers },
       fieldedPositions: {
-        home: applyOverrides(homeCustom?.fieldedPositions ?? deriveFieldedPositions(homePlayers, this.config.homeTeam.formation), this.config.homeTeam.roleOverrides),
-        away: applyOverrides(awayCustom?.fieldedPositions ?? deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation), this.config.awayTeam.roleOverrides),
+        home: applyOverrides(homeCustom?.fieldedPositions ?? deriveFieldedPositions(homePlayers, this.config.homeTeam.formation), homeOverrides),
+        away: applyOverrides(awayCustom?.fieldedPositions ?? deriveFieldedPositions(awayPlayers, this.config.awayTeam.formation), awayOverrides),
       },
       params: {
         home: withHomeAdvantage(this.config.homeParams ?? this.config.homeTeam.tacticsParams ?? NEUTRAL_PARAMS),

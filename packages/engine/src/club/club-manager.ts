@@ -4,7 +4,7 @@ import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/
 import {
   defaultIntent, MAX_BAND_SIZE,
   seedShapesFromFormation, effectiveFormationLabel as effectiveFormationLabelOf,
-  canonicalGeometry, buildSlotAssignments,
+  buildSlotAssignments,
 } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
 import type { LeagueStanding } from '../league/league-types.ts';
@@ -163,51 +163,29 @@ export class ClubManager {
     });
   }
 
-  /** Set or clear a per-player role override. Passing `null` removes the override for that
-   *  player, restoring the geometry-derived label. */
-  setRoleOverride(playerId: string, role: FormationPosition | null): void {
+  /** Set or clear a role override for an outfield slot (1–10). Passing `null` clears it,
+   *  restoring the geometry-derived label. Slot-keyed like the shape — independent of player. */
+  setSlotRoleOverride(slot: number, role: FormationPosition | null): void {
     this.stateManager.updateState(state => {
       if (role === null) {
-        delete state.roleOverrides[playerId];
+        delete state.roleOverrides[slot];
       } else {
-        state.roleOverrides[playerId] = role;
+        state.roleOverrides[slot] = role;
       }
     });
   }
 
-  /** The club's shapes, seeding both from the current predefined formation (one anchor per
-   *  outfield XI member, in slot order) if not already custom. `fallback`, if given, is
-   *  used as the seed instead of recomputing it — callers that already computed the seed
-   *  once (to validate before this update) pass it through so it isn't derived twice for
-   *  the same state. */
+  /** The club's shapes, seeding both phases from the current predefined formation (slot-keyed,
+   *  player-agnostic) if not already custom. `fallback`, if given, is used as the seed instead
+   *  of recomputing it — callers that already computed the seed once pass it through. */
   private ensureShapes(state: ClubState, fallback?: TeamShapes): TeamShapes {
-    state.shapes ??= fallback ?? seedShapesFromFormation(state.formation, state.startingXI);
+    state.shapes ??= fallback ?? seedShapesFromFormation(state.formation);
     return state.shapes;
   }
 
-  /** Drop any shape entries for players no longer in the (new) starting XI, and seed
-   *  canonical-slot anchors (in both shapes) for any newly assigned outfielder — keeps the
-   *  anchor maps exactly in sync with the XI: no ghost entries for players who were
-   *  benched/dropped/sold/retired, no missing entries for new arrivals (the match build
-   *  derives fielded positions solely from the defending shape's entries). No-op if
-   *  `shapes` is null. */
-  private syncShapesToXI(state: ClubState): void {
-    if (!state.shapes) { return; }
-    const canon = canonicalGeometry(state.formation);
-    for (const key of ['attacking', 'defending'] as const) {
-      const shape = state.shapes[key];
-      const next: Record<string, PlayerGeometry> = {};
-      state.startingXI.forEach((id, i) => {
-        if (!id || i === 0) { return; } // unfilled, or the GK slot (never has an anchor)
-        next[id] = shape[id] ?? (canon[i - 1] ? { ...canon[i - 1] } : { band: 'MID', lateral: 0 });
-      });
-      state.shapes[key] = next;
-    }
-  }
-
-  /** How many members `shape` has in `band`, excluding `playerId`. */
-  private bandCount(shape: Record<string, PlayerGeometry>, band: Exclude<Band, 'GK'>, playerId: string): number {
-    return Object.entries(shape).filter(([id, g]) => g.band === band && id !== playerId).length;
+  /** How many members `shape` has in `band`, excluding `slot`. */
+  private bandCount(shape: Record<number, PlayerGeometry>, band: Exclude<Band, 'GK'>, slot: number): number {
+    return Object.entries(shape).filter(([k, g]) => g.band === band && Number(k) !== slot).length;
   }
 
   /** Move a starting-XI player's anchor in one shape to a new band/lateral position.
@@ -216,15 +194,15 @@ export class ClubManager {
    *  from the resulting geometry (deriveRolesForShape), never stored. Seeds both shapes
    *  from the current predefined formation on first use. No-op (returns false) if the
    *  player isn't in the starting XI. */
-  setPlayerGeometry(shape: keyof TeamShapes, playerId: string, geometry: PlayerGeometry): boolean {
+  setSlotGeometry(shape: keyof TeamShapes, slot: number, geometry: PlayerGeometry): boolean {
+    if (slot < 1 || slot > 10) { return false; } // outfield slots only (GK slot 0 is fixed)
     const state = this.stateManager.getState();
-    if (!state.startingXI.includes(playerId)) { return false; }
 
-    const currentShapes = state.shapes ?? seedShapesFromFormation(state.formation, state.startingXI);
-    if (this.bandCount(currentShapes[shape], geometry.band, playerId) + 1 > MAX_BAND_SIZE) { return false; }
+    const currentShapes = state.shapes ?? seedShapesFromFormation(state.formation);
+    if (this.bandCount(currentShapes[shape], geometry.band, slot) + 1 > MAX_BAND_SIZE) { return false; }
 
     this.stateManager.updateState(s => {
-      this.ensureShapes(s, currentShapes)[shape][playerId] = { ...geometry };
+      this.ensureShapes(s, currentShapes)[shape][slot] = { ...geometry };
     });
     return true;
   }
@@ -234,7 +212,7 @@ export class ClubManager {
    *  (drives UI pill highlighting); never affects how a match is actually built. */
   effectiveFormationLabel(): Formation | 'custom' {
     const state = this.stateManager.getState();
-    return effectiveFormationLabelOf(state.formation, state.startingXI, state.shapes);
+    return effectiveFormationLabelOf(state.formation, state.shapes);
   }
 
   setStyle(style: TacticalStyleId): void {
@@ -250,12 +228,11 @@ export class ClubManager {
   }
 
   /** Replace the 11 slot-ordered starting-XI entries (slot 0 = GK; `null` = deliberately
-   *  unfilled), then resync the shapes: departures lose their anchors, new arrivals get
-   *  their slot's canonical anchor in both shapes (see syncShapesToXI). */
+   *  unfilled). The formation shape is slot-keyed and player-agnostic, so changing who fills
+   *  the XI — including a full clear — never disturbs the layout. */
   setStartingXI(slots: (string | null)[]): void {
     this.stateManager.updateState(state => {
       state.startingXI = slots;
-      this.syncShapesToXI(state);
     });
   }
 
@@ -350,7 +327,6 @@ export class ClubManager {
       s.squad = s.squad.filter(p => p.id !== playerId);
       s.startingXI = s.startingXI.map(id => id === playerId ? null : id);
       s.benchPlayers = s.benchPlayers.filter(id => id !== playerId);
-      this.syncShapesToXI(s);
       s.financialLog.push(tx);
     });
 
@@ -726,7 +702,6 @@ export class ClubManager {
       s.squad = newSquad;
       s.startingXI = s.startingXI.map(id => id && retiredIds.has(id) ? null : id);
       s.benchPlayers = s.benchPlayers.filter(id => !retiredIds.has(id));
-      this.syncShapesToXI(s);
       s.recentDevelopment = fullSeasonDevelopment;
       s.seasonStartSnapshot = Object.fromEntries(newSquad.map(p => [p.id, p.attributes]));
     });

@@ -44,13 +44,13 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function TacticsTab() {
-  const { clubState, setFormation, setPlayerGeometry, setStartingXI, setBench, setRoleOverride } = useGameStore(useShallow((s) => ({
+  const { clubState, setFormation, setSlotGeometry, setStartingXI, setBench, setSlotRoleOverride } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     setFormation: s.setFormation,
-    setPlayerGeometry: s.setPlayerGeometry,
+    setSlotGeometry: s.setSlotGeometry,
     setStartingXI: s.setStartingXI,
     setBench: s.setBench,
-    setRoleOverride: s.setRoleOverride,
+    setSlotRoleOverride: s.setSlotRoleOverride,
   })));
 
   const {
@@ -68,7 +68,7 @@ export default function TacticsTab() {
   const teamColors = useClubColors();
   const formation = (clubState?.formation ?? '4-4-2') as Formation;
   const effectiveLabel = clubState
-    ? effectiveFormationLabel(clubState.formation, clubState.startingXI, clubState.shapes)
+    ? effectiveFormationLabel(clubState.formation, clubState.shapes)
     : formation;
 
   const sorted = useMemo(
@@ -201,8 +201,8 @@ export default function TacticsTab() {
             squad={clubState.squad}
             teamColors={teamColors}
             roleOverrides={clubState.roleOverrides ?? {}}
-            onPlayerMove={setPlayerGeometry}
-            onRoleOverride={setRoleOverride}
+            onSlotMove={setSlotGeometry}
+            onSlotRoleOverride={setSlotRoleOverride}
           />
         </Box>
 

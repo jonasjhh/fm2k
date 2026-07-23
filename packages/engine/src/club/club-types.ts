@@ -69,7 +69,7 @@ export interface ClubState {
    *  Reset to `null` whenever `formation` changes (slot indices and their meaning change
    *  with it). Seeded identically in both shapes on first edit; arrows are the difference. */
   shapes: TeamShapes | null
-  /** Explicit per-player role label overrides (playerId → FormationPosition). Applied on
-   *  top of the geometry-derived role. Cleared when formation changes. */
-  roleOverrides: Record<string, FormationPosition>
+  /** Explicit role label overrides keyed by outfield slot index (1–10), like `shapes`.
+   *  Applied on top of the geometry-derived role. Cleared when formation changes. */
+  roleOverrides: Record<number, FormationPosition>
 }

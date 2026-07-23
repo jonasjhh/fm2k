@@ -34,9 +34,9 @@ export function FormationGrid({
   slotAssignments: (string | null)[];
   squad: Player[];
   teamColors: { primary: string; secondary: string };
-  /** A single shape (normally the defending one) — placement and labels follow it for any
-   *  player it has an entry for; players without an entry fall back to the template slot. */
-  shape?: Record<string, PlayerGeometry> | null;
+  /** A single shape (normally the defending one), keyed by outfield slot index (1–10) —
+   *  placement and labels follow it; slots without an entry fall back to the template. */
+  shape?: Record<number, PlayerGeometry> | null;
   compact?: boolean;
   onPlayerClick?: (playerId: string) => void;
 }) {
@@ -56,11 +56,10 @@ export function FormationGrid({
     };
     flat.forEach((templatePos, i) => {
       if (i === 0) { return; } // slot 0 is always GK, rendered separately below
-      const playerId = slotAssignments[i] ?? null;
-      const g = playerId ? shape?.[playerId] : undefined;
+      const g = shape?.[i]; // slot-keyed: slot i's geometry, independent of the occupant
       const band = g?.band ?? BAND_OF_ROLE[templatePos as FormationPosition];
       if (band === 'GK') { return; }
-      const pos = (playerId ? derivedRoles?.[playerId] : undefined) ?? (templatePos as FormationPosition);
+      const pos = derivedRoles?.[i] ?? (templatePos as FormationPosition);
       out[band].push({ idx: i, pos, lateral: g?.lateral ?? 0 });
     });
     if (shape) {

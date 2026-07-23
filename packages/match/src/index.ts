@@ -10,7 +10,7 @@
 // Domain model
 export type {
   Formation, Player, PlayerAttributes, PlayerPosition, FormationPosition, Team, TeamColors,
-  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, TeamShapes, Band,
+  TeamTactics, FieldedPositions, MatchOutcomeDecidedBy, PlayerGeometry, TeamShapes, PlayerShapes, Band,
 } from './shared/types.ts';
 export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts';
 export { SECONDARY_POSITIONS } from './shared/position-rules.ts';
@@ -31,7 +31,8 @@ export { buildMatchInsights } from './tactics/feedback.ts';
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, seedGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
+  canonicalGeometry, slotGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
+  slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
   deriveRolesForShape, effectiveFormationLabel,
   effectiveDisplayOrder, emptySlotKey,
 } from './lineup/lineup.ts';
