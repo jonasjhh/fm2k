@@ -1113,13 +1113,13 @@ describe('ClubManager (mutation top-up):', () => {
       return { p, config: makeConfig({ squad: [p], startingXI: [p.id], benchPlayers: [], eventBus: bus, rng }) };
     }
 
-    test('drains starter fitness by (25 - floor(stamina/2)) * 7', () => {
+    test('drains starter fitness by (25 - floor(stamina/2)) * MATCH_FITNESS_DRAIN_PER_ENERGY', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus); // 0.99 avoids injury
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other');
-      // stamina 10 -> drain max(5, 25-5) = 20, scaled *7 onto the 0-1000 fitness range
-      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(860);
+      // stamina 10 -> drain max(5, 25-5) = 20, scaled *8 onto the 0-1000 fitness range
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(840);
     });
 
     test('processes a match where the club is the away team', () => {

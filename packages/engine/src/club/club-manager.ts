@@ -545,7 +545,7 @@ export class ClubManager {
         const energySpent = ourEnergy?.[player.id] !== undefined
           ? 100 - ourEnergy[player.id]
           : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
-        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * 7);
+        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * ClubManager.MATCH_FITNESS_DRAIN_PER_ENERGY);
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
         const trainingAxes = FacilityManager.trainingAxes(s.facilities, player);
@@ -630,8 +630,15 @@ export class ClubManager {
     }
   }
 
-  // Tenths-of-a-point/day; ~+21/week baseline at neutral (50) stamina.
-  private static readonly FITNESS_RECOVERY_PER_DAY = 210 / 7;
+  // ── Fitness economy knobs ───────────────────────────────────────────────────
+  // Fitness is 0–1000 (100% = 1000). Two levers set the whole economy:
+  //   • drain  = energy a player burned in a match × MATCH_FITNESS_DRAIN_PER_ENERGY
+  //   • regain = FITNESS_RECOVERY_PER_DAY per elapsed calendar day (× stamina/medical/regiment)
+  // At the current values a full-match outfielder loses ~140–200 fitness, while a normal
+  // 7-day week regains ~210 — so one game/week tops back up to 100%, but a congested
+  // two-game (league + cup) week nets roughly −110 (~11%), making rotation matter.
+  private static readonly MATCH_FITNESS_DRAIN_PER_ENERGY = 8;
+  private static readonly FITNESS_RECOVERY_PER_DAY = 210 / 7; // ~30/day; ~+210/week at neutral stamina
 
   /** Passive fitness recovery scaled by actual elapsed game-calendar days, and very slightly
    *  by the player's own stamina (fitter players shake off fatigue marginally faster) — a
