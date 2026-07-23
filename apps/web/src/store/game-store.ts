@@ -151,7 +151,7 @@ interface GameStore {
   advanceMatch: () => Promise<void>;   // auto-stream to the next intermission
   pauseMatch: () => void;              // stop streaming at the next chunk boundary
   skipMatch: () => Promise<void>;      // skip current match to full time
-  goToNextMatch: () => void;           // focus the next fixture
+  goToNextMatch: () => Promise<void>;  // advance to & focus the next fixture's matchday
   setSimDelay: (ms: number) => void;
   openMatchOverlay: () => void;        // re-open the overlay (e.g. the match report)
   closeMatchOverlay: () => void;
@@ -371,9 +371,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({ isStreaming: false, matchEvents: evs, streamHome: r.homeScore, streamAway: r.awayScore });
     },
 
-    goToNextMatch: () => {
-      backend.commands.nextMatch();
+    goToNextMatch: async () => {
       set({ matchEvents: [], streamHome: 0, streamAway: 0, streamMinute: 0, pausesUsed: 0, matchOverlayOpen: false });
+      await backend.commands.nextMatch();
     },
 
     openMatchOverlay: () => set({ matchOverlayOpen: true }),

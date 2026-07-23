@@ -22,7 +22,7 @@ export interface BackendCommands {
   // simulation (the game clock)
   advanceToNextStop(opts?: { maxMinutes?: number }): Promise<AdvanceResult>;
   skipToFullTime(): Promise<AdvanceResult>;
-  nextMatch(): void;
+  nextMatch(): Promise<void>;
   simulateToEnd(): Promise<void>;
   // tactics
   toggleXI(id: string): ClubState | null;

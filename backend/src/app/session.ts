@@ -1386,9 +1386,17 @@ export class GameSession {
     return this.buildAdvanceResult(focusId, collected, 'full_time');
   }
 
-  /** Move the Match-tab focus to the player's next upcoming fixture. */
-  nextMatch(): void {
-    this.focusFixtureId = this.playerNextFixture()?.id ?? null;
+  /** Move the Match-tab focus to the player's next upcoming fixture, advancing the game
+   *  clock forward to that matchday (simulating intervening non-player rounds and applying
+   *  the elapsed fitness recovery) — stopping one minute short of kickoff so the player's
+   *  own match stays un-started until they choose to play it. This keeps the displayed
+   *  Current date, and the squad's fitness, in sync with what will actually take the field. */
+  async nextMatch(): Promise<void> {
+    const nextFix = this.playerNextFixture();
+    this.focusFixtureId = nextFix?.id ?? null;
+    if (nextFix && isBefore(this.now, nextFix.scheduledTime)) {
+      await this.advanceClockTo(addMinutes(nextFix.scheduledTime, -1));
+    }
     this.notify();
   }
 

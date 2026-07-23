@@ -12,11 +12,12 @@ interface StatsBarProps {
 }
 
 export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
-  const { clubState, leagueState, playerTeamId, seasonComplete } = useGameStore(useShallow((s) => ({
+  const { clubState, leagueState, playerTeamId, seasonComplete, now } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     leagueState: s.leagueState,
     playerTeamId: s.playerTeamId,
     seasonComplete: s.seasonComplete,
+    now: s.now,
   })));
 
   if (!clubState || !leagueState) {return null;}
@@ -64,7 +65,12 @@ export default function StatsBar({ clubColors, textColor }: StatsBarProps) {
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit' }}>{value}</Typography>
         </Box>
       ))}
-      <Box sx={{ ml: 'auto' }}>
+      <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+        {now && (
+          <Typography variant="caption" sx={{ opacity: 0.75, color: 'inherit' }}>
+            Current: {fmtDate(now)}
+          </Typography>
+        )}
         {seasonComplete ? (
           <Chip label="Season Over" size="small" color="warning" />
         ) : nextFixture ? (
