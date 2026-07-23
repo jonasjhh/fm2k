@@ -3,7 +3,7 @@ import {
   duelChance, resolveDuel, escalates, CLEAN_ESCAPE_MARGIN,
   saturateGap, GAP_SATURATION_KNEE, GAP_SATURATION_SOFTNESS,
   deliveryCheck, deliveryBonus, CROSS_DELIVERY,
-  foulChance, FOUL_MARGIN_FLOOR, FOUL_CHANCE_CAP,
+  foulChance, loserFoulChance, ATTACKER_LOSS_FOUL_SCALE, FOUL_MARGIN_FLOOR, FOUL_CHANCE_CAP,
   lastManFoulChance, PRO_FOUL_REACH, PRO_FOUL_CHANCE,
 } from './duels.ts';
 
@@ -156,6 +156,43 @@ describe('emergent fouls:', () => {
     const out = resolveDuel(60, 60, STRENGTH_DUEL, rngOf(0.5 - 0.32));
     expect(out.margin).toBeCloseTo(0.32, 10);
     expect(foulChance(out)).toBeCloseTo((0.32 - FOUL_MARGIN_FLOOR) * 0.55, 10);
+  });
+});
+
+describe('loser fouls (TASK_18 — attacker fouls after losing):', () => {
+  it('a duel the attacker won never produces a loser foul', () => {
+    const win = resolveDuel(90, 30, DRIBBLE_DUEL, rngOf(0.01));
+    expect(win.attackerWins).toBe(true);
+    expect(loserFoulChance(win)).toBe(0);
+  });
+
+  it('a badly lost strength/dribble duel produces a positive, capped loser-foul chance', () => {
+    const bigLoss = resolveDuel(30, 90, DRIBBLE_DUEL, rngOf(0.99));
+    expect(bigLoss.attackerWins).toBe(false);
+    expect(loserFoulChance(bigLoss)).toBeGreaterThan(0);
+    expect(loserFoulChance(bigLoss)).toBeLessThanOrEqual(FOUL_CHANCE_CAP);
+  });
+
+  it('a narrow loss (beat margin under the floor) never fouls', () => {
+    // chance ≈ 0.44 for an even dribble; roll just above → tiny loss margin.
+    const narrowLoss = resolveDuel(60, 60, DRIBBLE_DUEL, rngOf(0.45));
+    expect(narrowLoss.attackerWins).toBe(false);
+    expect(-narrowLoss.margin).toBeLessThan(FOUL_MARGIN_FLOOR);
+    expect(loserFoulChance(narrowLoss)).toBe(0);
+  });
+
+  it('speed and pass losses never produce loser fouls', () => {
+    const speed = resolveDuel(30, 90, SPEED_DUEL, rngOf(0.99));
+    expect(loserFoulChance(speed)).toBe(0);
+    const pass = resolveDuel(30, 90, PASS_DUEL, rngOf(0.99));
+    expect(loserFoulChance(pass)).toBe(0);
+  });
+
+  it('is ATTACKER_LOSS_FOUL_SCALE × the defender curve for the same beat margin', () => {
+    // A loss with beat margin 0.32 mirrors the defender win with margin 0.32.
+    const loss = resolveDuel(60, 60, STRENGTH_DUEL, rngOf(0.5 + 0.32));
+    expect(loss.margin).toBeCloseTo(-0.32, 10);
+    expect(loserFoulChance(loss)).toBeCloseTo((0.32 - FOUL_MARGIN_FLOOR) * 0.55 * ATTACKER_LOSS_FOUL_SCALE, 10);
   });
 });
 

@@ -194,20 +194,39 @@ export function deliveryBonus(delivery: DeliveryOutcome): number {
   return clamp(-0.1, 0.1, delivery.margin * DELIVERY_BONUS_SCALE);
 }
 
-// ── emergent fouls (REWORK_01.md §4) ────────────────────────────────────────────
-// Fouls are never rolled independently: a strength or dribble duel that the DEFENDER
+// ── emergent fouls (REWORK_01.md §4, TASK_18) ───────────────────────────────────
+// Fouls are never rolled independently: a strength or dribble duel that a player
 // loses badly has a foul probability scaled by the loss margin — the lunge that comes
-// in late because he was already beaten.
+// in late because he was already beaten. Both sides can foul: the beaten defender
+// lunges (foulChance), OR the dispossessed attacker hacks back to stop the counter
+// (loserFoulChance) — the latter a bit rarer, hence ATTACKER_LOSS_FOUL_SCALE.
 
 export const FOUL_MARGIN_FLOOR = 0.12;   // losses narrower than this never foul
 export const FOUL_MARGIN_SCALE = 0.55;   // probability per unit of margin beyond the floor
 export const FOUL_CHANCE_CAP = 0.3;
+// Attacker-loss fouls (dispossessed carrier fouling the winner) are less frequent than a
+// beaten defender lunging — targets a ~60% defender / ~40% attacker split (TASK_18).
+export const ATTACKER_LOSS_FOUL_SCALE = 0.6;
+
+/** Foul probability from a beat margin (how badly the loser was beaten), for a
+ *  strength/dribble duel — the shared curve behind both foul directions. */
+function foulFromMargin(spec: DuelSpec, beatMargin: number): number {
+  if (spec.type !== 'strength' && spec.type !== 'dribble') { return 0; }
+  return clamp(0, FOUL_CHANCE_CAP, (beatMargin - FOUL_MARGIN_FLOOR) * FOUL_MARGIN_SCALE);
+}
 
 /** Probability the beaten defender fouls, given the attacker's winning margin. */
 export function foulChance(outcome: DuelOutcome): number {
   if (!outcome.attackerWins) { return 0; }
-  if (outcome.spec.type !== 'strength' && outcome.spec.type !== 'dribble') { return 0; }
-  return clamp(0, FOUL_CHANCE_CAP, (outcome.margin - FOUL_MARGIN_FLOOR) * FOUL_MARGIN_SCALE);
+  return foulFromMargin(outcome.spec, outcome.margin);
+}
+
+/** Probability the dispossessed attacker fouls the winner, given how badly he lost the
+ *  duel. Only for the attacker-lost case; the loss magnitude is `-outcome.margin` because
+ *  a loss has `margin = chance − roll ≤ 0`. Scaled below the defender-beaten rate. */
+export function loserFoulChance(outcome: DuelOutcome): number {
+  if (outcome.attackerWins) { return 0; }
+  return foulFromMargin(outcome.spec, -outcome.margin) * ATTACKER_LOSS_FOUL_SCALE;
 }
 
 // ── last-man professional foul (REWORK_01.md §4) ────────────────────────────────

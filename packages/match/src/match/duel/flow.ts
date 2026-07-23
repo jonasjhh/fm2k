@@ -15,7 +15,7 @@ import {
   SPEED_DUEL, STRENGTH_DUEL, DRIBBLE_DUEL, PASS_DUEL, SHOT_DUEL, PENALTY_DUEL,
   CROSS_DELIVERY, LONG_BALL_DELIVERY, THROUGH_BALL_DELIVERY, SET_PIECE_DELIVERY,
   LONG_THROW_DELIVERY, PRO_FOUL_RED_CHANCE,
-  resolveDuel, escalates, deliveryCheck, deliveryBonus, foulChance, lastManFoulChance,
+  resolveDuel, escalates, deliveryCheck, deliveryBonus, foulChance, loserFoulChance, lastManFoulChance,
   type DuelOutcome, type DuelSpec, type DeliverySpec,
 } from './duels.ts';
 import {
@@ -467,8 +467,30 @@ function kickoffBall(conceding: FlowTeam): BallState {
   return { mode: 'carried', side: conceding.side, carrierId };
 }
 
-/** Emergent foul after a badly lost strength/dribble duel (§4). Returns the follow-up
- *  (free kick / penalty) or null when no foul was committed. */
+/** Emit the yellow (with second-booking caution) and possible red for a fouler on `side`.
+ *  `beatMargin` is how badly the fouler was beaten — a big beating can upgrade to red. */
+function bookFoul(ctx: Ctx, side: FlowTeam, foulerId: string, beatMargin: number): void {
+  const { rng, events } = ctx;
+  // Yellow first. Already-booked players are more cautious — reduced chance.
+  const alreadyBooked = side.bookedPlayers?.has(foulerId) ?? false;
+  const yellowP = alreadyBooked ? YELLOW_CHANCE * YELLOW_SECOND_BOOKING_MODIFIER : YELLOW_CHANCE;
+  if (rng() < yellowP) {
+    events.push({
+      type: 'yellow_card', team: side.side, playerId: foulerId,
+      description: `${name(side, foulerId)} is booked`,
+    });
+  }
+  // Red upgrade: only when badly beaten — replaces rather than stacks.
+  if (beatMargin > RED_MARGIN && rng() < RED_CHANCE) {
+    events.push({
+      type: 'red_card', team: side.side, playerId: foulerId,
+      description: `RED CARD! ${name(side, foulerId)} is sent off`,
+    });
+  }
+}
+
+/** Emergent foul after a badly lost strength/dribble duel the ATTACKER won — the beaten
+ *  defender lunges (§4). Returns the follow-up (free kick / penalty) or null. */
 function maybeFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, defenderId: string, at: XY): FlowTickResult | null {
   const { attacking, defending, rng, events } = ctx;
   const p = foulChance(outcome);
@@ -479,28 +501,39 @@ function maybeFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, defenderId
     description: `${name(defending, defenderId)} brings down ${name(attacking, carrierId)}`,
     metadata: { attackerId: carrierId, ...duelMeta(outcome, attacking.side, carrierId, defenderId) },
   });
-
-  // Yellow first. Already-booked players are more cautious — reduced chance.
-  const alreadyBooked = ctx.defending.bookedPlayers?.has(defenderId) ?? false;
-  const yellowP = alreadyBooked ? YELLOW_CHANCE * YELLOW_SECOND_BOOKING_MODIFIER : YELLOW_CHANCE;
-  if (rng() < yellowP) {
-    events.push({
-      type: 'yellow_card', team: defending.side, playerId: defenderId,
-      description: `${name(defending, defenderId)} is booked`,
-    });
-  }
-  // Red upgrade: only when the defender was badly beaten — replaces rather than stacks.
-  if (outcome.margin > RED_MARGIN && rng() < RED_CHANCE) {
-    events.push({
-      type: 'red_card', team: defending.side, playerId: defenderId,
-      description: `RED CARD! ${name(defending, defenderId)} is sent off`,
-    });
-  }
+  bookFoul(ctx, defending, defenderId, outcome.margin);
 
   const y = attackY(at, attacking.side);
   const inBox = y > 0.83 && at.x > 0.25 && at.x < 0.75;
   if (inBox) { return resolvePenalty(ctx, carrierId); }
   return resolveFreeKick(ctx, carrierId, at);
+}
+
+/** Emergent foul after a duel the ATTACKER lost badly (TASK_18): the dispossessed carrier
+ *  fouls the winner to stop the counter — charged to the attacker, restarting as a free
+ *  kick for the side that just won possession. Returns the follow-up or null. */
+function maybeLoserFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, winnerId: string, at: XY): FlowTickResult | null {
+  const { attacking, defending, rng, events } = ctx;
+  const p = loserFoulChance(outcome);
+  if (p <= 0 || rng() >= p) { return null; }
+
+  const beatMargin = -outcome.margin; // how badly the attacker lost (loss ⇒ margin ≤ 0)
+  events.push({
+    type: 'foul', team: attacking.side, playerId: carrierId,
+    description: `${name(attacking, carrierId)} hacks down ${name(defending, winnerId)} to stop the counter`,
+    metadata: { attackerId: winnerId, ...duelMeta(outcome, defending.side, winnerId, carrierId) },
+  });
+  bookFoul(ctx, attacking, carrierId, beatMargin);
+
+  // Restart for the side that just won the ball: resolve with attacking/defending swapped so
+  // the existing free-kick/penalty chain awards it to them. Usually the foul is deep in the
+  // winner's half (a cheap carried restart), but a carrier fouling in their OWN box concedes
+  // a penalty — measured in the winner's attacking direction.
+  const swapped: Ctx = { attacking: defending, defending: attacking, rng, events };
+  const y = attackY(at, defending.side);
+  const inBox = y > 0.83 && at.x > 0.25 && at.x < 0.75;
+  if (inBox) { return resolvePenalty(swapped, winnerId); }
+  return resolveFreeKick(swapped, winnerId, at);
 }
 
 /** Last-man professional foul (§4): a cover defender beaten in a speed race in the
@@ -748,6 +781,8 @@ function resolveThroughBall(ctx: Ctx, carrierId: string): FlowTickResult {
         `${name(defending, coverId)} muscles ${name(attacking, runnerId)} off the ball`,
         attacking, carrierId, 'through_ball', strength,
       ));
+      const loserFoul = maybeLoserFoul(ctx, strength, runnerId, coverId, target);
+      if (loserFoul) { return loserFoul; }
       return { events, ball: { mode: 'carried', side: defending.side, carrierId: coverId } };
     }
     // Won the shoulder battle — a beaten defender may foul.
@@ -861,6 +896,9 @@ function resolveDribble(ctx: Ctx, carrierId: string): FlowTickResult {
       `${name(defending, defenderId)} times the tackle on ${name(attacking, carrierId)}`,
       attacking, carrierId, 'dribble', outcome,
     ));
+    // The dispossessed carrier may foul the tackler to stop the counter (TASK_18).
+    const loserFoul = maybeLoserFoul(ctx, outcome, carrierId, defenderId, at);
+    if (loserFoul) { return loserFoul; }
     if (nearTouch && rng() < 0.25) {
       // ~25% of touchline tackles send the ball out of play; the rest stay in.
       // In the final third a strong enough taker launches it into the box (§4);
@@ -903,6 +941,8 @@ function resolveDribble(ctx: Ctx, carrierId: string): FlowTickResult {
         `${name(defending, defenderId)} recovers and shoulders ${name(attacking, carrierId)} off it`,
         attacking, carrierId, 'dribble', strength,
       ));
+      const loserFoul = maybeLoserFoul(ctx, strength, carrierId, defenderId, at);
+      if (loserFoul) { return loserFoul; }
       return { events, ball: { mode: 'carried', side: defending.side, carrierId: defenderId } };
     }
     const lateFoul = maybeFoul(ctx, strength, carrierId, defenderId, at);

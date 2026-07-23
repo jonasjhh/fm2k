@@ -1,5 +1,7 @@
 # TASK 18 — Symmetric foul attribution (attackers can be booked)
 
+> ✅ **DONE 2026-07-23.** `loserFoulChance` + `ATTACKER_LOSS_FOUL_SCALE = 0.6` added to `duels.ts`; `maybeLoserFoul` (foul charged to the dispossessed attacker, free kick — or penalty in their own box — to the side that won the ball) added to `flow.ts`, wired into the dribble clean-tackle, dribble strength-escalation, and through-ball strength-battle turnover branches. Booking/second-yellow→red machinery reused via the extracted `bookFoul` helper (symmetric per-side, verified). Pure speed races excluded (foul model is strength/dribble only). Tests: 5 `loserFoulChance` unit + 2 flow. `pnpm check` green (match 351). Holding calibration only — **TASK_07 owns the final foul/card lock**; run the foul-by-position histogram + calibration-report diff there.
+
 > Conventions: run everything via `mise exec -- pnpm <cmd>`, never commit. Verification = `mise exec -- pnpm check` repo-wide once. Distribution diagnostics: see the foul-histogram approach in the TASK_12 analysis (measure yellows by position).
 
 ## What this is

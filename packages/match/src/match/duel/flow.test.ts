@@ -209,6 +209,29 @@ describe('dribble chain:', () => {
     const foul = out.events.find(e => e.type === 'foul')!;
     expect(foul.metadata?.attackerId).toBe('carrier'); // fouled player, for the injury system
   });
+
+  it('a badly-lost dribble: the dispossessed attacker fouls, is booked, and concedes the ball (TASK_18)', () => {
+    const { attacking, defending } = setup();
+    // dribble roll 0.99 → decisive loss (big beat margin → loser-foul chance well above 0.05);
+    // foul roll 0.05 → foul; yellow roll 0.05 → booked; red roll 0.99 → no red.
+    const out = resolveSituation('dribble', attacking, defending, 'carrier', rngOf(0.99, 0.05, 0.05, 0.99));
+    // The foul is charged to the losing carrier, and it restarts the other way.
+    const foul = out.events.find(e => e.type === 'foul');
+    expect(foul?.team).toBe('home');
+    expect(foul?.playerId).toBe('carrier');
+    expect(out.events.some(e => e.type === 'yellow_card' && e.team === 'home' && e.playerId === 'carrier')).toBe(true);
+    expect(out.events.some(e => e.type === 'free_kick' && e.team === 'away')).toBe(true);
+    expect(out.ball).toEqual({ mode: 'carried', side: 'away', carrierId: 'marker' });
+  });
+
+  it('a badly-lost dribble with no lunge back is a plain turnover, no booking', () => {
+    const { attacking, defending } = setup();
+    // dribble roll 0.99 → loss; foul roll 0.99 → the dispossessed attacker does NOT foul.
+    const out = resolveSituation('dribble', attacking, defending, 'carrier', rngOf(0.99, 0.99));
+    expect(out.events.some(e => e.type === 'foul')).toBe(false);
+    expect(out.events.some(e => e.type === 'yellow_card')).toBe(false);
+    expect(out.ball).toEqual({ mode: 'carried', side: 'away', carrierId: 'marker' });
+  });
 });
 
 describe('through ball chain:', () => {

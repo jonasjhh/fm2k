@@ -1,6 +1,6 @@
 # FM2K — Match & skills rework ("duel engine" / match sim v2)
 
-Status (2026-07-21): **TASK_02, TASK_15, TASK_11 complete.** Repo check green. Next: TASK_18 (attackers bookable) then TASK_19 (defensive cover + lateral fatigue). TASK_12 (mundane fouls) PARKED — foul volume is already at target (~3.2 yellows/match); the real problem is *distribution* (fullbacks 59%, forwards ~3%), which TASK_18/19 address at the root.
+Status (2026-07-23): **TASK_02, TASK_15, TASK_11, TASK_18 complete.** Repo check green. **Next: TASK_19 (defensive cover + lateral fatigue)**, then TASK_07 re-locks the foul/card + gap/fatigue gates. TASK_12 (mundane fouls) PARKED — foul volume is already at target (~3.2 yellows/match); the real problem is *distribution* (fullbacks 59%, forwards ~3%), which TASK_18/19 address at the root. TASK_18 shipped the attacker half (loser-fouls); TASK_19 fixes the wide-isolation half.
 
 ## Standing rules
 
@@ -67,7 +67,7 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | 7 | `TASK_07.md` | **Recalibration** — re-run the calibration harness after any duel-knob change (TASK_11) and lock the new numbers; also covers pace mechanic knobs from the old TASK_11 spec | Do after TASK_11 |
 | 11 | `TASK_11.md` | ✅ **Possession scaling + spread tuning + match-form variance** — DONE 2026-07-21. Spreads retuned (pass 850, dribble 750, speed/strength 700), soft-knee gap saturation, per-match form variance (conversion-only), header conversion blend, GK long-ball 0.55. Gap-20 ~72%, saturates high-70s, upsets always possible. | Trigger TASK_07 after to re-lock gates |
 | 12 | `TASK_12.md` | ⏸️ **Mundane fouls** — PARKED. Premise is stale: TASK_15's richer duels already put fouls at ~8.3/match and yellows at ~3.2/match (already at the real ~3–4 target). Volume is not the problem — *distribution* is (fullbacks 59% of yellows, forwards ~3%). Re-evaluate only after TASK_18 + TASK_19 fix the distribution at the root; may not be needed. | Superseded for now by TASK_18/19 |
-| 18 | `TASK_18.md` | **Symmetric foul attribution (attackers bookable)** — fouls only fire when the attacker *wins* a duel, charged to the beaten defender, so attacking players are essentially never booked (forwards ~3%). Make the *loser* of a duel bookable regardless of side (dispossessed attacker fouls the winner). Contained; no calibration ripple | None; do before TASK_19 so distribution can be measured cleanly |
+| 18 | `TASK_18.md` | ✅ **Symmetric foul attribution (attackers bookable)** — DONE 2026-07-23. `loserFoulChance` + `maybeLoserFoul`: the dispossessed attacker can foul the winner (free kick / own-box penalty the other way), booked via the shared `bookFoul` helper. Holding ~60/40 def/atk (`ATTACKER_LOSS_FOUL_SCALE 0.6`); TASK_07 locks final numbers. | Done |
 | 19 | `TASK_19.md` | **Defensive cover / ball-side lateral shift (+ lateral fatigue)** — the back line doesn't track the ball laterally, so wide fullbacks are isolated 1v1 and over-booked. Add a ball-side cover shift, AND make lateral movement drain fitness (emergent 3-vs-5 band tradeoff: thinner bands cover more width → tire faster). Big blast radius — moves the gap curve AND fatigue | **Do after TASK_18; TASK_07 must follow** to re-lock gates |
 | 20 | `TASK_20.md` | **Calendar/time-driven world events** — transfer-window open/close, AI market, injury countdowns are keyed off *matchday completion* rather than time passing. Endpoint-only comparison misses windows that open+close inside a multi-matchday advance (mid-season window open toast never fires when simulating a season; no open event at new season). Re-model these as calendar-date boundaries reconciled across `previousNow→now` in the time advance. Backend/architecture; no engine calibration | None (standalone backend refactor) |
 | 16 | `TASK_16.md` | **Quality-weighted receiver selection (anti-siphoning)** — `pickReceiver` scores receivers purely by position; a poor second striker siphons shots from the good one. Add finishing-weighted bonus in the attacking third so better finishers attract more of the ball, and poor finishers prefer to lay off | Do after TASK_11 (spread changes affect softmax balance); before TASK_07 |
@@ -82,8 +82,8 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 1. ✅ `TASK_02` — DONE
 2. ✅ `TASK_15` — DONE (15A–15E)
 3. ✅ `TASK_11` — DONE (spread tuning + soft-knee saturation + match-form variance + header blend)
-4. `TASK_18` — attackers bookable (symmetric foul attribution); contained, no recalibration — **do next**
-5. `TASK_19` — defensive cover + lateral fatigue; after TASK_18, then TASK_07 to re-lock gates
+4. ✅ `TASK_18` — attackers bookable (symmetric foul attribution) — DONE
+5. `TASK_19` — defensive cover + lateral fatigue; after TASK_18, then TASK_07 to re-lock gates — **do next**
 6. ⏸️ `TASK_12` — mundane fouls PARKED; re-evaluate only if 18+19 leave the distribution unrealistic
 7. `TASK_16` — anti-siphoning; do after TASK_11 (spread changes affect softmax balance)
 8. `TASK_17` — recorded-form momentum; depends on TASK_11's `MatchForm` injection (shipped)
