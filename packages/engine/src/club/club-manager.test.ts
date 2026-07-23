@@ -228,7 +228,7 @@ describe('ClubManager:', () => {
       expect(Object.keys(shapes.attacking)).toHaveLength(10);
       expect(shapes.defending[1]).toEqual({ band: 'MID', lateral: -0.5 });
       // The attacking shape keeps the canonical seed — only the edited shape moves.
-      expect(shapes.attacking[1]).toEqual({ band: 'DEF', lateral: -1 });
+      expect(shapes.attacking[1]).toEqual({ band: 'DEF', lateral: -0.6 });
     });
 
     test('edits the attacking shape independently of the defending one', () => {
@@ -236,7 +236,7 @@ describe('ClubManager:', () => {
       manager.setSlotGeometry('attacking', 1, { band: 'AM', lateral: -1 });
       const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
       expect(shapes.attacking[1]).toEqual({ band: 'AM', lateral: -1 });
-      expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -1 });
+      expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -0.6 });
     });
 
     test('returns false and makes no change for an out-of-range slot', () => {
@@ -279,7 +279,7 @@ describe('ClubManager:', () => {
     test('still detects the same predefined formation after a no-op geometry edit', () => {
       const manager = new ClubManager(make442Config());
       expect(manager.getState().shapes).toBeNull(); // not yet seeded
-      manager.setSlotGeometry('defending', 1, { band: 'DEF', lateral: -1 }); // identical to the 4-4-2 seed
+      manager.setSlotGeometry('defending', 1, { band: 'DEF', lateral: -0.6 }); // identical to the 4-4-2 seed
       expect(manager.effectiveFormationLabel()).toBe('4-4-2');
     });
 

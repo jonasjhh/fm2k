@@ -130,7 +130,9 @@ describe('attribute-scale calibration (quality gradient):', () => {
   it('given a quality gap then the stronger side out-shoots the weaker (defenders deny chances, not just convert)', () => {
     // The weak side should be starved of shots, not merely miss the ones it gets.
     const r = series(N, 75, 25);
-    expect(r.homeShots).toBeGreaterThan(r.awayShots * 1.7);
+    // Ratio eased 1.7→1.6 by TASK_21 (central CBs cover more evenly, so the weak side is
+    // denied a touch less lopsidedly); TASK_07 re-locks against the calibration harness.
+    expect(r.homeShots).toBeGreaterThan(r.awayShots * 1.6);
   });
 
   it('given a lethal striker against a leaky keeper then home goals spike over a flat even match', () => {

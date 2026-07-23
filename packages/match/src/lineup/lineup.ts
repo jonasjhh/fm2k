@@ -140,14 +140,27 @@ export function deriveCustomFieldedPositions(
   return { fieldedPositions, fieldedGeometry };
 }
 
+/** Flank roles occupy the wide channels; everything else is a central role. Used to set
+ *  a row's lateral span: a row whose outermost slot is a flank role spreads wider than one
+ *  whose edge is a central role (a back-three's outer CBs tuck vs a back-four's fullbacks). */
+const WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['LB', 'RB', 'LM', 'RM', 'LW', 'RW']);
+export function isWideRole(role: FormationPosition): boolean { return WIDE_ROLES.has(role); }
+
+/** Lateral half-width a row spreads to, by its edge role. Nothing sits on the touchline:
+ *  a flank edge reaches ±0.6 (x 0.2/0.8), a central edge tucks to ±0.5 (x 0.25/0.75). */
+export const WIDE_EDGE_LATERAL = 0.6;
+export const CENTRAL_EDGE_LATERAL = 0.5;
+
 /** The canonical PlayerGeometry for every outfield slot of a predefined formation (the GK
  *  slot is excluded — always fixed, never custom), in the same order as
  *  `FORMATION_LINES[formation].flat()` minus its leading GK entry. Derived from
  *  FORMATION_LINES + BAND_OF_ROLE rather than hand-authored, so it can't drift from the
- *  formation table: each row's band comes from its first slot's role, and each slot's
- *  lateral position is evenly spaced across its row by index. Used both to seed a team's
- *  shapes the first time a manager drags a circle off a predefined template, and to
- *  detect whether an edited layout still matches one (for UI highlighting). */
+ *  formation table: each row's band comes from its first slot's role, and each slot is
+ *  evenly spaced across a role-aware span — a row led by a flank role (fullback/winger/wide
+ *  mid) spreads to ±WIDE_EDGE_LATERAL, a central-led row (a back-three, a double pivot, a
+ *  front two) tucks to ±CENTRAL_EDGE_LATERAL. Nobody sits on the touchline. Used both to
+ *  seed a team's shapes off a predefined template and to detect whether an edited layout
+ *  still matches one (for UI highlighting). */
 export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
   const lines = FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2'];
   const out: PlayerGeometry[] = [];
@@ -155,9 +168,11 @@ export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
     if (row[0] === 'GK') { continue; }
     const band = BAND_OF_ROLE[row[0] as FormationPosition] as Exclude<Band, 'GK'>;
     const n = row.length;
+    // Rows are left/right symmetric, so the leftmost slot's role sets the span for both ends.
+    const edge = isWideRole(row[0] as FormationPosition) ? WIDE_EDGE_LATERAL : CENTRAL_EDGE_LATERAL;
     row.forEach((_slotRole, i) => {
-      const lateral = n === 1 ? 0 : (i - (n - 1) / 2) / ((n - 1) / 2);
-      out.push({ band, lateral });
+      const even = n === 1 ? 0 : (i - (n - 1) / 2) / ((n - 1) / 2);
+      out.push({ band, lateral: edge * even });
     });
   }
   return out;

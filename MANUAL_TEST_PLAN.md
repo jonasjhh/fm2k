@@ -71,6 +71,14 @@ Current reality (measured, TASK_12 analysis): fouls ~8.3/match, yellows ~3.2/mat
 37. **Fullback skew reduced (TASK_19)**: after defensive cover shifts the back line ball-side, wide fullbacks should no longer dominate bookings; the near centre back visibly tucks across to cover. Yellows should spread toward a realistic shape (central mids highest, fullbacks middling, forwards a fair share).
 38. **Lateral fatigue tradeoff (TASK_19)**: play/sim with a thin back line (3 at the back) vs a 5-back over a full match — the 3-back defenders should end visibly more tired (lower end-energy), because each covers more width laterally. Confirm a 4-back sits between the two.
 
+## Back-line shape (TASK_21)
+
+Canonical width is now role-aware — nothing sits on the touchline, and flank roles sit a touch wider than central roles on the edge.
+
+38b. **Compact back-three (TASK_21)**: field a 3-at-the-back formation and open the tactics pitch — the three centre-backs should form a **narrow central trio** (roughly the inner three-quarters of the pitch, x≈0.25/0.5/0.75), NOT strung touchline-to-touchline.
+38c. **Back-four unchanged in feel (TASK_21)**: a 4-back's fullbacks stay wide (x≈0.2/0.8) with CBs central (≈0.4/0.6) — the common case looks about as before, just off the touchline.
+38d. **No one on the line (TASK_21)**: front twos and double pivots (e.g. 4-2-3-1) sit tucked in (x≈0.25/0.75), not pinned to the sidelines.
+
 ## Transfer-window events (TASK_20)
 
 The transfer-window open/close toasts are currently keyed off matchday completion, with an
@@ -88,4 +96,4 @@ endpoint-only comparison. Known gaps to be fixed by TASK_20 (calendar/time-drive
 
 ---
 
-Then Task 7 (`TASK_07.md`): run `mise exec -- pnpm --filter @fm2k/match test:calibration` and report failures (**required after TASK_19**).
+Then Task 22 (`TASK_22.md`: role-override repositioning), then Task 7 (`TASK_07.md`): run `mise exec -- pnpm --filter @fm2k/match test:calibration` and report failures (**required after TASK_19 + TASK_21**).
