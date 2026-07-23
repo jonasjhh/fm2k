@@ -30,8 +30,8 @@ describe('game-store match overlay transitions:', () => {
     expect(store().focusFixture?.status).toBe('completed');
   });
 
-  test('goToNextMatch closes the overlay and clears the ticker', () => {
-    store().goToNextMatch();
+  test('goToNextMatch closes the overlay and clears the ticker', async () => {
+    await store().goToNextMatch();
     expect(store().matchOverlayOpen).toBe(false);
     expect(store().matchEvents).toEqual([]);
     expect(store().focusFixture?.status).toBe('scheduled');

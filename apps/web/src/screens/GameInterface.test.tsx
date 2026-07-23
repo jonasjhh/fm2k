@@ -1,4 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ConfirmProvider } from '@fm2k/design-system';
+
+const render = (ui: ReactElement) => rtlRender(<ConfirmProvider>{ui}</ConfirmProvider>);
 
 // GameInterface reads from the zustand store via useGameStore(selector). We mock the store
 // module (canonical '@/store/game-store' specifier, same as StatsBar.test.tsx) to drive the
@@ -20,6 +24,7 @@ function baseState(overrides: Record<string, unknown> = {}) {
     setActiveTab: vi.fn(),
     goToMainMenu: vi.fn(),
     saveGame: vi.fn(),
+    loadGame: vi.fn(),
     clubState: null,
     liveMatches: [],
     playerTeamId: 'us',
