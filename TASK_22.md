@@ -1,31 +1,44 @@
-# TASK 22 — Role-override repositioning (all bands)
+# TASK 22 — Role-aware band positions (wide/central distributor) — ✅ DONE 2026-07-23
 
 > Conventions: run everything via `mise exec -- pnpm <cmd>`, never commit. Verification = `mise exec -- pnpm check` repo-wide once. **Touches formation geometry → moves the sim; TASK_07 recalibration must follow.**
 
-## What this is
+## What this was
 
-A role override (`setSlotRoleOverride`) currently only **relabels** the slot and sets its zone-weighting flank (`deriveCustomFieldedPositions` reads `ROLE_CANONICAL_LATERAL[override]` for FLANK weighting only) — it does **not** move the slot's anchor. So switching a slot CB→LB in a back-three is not a visible lateral shift; the player stays where canonical geometry placed them. The user wants an override to nudge the player toward the role's natural width, consistently **for all bands** (defence, midfield, attack).
+TASK_21 fixed the edge-detection: the span of a band was set by whether its outermost slot was a flank role. But **within** the band, all slots were still spaced uniformly regardless of their own role. Consequences:
+- A 4-mid `LM,CM,CM,RM` happened to work because it's symmetric — edge detection gave the right span and even spacing produced correct positions.
+- An asymmetric band like `LM,CM` (a 3-CM row where one is overridden to LM) had no correct behaviour — the geometry function didn't know how to mix wide and central edges independently.
+- `ROLE_CANONICAL_LATERAL` (±1 extremes) was used for override flank-weighting but inconsistent with the actual ±0.6/0.5 presets.
 
-Surfaced during TASK_21 planning: TASK_21 fixed the **preset** (canonical) geometry only, deliberately leaving `ROLE_CANONICAL_LATERAL` and override anchoring untouched.
+## What shipped
 
-## The change
+**Core change: `positionsFromBands(bands)`** — a new public pure function that takes explicit per-band role arrays and returns `PlayerGeometry[]`. Formation-agnostic, no slot indices, no override knowledge:
 
-Make a role override reposition the slot's anchor to the override role's width, reusing TASK_21's primitives:
-- `isWideRole(role)` + `WIDE_EDGE_LATERAL` / `CENTRAL_EDGE_LATERAL` — a flank override pulls toward ±0.6, a central override toward the tucked band.
-- Apply uniformly across DEF / midfield / ATT bands (not just the back line).
-- Revisit `ROLE_CANONICAL_LATERAL` (currently ±1 extremes) so override-driven laterals share the same "nothing on the touchline" span as the canonical presets — a CB→LB switch should read as a **small** lateral shift toward the touchline band, not a jump to x≈0.
+```
+Left edge  = −WIDE_EDGE_LATERAL  if leftmost role  ∈ {LB,LM,LW}, else −CENTRAL_EDGE_LATERAL
+Right edge = +WIDE_EDGE_LATERAL  if rightmost role ∈ {RB,RM,RW}, else +CENTRAL_EDGE_LATERAL
+All slots evenly spaced between left and right edges.
+```
 
-Keep it derived (no per-formation hand-authoring). The override must still preserve `deriveRolesForShape`'s index/count labelling where the shape is later re-derived.
+Results for common bands:
+- `LB,CB,CB,RB` → −0.6, −0.2, +0.2, +0.6
+- `CB,CB,CB`    → −0.5,  0,   +0.5
+- `LM,CM,CM,RM` → −0.6, −0.2, +0.2, +0.6
+- `DM,DM`       → −0.5, +0.5
+- `LM,CM`       → −0.6, +0.5  (CM shifts right, not wide)
+- `ST` (lone)   → 0
 
-## Success criteria
+**Override pattern**: caller patches the band's role array before calling `positionsFromBands`. The positioning function has no notion of overrides, slot indices, or formation names — it just places whatever roles it's given. `seedShapesFromFormation` stays simple (no overrides param); override geometry is a one-liner for callers: `positionsFromBands(patchedBands)`.
 
-- Overriding a back-three slot CB→LB produces a **visible but small** lateral shift toward the wide band (unit test on the geometry deriver with an override).
-- Same behaviour for a midfield slot (e.g. CM→LM) and an attack slot (e.g. ST→LW).
-- No regression when no override is set (canonical TASK_21 geometry unchanged).
-- **Recalibration (TASK_07)**: moves live positions when overrides are used → re-verify and re-lock gates.
-- `mise exec -- pnpm check` green.
+**`canonicalGeometry`** now delegates to `positionsFromBands` (via `FORMATION_LINES`). Same public contract, cleaner implementation.
+
+**`lateralsForBand`** is internal — does the actual left/right edge detection and even spacing per band. Not exported.
+
+## Tests
+
+`positionsFromBands` test suite: GK skip, lone-slot centering, symmetric all-wide/all-central, 4-mid/5-mid/3-with-flanks even distribution, asymmetric `LM+CM` / `CM+RM`, band-label derivation from first role, and the override pattern (caller patches band → slots reposition).
 
 ## Relationships
 
-- **Follow-up to TASK_21** (which added `isWideRole` + the edge constants and fixed preset geometry).
-- Do after TASK_21, before TASK_07 so the geometry change is folded into the same recalibration pass.
+- **Follow-up to TASK_21** (which set the edge constants and exported `isWideRole`).
+- **TASK_23** (new) covers the formation editor UI — letting the user see and toggle wide/central per slot in the tactics screen.
+- **TASK_07 must still follow** to re-lock calibration gates.

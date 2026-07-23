@@ -2,7 +2,7 @@ import {
   FORMATION_LINES, buildSlotAssignments, canonicalGeometry, deriveCustomFieldedPositions,
   slotGeometryFromFormation, seedShapesFromFormation, deriveRolesForShape,
   effectiveFormationLabel, effectiveDisplayOrder, emptySlotKey,
-  isWideRole, WIDE_EDGE_LATERAL, CENTRAL_EDGE_LATERAL,
+  isWideRole, WIDE_EDGE_LATERAL, CENTRAL_EDGE_LATERAL, positionsFromBands,
 } from './lineup.ts';
 import type { PlayerPosition, Player, PlayerGeometry, FormationPosition } from '../shared/types.ts';
 
@@ -147,6 +147,81 @@ describe('canonicalGeometry:', () => {
     expect((['LB', 'RB', 'LM', 'RM', 'LW', 'RW'] as FormationPosition[]).every(isWideRole)).toBe(true);
     expect((['CB', 'DM', 'CM', 'AM', 'ST', 'GK'] as FormationPosition[]).some(isWideRole)).toBe(false);
     expect(WIDE_EDGE_LATERAL).toBeGreaterThan(CENTRAL_EDGE_LATERAL);
+  });
+});
+
+describe('positionsFromBands:', () => {
+  const r = (xs: number[]) => xs.map(x => Math.round(x * 1e6) / 1e6);
+  const laterals = (bands: FormationPosition[][]) =>
+    positionsFromBands(bands).map(g => r([g.lateral])[0]);
+
+  it('skips the GK band and returns only outfield positions', () => {
+    const out = positionsFromBands([['GK'], ['LB', 'CB', 'CB', 'RB']] as FormationPosition[][]);
+    expect(out).toHaveLength(4);
+    expect(out.every(g => g.band === 'DEF')).toBe(true);
+  });
+
+  it('a lone slot in any band is centred at 0', () => {
+    expect(laterals([['ST']])).toEqual([0]);
+    expect(laterals([['DM']])).toEqual([0]);
+    expect(laterals([['LB']])).toEqual([0]);
+  });
+
+  it('two flank roles span ±WIDE_EDGE_LATERAL', () => {
+    expect(r(laterals([['LM', 'RM']]))).toEqual([-0.6, 0.6]);
+    expect(r(laterals([['LB', 'RB']]))).toEqual([-0.6, 0.6]);
+  });
+
+  it('two central roles span ±CENTRAL_EDGE_LATERAL', () => {
+    expect(r(laterals([['CM', 'CM']]))).toEqual([-0.5, 0.5]);
+    expect(r(laterals([['DM', 'DM']]))).toEqual([-0.5, 0.5]);
+    expect(r(laterals([['ST', 'ST']]))).toEqual([-0.5, 0.5]);
+  });
+
+  it('distributes all slots evenly when both edges are flanks', () => {
+    // 4-back or 4-mid: LM/CM/CM/RM → even steps from −0.6 to +0.6
+    expect(r(laterals([['LM', 'CM', 'CM', 'RM']]))).toEqual([-0.6, -0.2, 0.2, 0.6]);
+    expect(r(laterals([['LB', 'CB', 'CB', 'RB']]))).toEqual([-0.6, -0.2, 0.2, 0.6]);
+    // 5-mid
+    expect(r(laterals([['LM', 'CM', 'CM', 'CM', 'RM']]))).toEqual([-0.6, -0.3, 0, 0.3, 0.6]);
+    // 3 with both flanks
+    expect(r(laterals([['LW', 'ST', 'RW']]))).toEqual([-0.6, 0, 0.6]);
+  });
+
+  it('distributes all slots evenly when both edges are central', () => {
+    expect(r(laterals([['CB', 'CB', 'CB']]))).toEqual([-0.5, 0, 0.5]);
+    expect(r(laterals([['AM', 'AM', 'AM']]))).toEqual([-0.5, 0, 0.5]);
+  });
+
+  it('asymmetric band: wide-left + central — left pins wide, right tucks central', () => {
+    // LM + CM: LM goes to -WIDE, CM goes to +CENTRAL (shifts right of centre but not wide)
+    expect(r(laterals([['LM', 'CM']]))).toEqual([-WIDE_EDGE_LATERAL, CENTRAL_EDGE_LATERAL]);
+  });
+
+  it('asymmetric band: central + wide-right — mirror of the wide-left case', () => {
+    expect(r(laterals([['CM', 'RM']]))).toEqual([-CENTRAL_EDGE_LATERAL, WIDE_EDGE_LATERAL]);
+  });
+
+  it('attaches the correct band label from the first role in each band', () => {
+    const out = positionsFromBands([
+      ['LB', 'CB', 'CB', 'RB'],
+      ['CM', 'CM', 'CM'],
+      ['ST'],
+    ] as FormationPosition[][]);
+    expect(out.slice(0, 4).map(g => g.band)).toEqual(['DEF', 'DEF', 'DEF', 'DEF']);
+    expect(out.slice(4, 7).map(g => g.band)).toEqual(['MID', 'MID', 'MID']);
+    expect(out[7].band).toBe('ATT');
+  });
+
+  it('caller can patch a band to reposition a slot (override pattern)', () => {
+    // A 3-CM band where the left CM is switched to LM: whole band shifts left edge to wide
+    const canonical = positionsFromBands([['CM', 'CM', 'CM']] as FormationPosition[][]);
+    const patched   = positionsFromBands([['LM', 'CM', 'CM']] as FormationPosition[][]);
+    // First slot shifts from -CENTRAL to -WIDE
+    expect(patched[0].lateral).toBeLessThan(canonical[0].lateral);
+    expect(Math.abs(patched[0].lateral)).toBe(WIDE_EDGE_LATERAL);
+    // Third slot also moves because the whole band redistributes
+    expect(patched[2].lateral).not.toEqual(canonical[2].lateral);
   });
 });
 

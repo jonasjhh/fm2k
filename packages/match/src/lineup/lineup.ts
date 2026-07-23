@@ -140,50 +140,66 @@ export function deriveCustomFieldedPositions(
   return { fieldedPositions, fieldedGeometry };
 }
 
-/** Flank roles occupy the wide channels; everything else is a central role. Used to set
- *  a row's lateral span: a row whose outermost slot is a flank role spreads wider than one
- *  whose edge is a central role (a back-three's outer CBs tuck vs a back-four's fullbacks). */
+/** Left-side flank roles (always go to the left edge of their band). */
+const LEFT_WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['LB', 'LM', 'LW']);
+/** Right-side flank roles (always go to the right edge of their band). */
+const RIGHT_WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['RB', 'RM', 'RW']);
+/** Any flank role (left or right). */
 const WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['LB', 'RB', 'LM', 'RM', 'LW', 'RW']);
 export function isWideRole(role: FormationPosition): boolean { return WIDE_ROLES.has(role); }
 
-/** Lateral half-width a row spreads to, by its edge role. Nothing sits on the touchline:
- *  a flank edge reaches ±0.6 (x 0.2/0.8), a central edge tucks to ±0.5 (x 0.25/0.75). */
+/** Lateral half-width for the flank edge (±0.6 → x 0.2/0.8) and the central edge
+ *  (±0.5 → x 0.25/0.75). Nothing sits on the touchline in either case. */
 export const WIDE_EDGE_LATERAL = 0.6;
 export const CENTRAL_EDGE_LATERAL = 0.5;
 
-/** The canonical PlayerGeometry for every outfield slot of a predefined formation (the GK
- *  slot is excluded — always fixed, never custom), in the same order as
- *  `FORMATION_LINES[formation].flat()` minus its leading GK entry. Derived from
- *  FORMATION_LINES + BAND_OF_ROLE rather than hand-authored, so it can't drift from the
- *  formation table: each row's band comes from its first slot's role, and each slot is
- *  evenly spaced across a role-aware span — a row led by a flank role (fullback/winger/wide
- *  mid) spreads to ±WIDE_EDGE_LATERAL, a central-led row (a back-three, a double pivot, a
- *  front two) tucks to ±CENTRAL_EDGE_LATERAL. Nobody sits on the touchline. Used both to
- *  seed a team's shapes off a predefined template and to detect whether an edited layout
- *  still matches one (for UI highlighting). */
-export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
-  const lines = FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2'];
+/** Internal: lateral position for each slot in a single band, given the roles left-to-right.
+ *  Left edge = -WIDE_EDGE_LATERAL when the leftmost role is a left-wide (LB/LM/LW),
+ *  else -CENTRAL_EDGE_LATERAL. Right edge mirrors it from the rightmost role.
+ *  All slots are evenly spaced between those two edges:
+ *    LB,CB,CB,RB → −0.6,−0.2,+0.2,+0.6  |  CB,CB,CB → −0.5,0,+0.5
+ *    LM,CM,CM,RM → −0.6,−0.2,+0.2,+0.6  |  DM,DM    → −0.5,+0.5
+ *    LM,CM       → −0.6,+0.5             |  ST (lone) → 0              */
+function lateralsForBand(roles: readonly FormationPosition[]): number[] {
+  const n = roles.length;
+  if (n === 0) { return []; }
+  if (n === 1) { return [0]; }
+  const left  = LEFT_WIDE_ROLES.has(roles[0])     ? -WIDE_EDGE_LATERAL : -CENTRAL_EDGE_LATERAL;
+  const right = RIGHT_WIDE_ROLES.has(roles[n - 1]) ?  WIDE_EDGE_LATERAL :  CENTRAL_EDGE_LATERAL;
+  return roles.map((_, i) => left + (i / (n - 1)) * (right - left));
+}
+
+/** Compute pitch positions for every outfield slot given explicit per-band role arrays.
+ *  The GK band is skipped. Bands are processed in the order supplied; the first role in each
+ *  band determines its band label (via BAND_OF_ROLE). Caller owns any override patching —
+ *  pass the roles you want positioned and this function places them, with no knowledge of
+ *  formations or slot indices. */
+export function positionsFromBands(bands: readonly (readonly FormationPosition[])[]): PlayerGeometry[] {
   const out: PlayerGeometry[] = [];
-  for (const row of lines) {
-    if (row[0] === 'GK') { continue; }
-    const band = BAND_OF_ROLE[row[0] as FormationPosition] as Exclude<Band, 'GK'>;
-    const n = row.length;
-    // Rows are left/right symmetric, so the leftmost slot's role sets the span for both ends.
-    const edge = isWideRole(row[0] as FormationPosition) ? WIDE_EDGE_LATERAL : CENTRAL_EDGE_LATERAL;
-    row.forEach((_slotRole, i) => {
-      const even = n === 1 ? 0 : (i - (n - 1) / 2) / ((n - 1) / 2);
-      out.push({ band, lateral: edge * even });
-    });
+  for (const band of bands) {
+    if (band.length === 0 || band[0] === 'GK') { continue; }
+    const bandLabel = BAND_OF_ROLE[band[0]] as Exclude<Band, 'GK'>;
+    lateralsForBand(band).forEach(lateral => out.push({ band: bandLabel, lateral }));
   }
   return out;
 }
 
-/** A predefined formation's canonical geometry keyed by outfield slot index (1–10; the GK
- *  slot 0 is excluded). Zips `canonicalGeometry(formation)` (slot order) onto slot indices. */
+/** The canonical pitch positions for every outfield slot of a predefined formation (GK
+ *  excluded), in the same order as FORMATION_LINES[formation].flat() minus the GK entry.
+ *  Derived from FORMATION_LINES via positionsFromBands — can't drift from the formation table.
+ *  Used both to seed a team's shapes from a preset and to detect whether an edited layout
+ *  still matches a named formation (for UI highlighting). */
+export function canonicalGeometry(formation: Formation): PlayerGeometry[] {
+  const bands = (FORMATION_LINES[formation] ?? FORMATION_LINES['4-4-2']) as FormationPosition[][];
+  return positionsFromBands(bands);
+}
+
+/** A predefined formation's canonical positions keyed by outfield slot index (1–10; slot 0
+ *  is GK and is excluded). Zips canonicalGeometry(formation) onto slot indices. */
 export function slotGeometryFromFormation(formation: Formation): Record<number, PlayerGeometry> {
-  const canon = canonicalGeometry(formation);
+  const positions = canonicalGeometry(formation);
   const out: Record<number, PlayerGeometry> = {};
-  canon.forEach((g, i) => { out[i + 1] = { ...g }; });
+  positions.forEach((g, i) => { out[i + 1] = { ...g }; });
   return out;
 }
 
@@ -191,10 +207,8 @@ export function slotGeometryFromFormation(formation: Formation): Record<number, 
  *  starting point; arrows appear only once the manager edits one shape away from the other.
  *  Slot-keyed and player-agnostic, so it never needs the XI. Independent copies per phase. */
 export function seedShapesFromFormation(formation: Formation): TeamShapes {
-  return {
-    attacking: slotGeometryFromFormation(formation),
-    defending: slotGeometryFromFormation(formation),
-  };
+  const positions = slotGeometryFromFormation(formation);
+  return { attacking: positions, defending: { ...positions } };
 }
 
 /** Map a slot-keyed shape to a player-keyed one via the slot-ordered starters (index 0 =
