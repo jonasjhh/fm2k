@@ -335,7 +335,7 @@ export class ClubManager {
 
   /** Build a new wing in a facility group, at tier-1 staffing and full_staff mode. Fails if
    *  already built or the club can't afford `buildCost`. */
-  buildWing(group: FacilityGroupId, wingId: WingId): boolean {
+  buildWing(group: FacilityGroupId, wingId: WingId, timestamp?: GameDateTime): boolean {
     const state = this.stateManager.getState();
     if (state.facilities[group].wings[wingId]) {return false;}
 
@@ -346,6 +346,7 @@ export class ClubManager {
       type: 'facility_build',
       amount: -def.buildCost,
       description: `Built ${def.name}`,
+      timestamp,
     };
 
     this.stateManager.updateState(s => {
@@ -426,7 +427,7 @@ export class ClubManager {
   /** Weekly maintenance tick: bills upkeep (budget allowed to go negative), and force-mothballs
    *  every built wing club-wide if the budget has been negative two consecutive ticks — see
    *  FacilityManager.tickMaintenance. */
-  tickFacilityMaintenance(): MaintenanceEvent[] {
+  tickFacilityMaintenance(timestamp?: GameDateTime): MaintenanceEvent[] {
     const state = this.stateManager.getState();
     const result = FacilityManager.tickMaintenance(state.facilities, state.budget, state.facilityDeficitStreak);
 
@@ -434,6 +435,7 @@ export class ClubManager {
       type: 'facility_maintenance',
       amount: -result.totalUpkeep,
       description: 'Weekly facility upkeep',
+      timestamp,
     };
 
     this.stateManager.updateState(s => {
@@ -450,6 +452,7 @@ export class ClubManager {
     sectors: Record<string, StadiumSectorConfig>,
     cost: number,
     newCapacity: number,
+    timestamp?: GameDateTime,
   ): boolean {
     const state = this.stateManager.getState();
     if (state.budget < cost) {return false;}
@@ -458,6 +461,7 @@ export class ClubManager {
       type: 'facility_upgrade',
       amount: -cost,
       description: `Stadium renovation (${newCapacity.toLocaleString()} seats)`,
+      timestamp,
     };
 
     this.stateManager.updateState(s => {

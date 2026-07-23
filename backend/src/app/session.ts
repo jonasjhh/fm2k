@@ -1160,7 +1160,7 @@ export class GameSession {
     const MAINTENANCE_INTERVAL_DAYS = 7;
     while (this.daysSinceMaintenanceTick >= MAINTENANCE_INTERVAL_DAYS) {
       this.daysSinceMaintenanceTick -= MAINTENANCE_INTERVAL_DAYS;
-      this.clubManager.tickFacilityMaintenance();
+      this.clubManager.tickFacilityMaintenance(this.now);
     }
   }
 
@@ -1714,7 +1714,7 @@ export class GameSession {
 
   buildWing(group: FacilityGroupId, wingId: WingId): boolean {
     if (!this.clubManager) { return false; }
-    const ok = this.clubManager.buildWing(group, wingId);
+    const ok = this.clubManager.buildWing(group, wingId, this.now);
     if (ok) { this.notify(); }
     return ok;
   }
@@ -1756,7 +1756,7 @@ export class GameSession {
 
   applyStadiumDesign(sectors: Record<string, StadiumSectorConfig>, cost: number, newCapacity: number): boolean {
     if (!this.clubManager) { return false; }
-    const ok = this.clubManager.applyStadiumDesign(sectors, cost, newCapacity);
+    const ok = this.clubManager.applyStadiumDesign(sectors, cost, newCapacity, this.now);
     if (ok) { this.notify(); }
     return ok;
   }

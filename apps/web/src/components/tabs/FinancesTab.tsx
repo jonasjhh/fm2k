@@ -11,6 +11,18 @@ import { useGameStore } from '@/store/game-store';
 import { fmt, fmtDate } from '../../utils/formatting';
 import { ScrollableTable } from '@fm2k/design-system';
 
+const TX_LABELS: Record<string, string> = {
+  gate_receipt: 'Gate Receipt',
+  transfer_in: 'Transfer In',
+  transfer_out: 'Transfer Out',
+  facility_upgrade: 'Facility Upgrade',
+  wages: 'Wages',
+  league_prize: 'League Prize',
+  cup_prize: 'Cup Prize',
+  facility_build: 'Facility Build',
+  facility_maintenance: 'Facility Maintenance',
+};
+
 export default function FinancesTab() {
   const clubState = useGameStore((s) => s.clubState);
   if (!clubState) {return null;}
@@ -43,15 +55,15 @@ export default function FinancesTab() {
           <TableBody>
             {recent.length ? recent.map((tx, i) => {
               const positive = tx.amount >= 0;
-              const sign = positive ? '+' : '';
+              const sign = positive ? '' : '-';
               return (
                 <TableRow key={i} hover>
                   <TableCell>
                     <Chip
-                      label={tx.type.replace(/_/g, ' ')}
+                      label={TX_LABELS[tx.type] ?? tx.type}
                       size="small"
                       variant="outlined"
-                      color={tx.type === 'transfer_in' ? 'success' : tx.type === 'transfer_out' ? 'error' : 'default'}
+                      color={positive ? 'success' : 'error'}
                     />
                   </TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
@@ -61,9 +73,8 @@ export default function FinancesTab() {
                   <TableCell align="right">
                     <Typography
                       component="span"
-                      color={positive ? 'success.main' : 'error.main'}
                       variant="body2"
-                      sx={{ fontWeight: 700 }}
+                      sx={{ fontWeight: 700, color: positive ? 'text.primary' : 'error.main' }}
                     >
                       {sign}£{fmt(Math.abs(tx.amount))}
                     </Typography>
