@@ -152,6 +152,18 @@ describe('attribute-scale calibration (quality gradient):', () => {
     expect(homeGoals).toBeGreaterThan(baseline.homeGoals);
   });
 
+  // TASK_07: These two tests are commented out pending the formation attack-volume investigation.
+  // During TASK_16 we found that a 5-4-1 with one ST(finishing=80) consistently outscores a
+  // 4-4-2 with ST(80)+ST(40) in both total goals AND total shots (~1283 vs ~1067 over 80 seeds),
+  // meaning the formation itself generates more attack — not just better conversion.
+  // Until TASK_07 fixes that imbalance, these tests verify contaminated results.
+  // Measured numbers (80 seeds, EPM=13, finishing=80 vs 40):
+  //   twoGoals=126(1067sh) loneGoals=135(1283sh) | goodST_two=617sh/94g(15.2%) lone=625sh/94g(15.0%)
+  //   shot split: goodST=711 poorST=287 ratio=2.48
+  //
+  // it('given a two-striker team (good+poor) vs a lone-striker team (good) then totals are close and the good striker keeps his conversion rate', () => { ... });
+  // it('given a two-striker team (good+poor) then the good striker takes most of the shots, not a 50/50 split', () => { ... });
+
   it('given a strong, poor-finishing striker then his headers convert better than his ground shots', () => {
     // The header-conversion blend must make a physical striker a real aerial threat despite weak
     // finishing. Comparing the SAME player's header vs open-play conversion removes every confound

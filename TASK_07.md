@@ -23,6 +23,18 @@ Pre-existing harness: `packages/match/src/match/distribution.calibration.test.ts
 
 The harness today only bounds dominance from *below* and has no upset metric — a 65v45 favourite currently wins ~97% of the time with no measured floor on how often the weaker side wins. Add `upsetPct`/`nonLossPct` to `packages/match/src/match/distribution.ts`, add upper-bound gates so a heavy favourite doesn't win *too* consistently, then tune via seeded per-match "day form" noise on team params or a softer `CONTEST_SPREAD`. Target rate and mechanism deliberately left open — the user signs off on feel.
 
+## Part C — formation attack-volume imbalance
+
+Surfaced during TASK_16 (anti-siphoning) investigation. Over 80 seeds at EPM=13, a 5-4-1 with one ST(finishing=80) consistently out-scored a 4-4-2 with ST(finishing=80)+ST(finishing=70): ~135 goals vs ~116, with more total shots (1283 vs 1194). The extra CB in 5-4-1 should not generate more attacking chances than a second striker. Possible causes:
+
+- The second striker draws defenders and reduces the team's ability to progress the ball (local-numbers / spare-man mechanics penalising the attacking team)
+- 4-4-2 midfield is one player thinner than 5-4-1 (which has the same 4-man midfield), so the two-striker team loses the midfield battle more often
+- The second striker in the box increases `secondDefenderPenalty` on the first striker by filling a cell the defence is also filling
+
+Investigate with the calibration harness: measure shot volume and goals by formation (4-4-2 vs 4-3-3 vs 5-4-1 vs 4-5-1) against a flat opponent, and verify that more attackers = more goals, not fewer. Tune the relevant knobs (local-numbers cell weights, band-weight table, `SECOND_DEFENDER_CAP`) if needed. **Anti-siphoning (TASK_16) is working correctly at the receiver-selection level — the root cause here is upstream in chance-creation, not in who shoots.**
+
+Two tests in `packages/match/src/match/scale-calibration.test.ts` are commented out pending this fix — search for `TASK_07` in that file. Re-enable and adjust their assertions once the formation balance is corrected.
+
 ## When both parts are green
 
 Update the measured tables in `packages/match/BALANCE.md`, delete its "NOT yet recalibrated" warning.

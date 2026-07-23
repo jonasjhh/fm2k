@@ -221,7 +221,11 @@ function pickReceiver(
     if (pos === from) { continue; }
     const progress = attackY(pos, attacking.side) - carrierY;
     if (opts?.advanced && progress <= 0.05) { continue; }
-    const score = progress - distance(from, pos) * 0.5;
+    const receiverY = attackY(pos, attacking.side);
+    const finishingBonus = receiverY > 0.65
+      ? (attr(attacking, id, 'finishing') - 50) / 300
+      : 0;
+    const score = progress - distance(from, pos) * 0.5 + finishingBonus;
     if (score <= -0.3) { continue; }
     scored.push({ id, score });
   }
