@@ -36,6 +36,9 @@ function team(id: string, v: number, stamina = v): Team {
   });
   return { id, name: id, formation: '4-4-2', squad: starters, colors: { primary: '#fff', secondary: '#000' } };
 }
+function withFormation(t: Team, formation: Team['formation']): Team {
+  return { ...t, formation };
+}
 function avgOutfieldEnergy(energy: Record<string, number>): number {
   const vals = Object.entries(energy).filter(([id]) => !id.includes('-GK')).map(([, v]) => v);
   return vals.reduce((s, v) => s + v, 0) / vals.length;
@@ -78,6 +81,18 @@ describe('in-match fatigue (behavioural):', () => {
     const freshSim = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: team('h2', 60), awayTeam: team('a', 60), rng: mulberry32(4) });
     expect(avgOutfieldEnergy(tiredSim.simulate().finalState.energy?.home ?? {}))
       .toBeLessThan(avgOutfieldEnergy(freshSim.simulate().finalState.energy?.home ?? {}));
+  });
+
+  it('given a thin back line (3 at the back) then it tires more than a five-back over 90 (TASK_19)', () => {
+    // Same squad, same seed, same opponent — only the number of bodies across the back
+    // differs. A back-three covers more ground per man (positional load + more actual
+    // travel as the ball swings) so it ends the match with less energy than a back-five.
+    const base = team('h', 60);
+    const opponent = team('a', 60);
+    const threeBack = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: withFormation(base, '3-5-2'), awayTeam: opponent, rng: mulberry32(5) });
+    const fiveBack = sim({ matchDuration: 90, eventsPerMinute: 3, homeTeam: withFormation(base, '5-3-2'), awayTeam: opponent, rng: mulberry32(5) });
+    expect(avgOutfieldEnergy(threeBack.simulate().finalState.energy?.home ?? {}))
+      .toBeLessThan(avgOutfieldEnergy(fiveBack.simulate().finalState.energy?.home ?? {}));
   });
 
   it('given the same seed then the match is deterministic', () => {

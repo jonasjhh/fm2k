@@ -1,7 +1,6 @@
 import type { Formation, Player, PlayerAttributes, FormationPosition } from '../shared/types.ts';
 import { type MatchParameters } from '../tactics/match-parameters.ts';
 import { FIELD_LINE, type FieldLine } from '../lineup/bands.ts';
-import { ROLE_CANONICAL_LATERAL } from '../lineup/lineup.ts';
 
 /**
  * In-match fatigue model — pure, deterministic, and isolated here so the energy
@@ -43,7 +42,7 @@ const FORMATION_LOAD: Partial<Record<Formation, Partial<Record<FieldLine, number
 /** Per-role adjustment on top of the line base load — captures roles that cover more or
  *  less ground than their line-mates, regardless of formation. Within ATT: ST < LW/RW.
  *  CM eases off slightly relative to other midfield roles. Wide backs (LB/RB) carry their
- *  extra load via shape-delta drain rather than a static factor. */
+ *  extra load emergently, via the actual distance they travel (see the travel drain). */
 const POSITION_LOAD_ADJUST: Partial<Record<FormationPosition, number>> = {
   CB: 1.05,
   ST: 1.05,
@@ -59,27 +58,21 @@ export function positionLoad(formation: Formation, position: FormationPosition):
   return LINE_BASE_LOAD[line] * shape * roleAdjust;
 }
 
-// Field line numeric values for delta arithmetic.
-const FIELD_LINE_VALUE: Record<FieldLine, number> = { GK: 0, DEF: 1, MID: 2, ATT: 3 };
+// ── movement drain (TASK_19) ─────────────────────────────────────────────────────
+// All on-pitch movement costs fitness — the lateral cover shift, attack↔defense
+// transitions, and pressing alike — charged by the ACTUAL distance a player travels
+// each minute (fed in from the movement sim), not a per-cause static proxy. This
+// replaces the old static shapeDeltaDrain approximation of transition cost.
 
-// Weights for the two delta components. A full 2-line jump (DEF→ATT) with no lateral
-// change adds 2 × 0.12 = 0.24 extra base drain — roughly the same as the old LWB bump.
-const LINE_DELTA_WEIGHT    = 0.12;
-const LATERAL_DELTA_WEIGHT = 0.06;
+/** Energy per unit of pitch distance travelled in a minute (0..√2 possible per minute,
+ *  but a full transition is ~0.2). Tunable — locked in TASK_07 recalibration. */
+export const DISTANCE_DRAIN_PER_UNIT = 0.3;
 
-/** Extra drain per minute for a player whose defending and attacking roles differ.
- *  `precomputed` holds already-derived role maps (pass pre-computed to avoid re-deriving
- *  per player per minute). Returns 0 when roles are identical. */
-export function shapeDeltaDrain(
-  playerId: string,
-  precomputed: { defending: Record<string, string>; attacking: Record<string, string> },
-): number {
-  const defRole = precomputed.defending[playerId];
-  const atkRole = precomputed.attacking[playerId];
-  if (!defRole || !atkRole || defRole === atkRole) { return 0; }
-  const lineDelta = Math.abs(FIELD_LINE_VALUE[FIELD_LINE[atkRole as FormationPosition] ?? 'MID'] - FIELD_LINE_VALUE[FIELD_LINE[defRole as FormationPosition] ?? 'MID']);
-  const lateralDelta = Math.abs((ROLE_CANONICAL_LATERAL[atkRole as FormationPosition] ?? 0) - (ROLE_CANONICAL_LATERAL[defRole as FormationPosition] ?? 0));
-  return BASE_DRAIN * (lineDelta * LINE_DELTA_WEIGHT + lateralDelta * LATERAL_DELTA_WEIGHT);
+/** Stamina's effect on the movement drain: strong, ≈ ±50% around a neutral 50 —
+ *  stamina 50 → 1.0, 0 → 1.5, 100 → 0.5. Attributes are 1–99, so it never zeroes the
+ *  cost (≈ 0.51–1.49). A much bigger lever here than the ±10% recovery mult. */
+export function staminaTravelFactor(stamina: number): number {
+  return Math.max(0.01, 1 + (50 - stamina) / 100);
 }
 
 /** Higher stamina → less energy burned (≈1.32 at stamina 20 → 0.61 at stamina 99). */
@@ -93,23 +86,23 @@ export function tempoFactor(tempo: number): number { return 0.90 + 0.2 * (tempo 
 /** Press param → drain factor (1.0 at neutral 50; ±10% across the slider — pressing harder costs more). */
 export function pressFactor(pressIntensity: number): number { return 0.90 + 0.2 * (pressIntensity / 100); }
 
-/** Energy a player loses this minute given the team's params and the player.
- *  When `derivedRoles` is provided, adds shape-delta drain for players whose role
- *  differs between the defending and attacking shape. */
+/** Energy a player loses this minute given the team's params, the player, and how far
+ *  they actually travelled this minute (`distanceMoved`, in pitch units). The baseline
+ *  is the positional/tactics load; the travel term charges real movement — cover shifts,
+ *  transitions, pressing — scaled hard by stamina (staminaTravelFactor). */
 export function perMinuteDrain(
   player: Player,
   formation: Formation,
   params: MatchParameters,
-  derivedRoles?: { defending: Record<string, string>; attacking: Record<string, string> },
+  distanceMoved = 0,
 ): number {
   const tacticalFactors = tempoFactor(params.tempo)
     * pressFactor(params.pressIntensity)
     * staminaResistance(player.attributes.stamina);
   const baseDrain = BASE_DRAIN * positionLoad(formation, player.position) * tacticalFactors;
-  const deltaDrain = derivedRoles
-    ? shapeDeltaDrain(player.id, derivedRoles) * tacticalFactors
-    : 0;
-  return baseDrain + deltaDrain;
+  const travelDrain = DISTANCE_DRAIN_PER_UNIT * Math.max(0, distanceMoved)
+    * staminaTravelFactor(player.attributes.stamina);
+  return baseDrain + travelDrain;
 }
 
 // ── effect on attributes ────────────────────────────────────────────────────

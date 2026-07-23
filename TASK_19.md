@@ -1,5 +1,7 @@
 # TASK 19 — Defensive cover / ball-side lateral shift (+ lateral fatigue)
 
+> ✅ **DONE 2026-07-23.** `applyBallSideShift` (pure, proximity-decayed + depth-weighted ball-ward compression) added to `tactical-motion.ts`, wired into the defending motion chain (`applyCompactness → applyBallSideShift → applyPress`). Movement fatigue unified: `perMinuteDrain` now takes real `distanceMoved` (× `staminaTravelFactor`, ≈±50% around stamina 50) via a new pure `travelled()` helper + one-minute-lag `lastTravel` in the simulator; the static `shapeDeltaDrain` proxy and its `derivedRoles` plumbing were removed (one mechanic covers cover-shift, transitions, pressing). Tests: `applyBallSideShift` (near>far>0, no collapse, GK/forward untouched, away-mirrored), `staminaTravelFactor`, distance-drain, `travelled`, 3-vs-5 end-energy ordering. `pnpm check` green (match 361). **NOTE:** surfaced that back-line width is slot-order-only (a back-3 spreads full width) → spun off **TASK_21** (role-aware width). **TASK_07 recalibration still required** (moved gap curve + fatigue): fullback yellow share should fall from ~59% toward ~18–22%.
+
 > Conventions: run everything via `mise exec -- pnpm <cmd>`, never commit. Verification = `mise exec -- pnpm check` repo-wide once. Tuning: `mise exec -- pnpm --filter @fm2k/engine calibration-report` (~54s) → diff `CALIBRATION_REPORT.md`.
 >
 > **This task moves the TASK_11-tuned numbers (wide attacks get harder) AND the fatigue model — it MUST be followed by TASK_07 recalibration.**

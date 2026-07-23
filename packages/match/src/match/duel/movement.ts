@@ -41,6 +41,20 @@ export function moveToward(pos: XY, target: XY, maxDist: number): XY {
   return { x: pos.x + (target.x - pos.x) * t, y: pos.y + (target.y - pos.y) * t };
 }
 
+/** Per-player straight-line distance moved between two position maps — how far each
+ *  player actually travelled this minute, feeding the movement fatigue drain (TASK_19).
+ *  Only ids present in both maps count. Pure. */
+export function travelled(
+  prev: Record<string, XY>, next: Record<string, XY>,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, p] of Object.entries(prev)) {
+    const n = next[id];
+    if (n) { out[id] = distance(p, n); }
+  }
+  return out;
+}
+
 /** Advance every player toward their target for `minutes`. Players without a target
  *  (e.g. just subbed on, shapes not covering them) hold their position. `refSpeed`
  *  is the match-wide mean Speed both sides are measured against. */

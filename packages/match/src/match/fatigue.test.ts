@@ -1,5 +1,5 @@
 import {
-  positionLoad, staminaResistance, tempoFactor, pressFactor,
+  positionLoad, staminaResistance, staminaTravelFactor, tempoFactor, pressFactor,
   perMinuteDrain, physicalFatigueMult, skillFatigueMult, applyFatigue,
 } from './fatigue.ts';
 import { NEUTRAL_PARAMS } from '../tactics/match-parameters.ts';
@@ -71,6 +71,27 @@ describe('fatigue — per-minute drain:', () => {
     const passive = { ...NEUTRAL_PARAMS, tempo: 20, pressIntensity: 20 };
     expect(perMinuteDrain(p, '4-4-2', intense)).toBeGreaterThan(
       perMinuteDrain(p, '4-4-2', passive));
+  });
+});
+
+describe('fatigue — movement drain (TASK_19):', () => {
+  it('staminaTravelFactor is neutral at 50 and swings ≈ ±50%, never zero', () => {
+    expect(staminaTravelFactor(50)).toBeCloseTo(1.0);
+    expect(staminaTravelFactor(0)).toBeCloseTo(1.5);
+    expect(staminaTravelFactor(100)).toBeCloseTo(0.5);
+    expect(staminaTravelFactor(99)).toBeGreaterThan(0);
+  });
+  it('travelling further this minute drains more energy', () => {
+    const p = player('CM', attrs(50));
+    expect(perMinuteDrain(p, '4-4-2', NEUTRAL_PARAMS, 0.2)).toBeGreaterThan(
+      perMinuteDrain(p, '4-4-2', NEUTRAL_PARAMS, 0));
+  });
+  it('a higher-stamina player pays a smaller penalty for the same distance', () => {
+    const low = player('CM', attrs(50, { stamina: 20 }));
+    const high = player('CM', attrs(50, { stamina: 95 }));
+    const lowCost = perMinuteDrain(low, '4-4-2', NEUTRAL_PARAMS, 0.2) - perMinuteDrain(low, '4-4-2', NEUTRAL_PARAMS, 0);
+    const highCost = perMinuteDrain(high, '4-4-2', NEUTRAL_PARAMS, 0.2) - perMinuteDrain(high, '4-4-2', NEUTRAL_PARAMS, 0);
+    expect(lowCost).toBeGreaterThan(highCost);
   });
 });
 

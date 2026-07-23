@@ -12,13 +12,13 @@ import { perMinuteDrain, applyFatigue } from '../fatigue.ts';
 import { rollInjuries, injuryDescription, injuriesBySide } from '../injury.ts';
 import { mulberry32, drawMatchForm, type MatchForm } from '../rng.ts';
 import {
-  deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation, deriveRolesForShape,
+  deriveFieldedPositions, deriveCustomFieldedPositions, seedShapesFromFormation,
   slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
 } from '../../lineup/lineup.ts';
 import { type XY, type Side, targetsForShape, phaseOf, anchorXY, toAbsolute, BAND_Y, nearestTo } from './field.ts';
-import { advancePositions } from './movement.ts';
+import { advancePositions, travelled } from './movement.ts';
 import {
-  lineShift, applyWidth, applyCompactness, applyPress, transitionUrgency,
+  lineShift, applyWidth, applyCompactness, applyBallSideShift, applyPress, transitionUrgency,
 } from './tactical-motion.ts';
 import { flowTick, type BallState, type FlowTeam, type FlowEvent } from './flow.ts';
 
@@ -72,7 +72,8 @@ export class DuelMatchSimulator {
   // v2-only live state (ephemeral; never on MatchState, never persisted).
   private positions!: { home: Record<string, XY>; away: Record<string, XY> };
   private shapes!: { home: PlayerShapes; away: PlayerShapes };
-  private derivedRoles!: { home: { defending: Record<string, string>; attacking: Record<string, string> }; away: { defending: Record<string, string>; attacking: Record<string, string> } };
+  // Distance each player travelled last minute — charged to this minute's fatigue drain.
+  private lastTravel!: { home: Record<string, number>; away: Record<string, number> };
   private ball!: BallState;
 
   constructor(config: MatchConfig) {
@@ -123,14 +124,11 @@ export class DuelMatchSimulator {
       home: this.resolveShapes(this.config.homeTeam, homePlayers),
       away: this.resolveShapes(this.config.awayTeam, awayPlayers),
     };
-    this.derivedRoles = {
-      home: { defending: deriveRolesForShape(this.shapes.home.defending), attacking: deriveRolesForShape(this.shapes.home.attacking) },
-      away: { defending: deriveRolesForShape(this.shapes.away.defending), attacking: deriveRolesForShape(this.shapes.away.attacking) },
-    };
     this.positions = {
       home: this.initialPositions(this.shapes.home, homePlayers, 'home'),
       away: this.initialPositions(this.shapes.away, awayPlayers, 'away'),
     };
+    this.lastTravel = { home: {}, away: {} };
 
     // Map the stored slot-keyed shape/overrides to player-keyed via the slot-ordered starters.
     const homeOverrides = slotOverridesToPlayers(this.config.homeTeam.roleOverrides, homePlayers);
@@ -222,7 +220,8 @@ export class DuelMatchSimulator {
       const params = state.params?.[side] ?? NEUTRAL_PARAMS;
       for (const p of state.currentPlayers[side]) {
         const cur = energy[side][p.id] ?? 100;
-        energy[side][p.id] = Math.max(0, cur - perMinuteDrain(p, team.formation, params, this.derivedRoles[side]));
+        const moved = this.lastTravel[side]?.[p.id] ?? 0;
+        energy[side][p.id] = Math.max(0, cur - perMinuteDrain(p, team.formation, params, moved));
       }
     });
     const momentum = {
@@ -283,11 +282,15 @@ export class DuelMatchSimulator {
         minutes = transitionUrgency(params.transitionSpeed);
       } else {
         targets = applyCompactness(targets, params.defensiveCompactness, gkId);
+        targets = applyBallSideShift(targets, ball, side, gkId);
         targets = applyPress(targets, params.pressIntensity, ball, gkId);
       }
-      this.positions[side] = advancePositions(
-        this.positions[side], targets, state.currentPlayers[side], state.energy?.[side] ?? {}, minutes, refSpeed,
+      const prev = this.positions[side];
+      const next = advancePositions(
+        prev, targets, state.currentPlayers[side], state.energy?.[side] ?? {}, minutes, refSpeed,
       );
+      this.lastTravel[side] = travelled(prev, next);
+      this.positions[side] = next;
     });
   }
 

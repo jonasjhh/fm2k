@@ -5,6 +5,7 @@ import {
   MAX_WIDTH_STRETCH, applyWidth,
   MAX_COMPACT_PULL, applyCompactness,
   PRESS_RADIUS, MAX_PRESS_PULL, applyPress,
+  applyBallSideShift,
   MAX_URGENCY_SWING, transitionUrgency,
 } from './tactical-motion.ts';
 
@@ -112,6 +113,46 @@ describe('applyPress:', () => {
   it('ignores players exactly at the radius boundary', () => {
     const boundary = { p: { x: 0.5, y: 0.5 - PRESS_RADIUS } };
     expect(applyPress(boundary, 100, ball, null).p).toEqual(boundary.p);
+  });
+});
+
+describe('applyBallSideShift (TASK_19):', () => {
+  // Home defends the low-y end: the back line sits at low y, forwards high.
+  const ballWideLeft: XY = { x: 0.15, y: 0.5 };
+  const targets: Record<string, XY> = {
+    [GK]: { x: 0.5, y: 0.05 },
+    nearCB: { x: 0.5, y: 0.15 },   // central back-line, close to the ball's lane
+    farFB: { x: 0.85, y: 0.15 },   // opposite fullback, far from the ball
+    striker: { x: 0.5, y: 0.9 },   // stays up for the counter
+  };
+
+  it('slides the back line toward the ball, near-side more than far-side, without collapsing', () => {
+    const out = applyBallSideShift(targets, ballWideLeft, 'home', GK);
+    const nearMove = targets.nearCB.x - out.nearCB.x;
+    const farMove = targets.farFB.x - out.farFB.x;
+    // Both slide ball-ward (left, toward x=0.15)…
+    expect(nearMove).toBeGreaterThan(0);
+    expect(farMove).toBeGreaterThan(0);
+    // …but the near side compresses more than the far side.
+    expect(nearMove).toBeGreaterThan(farMove);
+    // The shape shuffles, it does not collapse onto the ball: width is largely retained.
+    expect(out.farFB.x - out.nearCB.x).toBeGreaterThan(0.25);
+  });
+
+  it('barely moves a forward (depth ≈ 0) and never moves the GK', () => {
+    const out = applyBallSideShift(targets, ballWideLeft, 'home', GK);
+    expect(targets.striker.x - out.striker.x).toBeLessThan(0.02);
+    expect(out[GK]).toEqual(targets[GK]);
+    // y is never touched.
+    expect(out.nearCB.y).toBe(targets.nearCB.y);
+  });
+
+  it('respects the defending direction (away is mirrored in y)', () => {
+    // Away defends the high-y end: its back line sits at HIGH y. A back-line player at
+    // y=0.85 should get near-full depth weight and shift toward the ball.
+    const awayTargets: Record<string, XY> = { cb: { x: 0.5, y: 0.85 } };
+    const out = applyBallSideShift(awayTargets, ballWideLeft, 'away', null);
+    expect(out.cb.x).toBeLessThan(awayTargets.cb.x); // moved toward the wide-left ball
   });
 });
 

@@ -125,7 +125,10 @@ describe('DuelMatchSimulator, full matches:', () => {
   });
 
   it('a sent-off player leaves the pitch and the bookings record', () => {
-    for (let seed = 0; seed < 60; seed++) {
+    // Scans seeds for the first match that produces a red (returns on the first hit, so the
+    // ceiling only bounds the give-up case). The exact hit shifts whenever engine dynamics
+    // move (e.g. TASK_19's positional changes), so keep the ceiling generous.
+    for (let seed = 0; seed < 200; seed++) {
       const result = new DuelMatchSimulator(config(seed)).simulate();
       const red = result.events.find(e => e.type === 'red_card');
       if (!red) { continue; }
@@ -135,7 +138,7 @@ describe('DuelMatchSimulator, full matches:', () => {
       expect(state.currentPlayers[side].some(p => p.id === red.playerId)).toBe(false);
       return;
     }
-    throw new Error('no red card in 60 seeded matches — sending-off path never exercised');
+    throw new Error('no red card in 200 seeded matches — sending-off path never exercised');
   });
 
   it('plays extra time when drawn and configured for knockout', () => {

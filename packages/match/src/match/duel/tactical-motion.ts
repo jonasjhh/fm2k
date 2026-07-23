@@ -7,6 +7,7 @@
 // emerge from the live positions the duels are resolved on.
 
 import type { XY } from './field.ts';
+import type { Side } from './field.ts';
 import { distance } from './field.ts';
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -73,6 +74,36 @@ export function applyPress(
     out[id] = id !== gkId && distance(t, ball) < PRESS_RADIUS
       ? { x: t.x + (ball.x - t.x) * pull, y: t.y + (ball.y - t.y) * pull }
       : t;
+  }
+  return out;
+}
+
+// ── ball-side cover shift (TASK_19) ──────────────────────────────────────────────
+/** How hard the block slides toward the ball's lateral line (fraction of the gap). */
+export const BALLSIDE_PULL = 0.5;
+/** Floor on the proximity weight (0–1, NOT a pitch distance): even the farthest
+ *  defender still applies this fraction of the ball-ward pull, so the far side keeps
+ *  sliding — just much less than the ball-side — and the shape never collapses. */
+export const BALLSIDE_FAR_FLOOR = 0.25;
+
+/** Ball-oriented defending: the defending block compresses toward the ball's lateral
+ *  line so the near centre-back covers behind an engaged fullback, instead of every
+ *  wide attack being an isolated 1v1. Proximity-decayed (ball-side compresses tightest,
+ *  the far side holds most of its width but still shuffles across) and depth-weighted
+ *  (the back line covers most; forwards barely move — they stay up for the counter).
+ *  The GK is never moved. Pure: targets → new targets. */
+export function applyBallSideShift(
+  targets: Record<string, XY>, ball: XY, side: Side, gkId: string | null,
+): Record<string, XY> {
+  const out: Record<string, XY> = {};
+  for (const [id, t] of Object.entries(targets)) {
+    if (id === gkId) { out[id] = t; continue; }
+    // Ball-side players (small |Δx|) compress tightest; far side keeps a floor of pull.
+    const proximityWeight = Math.max(BALLSIDE_FAR_FLOOR, 1 - Math.abs(ball.x - t.x));
+    // Team-frame depth: back line ≈ 1 (deep = near own goal), forwards ≈ 0.
+    const depthWeight = side === 'home' ? 1 - t.y : t.y;
+    const shift = (ball.x - t.x) * BALLSIDE_PULL * proximityWeight * depthWeight;
+    out[id] = { x: clamp01(t.x + shift), y: t.y };
   }
   return out;
 }
