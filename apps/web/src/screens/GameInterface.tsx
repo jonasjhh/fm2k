@@ -9,6 +9,8 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import SettingsIcon from '@mui/icons-material/Settings';
 import Snackbar from '@mui/material/Snackbar';
+import { readAllSaves } from '@fm2k/backend';
+import { useConfirm, useAlert } from '@fm2k/design-system';
 import { useGameStore } from '@/store/game-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { TabId } from '@/store/game-store';
@@ -42,15 +44,35 @@ const TABS: { id: TabId; label: string }[] = [
 import { useClubColors } from '../hooks/useClubColors';
 
 export default function GameInterface() {
-  const { activeTab, setActiveTab, goToMainMenu, saveGame, clubState, liveMatches, playerTeamId } = useGameStore(useShallow((s) => ({
+  const { activeTab, setActiveTab, goToMainMenu, saveGame, loadGame, clubState, liveMatches, playerTeamId } = useGameStore(useShallow((s) => ({
     activeTab: s.activeTab,
     setActiveTab: s.setActiveTab,
     goToMainMenu: s.goToMainMenu,
     saveGame: s.saveGame,
+    loadGame: s.loadGame,
     clubState: s.clubState,
     liveMatches: s.liveMatches,
     playerTeamId: s.playerTeamId,
   })));
+
+  const confirm = useConfirm();
+  const showAlert = useAlert();
+
+  const quickLoad = async () => {
+    const saves = await readAllSaves();
+    const quick = saves.find(s => s.type === 'QUICK' && s.playerTeamId === playerTeamId);
+    if (!quick) {
+      await showAlert({ title: 'No save found', message: 'There is no save to load yet.' });
+      return;
+    }
+    const ok = await confirm({
+      title: 'Load save?',
+      message: 'This discards any unsaved progress since your last save.',
+      confirmLabel: 'Load',
+      destructive: true,
+    });
+    if (ok) { loadGame(quick); }
+  };
 
   // While the player's own match is in progress, lineup/tactics edits can't be made safely —
   // lock navigation to the Match tab so a player can't queue a startingXI change mid-match.
@@ -90,6 +112,19 @@ export default function GameInterface() {
             }}
           >
             Save
+          </Button>
+          <Button
+            size="small"
+            onClick={quickLoad}
+            sx={{
+              mr: 1,
+              color: 'inherit',
+              borderColor: `${textColor}40`,
+              border: '1px solid',
+              '&:hover': { bgcolor: `${textColor}14` },
+            }}
+          >
+            Load
           </Button>
           <IconButton
             size="small"
