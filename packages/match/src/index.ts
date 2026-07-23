@@ -31,7 +31,8 @@ export { buildMatchInsights } from './tactics/feedback.ts';
 // Formation layout (pure data — no selection/choice logic; that lives in @fm2k/engine)
 export {
   FORMATION_LINES, buildSlotAssignments, deriveFieldedPositions,
-  canonicalGeometry, slotGeometryFromFormation, seedShapesFromFormation, ROLE_CANONICAL_LATERAL,
+  canonicalGeometry, slotGeometryFromFormation, seedShapesFromFormation, positionsFromBands, ROLE_CANONICAL_LATERAL,
+  WIDE_EDGE_LATERAL, CENTRAL_EDGE_LATERAL,
   slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
   deriveRolesForShape, effectiveFormationLabel,
   effectiveDisplayOrder, emptySlotKey,

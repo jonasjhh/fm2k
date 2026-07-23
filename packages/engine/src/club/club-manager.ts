@@ -3,7 +3,8 @@ import type { Player, Formation, PlayerPosition, PlayerGeometry, TeamShapes, Ban
 import type { TeamTacticsIntent, TacticalStyleId, TacticalSliders } from '@fm2k/match';
 import {
   defaultIntent, MAX_BAND_SIZE,
-  seedShapesFromFormation, effectiveFormationLabel as effectiveFormationLabelOf,
+  seedShapesFromFormation, positionsFromBands, deriveRolesForShape,
+  effectiveFormationLabel as effectiveFormationLabelOf,
   buildSlotAssignments,
 } from '@fm2k/match';
 import type { GameDateTime } from '@fm2k/timeline';
@@ -164,7 +165,7 @@ export class ClubManager {
   }
 
   /** Set or clear a role override for an outfield slot (1–10). Passing `null` clears it,
-   *  restoring the geometry-derived label. Slot-keyed like the shape — independent of player. */
+   *  restoring the geometry-derived label. Recomputes laterals for all slots in both shapes. */
   setSlotRoleOverride(slot: number, role: FormationPosition | null): void {
     this.stateManager.updateState(state => {
       if (role === null) {
@@ -172,7 +173,36 @@ export class ClubManager {
       } else {
         state.roleOverrides[slot] = role;
       }
+      const shapes = this.ensureShapes(state);
+      this.recomputeShapeLaterals(shapes.attacking, state.roleOverrides);
+      this.recomputeShapeLaterals(shapes.defending, state.roleOverrides);
     });
+  }
+
+  /** Recompute canonical laterals for every slot in `shape`. Uses the same role-derivation
+   *  as the display layer (`deriveRolesForShape`) so labels and positions are always
+   *  consistent: an auto-labelled LW at the left edge of ATT band gets wide positioning,
+   *  and an explicit role override drives positioning too. Sorts within each band by current
+   *  lateral to preserve the user's intended left→right order. */
+  private recomputeShapeLaterals(
+    shape: Record<number, PlayerGeometry>,
+    overrides: Record<number, FormationPosition>,
+  ): void {
+    const derivedRoles = deriveRolesForShape(shape, overrides);
+    const byBand: Record<string, number[]> = {};
+    for (let s = 1; s <= 10; s++) {
+      const g = shape[s];
+      if (!g) { continue; }
+      (byBand[g.band] ??= []).push(s);
+    }
+    for (const slots of Object.values(byBand)) {
+      slots.sort((a, b) => (shape[a]?.lateral ?? 0) - (shape[b]?.lateral ?? 0));
+      const roles = slots.map(s => derivedRoles[s] ?? 'CM' as FormationPosition);
+      const positions = positionsFromBands([roles as FormationPosition[]]);
+      slots.forEach((s, i) => {
+        if (shape[s]) { shape[s] = { ...shape[s], lateral: positions[i]?.lateral ?? 0 }; }
+      });
+    }
   }
 
   /** The club's shapes, seeding both phases from the current predefined formation (slot-keyed,
@@ -202,7 +232,9 @@ export class ClubManager {
     if (this.bandCount(currentShapes[shape], geometry.band, slot) + 1 > MAX_BAND_SIZE) { return false; }
 
     this.stateManager.updateState(s => {
-      this.ensureShapes(s, currentShapes)[shape][slot] = { ...geometry };
+      const shapes = this.ensureShapes(s, currentShapes);
+      shapes[shape][slot] = { ...geometry };
+      this.recomputeShapeLaterals(shapes[shape], s.roleOverrides);
     });
     return true;
   }

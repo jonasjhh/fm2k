@@ -9,7 +9,7 @@ import type {
 } from '@fm2k/engine';
 import {
   positionAttributeImportance, seedShapesFromFormation,
-  deriveRolesForShape, BAND_ORDER, BAND_OF_ROLE, SECONDARY_POSITIONS, ROLE_CANONICAL_LATERAL,
+  deriveRolesForShape, BAND_ORDER, BAND_OF_ROLE, SECONDARY_POSITIONS,
 } from '@fm2k/engine';
 import { ATTR_LABELS } from '../../lib/attribute-labels';
 
@@ -108,11 +108,7 @@ export function TacticsPitch({
   // geometry-derived roles without overrides — used to detect which role is the "natural" one
   const baseRoles = useMemo(() => deriveRolesForShape(geometry), [geometry]);
 
-  const getEffectiveLateral = (member: BandMember): number => {
-    const override = roleOverrides[member.slotIndex];
-    if (override !== undefined) { return ROLE_CANONICAL_LATERAL[override]; }
-    return member.geometry.lateral;
-  };
+  const getEffectiveLateral = (member: BandMember): number => member.geometry.lateral;
 
   const byBand = useMemo(() => {
     const out: Record<Exclude<Band, 'GK'>, BandMember[]> = {
@@ -275,12 +271,20 @@ export function TacticsPitch({
       </Typography>
     ) : null;
 
+    const lateral = member.geometry.lateral;
+    const slotSx = {
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5,
+      width: sz.slotW, position: 'absolute',
+      left: `calc(${((lateral + 1) / 2) * 100}% - ${sz.slotW / 2}px)`,
+      top: 0,
+      zIndex: expandedKey === slotKey ? 10 : 1,
+    } as const;
+
     // Empty slot: still a real, draggable position in the shape — the layout is the slot's,
     // not the player's, so it persists and stays editable even with nobody assigned.
     if (!player) {
       return (
-        <Box key={slotKey} onClick={e => e.stopPropagation()}
-          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedKey === slotKey ? 10 : 1 }}>
+        <Box key={slotKey} onClick={e => e.stopPropagation()} sx={slotSx}>
           <Box sx={{ opacity: isDragging ? 0.35 : 1, position: 'relative' }}>
             {renderPicker(slotKey, role, [], true, false, () => {}, (e) => onPointerDown(e, member.slotIndex))}
             {arrow}
@@ -300,7 +304,7 @@ export function TacticsPitch({
       <Box
         key={slotKey}
         onClick={e => e.stopPropagation()}
-        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, width: sz.slotW, position: 'relative', zIndex: expandedKey === slotKey ? 10 : 1 }}
+        sx={slotSx}
       >
         <Box sx={{ opacity: isDragging ? 0.35 : 1, position: 'relative' }}>
           {renderPicker(
@@ -354,7 +358,7 @@ export function TacticsPitch({
           <Box
             key={band}
             ref={(el: HTMLDivElement | null) => { rowRefs.current[band] = el; }}
-            sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, minHeight: sz.circle + 24 }}
+            sx={{ position: 'relative', minHeight: sz.circle + 24, width: '100%' }}
           >
             {byBand[band].map((member, i) => renderMember(member, i, byBand[band].length))}
           </Box>

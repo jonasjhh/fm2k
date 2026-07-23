@@ -2,6 +2,7 @@ import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
 import type { ClubPlayer } from './club-types.ts';
 import type { Player, PlayerPosition, InjuryReport } from '@fm2k/match';
+import { WIDE_EDGE_LATERAL } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
@@ -226,17 +227,19 @@ describe('ClubManager:', () => {
       // All 10 outfield slots get seeded, with the 4-4-2 canonical geometry.
       expect(Object.keys(shapes.defending)).toHaveLength(10);
       expect(Object.keys(shapes.attacking)).toHaveLength(10);
-      expect(shapes.defending[1]).toEqual({ band: 'MID', lateral: -0.5 });
+      // Slot 1 (LB) moved to MID — lateral is snapped to canonical band position.
+      expect(shapes.defending[1].band).toBe('MID');
       // The attacking shape keeps the canonical seed — only the edited shape moves.
-      expect(shapes.attacking[1]).toEqual({ band: 'DEF', lateral: -0.6 });
+      expect(shapes.attacking[1]).toEqual({ band: 'DEF', lateral: -WIDE_EDGE_LATERAL });
     });
 
     test('edits the attacking shape independently of the defending one', () => {
       const manager = new ClubManager(make442Config());
       manager.setSlotGeometry('attacking', 1, { band: 'AM', lateral: -1 });
       const shapes = assertDefined(manager.getState().shapes, 'shapes should be seeded');
-      expect(shapes.attacking[1]).toEqual({ band: 'AM', lateral: -1 });
-      expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -0.6 });
+      // Slot 1 (LB) moved to AM alone — lone slot snaps to center.
+      expect(shapes.attacking[1]).toEqual({ band: 'AM', lateral: 0 });
+      expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -WIDE_EDGE_LATERAL });
     });
 
     test('returns false and makes no change for an out-of-range slot', () => {
@@ -279,7 +282,7 @@ describe('ClubManager:', () => {
     test('still detects the same predefined formation after a no-op geometry edit', () => {
       const manager = new ClubManager(make442Config());
       expect(manager.getState().shapes).toBeNull(); // not yet seeded
-      manager.setSlotGeometry('defending', 1, { band: 'DEF', lateral: -0.6 }); // identical to the 4-4-2 seed
+      manager.setSlotGeometry('defending', 1, { band: 'DEF', lateral: -WIDE_EDGE_LATERAL }); // identical to the 4-4-2 seed
       expect(manager.effectiveFormationLabel()).toBe('4-4-2');
     });
 

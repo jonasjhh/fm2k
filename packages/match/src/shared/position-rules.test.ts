@@ -27,7 +27,7 @@ describe('getPositionModifier:', () => {
     expect(getPositionModifier('GK', 'ST')).toBe(0.75);
     expect(getPositionModifier('ST', 'GK')).toBe(0.75);
     expect(getPositionModifier('CB', 'LW')).toBe(0.75);
-    expect(getPositionModifier('LB', 'CB')).toBe(0.75);
+    expect(getPositionModifier('LB', 'ST')).toBe(0.75);
   });
 
   it('is not symmetric — secondary adjacency is one-directional', () => {

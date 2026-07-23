@@ -6,8 +6,8 @@ import type { PlayerPosition, FormationPosition, PlayerAttributes, Player } from
 export const SECONDARY_POSITIONS: Record<PlayerPosition, FormationPosition[]> = {
   GK:  [],
   CB:  ['LB', 'RB'],
-  LB:  [],
-  RB:  [],
+  LB:  ['CB', 'LM'],
+  RB:  ['CB', 'RM'],
   CM:  ['LM', 'RM'],
   LM:  ['CM'],
   RM:  ['CM'],

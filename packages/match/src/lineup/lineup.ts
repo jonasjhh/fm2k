@@ -67,11 +67,11 @@ export function deriveFieldedPositions(starters: Player[], formation: Formation)
  *  names exactly when applied to its canonical geometry: a 4-or-5-wide back line gets
  *  wide defenders on its ends (5-wide = wing-backs), a 4+-wide midfield gets LM/RM, a
  *  3+-wide front line gets wingers; everything else is the band's central role. */
-function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number): FormationPosition {
+function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number, lateral?: number): FormationPosition {
   const edge = n > 1 && i === 0 ? 'L' : n > 1 && i === n - 1 ? 'R' : null;
   switch (band) {
     case 'DEF':
-      if (n >= 4 && edge) { return edge === 'L' ? 'LB' : 'RB'; }
+      if (edge && (n >= 4 || Math.abs(lateral ?? 0) > CENTRAL_EDGE_LATERAL)) { return edge === 'L' ? 'LB' : 'RB'; }
       return 'CB';
     case 'DM': return 'DM';
     case 'MID': return n >= 4 && edge ? (edge === 'L' ? 'LM' : 'RM') : 'CM';
@@ -112,7 +112,7 @@ export function deriveRolesForShape(
     const members = Object.entries(shape)
       .filter(([, g]) => g.band === band)
       .sort((a, b) => a[1].lateral - b[1].lateral || a[0].localeCompare(b[0]));
-    members.forEach(([id], i) => { out[id] = roleForBandSlot(band, i, members.length); });
+    members.forEach(([id, g], i) => { out[id] = roleForBandSlot(band, i, members.length, g.lateral); });
   }
   if (overrides) {
     for (const [id, role] of Object.entries(overrides)) {
@@ -148,10 +148,10 @@ const RIGHT_WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['RB', 'RM', 'R
 const WIDE_ROLES: ReadonlySet<FormationPosition> = new Set(['LB', 'RB', 'LM', 'RM', 'LW', 'RW']);
 export function isWideRole(role: FormationPosition): boolean { return WIDE_ROLES.has(role); }
 
-/** Lateral half-width for the flank edge (±0.6 → x 0.2/0.8) and the central edge
- *  (±0.5 → x 0.25/0.75). Nothing sits on the touchline in either case. */
-export const WIDE_EDGE_LATERAL = 0.6;
-export const CENTRAL_EDGE_LATERAL = 0.5;
+/** Lateral half-width for the flank edge and the central edge.
+ *  Wide edge (~touchline): ±0.75. Central edge (tucked): ±0.42. */
+export const WIDE_EDGE_LATERAL = 0.75;
+export const CENTRAL_EDGE_LATERAL = 0.42;
 
 /** Internal: lateral position for each slot in a single band, given the roles left-to-right.
  *  Left edge = -WIDE_EDGE_LATERAL when the leftmost role is a left-wide (LB/LM/LW),
