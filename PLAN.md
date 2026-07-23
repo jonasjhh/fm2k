@@ -69,6 +69,7 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 | 12 | `TASK_12.md` | ⏸️ **Mundane fouls** — PARKED. Premise is stale: TASK_15's richer duels already put fouls at ~8.3/match and yellows at ~3.2/match (already at the real ~3–4 target). Volume is not the problem — *distribution* is (fullbacks 59% of yellows, forwards ~3%). Re-evaluate only after TASK_18 + TASK_19 fix the distribution at the root; may not be needed. | Superseded for now by TASK_18/19 |
 | 18 | `TASK_18.md` | **Symmetric foul attribution (attackers bookable)** — fouls only fire when the attacker *wins* a duel, charged to the beaten defender, so attacking players are essentially never booked (forwards ~3%). Make the *loser* of a duel bookable regardless of side (dispossessed attacker fouls the winner). Contained; no calibration ripple | None; do before TASK_19 so distribution can be measured cleanly |
 | 19 | `TASK_19.md` | **Defensive cover / ball-side lateral shift (+ lateral fatigue)** — the back line doesn't track the ball laterally, so wide fullbacks are isolated 1v1 and over-booked. Add a ball-side cover shift, AND make lateral movement drain fitness (emergent 3-vs-5 band tradeoff: thinner bands cover more width → tire faster). Big blast radius — moves the gap curve AND fatigue | **Do after TASK_18; TASK_07 must follow** to re-lock gates |
+| 20 | `TASK_20.md` | **Calendar/time-driven world events** — transfer-window open/close, AI market, injury countdowns are keyed off *matchday completion* rather than time passing. Endpoint-only comparison misses windows that open+close inside a multi-matchday advance (mid-season window open toast never fires when simulating a season; no open event at new season). Re-model these as calendar-date boundaries reconciled across `previousNow→now` in the time advance. Backend/architecture; no engine calibration | None (standalone backend refactor) |
 | 16 | `TASK_16.md` | **Quality-weighted receiver selection (anti-siphoning)** — `pickReceiver` scores receivers purely by position; a poor second striker siphons shots from the good one. Add finishing-weighted bonus in the attacking third so better finishers attract more of the ball, and poor finishers prefer to lay off | Do after TASK_11 (spread changes affect softmax balance); before TASK_07 |
 | 17 | `TASK_17.md` | **Recorded-form momentum** — feed real recent results (cross-competition, capped) into TASK_11's per-team `MatchForm` (the `homeForm`/`awayForm` inject point, shipped) so winning runs play sharper and slumps flatter, without ever locking a team. Gameplay-only; not calibratable by the harness. NOTE: `MatchForm` is conversion-only `{attack,defense}`, not an attribute shift — TASK_17 must map form → those two knobs | **Depends on TASK_11** (`MatchForm` inject point shipped) |
 | 13 | `TASK_13.md` | **Adaptive AI tactics** — three stages: (A) pre-match slider adaptation vs opponent strength, (B) half-time adjustments on the scoreline, (C) substitution reactions | None; stages are independent — ship A before starting B |
@@ -95,10 +96,11 @@ All task detail lives in the corresponding `TASK_NN.md` file at the repo root.
 7. `TASK_06` — deeper match insights; detectors need event density to fire reliably
 8. `TASK_13` — adaptive AI tactics (stages A → B → C independently)
 
-**Wave 4 — Standalone UI features** (no engine dependency; interleave freely)
+**Wave 4 — Standalone features** (no engine dependency; interleave freely)
 - `TASK_03` — newspaper transfer rumours
 - `TASK_04` — academy intake day
 - `TASK_05` — records / top scorers
+- `TASK_20` — calendar/time-driven world events (backend refactor; fixes missed transfer-window events on multi-matchday advances)
 - `TASK_01` — transfer negotiation (most complex; reserve for a multi-session slot)
 
 ### Dependency notes

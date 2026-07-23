@@ -1171,6 +1171,10 @@ export class GameSession {
       if (newMatchday % MARKET_REFRESH_INTERVAL === 0) {
         this.transferManager?.refreshMarket(newMatchday);
       }
+      // NOTE (TASK_20): this endpoint-only comparison misses any window that both opens and
+      // closes inside a single multi-matchday advance (e.g. simulating a season). The real
+      // fix is to make these events calendar/time-driven rather than matchday-driven — see
+      // TASK_20. Left as-is deliberately until that rework lands.
       const prevWindow = transferWindow(this.currentMatchday, LEAGUE_MATCHDAYS);
       this.currentMatchday = newMatchday;
       const nextWindow = transferWindow(newMatchday, LEAGUE_MATCHDAYS);

@@ -71,6 +71,21 @@ Current reality (measured, TASK_12 analysis): fouls ~8.3/match, yellows ~3.2/mat
 37. **Fullback skew reduced (TASK_19)**: after defensive cover shifts the back line ball-side, wide fullbacks should no longer dominate bookings; the near centre back visibly tucks across to cover. Yellows should spread toward a realistic shape (central mids highest, fullbacks middling, forwards a fair share).
 38. **Lateral fatigue tradeoff (TASK_19)**: play/sim with a thin back line (3 at the back) vs a 5-back over a full match — the 3-back defenders should end visibly more tired (lower end-energy), because each covers more width laterally. Confirm a 4-back sits between the two.
 
+## Transfer-window events (TASK_20)
+
+The transfer-window open/close toasts are currently keyed off matchday completion, with an
+endpoint-only comparison. Known gaps to be fixed by TASK_20 (calendar/time-driven events):
+
+39. **Window close fires**: playing match-by-match, a toast appears when the pre-season window closes
+    (~matchday 3) and again when the mid-season window closes. ✅ works today.
+40. **Mid-season OPEN fires (currently flaky)**: playing match-by-match, a "mid-season transfer window is
+    now open" toast should appear. If simulating quickly / skipping, it can be **missed** — the window
+    opens and closes inside one multi-matchday advance and no event fires. **Known bug → TASK_20.**
+41. **Simulate a full season**: use "Simulate to end of season" and confirm every window open/close is
+    announced in order. Currently transitions inside the jump are **skipped**. **Known bug → TASK_20.**
+42. **New season kickoff**: starting a new season, the pre-season window is open from the first day but
+    **no "window open" notification is shown** (no transition from a closed state). **Known gap → TASK_20.**
+
 ---
 
 Then Task 7 (`TASK_07.md`): run `mise exec -- pnpm --filter @fm2k/match test:calibration` and report failures (**required after TASK_19**).
