@@ -14,7 +14,7 @@ function player(id: string, position: Player['position']): Player {
 const COLORS = { primary: '#000', secondary: '#fff' };
 
 describe('FormationGrid:', () => {
-  test('a 4-2-3-1 layout renders the same 6 band rows as a 4-4-2 (GK + 5 fixed bands)', () => {
+  test('wide bands collapse into their central row: 4-4-2 gets 4 rows, 4-2-3-1 gets 5', () => {
     const lines442 = [['GK'], ['LB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['ST', 'ST']];
     const squad442: Player[] = [
       player('gk', 'GK'), player('lb', 'LB'), player('cb1', 'CB'), player('cb2', 'CB'), player('rb', 'RB'),
@@ -39,8 +39,8 @@ describe('FormationGrid:', () => {
     );
     const rows4231 = c4231.firstElementChild?.children.length;
 
-    expect(rows442).toBe(6);
-    expect(rows4231).toBe(6);
+    expect(rows442).toBe(4);
+    expect(rows4231).toBe(5);
   });
 
   test('a player with a shape entry renders in that band with a derived role, not the template one', () => {
