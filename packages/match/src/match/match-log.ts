@@ -1,11 +1,17 @@
 import { DuelMatchSimulator } from './duel/duel-simulator.ts';
 import { isTerminalPhase, type MatchConfig, type MatchEvent } from './types.ts';
-import type { BallState } from './duel/flow.ts';
+import type { BallState, FlowEvent, Situation } from './duel/flow.ts';
+import type { Band } from '../lineup/bands.ts';
 import type { XY } from './duel/field.ts';
 
 export interface TickSnapshot {
   positions: { home: Record<string, XY>; away: Record<string, XY> };
   ball: BallState;
+  events: FlowEvent[];
+  /** Situation chosen by the carrier this tick (absent for free-ball ticks). */
+  situation?: Situation;
+  /** Band of the carrier at the start of this tick. */
+  carrierBand?: Band;
 }
 
 export interface MatchMinuteLog {
@@ -25,7 +31,10 @@ export function createMatchLog(config: MatchConfig): MatchLog {
   const sim = new DuelMatchSimulator({
     ...config,
     onTick: (snap) => {
-      tickBuffer.push({ positions: snap.positions, ball: { ...snap.ball } });
+      tickBuffer.push({
+        positions: snap.positions, ball: { ...snap.ball }, events: snap.events,
+        situation: snap.situation, carrierBand: snap.carrierBand,
+      });
     },
   });
   let state = sim.getCurrentState();

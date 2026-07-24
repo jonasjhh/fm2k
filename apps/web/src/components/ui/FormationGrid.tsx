@@ -50,17 +50,19 @@ export function FormationGrid({
 
   const derivedRoles = useMemo(() => (shape ? deriveRolesForShape(shape) : null), [shape]);
 
+  const DISPLAY_BAND: Partial<Record<Exclude<Band, 'GK'>, Exclude<Band, 'GK'>>> = { WDEF: 'DEF', WMID: 'MID', WATT: 'ATT' };
   const byBand = useMemo(() => {
     const out: Record<Exclude<Band, 'GK'>, { idx: number; pos: FormationPosition; lateral: number }[]> = {
-      DEF: [], DM: [], MID: [], AM: [], ATT: [],
+      DEF: [], WDEF: [], DM: [], MID: [], WMID: [], AM: [], ATT: [], WATT: [],
     };
     flat.forEach((templatePos, i) => {
       if (i === 0) { return; } // slot 0 is always GK, rendered separately below
       const g = shape?.[i]; // slot-keyed: slot i's geometry, independent of the occupant
       const band = g?.band ?? BAND_OF_ROLE[templatePos as FormationPosition];
       if (band === 'GK') { return; }
+      const displayBand = DISPLAY_BAND[band] ?? band;
       const pos = derivedRoles?.[i] ?? (templatePos as FormationPosition);
-      out[band].push({ idx: i, pos, lateral: g?.lateral ?? 0 });
+      out[displayBand].push({ idx: i, pos, lateral: g?.lateral ?? 0 });
     });
     if (shape) {
       for (const band of BAND_ORDER) { out[band].sort((a, b) => a.lateral - b.lateral || a.idx - b.idx); }
@@ -126,7 +128,7 @@ export function FormationGrid({
       borderColor: 'success.dark',
       minHeight: sz.minHeight,
     }}>
-      {BAND_ORDER.map(band => (
+      {BAND_ORDER.filter(band => !(band in DISPLAY_BAND) && byBand[band].length > 0).map(band => (
         <Box key={band} sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
           {byBand[band].map(({ idx, pos }) => renderSlot(idx, pos))}
         </Box>

@@ -16,7 +16,7 @@ export type Side = 'home' | 'away';
 /** Anchor y per band, in the TEAM frame (attacking toward 1). The five outfield bands
  *  are the presence grid's vertical resolution; GK is pinned in front of goal. */
 export const BAND_Y: Record<Band, number> = {
-  GK: 0.04, DEF: 0.2, DM: 0.34, MID: 0.5, AM: 0.66, ATT: 0.82,
+  GK: 0.04, DEF: 0.2, WDEF: 0.2, DM: 0.34, MID: 0.5, WMID: 0.5, AM: 0.66, ATT: 0.82, WATT: 0.82,
 };
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));

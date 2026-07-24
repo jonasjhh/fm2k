@@ -27,7 +27,7 @@ function makeTeam(id: string, v: number): Team {
 }
 
 function ballStr(b: BallState): string {
-  if (b.mode === 'carried') return `carried by ${b.side}:${b.carrierId} `;
+  if (b.mode === 'carried') { return `carried by ${b.side}:${b.carrierId} `; }
   return `free @ (${b.at.x.toFixed(2)}, ${b.at.y.toFixed(2)})`;
 }
 
@@ -77,7 +77,8 @@ describe('match-log (diagnostic):', () => {
     let totalEvents = 0;
     let penalties = 0;
     let possessionFlips = 0;
-    let instantFlips = 0; // possession flips within same minute tick-to-tick
+    let hiccups = 0;
+    const hiccupCauses: Record<string, number> = {};
 
     for (const frame of log) {
       const hasPenalty = frame.events.some(e => e.type === 'penalty');
@@ -96,19 +97,21 @@ describe('match-log (diagnostic):', () => {
         }
       }
 
-      // Scan ticks for possession flips and ball teleports
-      let prevBall = frame.ticks[0]?.ball;
+      // Scan ticks for possession flips and hiccups (flip then immediate flip-back within 2 ticks)
+      interface FlipRecord { tick: number; from: string; to: string; cause: string; }
+      const frameFlips: FlipRecord[] = [];
+      let prevTick = frame.ticks[0];
       for (let i = 1; i < frame.ticks.length; i++) {
-        const cur = frame.ticks[i].ball;
-        const prev = prevBall!;
+        const curTick = frame.ticks[i];
+        if (!prevTick) { prevTick = curTick; continue; }
+        const prev = prevTick.ball;
+        const cur = curTick.ball;
 
-        // Possession side flip
+        // Possession side flip — tag with the event that caused it
         if (prev.mode === 'carried' && cur.mode === 'carried' && prev.side !== cur.side) {
           possessionFlips++;
-          const eventsAtTick = frame.events; // approximate
-          console.log(`  [min ${frame.minute} tick ${i}] possession flip: ${prev.side} → ${cur.side}`);
-          console.log(`    prev: ${ballStr(prev)}`);
-          console.log(`    cur:  ${ballStr(cur)}`);
+          const cause = curTick.events.length > 0 ? curTick.events[curTick.events.length - 1].type : 'unknown';
+          frameFlips.push({ tick: i, from: prev.side, to: cur.side, cause });
         }
 
         // Ball jumping from carried to free on other side of pitch
@@ -129,28 +132,109 @@ describe('match-log (diagnostic):', () => {
           }
         }
 
-        prevBall = cur;
+        prevTick = curTick;
+      }
+
+      // Detect hiccups: flip A→B followed by flip B→A within 2 ticks
+      for (let f = 0; f < frameFlips.length - 1; f++) {
+        const a = frameFlips[f];
+        const b = frameFlips[f + 1];
+        if (a.to === b.from && a.from === b.to && b.tick - a.tick <= 2) {
+          hiccups++;
+          hiccupCauses[a.cause] = (hiccupCauses[a.cause] ?? 0) + 1;
+          hiccupCauses[b.cause] = (hiccupCauses[b.cause] ?? 0) + 1;
+        }
       }
 
       totalEvents += frame.events.length;
-      if (hasPenalty) penalties += frame.events.filter(e => e.type === 'penalty').length;
+      if (hasPenalty) { penalties += frame.events.filter(e => e.type === 'penalty').length; }
     }
 
-    console.log(`\n=== SUMMARY ===`);
+    console.log('\n=== SUMMARY ===');
     console.log(`Total events: ${totalEvents} over ${log.length} minutes`);
     console.log(`Penalties: ${penalties}`);
     console.log(`Possession flips logged: ${possessionFlips}`);
+    console.log(`Hiccups (flip+flipback ≤2 ticks): ${hiccups}`);
+    console.log('Hiccup causes:');
+    for (const [cause, count] of Object.entries(hiccupCauses).sort((a, b) => b[1] - a[1])) {
+      console.log(`  ${cause}: ${count}`);
+    }
 
     // Per-type event count
     const counts: Record<string, number> = {};
     for (const frame of log) {
       for (const e of frame.events) {
         counts[e.type] = (counts[e.type] ?? 0) + 1;
-        if (e.chainedEvent) counts[e.chainedEvent.type] = (counts[e.chainedEvent.type] ?? 0) + 1;
+        if (e.chainedEvent) { counts[e.chainedEvent.type] = (counts[e.chainedEvent.type] ?? 0) + 1; }
       }
     }
     for (const [type, count] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
       console.log(`  ${type}: ${count}`);
+    }
+  });
+});
+
+describe('match-log (tier comparison):', () => {
+  it.skip('compares goals/shots/conversion across bad/medium/good skill tiers', () => {
+    const SEEDS = 1000;
+    const tiers = [
+      { label: 'bad   (30v30)', v: 30 },
+      { label: 'medium(55v55)', v: 55 },
+      { label: 'good  (75v75)', v: 75 },
+    ];
+
+    for (const { label, v } of tiers) {
+      let goals = 0, shots = 0, penalties = 0, flips = 0;
+      // Flip cause buckets — keyed by the last event type in the tick that flipped possession.
+      const flipCauses: Record<string, number> = {};
+
+      for (let seed = 0; seed < SEEDS; seed++) {
+        const home = makeTeam('home', v);
+        const away = makeTeam('away', v);
+        const log = createMatchLog({
+          matchDuration: 90,
+          eventsPerMinute: 13,
+          homeTeam: home,
+          awayTeam: away,
+          homeStarters: home.squad,
+          awayStarters: away.squad,
+          rng: mulberry32(seed * 7 + 1337),
+        });
+
+        for (const frame of log) {
+          for (const e of frame.events) {
+            if (e.type === 'goal') { goals++; }
+            if (e.type === 'shot') { shots++; }
+            if (e.type === 'penalty') { penalties++; }
+          }
+          let prev = frame.ticks[0];
+          for (let i = 1; i < frame.ticks.length; i++) {
+            const cur = frame.ticks[i];
+            if (prev && prev.ball.mode === 'carried' && cur.ball.mode === 'carried' && prev.ball.side !== cur.ball.side) {
+              flips++;
+              // Tag by the last flow event in the tick that caused the flip.
+              const cause = cur.events.length > 0
+                ? cur.events[cur.events.length - 1].type
+                : 'unknown';
+              flipCauses[cause] = (flipCauses[cause] ?? 0) + 1;
+            }
+            prev = cur;
+          }
+        }
+      }
+
+      const gpg = (goals / SEEDS).toFixed(2);
+      const spg = (shots / SEEDS).toFixed(2);
+      const conv = shots > 0 ? ((goals / shots) * 100).toFixed(1) : '0';
+      const ppg = (penalties / SEEDS).toFixed(2);
+      const fpg = (flips / SEEDS).toFixed(1);
+      console.log(`${label}: goals/g=${gpg}  shots/g=${spg}  conv=${conv}%  penalties/g=${ppg}  flips/g=${fpg}`);
+      const sorted = Object.entries(flipCauses).sort((a, b) => b[1] - a[1]);
+      for (const [cause, count] of sorted) {
+        console.log(`  flip cause: ${cause.padEnd(22)} ${(count / SEEDS).toFixed(1)}/g  (${((count / flips) * 100).toFixed(1)}%)`);
+      }
+      // Reset for next tier.
+      for (const k of Object.keys(flipCauses)) { delete flipCauses[k]; }
     }
   });
 });

@@ -46,6 +46,11 @@ const BAND_EXPOSURE: Record<Band, BandExposure> = {
     dribble: { atk: 0.1, def: 1.2 }, pass: { atk: 0.6, def: 1 },
     shot: { atk: 0.05, def: 0 }, delivery: 0.2, stamina: 0.6, movement: 0.5,
   },
+  WDEF: {
+    speed: { atk: 0.6, def: 0.8 }, strength: { atk: 0.4, def: 0.5 },
+    dribble: { atk: 0.3, def: 1.0 }, pass: { atk: 0.7, def: 0.8 },
+    shot: { atk: 0.05, def: 0 }, delivery: 0.5, stamina: 0.8, movement: 0.8,
+  },
   DM: {
     speed: { atk: 0.3, def: 0.4 }, strength: { atk: 0.4, def: 0.4 },
     dribble: { atk: 0.3, def: 0.9 }, pass: { atk: 1, def: 0.9 },
@@ -56,6 +61,11 @@ const BAND_EXPOSURE: Record<Band, BandExposure> = {
     dribble: { atk: 0.6, def: 0.5 }, pass: { atk: 1.2, def: 0.5 },
     shot: { atk: 0.3, def: 0 }, delivery: 0.5, stamina: 1, movement: 0.7,
   },
+  WMID: {
+    speed: { atk: 0.6, def: 0.3 }, strength: { atk: 0.3, def: 0.3 },
+    dribble: { atk: 0.9, def: 0.4 }, pass: { atk: 1.0, def: 0.4 },
+    shot: { atk: 0.4, def: 0 }, delivery: 0.7, stamina: 1, movement: 0.9,
+  },
   AM: {
     speed: { atk: 0.5, def: 0.2 }, strength: { atk: 0.2, def: 0.2 },
     dribble: { atk: 1, def: 0.2 }, pass: { atk: 1, def: 0.2 },
@@ -65,6 +75,11 @@ const BAND_EXPOSURE: Record<Band, BandExposure> = {
     speed: { atk: 0.8, def: 0.1 }, strength: { atk: 0.7, def: 0.1 },
     dribble: { atk: 0.9, def: 0.1 }, pass: { atk: 0.4, def: 0.1 },
     shot: { atk: 1.4, def: 0 }, delivery: 0.2, stamina: 0.7, movement: 0.6,
+  },
+  WATT: {
+    speed: { atk: 1.0, def: 0.1 }, strength: { atk: 0.4, def: 0.1 },
+    dribble: { atk: 1.2, def: 0.1 }, pass: { atk: 0.5, def: 0.1 },
+    shot: { atk: 1.2, def: 0 }, delivery: 0.7, stamina: 0.8, movement: 0.9,
   },
 };
 

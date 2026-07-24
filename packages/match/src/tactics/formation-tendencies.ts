@@ -16,6 +16,7 @@ export const FORMATION_TENDENCIES: Record<Formation, ParamModifiers> = {
   '4-1-4-1': { defensiveCompactness: +8, spaceLeftBehind: -4 },
   '4-4-1-1': { defensiveCompactness: +4, chanceQuality: +3 },
   '4-2-4':   { shotFrequency: +10, buildUpWidth: +6, spaceLeftBehind: +10, defensiveCompactness: -8 },
+  '4-1-2-3': { shotFrequency: +8, buildUpWidth: +8, spaceLeftBehind: +6, defensiveCompactness: -4 },
   // 3-back — central overload, wide exposure
   '3-5-2':   { pressIntensity: +4, buildUpWidth: -4, spaceLeftBehind: +8 },
   '3-4-3':   { buildUpWidth: +10, spaceLeftBehind: +12, pressIntensity: +5, shotFrequency: +6, defensiveCompactness: -6 },

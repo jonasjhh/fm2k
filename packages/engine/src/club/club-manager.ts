@@ -189,13 +189,32 @@ export class ClubManager {
     overrides: Record<number, FormationPosition>,
   ): void {
     const derivedRoles = deriveRolesForShape(shape, overrides);
-    const byBand: Record<string, number[]> = {};
-    for (let s = 1; s <= 10; s++) {
-      const g = shape[s];
-      if (!g) { continue; }
-      (byBand[g.band] ??= []).push(s);
+    // Process each field-line as a unit so wide and central roles in the same line
+    // (e.g. WDEF + DEF for fullbacks + centre-backs) space correctly together.
+    const SUPER_BANDS: [string, string][] = [['DEF', 'WDEF'], ['MID', 'WMID'], ['ATT', 'WATT']];
+    const processed = new Set<number>();
+    for (const [central, wide] of SUPER_BANDS) {
+      const slots: number[] = [];
+      for (let s = 1; s <= 10; s++) {
+        const b = shape[s]?.band;
+        if (b === central || b === wide) { slots.push(s); }
+      }
+      if (slots.length === 0) { continue; }
+      slots.sort((a, b) => (shape[a]?.lateral ?? 0) - (shape[b]?.lateral ?? 0));
+      const roles = slots.map(s => derivedRoles[s] ?? 'CM' as FormationPosition);
+      const positions = positionsFromBands([roles as FormationPosition[]]);
+      slots.forEach((s, i) => {
+        if (shape[s]) { shape[s] = { ...shape[s], lateral: positions[i]?.lateral ?? 0 }; }
+        processed.add(s);
+      });
     }
-    for (const slots of Object.values(byBand)) {
+    // Remaining bands (DM, AM) processed independently.
+    const remaining: Record<string, number[]> = {};
+    for (let s = 1; s <= 10; s++) {
+      if (!shape[s] || processed.has(s)) { continue; }
+      (remaining[shape[s].band] ??= []).push(s);
+    }
+    for (const slots of Object.values(remaining)) {
       slots.sort((a, b) => (shape[a]?.lateral ?? 0) - (shape[b]?.lateral ?? 0));
       const roles = slots.map(s => derivedRoles[s] ?? 'CM' as FormationPosition);
       const positions = positionsFromBands([roles as FormationPosition[]]);
@@ -234,7 +253,8 @@ export class ClubManager {
     this.stateManager.updateState(s => {
       const shapes = this.ensureShapes(s, currentShapes);
       shapes[shape][slot] = { ...geometry };
-      this.recomputeShapeLaterals(shapes[shape], s.roleOverrides);
+      this.recomputeShapeLaterals(shapes.attacking, s.roleOverrides);
+      this.recomputeShapeLaterals(shapes.defending, s.roleOverrides);
     });
     return true;
   }

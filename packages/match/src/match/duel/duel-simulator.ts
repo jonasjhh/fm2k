@@ -321,10 +321,73 @@ export class DuelMatchSimulator {
         }
       }
 
+      const preBall = { ...this.ball };
+      const prePosHome = { ...this.positions.home };
+      const prePosAway = { ...this.positions.away };
+
       const homeView = this.flowTeam(currentState, 'home');
       const awayView = this.flowTeam(currentState, 'away');
       const result = flowTick(homeView, awayView, this.ball, this.rng);
       this.ball = result.ball;
+
+      // When possession switches and immediately reverses next tick, both moves cancel out:
+      // the ball bobbled but the original carrier's side retained it. Only fold if the
+      // first tick had no consequential events (goals, cards, fouls, penalties).
+      const consequential = (e: import('./flow.ts').FlowEvent) =>
+        e.type === 'goal' || e.type === 'yellow_card' || e.type === 'red_card'
+        || e.type === 'penalty' || e.type === 'foul';
+      const flipped = preBall.mode === 'carried' && result.ball.mode === 'carried'
+        && preBall.side !== result.ball.side
+        && !result.events.some(consequential)
+        && i + 1 < count;
+
+      if (flipped) {
+        const nextHomeView = this.flowTeam(currentState, 'home');
+        const nextAwayView = this.flowTeam(currentState, 'away');
+        const nextResult = flowTick(nextHomeView, nextAwayView, this.ball, this.rng);
+        const reversedBack = nextResult.ball.mode === 'carried'
+          && nextResult.ball.side === preBall.side
+          && !nextResult.events.some(consequential);
+
+        if (reversedBack) {
+          // Fold both ticks: restore original possessor, advance time without emitting events.
+          this.ball = preBall;
+          this.positions.home = prePosHome;
+          this.positions.away = prePosAway;
+          i++;
+          currentState = this.postTickState(currentState, undefined);
+          currentState = this.postTickState(currentState, undefined);
+          continue;
+        }
+
+        // No reversal — process the first tick normally, then process the pre-run next tick.
+        for (const fe of result.events) {
+          currentState = this.applyFlowEvent(currentState, fe, events);
+          if (isTerminalPhase(currentState.phase)) { return currentState; }
+        }
+        currentState = this.postTickState(currentState, result.goal);
+        this.config.onTick?.({
+          positions: { home: { ...this.positions.home }, away: { ...this.positions.away } },
+          ball: { ...this.ball },
+          events: result.events,
+          situation: result.situation,
+          carrierBand: result.carrierBand,
+        });
+
+        this.ball = nextResult.ball;
+        i++;
+        for (const fe of nextResult.events) {
+          currentState = this.applyFlowEvent(currentState, fe, events);
+          if (isTerminalPhase(currentState.phase)) { return currentState; }
+        }
+        currentState = this.postTickState(currentState, nextResult.goal);
+        this.config.onTick?.({
+          positions: { home: { ...this.positions.home }, away: { ...this.positions.away } },
+          ball: { ...this.ball },
+          events: nextResult.events,
+        });
+        continue;
+      }
 
       for (const fe of result.events) {
         currentState = this.applyFlowEvent(currentState, fe, events);
@@ -334,6 +397,7 @@ export class DuelMatchSimulator {
       this.config.onTick?.({
         positions: { home: { ...this.positions.home }, away: { ...this.positions.away } },
         ball: { ...this.ball },
+        events: result.events,
       });
     }
     return currentState;

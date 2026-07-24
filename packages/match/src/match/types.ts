@@ -44,6 +44,9 @@ export interface MatchConfig {
   onTick?: (snapshot: {
     positions: { home: Record<string, import('./duel/field.ts').XY>; away: Record<string, import('./duel/field.ts').XY> };
     ball: import('./duel/flow.ts').BallState;
+    events: import('./duel/flow.ts').FlowEvent[];
+    situation?: import('./duel/flow.ts').Situation;
+    carrierBand?: import('../lineup/bands.ts').Band;
   }) => void;
 }
 

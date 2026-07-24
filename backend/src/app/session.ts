@@ -44,7 +44,7 @@ import {
 } from './config.ts';
 
 /** Significant match events the UI animates (goals, cards, injuries, saves, subs, phase changes). */
-const KEY_EVENT_TYPES = new Set(['goal', 'shot', 'yellow_card', 'red_card', 'injury', 'save', 'half_time', 'full_time', 'match.substitution_applied']);
+const KEY_EVENT_TYPES = new Set(['goal', 'shot', 'yellow_card', 'red_card', 'injury', 'save', 'half_time', 'full_time', 'match.substitution_applied', 'penalty', 'foul', 'corner', 'free_kick']);
 
 /** Event types that represent a visible on-ball action worth showing in a goal's build-up
  *  (as opposed to phase markers, cards, or the goal itself). */

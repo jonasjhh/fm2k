@@ -63,6 +63,10 @@ export interface FlowTickResult {
   ball: BallState;
   /** Set when the chain ended in a goal for that side. */
   goal?: Side;
+  /** Which situation the carrier chose this tick (set by flowTick; absent for free-ball ticks). */
+  situation?: Situation;
+  /** Band of the carrier at the start of this tick. */
+  carrierBand?: Band;
 }
 
 // ── real-football reference targets (combined both teams, per match) ─────────────
@@ -130,6 +134,13 @@ export const RED_MARGIN = 0.45;       // margin threshold to be eligible for a r
 export const RED_CHANCE = 0.01;       // upgrade chance when margin clears the threshold
 /** Attacking-frame y beyond which a beaten cover defender counts as the last man. */
 export const LAST_MAN_Y = 0.75;
+
+// Penalty box: 16.5m deep on a 105m pitch = 0.157; 40.32m wide on 68m = 0.593 centred.
+// Outer perimeter: ~5m inside the box edge where the ref may award a free kick or ignore.
+const BOX_Y       = 0.843;  // back line of penalty area (attacking frame)
+const BOX_X_MIN   = 0.204;
+const BOX_X_MAX   = 0.796;
+const BOX_PERIM   = 0.048;  // 5m in pitch units — fouls here get ref discretion
 /** Minimum Strength for a touchline restart in the final third to go long (§4) —
  *  accessible from 65, but the delivery is anchored high so success stays earned. */
 export const LONG_THROW_MIN_STRENGTH = 65;
@@ -274,12 +285,21 @@ export type Situation =
 
 /** Per-band multipliers for each situation. Shapes who does what on the pitch. */
 const BAND_WEIGHTS: Record<Band, Partial<Record<Situation, number>>> = {
-  GK:  { short_pass: 1.5, back_pass: 0,   progressive_carry: 0,   through_ball: 0,   shot: 0,   dribble: 0,   clear: 0.5, cutback: 0   },
-  DEF: { short_pass: 1.3, back_pass: 1.2, progressive_carry: 1.8, through_ball: 0.3, shot: 0.15, dribble: 0.4, clear: 1.5, cutback: 0   },
-  DM:  { short_pass: 1.2, back_pass: 1.2, progressive_carry: 1.5, through_ball: 0.7, shot: 0.20, dribble: 0.5, clear: 1.0, cutback: 0   },
-  MID: { short_pass: 1.0, back_pass: 0.5, progressive_carry: 0.3, through_ball: 1.0, shot: 0.6, dribble: 1.0, clear: 0.5, cutback: 0   },
-  AM:  { short_pass: 1.0, back_pass: 0,   progressive_carry: 0,   through_ball: 1.2, shot: 1.2, dribble: 1.3, clear: 0,   cutback: 0.5 },
-  ATT: { short_pass: 0.9, back_pass: 0,   progressive_carry: 0,   through_ball: 0.8, shot: 1.5, dribble: 1.4, clear: 0,   cutback: 2.5 },
+  GK:   { short_pass: 1.5, back_pass: 0,   progressive_carry: 0,   through_ball: 0,   shot: 0,    dribble: 0,   clear: 0.5, cutback: 0,   cross: 0,   long_ball: 1.0 },
+  // Central defenders: recycle, clear, rarely carry.
+  DEF:  { short_pass: 1.8, back_pass: 1.2, progressive_carry: 0.5, through_ball: 0.3, shot: 0.15, dribble: 0.3, clear: 1.5, cutback: 0,   cross: 0,   long_ball: 1.0 },
+  // Wide defenders (LB/RB): more carry & cross on the overlap, less back_pass.
+  WDEF: { short_pass: 1.4, back_pass: 0.8, progressive_carry: 1.0, through_ball: 0.4, shot: 0.1,  dribble: 0.5, clear: 1.0, cutback: 0,   cross: 1.2, long_ball: 0.6 },
+  DM:   { short_pass: 1.2, back_pass: 1.2, progressive_carry: 1.5, through_ball: 0.7, shot: 0.20, dribble: 0.5, clear: 1.0, cutback: 0,   cross: 0,   long_ball: 0   },
+  // Central midfielders: recycling + vertical balls.
+  MID:  { short_pass: 1.0, back_pass: 0.5, progressive_carry: 0.3, through_ball: 0.2, shot: 0.6,  dribble: 0.2, clear: 0.5, cutback: 0,   cross: 0,   long_ball: 0   },
+  // Wide midfielders (LM/RM): more dribble, cross, and direct play; less recycling.
+  WMID: { short_pass: 0.9, back_pass: 0.3, progressive_carry: 0.6, through_ball: 0.2, shot: 0.5,  dribble: 0.8, clear: 0.2, cutback: 0.3, cross: 1.5, long_ball: 0   },
+  AM:   { short_pass: 1.0, back_pass: 0,   progressive_carry: 0,   through_ball: 0.4, shot: 1.2,  dribble: 1.0, clear: 0,   cutback: 0.5, cross: 0,   long_ball: 0   },
+  // Central strikers: finish first, link-up second.
+  ATT:  { short_pass: 0.9, back_pass: 0,   progressive_carry: 0,   through_ball: 0.8, shot: 1.5,  dribble: 1.4, clear: 0,   cutback: 2.5, cross: 0,   long_ball: 0   },
+  // Wide attackers (LW/RW): dribble, cross, cutback, shoot — never recycle backward.
+  WATT: { short_pass: 0.7, back_pass: 0,   progressive_carry: 0,   through_ball: 0.5, shot: 1.3,  dribble: 1.6, clear: 0,   cutback: 3.0, cross: 2.0, long_ball: 0   },
 };
 
 function carrierBand(carrier: Player, team: FlowTeam): Band {
@@ -315,17 +335,25 @@ export function situationWeights(
   const bw = BAND_WEIGHTS[band];
   const bm = (s: Situation, def = 1) => bw[s] ?? def;
 
+  const inBox = y > BOX_Y;
+  const shotDepth = y > SHOT_RANGE_Y ? (y - SHOT_RANGE_Y) / (1 - SHOT_RANGE_Y) : 0;
+  // Shot urgency ramps from gentle long-range pressure (0.45 at SHOT_RANGE_Y) to dominant inside the box (4.5).
+  const shotMult = inBox ? 4.5 : (y > SHOT_RANGE_Y ? 0.45 + shotDepth * 3.0 : 0);
+  // Smartness: nearby support signals a better-positioned teammate — passing becomes smarter.
+  const teamSupport = 1 + local.passTargetBonus * 2.5;
+  // Inside the box, passing instinct drops sharply even with support.
+  const passReluctance = inBox ? 0.14 : 1.0;
   return {
-    short_pass: bm('short_pass') * (2.4 * rel(a.passing) * (2 - directness) * 0.5 + 1.2),
-    back_pass:  bm('back_pass', 0) * (y < 0.20 ? 1.5 * (2 - directness) : 0),
+    short_pass: bm('short_pass') * (2.4 * rel(a.passing) * (2 - directness) * 0.5 + 1.2) * passReluctance * teamSupport,
+    back_pass:  bm('back_pass', 0) * (y < 0.60 ? 1.5 * rel(a.passing) * (2 - directness) * Math.max(0, 1 - (y / 0.60)) : 0),
     through_ball: bm('through_ball') * (y > 0.35 && y < 0.85 ? 0.7 * directness * rel(a.passing) : 0),
-    long_ball: y < 0.6 ? 0.5 * directness : 0,
+    long_ball: bm('long_ball', 0) * (y < 0.6 ? 0.5 * directness * rel(a.passing) : 0),
     cross: wide && y > 0.6 ? 0.7 * rel(a.passing) : 0,
     progressive_carry: bm('progressive_carry', 0) * (y < 0.65 ? 1.2 * rel(a.technique) * (1 - directness * 0.3) : 0),
     dribble: bm('dribble') * (0.25 * rel(a.technique) * (0.6 + y * 0.8)),
-    cutback: bm('cutback', 0) * (y > 0.88 && (pos.x < 0.18 || pos.x > 0.82) ? 2.0 : 0),
+    cutback: bm('cutback', 0) * (y > 0.88 && (pos.x < 0.18 || pos.x > 0.82) ? 2.0 * rel(a.technique) : 0),
     shot: bm('shot', 0) * (y > SHOT_RANGE_Y
-      ? 0.45 * ((y - SHOT_RANGE_Y) / (1 - SHOT_RANGE_Y)) * shotFreq * rel(a.finishing) * (0.45 + 0.55 * directness)
+      ? shotMult * shotDepth * shotFreq * rel(a.finishing) * (0.45 + 0.55 * directness)
       : 0),
     shield: outnumbered > 0.6 ? 1.2 * outnumbered * rel(a.strength) : 0,
     clear: bm('clear') * (y < 0.25 && outnumbered > 0.4 ? 1.4 * outnumbered : 0),
@@ -447,7 +475,8 @@ function resolveShot(
     // D7: narrow save (keeper barely got there) — ball spills loose for a scramble.
     // REBOUND_CHANCE gates frequency; rebound lands at the edge of the six-yard box
     // so defenders can contest rather than the attacker collecting unopposed.
-    if (outcome.margin < -0.1 && rng() < REBOUND_CHANCE) {
+    const reboundChance = 0.04 + (1 - goalkeeping / 99) * 0.30;
+    if (outcome.margin < -0.1 && rng() < reboundChance) {
       events.push({
         type: 'rebound', team: attacking.side,
         description: `${name(defending, gkId)} can't hold it — rebound!`,
@@ -508,8 +537,19 @@ function maybeFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, defenderId
   bookFoul(ctx, defending, defenderId, outcome.margin);
 
   const y = attackY(at, attacking.side);
-  const inBox = y > 0.83 && at.x > 0.25 && at.x < 0.75;
-  if (inBox) { return resolvePenalty(ctx, carrierId); }
+  const inBox = y > BOX_Y && at.x > BOX_X_MIN && at.x < BOX_X_MAX;
+  if (inBox) {
+    // Outer perimeter (within 5m of any box edge): ref discretion — penalty, free kick, or play on.
+    const onEdge = y < BOX_Y + BOX_PERIM
+      || at.x < BOX_X_MIN + BOX_PERIM || at.x > BOX_X_MAX - BOX_PERIM;
+    if (onEdge) {
+      const roll = rng();
+      if (roll < 0.45) { return resolvePenalty(ctx, carrierId); }
+      if (roll < 0.75) { return resolveFreeKick(ctx, carrierId, at); }
+      return null; // ref waves play on / calls a dive
+    }
+    return resolvePenalty(ctx, carrierId);
+  }
   return resolveFreeKick(ctx, carrierId, at);
 }
 
@@ -535,8 +575,18 @@ function maybeLoserFoul(ctx: Ctx, outcome: DuelOutcome, carrierId: string, winne
   // a penalty — measured in the winner's attacking direction.
   const swapped: Ctx = { attacking: defending, defending: attacking, rng, events };
   const y = attackY(at, defending.side);
-  const inBox = y > 0.83 && at.x > 0.25 && at.x < 0.75;
-  if (inBox) { return resolvePenalty(swapped, winnerId); }
+  const inBox = y > BOX_Y && at.x > BOX_X_MIN && at.x < BOX_X_MAX;
+  if (inBox) {
+    const onEdge = y < BOX_Y + BOX_PERIM
+      || at.x < BOX_X_MIN + BOX_PERIM || at.x > BOX_X_MAX - BOX_PERIM;
+    if (onEdge) {
+      const roll = rng();
+      if (roll < 0.45) { return resolvePenalty(swapped, winnerId); }
+      if (roll < 0.75) { return resolveFreeKick(swapped, winnerId, at); }
+      return null;
+    }
+    return resolvePenalty(swapped, winnerId);
+  }
   return resolveFreeKick(swapped, winnerId, at);
 }
 
@@ -569,8 +619,18 @@ function maybeLastManFoul(
   }
 
   const y = attackY(at, attacking.side);
-  const inBox = y > 0.83 && at.x > 0.25 && at.x < 0.75;
-  if (inBox) { return resolvePenalty(ctx, runnerId); }
+  const inBox = y > BOX_Y && at.x > BOX_X_MIN && at.x < BOX_X_MAX;
+  if (inBox) {
+    const onEdge = y < BOX_Y + BOX_PERIM
+      || at.x < BOX_X_MIN + BOX_PERIM || at.x > BOX_X_MAX - BOX_PERIM;
+    if (onEdge) {
+      const roll = rng();
+      if (roll < 0.45) { return resolvePenalty(ctx, runnerId); }
+      if (roll < 0.75) { return resolveFreeKick(ctx, runnerId, at); }
+      return null;
+    }
+    return resolvePenalty(ctx, runnerId);
+  }
   return resolveFreeKick(ctx, runnerId, at);
 }
 
@@ -677,29 +737,85 @@ function resolveDeliveryIntoBox(
 
 // ── situation resolvers ──────────────────────────────────────────────────────────
 
+// Pass distance thresholds (field units, 0–1 scale).
+const SHORT_PASS_MAX = 0.20;
+const MEDIUM_PASS_MAX = 0.35;
+// Base distance within which a defender can realistically contest a pass midpoint.
+// ~0.18 ≈ 18% of pitch length, roughly 10–12m on a real pitch.
+// Scaled up by the defending team's press intensity: a high press extends reach.
+// pressIntensity 0→1 adds up to +30% range (0.18 → 0.234 at full press).
+const CONTEST_RANGE_BASE = 0.18;
+const CONTEST_RANGE_PRESS_SCALE = 0.30;
+
 function resolveShortPass(ctx: Ctx, carrierId: string): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const from = attacking.positions[carrierId];
   const receiverId = pickReceiver(attacking, from, rng);
   if (!receiverId) { return resolveDribble(ctx, carrierId); }
   const to = attacking.positions[receiverId];
+  const dist = distance(from, to);
   const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+
+  // Short pass (≤ 0.20): near-certain success for lateral/backward ball — defenders can't
+  // intercept a 10m sideways roll. Forward passes (receiver more than 0.05 ahead) skip this
+  // path and go through the defender contest like any other pass.
+  const progress = attackY(to, attacking.side) - attackY(from, attacking.side);
+  if (dist <= SHORT_PASS_MAX && progress <= 0.05) {
+    const successChance = Math.min(0.99, 0.90 + attr(attacking, carrierId, 'passing') / 1000);
+    if (rng() < successChance) {
+      events.push({
+        type: 'short_pass', team: attacking.side, playerId: carrierId,
+        description: `${name(attacking, carrierId)} finds ${name(attacking, receiverId)}`,
+        metadata: { receiverId },
+      });
+      return { events, ball: { mode: 'carried', side: attacking.side, carrierId: receiverId } };
+    }
+    events.push({
+      type: 'loose_ball', team: attacking.side, playerId: carrierId,
+      description: `The pass from ${name(attacking, carrierId)} breaks loose`,
+      metadata: { contestedAction: 'short_pass', attackingTeam: attacking.side, attackerId: carrierId },
+    });
+    // Ball rolls past the intended receiver — lands 75% of the way to them, favoring the defender.
+    const nearReceiver = { x: from.x + (to.x - from.x) * 0.75, y: from.y + (to.y - from.y) * 0.75 };
+    return resolveLooseBall(ctx, nearReceiver);
+  }
+
+  // Medium pass (0.20–0.35) and anything longer picked by pickReceiver.
   const readerId = nearestDefender(defending, midpoint);
+  const readerDist = readerId ? distance(defending.positions[readerId], midpoint) : Infinity;
+
+  // Contest suppression: pure geometry. If no defender is within the effective contest
+  // range of the passing lane, no one can realistically intercept regardless of pitch zone.
+  // Defender positions already encode compactness/line height — if they're there, they're close.
+  // Press intensity scales reach: a high press team contests from slightly further away.
+  const pressIntensity = (defending.params.pressIntensity ?? 50) / 100;
+  const effectiveContestRange = CONTEST_RANGE_BASE * (1 + pressIntensity * CONTEST_RANGE_PRESS_SCALE);
+  if (readerDist > effectiveContestRange) {
+    events.push({
+      type: 'short_pass', team: attacking.side, playerId: carrierId,
+      description: `${name(attacking, carrierId)} finds ${name(attacking, receiverId)}`,
+      metadata: { receiverId },
+    });
+    return { events, ball: { mode: 'carried', side: attacking.side, carrierId: receiverId } };
+  }
+
   const local = localNumbers(attacking, defending, to);
+  // Longer medium passes are harder to complete — reduce bonus slightly beyond medium threshold.
+  const distPenalty = dist > MEDIUM_PASS_MAX ? (dist - MEDIUM_PASS_MAX) * 0.5 : 0;
   const outcome = resolveDuel(
     attr(attacking, carrierId, 'passing'),
-    readerId ? attr(defending, readerId, 'defending') : 20,
-    PASS_DUEL, rng, { bonus: local.passTargetBonus - local.secondDefenderPenalty },
+    attr(defending, readerId!, 'defending'),
+    PASS_DUEL, rng, { bonus: local.passTargetBonus - local.secondDefenderPenalty - distPenalty },
   );
   if (outcome.attackerWins) {
     events.push({
       type: 'short_pass', team: attacking.side, playerId: carrierId,
       description: `${name(attacking, carrierId)} finds ${name(attacking, receiverId)}`,
-      metadata: { receiverId, ...(readerId ? duelMeta(outcome, attacking.side, carrierId, readerId) : {}) },
+      metadata: { receiverId, ...duelMeta(outcome, attacking.side, carrierId, readerId!) },
     });
     return { events, ball: { mode: 'carried', side: attacking.side, carrierId: receiverId } };
   }
-  // D1: narrow interception — the ball breaks loose rather than going cleanly to the reader
+  // D1: narrow miss — ball breaks loose rather than going cleanly to the reader
   if (outcome.margin > -0.3) {
     events.push({
       type: 'loose_ball', team: attacking.side, playerId: carrierId,
@@ -759,7 +875,7 @@ function resolveThroughBall(ctx: Ctx, carrierId: string): FlowTickResult {
     if (outcome.margin > -0.3) {
       events.push({
         type: 'loose_ball', team: attacking.side, playerId: carrierId,
-        description: `The through ball breaks loose`,
+        description: 'The through ball breaks loose',
         metadata: { contestedAction: 'through_ball', attackingTeam: attacking.side, attackerId: carrierId },
       });
       return resolveLooseBall(ctx, target);
@@ -833,7 +949,7 @@ function resolveLongBall(ctx: Ctx, carrierId: string, opts?: { deliverySkill?: n
     // D1: narrow miss — loose ball in the landing zone
     events.push({
       type: 'loose_ball', team: attacking.side, playerId: carrierId,
-      description: `The long ball drops loose in midfield`,
+      description: 'The long ball drops loose in midfield',
       metadata: { contestedAction: 'long_pass', attackingTeam: attacking.side, attackerId: carrierId },
     });
     return resolveLooseBall(ctx, landing);
@@ -999,9 +1115,7 @@ function resolveClear(ctx: Ctx, carrierId: string): FlowTickResult {
       ? `${name(attacking, carrierId)} clears his lines`
       : `${name(attacking, carrierId)} hacks it away under pressure`,
   });
-  // The loose-ball race below reads both sides symmetrically, so no possession flip
-  // is needed for the cleared ball.
-  const landing = carryForward(at, attacking.side, controlled ? 0.35 : 0.2);
+  const landing = carryForward(at, attacking.side, controlled ? 0.2 : 0.1);
   return resolveLooseBall(ctx, landing);
 }
 
@@ -1021,6 +1135,7 @@ export function resolveLooseBall(ctx: Ctx, at: XY, opts?: { includeGk?: boolean 
   }
 
   // Closer player gets a head start proportional to the distance gap.
+  // Gap bonus: 0.08 units closer ≈ 60% win, tuned to keep loose races genuinely contested.
   const gap = distance(defending.positions[defId], at) - distance(attacking.positions[atkId], at);
   const outcome = resolveDuel(
     attr(attacking, atkId, 'speed'), attr(defending, defId, 'speed'),
@@ -1093,7 +1208,7 @@ function resolveBackPass(ctx: Ctx, carrierId: string): FlowTickResult {
 function resolveProgressiveCarry(ctx: Ctx, carrierId: string): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const at = attacking.positions[carrierId];
-  const target = carryForward(at, attacking.side, 0.18);
+  const target = carryForward(at, attacking.side, 0.14);
 
   const potentialDefId = nearestDefender(defending, target);
   // Only contest carries when a defender is actually close enough to challenge.
@@ -1296,6 +1411,10 @@ export function flowTick(home: FlowTeam, away: FlowTeam, ball: BallState, rng: (
     }
   }
 
+  const band = carrierBand(carrier, attacking);
   const situation = chooseSituation(situationWeights(carrier, pos, attacking, local), rng);
-  return RESOLVERS[situation](ctx, carrierId);
+  const result = RESOLVERS[situation](ctx, carrierId);
+  result.situation = situation;
+  result.carrierBand = band;
+  return result;
 }

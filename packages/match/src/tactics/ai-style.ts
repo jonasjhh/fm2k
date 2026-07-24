@@ -14,6 +14,7 @@ const FORMATION_STYLE: Record<Formation, TacticalStyleId> = {
   '4-1-4-1': 'hit_on_counter',
   '4-4-1-1': 'balanced',
   '4-2-4':   'press_high',
+  '4-1-2-3': 'press_high',
   '3-5-2':   'keep_the_ball',
   '3-4-3':   'attack_the_wings',
   '3-4-2-1': 'keep_the_ball',

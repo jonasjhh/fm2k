@@ -11,6 +11,7 @@ export const FORMATION_LINES: Record<Formation, string[][]> = {
   '4-1-4-1': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM'], ['LM', 'CM', 'CM', 'RM'], ['ST']],
   '4-4-1-1': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['AM'], ['ST']],
   '4-2-4': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM', 'DM'], ['LW', 'ST', 'ST', 'RW']],
+  '4-1-2-3': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM'], ['CM', 'CM'], ['LW', 'ST', 'RW']],
   // 3-back
   '3-5-2': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'CM', 'RM'], ['ST', 'ST']],
   '3-4-3': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'RM'], ['LW', 'ST', 'RW']],
@@ -73,10 +74,13 @@ function roleForBandSlot(band: Exclude<Band, 'GK'>, i: number, n: number, latera
     case 'DEF':
       if (edge && (n >= 4 || Math.abs(lateral ?? 0) > CENTRAL_EDGE_LATERAL)) { return edge === 'L' ? 'LB' : 'RB'; }
       return 'CB';
+    case 'WDEF': return edge === 'L' ? 'LB' : 'RB';
     case 'DM': return 'DM';
     case 'MID': return n >= 4 && edge ? (edge === 'L' ? 'LM' : 'RM') : 'CM';
+    case 'WMID': return edge === 'L' ? 'LM' : 'RM';
     case 'AM': return 'AM';
     case 'ATT': return n >= 3 && edge ? (edge === 'L' ? 'LW' : 'RW') : 'ST';
+    case 'WATT': return edge === 'L' ? 'LW' : 'RW';
   }
 }
 
@@ -178,8 +182,10 @@ export function positionsFromBands(bands: readonly (readonly FormationPosition[]
   const out: PlayerGeometry[] = [];
   for (const band of bands) {
     if (band.length === 0 || band[0] === 'GK') { continue; }
-    const bandLabel = BAND_OF_ROLE[band[0]] as Exclude<Band, 'GK'>;
-    lateralsForBand(band).forEach(lateral => out.push({ band: bandLabel, lateral }));
+    const laterals = lateralsForBand(band);
+    band.forEach((role, i) => {
+      out.push({ band: BAND_OF_ROLE[role] as Exclude<Band, 'GK'>, lateral: laterals[i] });
+    });
   }
   return out;
 }

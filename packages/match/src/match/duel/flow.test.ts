@@ -127,7 +127,7 @@ describe('short pass chain:', () => {
       side: 'home',
       players: [
         { id: 'carrier', pos: { x: 0.5, y: 0.4 }, attrs: { passing: 60 } },
-        { id: 'mate', pos: { x: 0.5, y: 0.55 } },
+        { id: 'mate', pos: { x: 0.65, y: 0.42 } },
       ],
     }),
     defending: team({
@@ -137,18 +137,22 @@ describe('short pass chain:', () => {
     }),
   });
 
-  it('a won pass duel moves the ball to the receiver', () => {
+  it('a short pass (≤0.20) succeeds via direct probability, no duel metadata', () => {
     const { attacking, defending } = setup();
+    // carrier y=0.4 → mate y=0.55: distance 0.15 → short path, passing=60 → 96% success
     const out = resolveSituation('short_pass', attacking, defending, 'carrier', rngOf(0.1));
     expect(out.ball).toEqual({ mode: 'carried', side: 'home', carrierId: 'mate' });
     const pass = out.events.find(e => e.type === 'short_pass')!;
     expect(pass.playerId).toBe('carrier');
     expect(pass.metadata?.receiverId).toBe('mate');
-    expect(pass.metadata?.duel.duelType).toBe('pass');
+    // Short path uses no duel — no duel metadata
+    expect(pass.metadata?.duel).toBeUndefined();
   });
 
-  it('a lost pass duel is an interception carrying the stats metadata', () => {
+  it('a medium pass (>0.20) that fails is an interception carrying the stats metadata', () => {
+    // Move mate far enough to trigger the medium duel path (distance ~0.30)
     const { attacking, defending } = setup();
+    attacking.positions['mate'] = { x: 0.5, y: 0.70 };
     // Low passing (20) + 2 extra pressers (maxing secondDefenderPenalty at 0.15) drops the
     // effective chance to ~0.60. Roll 0.99 → margin -0.39 < -0.3 → clean interception.
     attacking.players.find(p => p.id === 'carrier')!.attributes.passing = 20;
@@ -156,8 +160,9 @@ describe('short pass chain:', () => {
       player('press1', { defending: 60 }),
       player('press2', { defending: 60 }),
     );
-    defending.positions['press1'] = { x: 0.45, y: 0.5 };
-    defending.positions['press2'] = { x: 0.46, y: 0.5 };
+    // Pressers near the receiver cell contribute to secondDefenderPenalty.
+    defending.positions['press1'] = { x: 0.45, y: 0.65 };
+    defending.positions['press2'] = { x: 0.46, y: 0.65 };
     const out = resolveSituation('short_pass', attacking, defending, 'carrier', rngOf(0.5, 0.99));
     expect(out.ball).toMatchObject({ mode: 'carried', side: 'away' });
     const pick = out.events.find(e => e.type === 'interception')!;
@@ -523,12 +528,13 @@ describe('back pass:', () => {
 });
 
 describe('D1 — loose ball on narrow interception:', () => {
-  it('a narrowly intercepted short pass produces a loose ball instead of a clean turnover', () => {
+  it('a narrowly intercepted medium pass produces a loose ball instead of a clean turnover', () => {
     const attacking = team({
       side: 'home',
       players: [
         { id: 'carrier', pos: { x: 0.5, y: 0.4 }, attrs: { passing: 50 } },
-        { id: 'mate', pos: { x: 0.5, y: 0.55 } },
+        // mate at y=0.65 → distance 0.25 → medium path (>0.20)
+        { id: 'mate', pos: { x: 0.5, y: 0.65 } },
       ],
     });
     const defending = team({

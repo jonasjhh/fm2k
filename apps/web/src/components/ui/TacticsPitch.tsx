@@ -15,7 +15,7 @@ import { ATTR_LABELS } from '../../lib/attribute-labels';
 
 const CLICK_THRESHOLD_PX = 6;
 
-const BAND_ROW_INDEX: Record<Exclude<Band, 'GK'>, number> = { ATT: 0, AM: 1, MID: 2, DM: 3, DEF: 4 };
+const BAND_ROW_INDEX: Record<Exclude<Band, 'GK'>, number> = { ATT: 0, WATT: 0, AM: 1, MID: 2, WMID: 2, DM: 3, DEF: 4, WDEF: 4 };
 
 function shortName(name: string): string {
   const parts = name.split(' ');
@@ -110,15 +110,18 @@ export function TacticsPitch({
 
   const getEffectiveLateral = (member: BandMember): number => member.geometry.lateral;
 
+  const DISPLAY_BAND: Partial<Record<Exclude<Band, 'GK'>, Exclude<Band, 'GK'>>> = { WDEF: 'DEF', WMID: 'MID', WATT: 'ATT' };
   const byBand = useMemo(() => {
     const out: Record<Exclude<Band, 'GK'>, BandMember[]> = {
-      DEF: [], DM: [], MID: [], AM: [], ATT: [],
+      DEF: [], WDEF: [], DM: [], MID: [], WMID: [], AM: [], ATT: [], WATT: [],
     };
     // Every outfield slot 1–10 has geometry (the shape is fully seeded); the player may be null.
     for (let slot = 1; slot <= 10; slot++) {
       const g = geometry[slot];
       if (!g) { continue; }
-      out[g.band].push({ slotIndex: slot, playerId: startingXI[slot] ?? null, geometry: g });
+      // Collapse wide bands into their central counterpart for display — WDEF→DEF etc.
+      const displayBand = DISPLAY_BAND[g.band] ?? g.band;
+      out[displayBand].push({ slotIndex: slot, playerId: startingXI[slot] ?? null, geometry: g });
     }
     // Sort by effective lateral so overridden slots appear in the correct relative order.
     for (const band of BAND_ORDER) { out[band].sort((a, b) => getEffectiveLateral(a) - getEffectiveLateral(b)); }
@@ -130,7 +133,7 @@ export function TacticsPitch({
   const gk = gkId ? playerById.get(gkId) ?? null : null;
 
   const rowRefs = useRef<Record<Exclude<Band, 'GK'>, HTMLDivElement | null>>({
-    DEF: null, DM: null, MID: null, AM: null, ATT: null,
+    DEF: null, WDEF: null, DM: null, MID: null, WMID: null, AM: null, ATT: null, WATT: null,
   });
 
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -354,7 +357,7 @@ export function TacticsPitch({
         }}
         onClick={() => setExpandedKey(null)}
       >
-        {BAND_ORDER.map(band => (
+        {BAND_ORDER.filter(band => !(band in DISPLAY_BAND)).map(band => (
           <Box
             key={band}
             ref={(el: HTMLDivElement | null) => { rowRefs.current[band] = el; }}

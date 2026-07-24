@@ -34,6 +34,7 @@ describe('FORMATION_LINES:', () => {
     '4-1-4-1': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM'], ['LM', 'CM', 'CM', 'RM'], ['ST']],
     '4-4-1-1': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['LM', 'CM', 'CM', 'RM'], ['AM'], ['ST']],
     '4-2-4':   [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM', 'DM'], ['LW', 'ST', 'ST', 'RW']],
+    '4-1-2-3': [['GK'], ['LB', 'CB', 'CB', 'RB'], ['DM'], ['CM', 'CM'], ['LW', 'ST', 'RW']],
     '3-5-2':   [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'CM', 'RM'], ['ST', 'ST']],
     '3-4-3':   [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'RM'], ['LW', 'ST', 'RW']],
     '3-4-2-1': [['GK'], ['CB', 'CB', 'CB'], ['LM', 'CM', 'CM', 'RM'], ['AM', 'AM'], ['ST']],
@@ -113,15 +114,15 @@ describe('canonicalGeometry:', () => {
   it('matches each slot\'s band to FORMATION_LINES/BAND_OF_ROLE', () => {
     const geo = canonicalGeometry('4-2-3-1');
     // ['LB','CB','CB','RB'], ['DM','DM'], ['AM','AM','AM'], ['ST']
-    expect(geo.map(g => g.band)).toEqual(['DEF', 'DEF', 'DEF', 'DEF', 'DM', 'DM', 'AM', 'AM', 'AM', 'ATT']);
+    expect(geo.map(g => g.band)).toEqual(['WDEF', 'DEF', 'DEF', 'WDEF', 'DM', 'DM', 'AM', 'AM', 'AM', 'ATT']);
   });
 
   it('evenly spaces a row across a role-aware span, centering a lone slot, never on the touchline', () => {
     const round = (xs: number[]) => xs.map(x => Math.round(x * 1e6) / 1e6);
     const W = WIDE_EDGE_LATERAL;
     const C = CENTRAL_EDGE_LATERAL;
-    // 4-4-2 back line: LB/CB/CB/RB → evenly spaced from -W to +W.
-    const defLine = canonicalGeometry('4-4-2').filter(g => g.band === 'DEF');
+    // 4-4-2 back line: LB/CB/CB/RB → evenly spaced from -W to +W (mix of WDEF and DEF bands).
+    const defLine = canonicalGeometry('4-4-2').filter(g => g.band === 'WDEF' || g.band === 'DEF');
     const step4 = Math.round((2 * W / 3) * 1e6) / 1e6;
     expect(round(defLine.map(g => g.lateral))).toEqual([-W, -W + step4, W - step4, W].map(x => Math.round(x * 1e6) / 1e6));
     // 4-4-2 front two: ST/ST → tucked span ±C.
@@ -134,12 +135,12 @@ describe('canonicalGeometry:', () => {
 
   it('spreads a flank-edged row wider than a central-edged one (fullbacks vs a CB trio)', () => {
     const backThree = canonicalGeometry('3-5-2').filter(g => g.band === 'DEF').map(g => g.lateral);
-    // A hypothetical back-three led by fullbacks would reach ±0.6; the CB trio tucks to ±0.5.
     expect(Math.max(...backThree.map(Math.abs))).toBe(CENTRAL_EDGE_LATERAL);
-    const backFour = canonicalGeometry('4-4-2').filter(g => g.band === 'DEF').map(g => g.lateral);
-    expect(Math.max(...backFour.map(Math.abs))).toBe(WIDE_EDGE_LATERAL);
+    // Fullbacks (WDEF) spread to wide edge; CBs (DEF) tuck to central edge.
+    const fullbacks = canonicalGeometry('4-4-2').filter(g => g.band === 'WDEF').map(g => g.lateral);
+    expect(Math.max(...fullbacks.map(Math.abs))).toBe(WIDE_EDGE_LATERAL);
     // Nothing reaches the touchline in either case.
-    expect(Math.max(...backFour.map(Math.abs))).toBeLessThan(1);
+    expect(Math.max(...fullbacks.map(Math.abs))).toBeLessThan(1);
   });
 
   it('falls back to 4-4-2 for an unknown formation, same as FORMATION_LINES', () => {
@@ -161,7 +162,7 @@ describe('positionsFromBands:', () => {
   it('skips the GK band and returns only outfield positions', () => {
     const out = positionsFromBands([['GK'], ['LB', 'CB', 'CB', 'RB']] as FormationPosition[][]);
     expect(out).toHaveLength(4);
-    expect(out.every(g => g.band === 'DEF')).toBe(true);
+    expect(out.every(g => g.band === 'WDEF' || g.band === 'DEF')).toBe(true);
   });
 
   it('a lone slot in any band is centred at 0', () => {
@@ -212,7 +213,7 @@ describe('positionsFromBands:', () => {
       ['CM', 'CM', 'CM'],
       ['ST'],
     ] as FormationPosition[][]);
-    expect(out.slice(0, 4).map(g => g.band)).toEqual(['DEF', 'DEF', 'DEF', 'DEF']);
+    expect(out.slice(0, 4).map(g => g.band)).toEqual(['WDEF', 'DEF', 'DEF', 'WDEF']);
     expect(out.slice(4, 7).map(g => g.band)).toEqual(['MID', 'MID', 'MID']);
     expect(out[7].band).toBe('ATT');
   });
@@ -241,7 +242,7 @@ describe('deriveRolesForShape:', () => {
 
   it('labels extreme-lateral defender pair as LB/RB (above CENTRAL_EDGE_LATERAL threshold)', () => {
     const roles = deriveRolesForShape({
-      a: { band: 'DEF', lateral: -1 }, b: { band: 'DEF', lateral: 1 },
+      a: { band: 'WDEF', lateral: -1 }, b: { band: 'WDEF', lateral: 1 },
     });
     expect(roles).toEqual({ a: 'LB', b: 'RB' });
   });
@@ -257,10 +258,10 @@ describe('deriveRolesForShape:', () => {
 describe('deriveCustomFieldedPositions:', () => {
   it('maps each player to their geometry-derived role for FieldedPositions', () => {
     const geometry: Record<string, PlayerGeometry> = {
-      lb: { band: 'DEF', lateral: -1 },
+      lb: { band: 'WDEF', lateral: -1 },
       cb1: { band: 'DEF', lateral: -0.3 },
       cb2: { band: 'DEF', lateral: 0.3 },
-      rb: { band: 'DEF', lateral: 1 },
+      rb: { band: 'WDEF', lateral: 1 },
       cm: { band: 'MID', lateral: 0 },
     };
     const { fieldedPositions } = deriveCustomFieldedPositions(geometry);
@@ -283,7 +284,7 @@ describe('slotGeometryFromFormation:', () => {
     const seeded = slotGeometryFromFormation('4-4-2');
     expect(Object.keys(seeded)).toHaveLength(10);
     expect(seeded[0]).toBeUndefined();                       // GK slot has no anchor
-    expect(seeded[1]).toEqual({ band: 'DEF', lateral: -WIDE_EDGE_LATERAL }); // slot 1 = LB (wide edge)
+    expect(seeded[1]).toEqual({ band: 'WDEF', lateral: -WIDE_EDGE_LATERAL }); // slot 1 = LB (wide edge)
   });
 });
 
@@ -296,7 +297,7 @@ describe('seedShapesFromFormation:', () => {
   it('the two shapes are independent copies — editing one leaves the other untouched', () => {
     const shapes = seedShapesFromFormation('4-4-2');
     shapes.attacking[1] = { band: 'ATT', lateral: -1 };
-    expect(shapes.defending[1]).toEqual({ band: 'DEF', lateral: -WIDE_EDGE_LATERAL });
+    expect(shapes.defending[1]).toEqual({ band: 'WDEF', lateral: -WIDE_EDGE_LATERAL });
   });
 });
 
@@ -328,8 +329,8 @@ describe('effectiveFormationLabel:', () => {
 
   it('tolerates sub-threshold lateral drift when matching a preset', () => {
     const shapes = seedShapesFromFormation('4-4-2');
-    shapes.defending[1] = { band: 'DEF', lateral: -WIDE_EDGE_LATERAL + 0.03 };
-    shapes.attacking[1] = { band: 'DEF', lateral: -WIDE_EDGE_LATERAL + 0.03 };
+    shapes.defending[1] = { band: 'WDEF', lateral: -WIDE_EDGE_LATERAL + 0.03 };
+    shapes.attacking[1] = { band: 'WDEF', lateral: -WIDE_EDGE_LATERAL + 0.03 };
     expect(effectiveFormationLabel('4-4-2', shapes)).toBe('4-4-2');
   });
 });

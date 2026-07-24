@@ -11,21 +11,19 @@ export type FieldLine = 'GK' | 'DEF' | 'MID' | 'ATT';
 /** Finer-grained band a role sits in before collapsing to the 4 coarse field
  *  lines — the vertical resolution of the dual-shape editor and the duel
  *  engine's presence grid. */
-export type Band = 'GK' | 'DEF' | 'DM' | 'MID' | 'AM' | 'ATT';
+export type Band = 'GK' | 'DEF' | 'WDEF' | 'DM' | 'MID' | 'WMID' | 'AM' | 'ATT' | 'WATT';
 
 export const BAND_OF_ROLE: Record<FormationPosition, Band> = {
   GK: 'GK',
-  LB: 'DEF', CB: 'DEF', RB: 'DEF',
+  LB: 'WDEF', CB: 'DEF', RB: 'WDEF',
   DM: 'DM',
-  LM: 'MID', CM: 'MID', RM: 'MID',
+  LM: 'WMID', CM: 'MID', RM: 'WMID',
   AM: 'AM',
-  LW: 'ATT', ST: 'ATT', RW: 'ATT',
+  LW: 'WATT', ST: 'ATT', RW: 'WATT',
 };
 
-// Defenders behave as defenders; every flavor of midfielder (holding, central, wide,
-// attacking) behaves as a midfielder; strikers and wingers behave as attackers.
 export const BAND_TO_FIELD_LINE: Record<Band, FieldLine> = {
-  GK: 'GK', DEF: 'DEF', DM: 'MID', MID: 'MID', AM: 'MID', ATT: 'ATT',
+  GK: 'GK', DEF: 'DEF', WDEF: 'DEF', DM: 'MID', MID: 'MID', WMID: 'MID', AM: 'MID', ATT: 'ATT', WATT: 'ATT',
 };
 
 export const FIELD_LINE: Record<FormationPosition, FieldLine> = Object.fromEntries(
@@ -40,7 +38,7 @@ export const MAX_BAND_SIZE = 5;
 /** Bands in attack-to-defense order — the canonical "how advanced is this role" ranking,
  *  shared by every UI that needs to lay players out by band (the free-positioning pitch view,
  *  and the table/pill display order in effectiveDisplayOrder). */
-export const BAND_ORDER: Exclude<Band, 'GK'>[] = ['ATT', 'AM', 'MID', 'DM', 'DEF'];
+export const BAND_ORDER: Exclude<Band, 'GK'>[] = ['ATT', 'WATT', 'AM', 'MID', 'WMID', 'DM', 'WDEF', 'DEF'];
 
 /** A player's zone-weighting geometry, decoupled from their role label. Carried on
  *  MatchState.fieldedGeometry for teams playing a custom (dual-shape) formation. */

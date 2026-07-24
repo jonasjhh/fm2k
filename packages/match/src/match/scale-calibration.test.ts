@@ -117,11 +117,11 @@ describe('attribute-scale calibration (quality gradient):', () => {
 
   it('given an even contest then total goals sit in a realistic football band', () => {
     // This uses the *pure-neutral* engine (no formation/tactics, plus the home-advantage
-    // bump), which runs a touch hotter than a real match — every real team carries a
-    // formation whose compactness pulls scoring down (the distribution harness, which goes
-    // through `simulateMatch`, lands even matches ≈2.6–2.8). Band kept loose accordingly.
+    // bump). Contest suppression reduces defensive-half turnovers so this runs cooler than
+    // before — the distribution harness (through simulateMatch with formations) is the
+    // authority on final goal rates. Floor kept loose as a sanity check only.
     const perMatch = (r: ReturnType<typeof series>) => (r.homeGoals + r.awayGoals) / N;
-    expect(perMatch(series(N, 55, 55))).toBeGreaterThan(0.5);
+    expect(perMatch(series(N, 55, 55))).toBeGreaterThan(0.3);
     expect(perMatch(series(N, 55, 55))).toBeLessThan(4.0);
     expect(perMatch(series(N, 30, 30))).toBeLessThan(4.0);
     expect(perMatch(series(N, 75, 75))).toBeLessThan(4.0);
