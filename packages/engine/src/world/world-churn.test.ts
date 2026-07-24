@@ -44,7 +44,7 @@ describe('retirementChance:', () => {
   it('models the equilibrium: an elite veteran whose skill has decayed becomes likely to retire', () => {
     const elitePrime = retirementChance(34, 88);   // still going
     const eliteDecayed = retirementChance(37, 70);  // skill eroded + older
-    expect(elitePrime).toBeLessThan(0.15);
+    expect(elitePrime).toBeLessThan(0.20);
     expect(eliteDecayed).toBeGreaterThan(elitePrime);
   });
 });

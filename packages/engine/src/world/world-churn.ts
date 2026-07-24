@@ -26,9 +26,9 @@ function clamp(lo: number, hi: number, n: number): number {
 }
 
 // ── retirement curve ────────────────────────────────────────────────────────────
-const RETIRE_AGE_MIN = 31;       // below this age: never retires
-const RETIRE_AGE_CERTAIN = 40;   // at/above this age: effectively certain to retire
-const RETIRE_AGE_SLOPE = 0.09;   // chance gained per year past 30
+const RETIRE_AGE_MIN = 30;       // below this age: never retires
+const RETIRE_AGE_CERTAIN = 38;   // at/above this age: effectively certain to retire
+const RETIRE_AGE_SLOPE = 0.15;   // chance gained per year past 29 — 35yo avg player ~90% chance
 const RETIRE_SKILL_PIVOT = 45;   // overall at/below which skill offers no resistance
 const RETIRE_SKILL_SPAN = 40;    // overall above the pivot for full resistance
 const RETIRE_SKILL_RESIST = 0.6; // maximum resistance an elite player gets
@@ -127,7 +127,7 @@ export interface PlayerDelta {
 
 /** Default per-season direct youth intake a club receives: a random 1 or 2. */
 export function randomIntakeCap(rng: () => number): number {
-  return 1 + Math.floor(rng() * 2);
+  return 2 + Math.floor(rng() * 2);
 }
 
 export interface SquadChurnOptions {

@@ -96,6 +96,7 @@ const LONG_LAYOFF_MATCHES = 4;
 
 /** Free agents seeded per included nation at the start of a new game (scales the pool with size). */
 const INITIAL_FREE_AGENTS_PER_NATION = 40;
+const INITIAL_FREE_AGENTS_MIN = 120;
 
 /** One animated event from the real match simulation. */
 export interface AnimEvent {
@@ -768,10 +769,10 @@ export class GameSession {
     // nation (so the pool scales with how many leagues are in play), each with that nation's
     // nationality. (On load this is immediately replaced by the saved pool via loadState.)
     const seededFreeAgents: Player[] = [];
-    for (const countryId of allLeagueIds) {
-      const country = world.countries.get(countryId);
-      if (!country) { continue; }
-      for (let i = 0; i < INITIAL_FREE_AGENTS_PER_NATION; i++) {
+    const seedNations = [...allLeagueIds].map(id => world.countries.get(id)).filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined);
+    const perNation = Math.max(INITIAL_FREE_AGENTS_PER_NATION, Math.ceil(INITIAL_FREE_AGENTS_MIN / Math.max(1, seedNations.length)));
+    for (const country of seedNations) {
+      for (let i = 0; i < perNation; i++) {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
         const overall = 22 + Math.floor(this.rng() * 28); // 22–49: released players + the odd gem
         seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
