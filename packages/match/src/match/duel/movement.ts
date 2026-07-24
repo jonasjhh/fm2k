@@ -55,6 +55,32 @@ export function travelled(
   return out;
 }
 
+/** How far toward their formation anchor each player moves during a dead-ball reset.
+ *  0 = no movement, 1 = teleport to anchor. High enough to pull CBs out of their own
+ *  box after a save (where compactness/press drift may have pushed them to y ≈ 0.93),
+ *  but not an instant teleport. TASK_07 re-locks this if calibration needs it. */
+export const DEAD_BALL_RESET_FACTOR = 0.85;
+
+/** Dead-ball shape reset: when the GK has the ball (save, goal kick) both teams get
+ *  time to reorganise before play resumes. Partially snaps every player back toward
+ *  their formation anchor — prevents defenders being stranded in their own box when
+ *  the GK plays out. Pure: does not mutate inputs. */
+export function deadBallShapeReset(
+  positions: Record<string, XY>,
+  anchors: Record<string, XY>,
+  factor: number = DEAD_BALL_RESET_FACTOR,
+): Record<string, XY> {
+  const out: Record<string, XY> = {};
+  for (const [id, pos] of Object.entries(positions)) {
+    const anchor = anchors[id] ?? pos;
+    out[id] = {
+      x: pos.x + (anchor.x - pos.x) * factor,
+      y: pos.y + (anchor.y - pos.y) * factor,
+    };
+  }
+  return out;
+}
+
 /** Advance every player toward their target for `minutes`. Players without a target
  *  (e.g. just subbed on, shapes not covering them) hold their position. `refSpeed`
  *  is the match-wide mean Speed both sides are measured against. */

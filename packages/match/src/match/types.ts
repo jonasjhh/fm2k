@@ -38,6 +38,13 @@ export interface MatchConfig {
   /** Dedicated injury stream (tests). Defaults to a mulberry32 seeded by ONE draw from
    *  the main rng, so injury rolls never disturb the main stream beyond that draw. */
   injuryRng?: () => number;
+  /** Called after every flow tick with a snapshot of live positions and ball state.
+   *  Zero-overhead when absent. Intended for the step-through debugger only — not for
+   *  production use. Snapshots are shallow copies; do not mutate them. */
+  onTick?: (snapshot: {
+    positions: { home: Record<string, import('./duel/field.ts').XY>; away: Record<string, import('./duel/field.ts').XY> };
+    ball: import('./duel/flow.ts').BallState;
+  }) => void;
 }
 
 /** Phases at which a match is over (regulation, or after extra time). */

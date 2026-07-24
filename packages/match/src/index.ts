@@ -64,3 +64,9 @@ export type { DistributionInput, DistributionResult } from './match/distribution
 // Per-match form (final-third conversion variance; computed outside the sim, injected in)
 export { drawMatchForm, NEUTRAL_MATCH_FORM, MATCH_FORM_SIGMA, MATCH_FORM_CAP } from './match/rng.ts';
 export type { MatchForm } from './match/rng.ts';
+
+// Step-through debugger (dev tool — not part of the production contract)
+export { DuelMatchSimulator } from './match/duel/duel-simulator.ts';
+export type { MatchState, MatchConfig } from './match/types.ts';
+export type { BallState, FlowEvent } from './match/duel/flow.ts';
+export type { XY } from './match/duel/field.ts';

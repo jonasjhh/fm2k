@@ -16,7 +16,7 @@ import {
   slotShapeToPlayers, slotShapesToPlayers, slotOverridesToPlayers,
 } from '../../lineup/lineup.ts';
 import { type XY, type Side, targetsForShape, phaseOf, anchorXY, toAbsolute, BAND_Y, nearestTo } from './field.ts';
-import { advancePositions, travelled } from './movement.ts';
+import { advancePositions, travelled, deadBallShapeReset } from './movement.ts';
 import {
   lineShift, applyWidth, applyCompactness, applyBallSideShift, applyPress, transitionUrgency,
 } from './tactical-motion.ts';
@@ -304,6 +304,23 @@ export class DuelMatchSimulator {
     const count = Math.floor(this.rng() * this.config.eventsPerMinute * tempoMult) + 1;
 
     for (let i = 0; i < count; i++) {
+      // Dead-ball reset: when the GK has the ball both teams reorganise before the
+      // restart — prevents CBs being stranded deep in their own box after a save.
+      // Use the phase each side would naturally be in (possessor = attacking shape,
+      // non-possessor = defending shape), without tactical modifiers.
+      if (this.ball.mode === 'carried') {
+        const gkOfBallSide = this.gkIdOf(currentState, this.ball.side);
+        if (gkOfBallSide && this.ball.carrierId === gkOfBallSide) {
+          const otherSide: Side = this.ball.side === 'home' ? 'away' : 'home';
+          const ballGkId = gkOfBallSide;
+          const otherGkId = this.gkIdOf(currentState, otherSide);
+          const atkAnchors = targetsForShape(this.shapes[this.ball.side].attacking, ballGkId, this.ball.side, 0);
+          const defAnchors = targetsForShape(this.shapes[otherSide].defending, otherGkId, otherSide, 0);
+          this.positions[this.ball.side] = deadBallShapeReset(this.positions[this.ball.side], atkAnchors);
+          this.positions[otherSide] = deadBallShapeReset(this.positions[otherSide], defAnchors);
+        }
+      }
+
       const homeView = this.flowTeam(currentState, 'home');
       const awayView = this.flowTeam(currentState, 'away');
       const result = flowTick(homeView, awayView, this.ball, this.rng);
@@ -314,6 +331,10 @@ export class DuelMatchSimulator {
         if (isTerminalPhase(currentState.phase)) { return currentState; }
       }
       currentState = this.postTickState(currentState, result.goal);
+      this.config.onTick?.({
+        positions: { home: { ...this.positions.home }, away: { ...this.positions.away } },
+        ball: { ...this.ball },
+      });
     }
     return currentState;
   }
@@ -563,6 +584,19 @@ export class DuelMatchSimulator {
 
   getEvents(): MatchEvent[] {
     return [...this.events];
+  }
+
+  getLiveState(): {
+    positions: { home: Record<string, XY>; away: Record<string, XY> };
+    ball: BallState;
+  } {
+    return {
+      positions: {
+        home: { ...this.positions.home },
+        away: { ...this.positions.away },
+      },
+      ball: { ...this.ball },
+    };
   }
 
   private createPhaseEvent(type: EventType, state: MatchState, description: string): MatchEvent {

@@ -52,6 +52,8 @@ export type {
   SimulateMatchInput, SimulateMatchResult, SideInput, PlayerMatchUpdate, InjuryReport,
   DistributionInput, DistributionResult,
 } from '@fm2k/match';
+export { DuelMatchSimulator, NEUTRAL_MATCH_FORM } from '@fm2k/match';
+export type { MatchState, MatchConfig, BallState, FlowEvent, XY } from '@fm2k/match';
 
 export { NameGenerator } from '@fm2k/names';
 export type { Gender, Country, CountryKey } from '@fm2k/names';
