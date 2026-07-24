@@ -1,6 +1,6 @@
 import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
-import { BUDGET_START } from './config.ts';
+import { BUDGET_START, SEASON_START } from './config.ts';
 
 function newGame() {
   const session = new GameSession();
@@ -98,4 +98,14 @@ describe('GameSession season rollover (carryover):', () => {
     expect(cs.financialLog).toHaveLength(0);
     expect(cs.recentDevelopment).toHaveLength(0);
   });
+
+  it('the game date increments by one year after a rollover', async () => {
+    const { session } = newGame();
+    await session.simulateToEnd();
+    session.startNewSeason();
+    const snap = session.snapshot();
+    expect(snap.now?.year).toBe(SEASON_START.year + 1);
+    expect(snap.now?.month).toBe(SEASON_START.month);
+    expect(snap.now?.day).toBe(SEASON_START.day);
+  }, 20_000);
 });

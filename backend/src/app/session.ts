@@ -2,7 +2,7 @@ import {
   CompetitionManager, LeagueFormat, KnockoutFormat, QualifierFormat, Season,
   ClubManager, TransferManager, EventBus,
   DEFAULT_STADIUM_SECTORS, calculateTotalCapacity, calculateOverall, v4 as uuidv4,
-  isBefore, addMinutes, addDays, daysBetween,
+  isBefore, addMinutes, addDays, daysBetween, createGameDateTime,
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights, recentForm,
   recentFormAcross, formModifier,
   makeYouth, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
@@ -912,7 +912,7 @@ export class GameSession {
 
     this.currentMatchday = 0;
     this.seasonComplete = false;
-    this.now = SEASON_START;
+    this.now = createGameDateTime(this.now.year + 1, SEASON_START.month, SEASON_START.day, SEASON_START.hour, SEASON_START.minute);
     this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
