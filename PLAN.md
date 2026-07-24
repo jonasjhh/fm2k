@@ -1,6 +1,6 @@
 # FM2K — Match & skills rework ("duel engine" / match sim v2)
 
-Status (2026-07-23): **TASK_02, TASK_11, TASK_15, TASK_16, TASK_18, TASK_19, TASK_21, TASK_22, TASK_23 complete.** Repo check green. **Next: TASK_17 → TASK_07 recalibration.** TASK_12 PARKED.
+Status (2026-07-24): **TASK_02, TASK_11, TASK_15, TASK_16, TASK_17, TASK_18, TASK_19, TASK_21, TASK_22, TASK_23 complete.** Repo check green. **Next: TASK_07 recalibration (last engine task).** TASK_12 PARKED.
 
 ## Standing rules
 
@@ -44,8 +44,7 @@ Edge constants (`lineup.ts`): `WIDE_EDGE_LATERAL 0.75` / `CENTRAL_EDGE_LATERAL 0
 
 | # | File | What it is | Prereqs |
 |---|------|------------|---------|
-| 17 | `TASK_17.md` | **Recorded-form momentum** — cross-competition W/D/L → capped MatchForm bias fed into `homeForm`/`awayForm` inject point | TASK_11 done ✓ |
-| 7 | `TASK_07.md` | **Recalibration** — re-lock all gates after engine changes; formation attack-volume imbalance (Part C); re-enable commented calibration tests | After TASK_17 |
+| 7 | `TASK_07.md` | **Recalibration** — re-lock all gates after engine changes; formation attack-volume imbalance (Part C); re-enable commented calibration tests | After TASK_17 ✓ |
 | 12 | `TASK_12.md` | ⏸️ **Mundane fouls** — PARKED; re-evaluate after TASK_07 confirms foul distribution | — |
 | 14 | `TASK_14.md` | **Player rating overhaul** — assists, clean-sheet bonus, position-weighted deltas, defensive-duel penalty | After TASK_15 ✓ |
 | 6 | `TASK_06.md` | **Deeper match insights** — more detector types; needs event density | After TASK_15 ✓ |
@@ -57,7 +56,7 @@ Edge constants (`lineup.ts`): `WIDE_EDGE_LATERAL 0.75` / `CENTRAL_EDGE_LATERAL 0
 | 1 | `TASK_01.md` | **Transfer negotiation** — multi-round bid/counter-offer | None (most complex; reserve for multi-session slot) |
 
 ### Execution order
-1. `TASK_17` → `TASK_07` (engine wave done, lock gates)
+1. `TASK_07` (engine wave done, lock gates)
 2. `TASK_14` → `TASK_06` → `TASK_13` (match quality layer)
 3. Wave 4 standalone features in any order: `TASK_03`, `TASK_04`, `TASK_05`, `TASK_20`, `TASK_01`
 
