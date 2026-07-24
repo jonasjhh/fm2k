@@ -22,6 +22,8 @@ function keyAttributesTooltip(pos: string): string {
   return `${pos} — key attributes: ${top.join(', ')}`;
 }
 
+const WIDE_TO_CENTRAL: Partial<Record<Exclude<Band, 'GK'>, Exclude<Band, 'GK'>>> = { WDEF: 'DEF', WMID: 'MID', WATT: 'ATT' };
+
 /** Football pitch visual: always the same 5 fixed band rows (attack-to-defense, BAND_ORDER)
  *  plus a GK row, mirroring TacticsPitch's layout — so every formation gets identical,
  *  predictable proportions regardless of how many of its own template rows use DM/AM, instead
@@ -50,7 +52,6 @@ export function FormationGrid({
 
   const derivedRoles = useMemo(() => (shape ? deriveRolesForShape(shape) : null), [shape]);
 
-  const DISPLAY_BAND: Partial<Record<Exclude<Band, 'GK'>, Exclude<Band, 'GK'>>> = { WDEF: 'DEF', WMID: 'MID', WATT: 'ATT' };
   const byBand = useMemo(() => {
     const out: Record<Exclude<Band, 'GK'>, { idx: number; pos: FormationPosition; lateral: number }[]> = {
       DEF: [], WDEF: [], DM: [], MID: [], WMID: [], AM: [], ATT: [], WATT: [],
@@ -60,7 +61,7 @@ export function FormationGrid({
       const g = shape?.[i]; // slot-keyed: slot i's geometry, independent of the occupant
       const band = g?.band ?? BAND_OF_ROLE[templatePos as FormationPosition];
       if (band === 'GK') { return; }
-      const displayBand = DISPLAY_BAND[band] ?? band;
+      const displayBand = WIDE_TO_CENTRAL[band] ?? band;
       const pos = derivedRoles?.[i] ?? (templatePos as FormationPosition);
       out[displayBand].push({ idx: i, pos, lateral: g?.lateral ?? 0 });
     });
@@ -68,7 +69,7 @@ export function FormationGrid({
       for (const band of BAND_ORDER) { out[band].sort((a, b) => a.lateral - b.lateral || a.idx - b.idx); }
     }
     return out;
-  }, [flat, slotAssignments, shape, derivedRoles]);
+  }, [flat, shape, derivedRoles]);
 
   const sz = compact
     ? { minHeight: 300, pad: 1.25, circle: 38, slotW: 56, posFont: 11, nameFont: 10 }
@@ -128,7 +129,7 @@ export function FormationGrid({
       borderColor: 'success.dark',
       minHeight: sz.minHeight,
     }}>
-      {BAND_ORDER.filter(band => !(band in DISPLAY_BAND) && byBand[band].length > 0).map(band => (
+      {BAND_ORDER.filter(band => !(band in WIDE_TO_CENTRAL) && byBand[band].length > 0).map(band => (
         <Box key={band} sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
           {byBand[band].map(({ idx, pos }) => renderSlot(idx, pos))}
         </Box>

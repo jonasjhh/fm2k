@@ -55,7 +55,6 @@ const playersByClub: Record<string, Player[]> = {};
 for (const r of rawPlayers as RawPlayer[]) {
   (playersByClub[r.clubId] ??= []).push(toPlayer(r));
 }
-const allPlayers = Object.values(playersByClub).flat();
 
 interface RawTeam { id: string; name: string; divisionId: string; primaryColor: string; secondaryColor: string }
 
