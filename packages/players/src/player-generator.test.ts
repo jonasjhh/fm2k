@@ -229,10 +229,17 @@ describe('ATTRIBUTE_CATEGORIES:', () => {
 describe('POSITION_ARCHETYPES:', () => {
   test('every archetype\'s deltas sum to zero', () => {
     for (const [position, archetypes] of Object.entries(POSITION_ARCHETYPES)) {
-      for (const [name, deltas] of Object.entries(archetypes)) {
-        const sum = Object.values(deltas).reduce((s, v) => s + v, 0);
-        expect(sum, `${position}/${name} sums to ${sum}, expected 0`).toBe(0);
+      for (const [name, def] of Object.entries(archetypes)) {
+        const sum = Object.values(def.deltas).reduce((s, v) => s + v, 0);
+        expect(sum, `${position}/${name} deltas sum to ${sum}, expected 0`).toBe(0);
       }
+    }
+  });
+
+  test('weights sum to 100 per position', () => {
+    for (const [position, archetypes] of Object.entries(POSITION_ARCHETYPES)) {
+      const sum = Object.values(archetypes).reduce((s, def) => s + def.weight, 0);
+      expect(sum, `${position} weights sum to ${sum}, expected 100`).toBe(100);
     }
   });
 });

@@ -45,63 +45,67 @@ function positionBudget(position: PlayerPosition): Partial<Record<keyof PlayerAt
 // Since the generator rescales the result to the target overall, deltas shift the *distribution*
 // of stats across attributes without changing the player's OVR level.
 
-/** Attribute deltas an archetype applies at full magnitude (1.0). */
-export type ArchetypeDeltas = Partial<Record<keyof PlayerAttributes, number>>;
+export interface ArchetypeDefinition {
+  /** Probability weight as a percentage. All archetypes for a position must sum to 100. */
+  weight: number;
+  /** Attribute deltas applied at full magnitude (1.0). Must sum to zero. */
+  deltas: Partial<Record<keyof PlayerAttributes, number>>;
+}
 
-export const POSITION_ARCHETYPES: Record<PlayerPosition, Record<string, ArchetypeDeltas>> = {
+export const POSITION_ARCHETYPES: Record<PlayerPosition, Record<string, ArchetypeDefinition>> = {
   GK: {
-    balanced:     {},
-    shot_stopper: { goalkeeping: +12, speed: +4,  defending: -8,  passing: -8  },  // pure reflexes
-    commanding:   { defending:  +10, passing: +8,  goalkeeping: -12, stamina: -6  },  // sweeper-keeper
+    balanced:     { weight: 60, deltas: {} },
+    quick:        { weight: 25, deltas: { goalkeeping: +8, speed: +10, strength: -10, passing: -8 } },
+    strong:       { weight: 15, deltas: { goalkeeping: +8, strength: +10, speed: -10, passing: -8 } },
   },
   CB: {
-    balanced: {},
-    stopper:  { strength: +12, defending: +6,  speed: -12, passing: -6  },  // physical wall
-    sweeper:  { speed:    +10, passing:   +6,  defending: -8,  strength: -8  },  // ball-playing
-    libero:   { passing:  +12, technique: +6,  defending: -10, strength: -8  },  // deep playmaker
+    balanced:     { weight: 60, deltas: {} },
+    stopper:      { weight: 18, deltas: { strength: +10, defending: +8, speed: -10, passing: -8 } },
+    ball_playing: { weight: 14, deltas: { speed: +8, passing: +10, strength: -10, defending: -8 } },
+    libero:       { weight:  8, deltas: { passing: +12, technique: +6, defending: -10, strength: -8 } },
   },
   LB: {
-    balanced:  {},
-    wingback:  { speed: +10, passing: +8,  stamina: +4, defending: -12, strength: -10 },  // attack-minded
-    fullback:  { defending: +10, strength: +8,  speed: -10, passing: -8  },  // defensive anchor
+    balanced:  { weight: 60, deltas: {} },
+    wingback:  { weight: 20, deltas: { speed: +10, passing: +8, defending: -10, strength: -8 } },
+    fullback:  { weight: 20, deltas: { defending: +10, strength: +8, speed: -10, passing: -8 } },
   },
   RB: {
-    balanced:  {},
-    wingback:  { speed: +10, passing: +8,  stamina: +4, defending: -12, strength: -10 },
-    fullback:  { defending: +10, strength: +8,  speed: -10, passing: -8  },
+    balanced:  { weight: 60, deltas: {} },
+    wingback:  { weight: 20, deltas: { speed: +10, passing: +8, defending: -10, strength: -8 } },
+    fullback:  { weight: 20, deltas: { defending: +10, strength: +8, speed: -10, passing: -8 } },
   },
   CM: {
-    balanced:     {},
-    playmaker:    { passing: +12, technique: +8,  defending: -12, finishing: -8  },  // build-up, creation
-    terrier:      { defending: +12, stamina: +6,  strength: +4,  passing: -12, technique: -10 },  // ball-winner
-    long_shooter: { finishing: +10, technique: +6,  passing: +4,  defending: -12, stamina: -8  },  // shoots from range
+    balanced:     { weight: 60, deltas: {} },
+    playmaker:    { weight: 16, deltas: { passing: +10, technique: +8, defending: -10, finishing: -8 } },
+    terrier:      { weight: 16, deltas: { defending: +10, stamina: +8, passing: -10, technique: -8 } },
+    long_shooter: { weight:  8, deltas: { finishing: +10, technique: +8, defending: -10, stamina: -8 } },
   },
   LM: {
-    balanced:   {},
-    offensive:  { speed: +10, finishing: +8,  technique: +4, defending: -14, strength: -8  },
-    defensive:  { defending: +12, stamina: +6,  speed: -8,  finishing: -10 },
+    balanced:   { weight: 60, deltas: {} },
+    offensive:  { weight: 25, deltas: { speed: +10, finishing: +8, defending: -10, strength: -8 } },
+    defensive:  { weight: 15, deltas: { defending: +10, stamina: +8, finishing: -10, speed: -8 } },
   },
   RM: {
-    balanced:   {},
-    offensive:  { speed: +10, finishing: +8,  technique: +4, defending: -14, strength: -8  },
-    defensive:  { defending: +12, stamina: +6,  speed: -8,  finishing: -10 },
+    balanced:   { weight: 60, deltas: {} },
+    offensive:  { weight: 25, deltas: { speed: +10, finishing: +8, defending: -10, strength: -8 } },
+    defensive:  { weight: 15, deltas: { defending: +10, stamina: +8, finishing: -10, speed: -8 } },
   },
   LW: {
-    balanced:   {},
-    inverted:   { finishing: +12, technique: +6,  speed: -10, stamina: -8  },  // cuts in to shoot
-    touchline:  { speed:    +12, stamina:    +8,  finishing: -12, technique: -8  },  // wide runner
+    balanced:   { weight: 60, deltas: {} },
+    inverted:   { weight: 24, deltas: { finishing: +10, technique: +8, speed: -10, stamina: -8 } },
+    touchline:  { weight: 16, deltas: { speed: +10, stamina: +8, finishing: -10, technique: -8 } },
   },
   RW: {
-    balanced:   {},
-    inverted:   { finishing: +12, technique: +6,  speed: -10, stamina: -8  },
-    touchline:  { speed:    +12, stamina:    +8,  finishing: -12, technique: -8  },
+    balanced:   { weight: 60, deltas: {} },
+    inverted:   { weight: 24, deltas: { finishing: +10, technique: +8, speed: -10, stamina: -8 } },
+    touchline:  { weight: 16, deltas: { speed: +10, stamina: +8, finishing: -10, technique: -8 } },
   },
   ST: {
-    balanced:  {},
-    targetman: { strength: +12, finishing: +6,  speed: -12, passing: -6  },  // holds up play
-    poacher:   { speed:    +12, finishing: +8,  strength: -12, technique: -8  },  // movement + conversion
-    technical: { passing:  +12, technique: +8,  finishing: -12, strength: -8  },  // link-up play
-    finisher:  { finishing: +12, technique: +6,  stamina: +4,  passing: -12, strength: -10 },  // pure goalscorer
+    balanced:  { weight: 60, deltas: {} },
+    targetman: { weight: 12, deltas: { strength: +10, finishing: +8, speed: -10, passing: -8 } },
+    poacher:   { weight: 12, deltas: { speed: +10, finishing: +8, strength: -10, technique: -8 } },
+    technical: { weight:  8, deltas: { technique: +10, passing: +8, finishing: -10, strength: -8 } },
+    finisher:  { weight:  8, deltas: { finishing: +12, technique: +6, passing: -10, strength: -8 } },
   },
 };
 
@@ -203,6 +207,16 @@ export class PlayerGenerator {
     return Math.round(MAX_POTENTIAL_MARGIN * clamp(0, 1, (POTENTIAL_MARGIN_ZERO_AGE - age) / (POTENTIAL_MARGIN_ZERO_AGE - 17)));
   }
 
+  private pickWeightedArchetype(archetypes: Record<string, ArchetypeDefinition>): string {
+    const entries = Object.entries(archetypes);
+    let r = this.rng() * 100;
+    for (const [name, def] of entries) {
+      r -= def.weight;
+      if (r <= 0) { return name; }
+    }
+    return entries[entries.length - 1][0];
+  }
+
   /** Sample an archetype magnitude. Mildly weighted toward higher values so distinct archetypes
    *  are visible in the player mass, while the low end (near-balanced) still occurs. */
   private sampleMagnitude(): number {
@@ -222,8 +236,8 @@ export class PlayerGenerator {
     const archetypeNames = Object.keys(archetypes);
     const selectedName = archetype
       ? (archetypeNames.includes(archetype) ? archetype : 'balanced')
-      : archetypeNames[Math.floor(this.rng() * archetypeNames.length)];
-    const deltas = archetypes[selectedName];
+      : this.pickWeightedArchetype(archetypes);
+    const deltas = archetypes[selectedName].deltas;
     const magnitude = this.sampleMagnitude();
 
     const biasFor = (key: keyof PlayerAttributes): number => {
