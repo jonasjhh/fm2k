@@ -1,4 +1,4 @@
-import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES, traitDeltas } from './player-generator.ts';
+import { PlayerGenerator, sampleNormal, ATTRIBUTE_CATEGORIES, POSITION_ARCHETYPES } from './player-generator.ts';
 import {
   calculateOverall, type PlayerPosition, type PlayerAttributes,
 } from '@fm2k/match';
@@ -226,7 +226,18 @@ describe('ATTRIBUTE_CATEGORIES:', () => {
   });
 });
 
-describe('trait model:', () => {
+describe('POSITION_ARCHETYPES:', () => {
+  test('every archetype\'s deltas sum to zero', () => {
+    for (const [position, archetypes] of Object.entries(POSITION_ARCHETYPES)) {
+      for (const [name, deltas] of Object.entries(archetypes)) {
+        const sum = Object.values(deltas).reduce((s, v) => s + v, 0);
+        expect(sum, `${position}/${name} sums to ${sum}, expected 0`).toBe(0);
+      }
+    }
+  });
+});
+
+describe('archetype model:', () => {
   function mulberry32(seed: number): () => number {
     return () => {
       seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -235,33 +246,6 @@ describe('trait model:', () => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-
-  const traitDeltasOf = (traits: Parameters<typeof traitDeltas>[0]) =>
-    traitDeltas(traits, 'CM', 0, 0);
-
-  test('the physique axis trades speed against strength; the tank end drags technique', () => {
-    const sprinter = traitDeltasOf({ physique: 1, craft: 0, focus: 0, gk: 0, specialization: 1 });
-    expect(sprinter.speed).toBeGreaterThan(0);
-    expect(sprinter.strength).toBeLessThan(0);
-    expect(sprinter.technique).toBe(0);
-    const tank = traitDeltasOf({ physique: -1, craft: 0, focus: 0, gk: 0, specialization: 1 });
-    expect(tank.strength).toBeGreaterThan(0);
-    expect(tank.speed).toBeLessThan(0);
-    expect(tank.technique).toBeLessThan(0);
-  });
-
-  test('specialization 0 zeroes every axis tradeoff (the complete player)', () => {
-    const complete = traitDeltasOf({ physique: 1, craft: -1, focus: 1, gk: 0, specialization: 0 });
-    for (const v of Object.values(complete)) { expect(v).toBe(0); }
-  });
-
-  test('shared touch factor lifts technique and passing together (the dependency)', () => {
-    const d = traitDeltas(
-      { physique: 0, craft: 0, focus: 0, gk: 0, specialization: 0 }, 'CM', 1, 0,
-    );
-    expect(d.technique).toBeGreaterThan(0);
-    expect(d.passing).toBeGreaterThan(0);
-  });
 
   test('free sampling produces real within-player spread: gaps past 25 occur, means stay put', () => {
     const gen = new PlayerGenerator('female', 'all', mulberry32(7));
@@ -276,18 +260,12 @@ describe('trait model:', () => {
     expect(maxGap).toBeGreaterThan(25);
   });
 
-  test('technique and passing correlate positively across free-sampled players', () => {
-    const gen = new PlayerGenerator('female', 'all', mulberry32(11));
-    const xs: number[] = [], ys: number[] = [];
-    for (let i = 0; i < 400; i++) {
-      const a = gen.generatePlayer('CM', { overall: 55 }).attributes;
-      xs.push(a.technique); ys.push(a.passing);
-    }
-    const mean = (v: number[]) => v.reduce((s, n) => s + n, 0) / v.length;
-    const mx = mean(xs), my = mean(ys);
-    const cov = mean(xs.map((x, i) => (x - mx) * (ys[i] - my)));
-    const sd = (v: number[], m: number) => Math.sqrt(mean(v.map(n => (n - m) ** 2)));
-    const r = cov / (sd(xs, mx) * sd(ys, my));
-    expect(r).toBeGreaterThan(0.15);
+  test('magnitude 0 (balanced) produces near-equal attribute spread regardless of archetype', () => {
+    // Force rng to always pick 'targetman' (first non-balanced ST archetype) but magnitude = 0
+    // by making sqrt(rng()) = 0, i.e. rng() = 0.
+    const gen = new PlayerGenerator('female', 'all', () => 0);
+    const p = gen.generatePlayer('ST', { overall: 65, archetype: 'targetman' });
+    // At magnitude 0 the targetman deltas vanish — strength and speed should be similar.
+    expect(Math.abs(p.attributes.strength - p.attributes.speed)).toBeLessThan(30);
   });
 });
