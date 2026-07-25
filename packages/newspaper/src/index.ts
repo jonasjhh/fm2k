@@ -1,5 +1,5 @@
 export type {
-  Article, ArticleCategory, NewArticle, MatchHeadlineInput, TransferHeadlineInput, InjuryHeadlineInput,
+  Article, ArticleRefs, ArticleCategory, NewArticle, MatchHeadlineInput, TransferHeadlineInput, InjuryHeadlineInput,
   DangerManHeadlineInput, FormWatchHeadlineInput, FormLetter, BookingHeadlineInput,
   InjuryAvertedHeadlineInput, ReturnHeadlineInput,
 } from './types.ts';

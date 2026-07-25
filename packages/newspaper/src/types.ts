@@ -2,6 +2,15 @@ import type { GameDateTime } from '@fm2k/timeline';
 
 export type ArticleCategory = 'blowout' | 'upset' | 'transfer' | 'injury' | 'preview' | 'form' | 'discipline';
 
+/** Entity references embedded in a headline — used by the UI to make names clickable.
+ *  All fields are optional; only the entities that actually appear in the headline are set. */
+export interface ArticleRefs {
+  /** Team IDs whose names appear in the headline, keyed by the display name used. */
+  teams?: Record<string, string>;
+  /** Player IDs whose names appear in the headline, keyed by the display name used. */
+  players?: Record<string, string>;
+}
+
 /** A generated newspaper article, ready to display. `id` is assigned by the caller (the backend
  *  session, mirroring how it assigns `notifications` ids) since this package stays pure. */
 export interface Article {
@@ -9,6 +18,8 @@ export interface Article {
   category: ArticleCategory;
   headline: string;
   timestamp: GameDateTime;
+  /** Clickable entity references — team/player names mapped to their IDs. */
+  refs?: ArticleRefs;
 }
 
 /** What a generator function produces — the caller stamps an `id` on top of this. */

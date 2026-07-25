@@ -470,16 +470,22 @@ export class GameSession {
     // the player's division/cup (not just their own match) — that's the whole point, an upset
     // or blowout elsewhere in the league is exactly what's newsworthy.
     unsubs.push(eventBus.on('match.completed', (payload) => {
+      const homeTeamName = payload.homeTeamName ?? payload.homeTeamId;
+      const awayTeamName = payload.awayTeamName ?? payload.awayTeamId;
       const article = matchHeadline({
-        homeTeamName: payload.homeTeamName ?? payload.homeTeamId,
-        awayTeamName: payload.awayTeamName ?? payload.awayTeamId,
+        homeTeamName, awayTeamName,
         homeScore: payload.homeScore,
         awayScore: payload.awayScore,
         homePosition: payload.homePosition,
         awayPosition: payload.awayPosition,
         timestamp: payload.timestamp,
       }, this.rng);
-      if (article) { this.pushHeadline(article); }
+      if (article) {
+        this.pushHeadline({ ...article, refs: { teams: {
+          [homeTeamName]: payload.homeTeamId,
+          [awayTeamName]: payload.awayTeamId,
+        } } });
+      }
 
       // A sending-off in the manager's own match is front-page material (own club only,
       // mirroring injuryHeadline's scope — the press doesn't cover every AI dismissal).
@@ -490,16 +496,21 @@ export class GameSession {
           if (red.team !== playerSide) { continue; }
           const player = this.clubManager?.getState().squad.find(p => p.id === red.playerId);
           if (!player) { continue; }
-          this.pushHeadline(bookingHeadline({ playerName: player.name, timestamp: payload.timestamp }, this.rng));
+          this.pushHeadline({ ...bookingHeadline({ playerName: player.name, timestamp: payload.timestamp }, this.rng),
+            refs: { players: { [player.name]: player.id } } });
         }
       }
     }));
     unsubs.push(eventBus.on('player.transferred', (p) => {
       const isPlayerClub = p.toTeamId === this.playerTeamId || p.fromTeamId === this.playerTeamId;
-      const teamName = teamById(world, p.toTeamId)?.name ?? p.toTeamId;
-      this.pushHeadline(transferHeadline({
+      const team = teamById(world, p.toTeamId);
+      const teamName = team?.name ?? p.toTeamId;
+      this.pushHeadline({ ...transferHeadline({
         playerName: p.playerName, teamName, fee: p.fee, isPlayerClub, timestamp: this.now,
-      }, this.rng));
+      }, this.rng), refs: {
+        players: { [p.playerName]: p.playerId },
+        ...(team ? { teams: { [teamName]: p.toTeamId } } : {}),
+      } });
     }));
     unsubs.push(eventBus.on('player.injured', (p) => {
       // Only the player's own ClubManager emits this — it's always their squad.
@@ -507,9 +518,9 @@ export class GameSession {
         `${p.playerName} is injured (out ${p.matchesRemaining} match${p.matchesRemaining === 1 ? '' : 'es'}) — pick a replacement.`,
         'warning',
       );
-      this.pushHeadline(injuryHeadline({
+      this.pushHeadline({ ...injuryHeadline({
         playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
-      }, this.rng));
+      }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
     }));
     // One generic clearance event covers both a medical wing averting an injury before it
     // ever took hold (originalDuration 0) and a confirmed injury running its course — the
@@ -525,13 +536,13 @@ export class GameSession {
       // nothing, and a long-term absentee back in contention. Short real layoffs (1–3
       // matches) stay toast-only so the paper isn't flooded with routine knocks.
       if (p.originalDuration === 0) {
-        this.pushHeadline(injuryAvertedHeadline({
+        this.pushHeadline({ ...injuryAvertedHeadline({
           playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
-        }, this.rng));
+        }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
       } else if (p.originalDuration >= LONG_LAYOFF_MATCHES) {
-        this.pushHeadline(returnHeadline({
+        this.pushHeadline({ ...returnHeadline({
           playerName: p.playerName, matchesMissed: p.originalDuration, timestamp: this.now,
-        }, this.rng));
+        }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
       }
     }));
 
@@ -1091,15 +1102,18 @@ export class GameSession {
 
     const dangerMan = opponent.squad.reduce((best, p) =>
       calculateOverall(p.attributes) > calculateOverall(best.attributes) ? p : best);
-    this.pushHeadline(dangerManHeadline({
+    this.pushHeadline({ ...dangerManHeadline({
       playerName: dangerMan.name, teamName: opponent.name, position: dangerMan.position, timestamp: this.now,
-    }, this.rng));
+    }, this.rng), refs: {
+      players: { [dangerMan.name]: dangerMan.id },
+      teams: { [opponent.name]: opponentId },
+    } });
 
     // Cup opponents from other divisions have no fixtures in the player's league → empty
     // form → the generator stays quiet.
     const form = this.leagueManager ? recentForm(this.leagueManager.getState().fixtures, opponentId) : [];
     const formArticle = formWatchHeadline({ teamName: opponent.name, form, timestamp: this.now }, this.rng);
-    if (formArticle) { this.pushHeadline(formArticle); }
+    if (formArticle) { this.pushHeadline({ ...formArticle, refs: { teams: { [opponent.name]: opponentId } } }); }
   }
 
   private findFixture(fixtureId: string): CompetitionFixture | null {
