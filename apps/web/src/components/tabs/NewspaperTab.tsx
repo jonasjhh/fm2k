@@ -92,14 +92,14 @@ function HeadlineText({
       {segments.map((seg, i) => {
         if (seg.teamId) {
           return (
-            <Box key={i} component="span" sx={LINK_SX} onClick={() => onTeamClick(seg.teamId!)}>
+            <Box key={i} component="span" sx={LINK_SX} onClick={() => onTeamClick(seg.teamId as string)}>
               {seg.text}
             </Box>
           );
         }
         if (seg.playerId) {
           return (
-            <Box key={i} component="span" sx={LINK_SX} onClick={() => onPlayerClick(seg.playerId!)}>
+            <Box key={i} component="span" sx={LINK_SX} onClick={() => onPlayerClick(seg.playerId as string)}>
               {seg.text}
             </Box>
           );
