@@ -561,6 +561,7 @@ export class GameSession {
     teamId: string,
     division: WorldDivision,
     eventBus: EventBus<GameEvents>,
+    startDate: GameDateTime = SEASON_START,
   ): CompetitionManager {
     const playerCountry = countryForTeam(world, teamId);
     const seasons: Record<string, Season> = {};
@@ -579,8 +580,8 @@ export class GameSession {
         const lm = new CompetitionManager({
           format: new LeagueFormat(),
           teams: teamsInDivision(world, div.id),
-          startDate: SEASON_START,
-          seasonStart: SEASON_START,
+          startDate,
+          seasonStart: startDate,
           competitionId: div.id,
           name: div.name,
           eventsPerMinute: EVENTS_PER_MINUTE,
@@ -607,8 +608,8 @@ export class GameSession {
         }),
         teams: allTeams,
         levelByTeamId,
-        startDate: SEASON_START,
-        seasonStart: SEASON_START,
+        startDate,
+        seasonStart: startDate,
         competitionId: cupId,
         name: `${country.name} Cup`,
         eventsPerMinute: EVENTS_PER_MINUTE,
@@ -620,7 +621,7 @@ export class GameSession {
       cupManagers[cupId] = cup;
       competitions.push(cup);
 
-      seasons[country.id] = new Season({ nationId: country.id, startDate: SEASON_START, competitions });
+      seasons[country.id] = new Season({ nationId: country.id, startDate, competitions });
     }
 
     this.seasons = seasons;
@@ -665,7 +666,6 @@ export class GameSession {
           }),
           teams: [lowerTeam, upperTeam],
           startDate: this.now,
-          seasonStart: SEASON_START,
           competitionId: boundaryKey,
           name: `${upperDiv.name} / ${lowerDiv.name} Qualifier`,
           eventsPerMinute: EVENTS_PER_MINUTE,
@@ -866,7 +866,11 @@ export class GameSession {
 
     const allLeagueIds = this.resolveLeagueIds(this.world, teamId, this.selectedLeagueIds);
     const eventBus = this.rewireEventBus(this.world);
-    this.buildCompetitions(this.world, allLeagueIds, teamId, division, eventBus);
+    // Next August after the current date: if we're before August this year, use this year;
+    // otherwise (season ran unusually late) step to next year.
+    const startYear = this.now.month < SEASON_START.month ? this.now.year : this.now.year + 1;
+    const newSeasonStart = createGameDateTime(startYear, SEASON_START.month, SEASON_START.day, SEASON_START.hour, SEASON_START.minute);
+    this.buildCompetitions(this.world, allLeagueIds, teamId, division, eventBus, newSeasonStart);
 
     const playerCountry = countryForTeam(this.world, teamId);
     const { startingXI: carriedXI, benchPlayers } = carryOverLineup(
@@ -923,7 +927,7 @@ export class GameSession {
 
     this.currentMatchday = 0;
     this.seasonComplete = false;
-    this.now = createGameDateTime(this.now.year + 1, SEASON_START.month, SEASON_START.day, SEASON_START.hour, SEASON_START.minute);
+    this.now = newSeasonStart; // aligned with fixture startDate above
     this.daysSinceMaintenanceTick = 0;
     this.focusFixtureId = null;
     this.lastMatchResult = null;
@@ -1266,13 +1270,13 @@ export class GameSession {
     }
 
     if (this.transferManager) {
-      // The whole churned pool is restamped from SEASON_START (the clock resets at rollover):
+      // The whole churned pool is restamped from this.now (end of the just-finished season):
       // fresh mints and holdovers alike drip into AI visibility over the first week or two of
       // the new season, so the pre-season AI window can't hoover the batch before the manager
       // has seen it.
       this.transferManager.setFreeAgents(churnFreeAgents(this.transferManager.getFreeAgents(), {
         rng: this.rng, youthFactory: this.youthFactory, overflow,
-      }), SEASON_START, true);
+      }), this.now, true);
     }
   }
 

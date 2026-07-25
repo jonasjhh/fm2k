@@ -17,6 +17,8 @@ describe('GameSession season rollover (carryover):', () => {
   let beforeRecentDevelopment: object[];
   let beforeFreeAgentIds: Set<string>;
   let yearBeforeRollover: number;
+  let monthBeforeRollover: number;
+  let snapBefore: ReturnType<GameSession['snapshot']>;
   let afterSnap: ReturnType<GameSession['snapshot']>;
   let afterFreeAgentIds: Set<string>;
 
@@ -35,11 +37,12 @@ describe('GameSession season rollover (carryover):', () => {
 
     await session.simulateToEnd();
 
-    const snapBefore = session.snapshot();
+    snapBefore = session.snapshot();
     beforeFinancialLog = assertDefined(snapBefore.clubState, 'clubState missing').financialLog;
     beforeRecentDevelopment = assertDefined(snapBefore.clubState, 'clubState missing').recentDevelopment;
     beforeFreeAgentIds = new Set(session.getFreeAgents().map(p => p.id));
     yearBeforeRollover = snapBefore.now?.year ?? 0;
+    monthBeforeRollover = snapBefore.now?.month ?? 0;
 
     session.startNewSeason();
 
@@ -75,10 +78,17 @@ describe('GameSession season rollover (carryover):', () => {
     for (const id of survivingBench) { expect(after.benchPlayers).toContain(id); }
   });
 
-  it('the game date increments by one year after a rollover', () => {
-    expect(afterSnap.now?.year).toBe(yearBeforeRollover + 1);
-    expect(afterSnap.now?.month).toBe(SEASON_START.month);
-    expect(afterSnap.now?.day).toBe(SEASON_START.day);
+  it('the game date resets to the next season start after a rollover', () => {
+    // Seasons end around May; the next season starts in August of the same calendar year.
+    const now = afterSnap.now;
+    expect(now?.month).toBe(SEASON_START.month);
+    expect(now?.day).toBe(SEASON_START.day);
+    // The rollover must advance time (new date is strictly later than before).
+    const before = snapBefore.now!;
+    const isLater = (now!.year > before.year)
+      || (now!.year === before.year && now!.month > before.month)
+      || (now!.year === before.year && now!.month === before.month && now!.day >= before.day);
+    expect(isLater).toBe(true);
   });
 
   it('promotion/relegation never applies to a brand-new game, only between seasons', () => {
