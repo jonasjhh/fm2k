@@ -785,7 +785,7 @@ export class GameSession {
     for (const country of seedNations) {
       for (let i = 0; i < perNation; i++) {
         const pos = ALL_PLAYER_POSITIONS[Math.floor(this.rng() * ALL_PLAYER_POSITIONS.length)] as PlayerPosition;
-        const overall = 22 + Math.floor(this.rng() * 28); // 22–49: released players + the odd gem
+        const overall = 40 + Math.floor(this.rng() * 30); // 40–69: D3 fringe through solid D1
         seededFreeAgents.push(this.makePlayer(pos, overall, country.nationality));
       }
     }
