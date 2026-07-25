@@ -29,6 +29,7 @@ import { createEmptyFacilities } from './facilities/facility-types.ts';
 import type {
   ClubFacilities, FacilityGroupId, MaintenanceEvent, OperatingMode, WingId,
 } from './facilities/facility-types.ts';
+import { calculateBlendedTicketMultiplier } from '../stadium/stadium.ts';
 
 const TICKET_PRICE = 20;
 
@@ -527,11 +528,13 @@ export class ClubManager {
   }
 
   // Attendance scales with both teams' league positions; returns gate receipt amount.
+  // Ticket price is blended across sectors — premium stands (executive suites, double-tier)
+  // raise per-head revenue proportional to their share of total capacity.
   calculateHomeReceipt(
     opponentStanding?: LeagueStanding,
     positions?: { ownPosition?: number; opponentPosition?: number; leagueSize?: number },
   ): number {
-    const { stadiumCapacity } = this.stateManager.getState();
+    const { stadiumCapacity, stadiumSectors } = this.stateManager.getState();
     const n = positions?.leagueSize ?? 16;
     const norm = Math.max(1, n - 1);
 
@@ -549,7 +552,8 @@ export class ClubManager {
       : 0.5;
 
     const fillRate = Math.min(0.95, 0.4 + 0.4 * opponentFactor + 0.2 * ownFactor);
-    return Math.floor(stadiumCapacity * fillRate) * TICKET_PRICE;
+    const blendedPrice = TICKET_PRICE * calculateBlendedTicketMultiplier(stadiumSectors);
+    return Math.floor(Math.floor(stadiumCapacity * fillRate) * blendedPrice);
   }
 
   recordGateReceipt(amount: number, opponent: string, timestamp: GameDateTime): void {

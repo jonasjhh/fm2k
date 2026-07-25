@@ -6,15 +6,16 @@ export interface StadiumSectorConfig {
 export type SectorKey = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
 export const SECTOR_KEYS: SectorKey[] = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
-// Capacity multiplier per stand type (visual + game)
-export const STAND_TYPES: Record<string, { name: string; capacityMultiplier: number }> = {
-  none:               { name: 'Empty Slot (No Stand)',             capacityMultiplier: 0 },
-  'open-bleacher':    { name: '1-Tier Open Seated Stand',          capacityMultiplier: 1 },
-  'covered-grandstand': { name: '1-Tier Roofed Grandstand',        capacityMultiplier: 1.2 },
-  kop:                { name: '1-Tier Steep Supporters Kop',        capacityMultiplier: 1.5 },
-  'double-tier':      { name: '2-Tier Modern Floating Roof',        capacityMultiplier: 2.2 },
-  'executive-suite':  { name: '2-Tier Embedded Executive Suites',   capacityMultiplier: 1.8 },
-  'triple-tier':      { name: '3-Tier Colosseum Grandstand',        capacityMultiplier: 3.5 },
+// Capacity multiplier and ticket price multiplier per stand type.
+// ticketPriceMultiplier is applied on top of the base TICKET_PRICE in club-manager.
+export const STAND_TYPES: Record<string, { name: string; capacityMultiplier: number; ticketPriceMultiplier: number }> = {
+  none:               { name: 'Empty Slot (No Stand)',             capacityMultiplier: 0,   ticketPriceMultiplier: 1.0 },
+  'open-bleacher':    { name: '1-Tier Open Seated Stand',          capacityMultiplier: 1,   ticketPriceMultiplier: 1.0 },
+  'covered-grandstand': { name: '1-Tier Roofed Grandstand',        capacityMultiplier: 1.2, ticketPriceMultiplier: 1.1 },
+  kop:                { name: '1-Tier Steep Supporters Kop',        capacityMultiplier: 1.5, ticketPriceMultiplier: 1.0 },
+  'double-tier':      { name: '2-Tier Modern Floating Roof',        capacityMultiplier: 2.2, ticketPriceMultiplier: 1.3 },
+  'executive-suite':  { name: '2-Tier Embedded Executive Suites',   capacityMultiplier: 1.8, ticketPriceMultiplier: 2.5 },
+  'triple-tier':      { name: '3-Tier Colosseum Grandstand',        capacityMultiplier: 3.5, ticketPriceMultiplier: 1.5 },
 };
 
 // Build cost to erect a stand from scratch (per base sector, × location multiplier).
@@ -71,6 +72,24 @@ export function getSectorCapacity(key: SectorKey, sector: StadiumSectorConfig): 
 
 export function calculateTotalCapacity(sectors: Record<string, StadiumSectorConfig>): number {
   return SECTOR_KEYS.reduce((sum, k) => sum + getSectorCapacity(k, sectors[k] ?? { type: 'none', densityValue: 30 }), 0);
+}
+
+/**
+ * Capacity-weighted average ticket price multiplier across all sectors.
+ * A stadium with a mix of basic and premium stands produces a blended per-head price.
+ * Returns 1.0 for an empty stadium so the caller always gets a valid multiplier.
+ */
+export function calculateBlendedTicketMultiplier(sectors: Record<string, StadiumSectorConfig>): number {
+  let totalCapacity = 0;
+  let weightedMultiplier = 0;
+  for (const k of SECTOR_KEYS) {
+    const sector = sectors[k] ?? { type: 'none', densityValue: 30 };
+    const cap = getSectorCapacity(k as SectorKey, sector);
+    const mult = STAND_TYPES[sector.type]?.ticketPriceMultiplier ?? 1.0;
+    totalCapacity += cap;
+    weightedMultiplier += cap * mult;
+  }
+  return totalCapacity > 0 ? weightedMultiplier / totalCapacity : 1.0;
 }
 
 /**
