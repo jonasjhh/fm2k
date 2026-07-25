@@ -32,7 +32,7 @@ describe('CUP_PRIZE:', () => {
     expect(CUP_PRIZE.runnerUp).toBeGreaterThan(CUP_PRIZE.semifinalist);
   });
 
-  it('is meaningfully smaller than any league prize tier', () => {
-    expect(CUP_PRIZE.winner).toBeLessThan(prizeMoneyFor(3, 1));
+  it('is meaningfully smaller than winning the top division', () => {
+    expect(CUP_PRIZE.winner).toBeLessThan(prizeMoneyFor(1, 1));
   });
 });

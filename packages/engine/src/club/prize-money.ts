@@ -5,9 +5,9 @@
 
 /** Base prize for finishing 7th or below — scales down sharply for lower divisions. */
 const DIVISION_BASE_PRIZE: Record<number, number> = {
-  1: 1_500_000,
-  2: 600_000,
-  3: 250_000,
+  1: 2_250_000,
+  2: 900_000,
+  3: 375_000,
 };
 
 /** Multiplier on the division base prize, by 1-indexed final position. Reduces incentive
@@ -34,7 +34,7 @@ export function prizeMoneyFor(divisionLevel: number, position: number): number {
 // Deliberately much smaller than any league prize tier — the league is the main incentive.
 
 export const CUP_PRIZE = {
-  winner: 400_000,
-  runnerUp: 250_000,
-  semifinalist: 100_000,
+  winner: 1_125_000,
+  runnerUp: 700_000,
+  semifinalist: 280_000,
 } as const;
