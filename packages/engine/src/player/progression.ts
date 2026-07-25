@@ -213,7 +213,7 @@ export function developOverSeason(
  *  young players build their athletic base; older players prioritise recovery. */
 export function defaultRegiment(position: PlayerPosition, age: number): RegimentId {
   if (age <= 21) { return 'physical'; }
-  if (age >= 31) { return 'recovery'; }
+  if (age >= 31) { return 'balanced'; }
   switch (position) {
     case 'GK':            return 'goalkeeping';
     case 'CB':            return 'defending';

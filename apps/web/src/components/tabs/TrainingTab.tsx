@@ -128,7 +128,7 @@ export default function TrainingTab() {
   }
 
   // Fitness is 0–1000 (UI shows ÷10); anyone below 70% goes on Recovery to rebuild, everyone
-  // else takes their position/age default regiment.
+  // else takes their position-based default regiment (older players get Balanced, not Recovery).
   const RECOVERY_FITNESS_THRESHOLD = 700;
   function handleAutoAssign() {
     if (!clubState) { return; }
