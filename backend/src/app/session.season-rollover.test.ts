@@ -16,8 +16,6 @@ describe('GameSession season rollover (carryover):', () => {
   let beforeFinancialLog: object[];
   let beforeRecentDevelopment: object[];
   let beforeFreeAgentIds: Set<string>;
-  let yearBeforeRollover: number;
-  let monthBeforeRollover: number;
   let snapBefore: ReturnType<GameSession['snapshot']>;
   let afterSnap: ReturnType<GameSession['snapshot']>;
   let afterFreeAgentIds: Set<string>;
@@ -41,8 +39,6 @@ describe('GameSession season rollover (carryover):', () => {
     beforeFinancialLog = assertDefined(snapBefore.clubState, 'clubState missing').financialLog;
     beforeRecentDevelopment = assertDefined(snapBefore.clubState, 'clubState missing').recentDevelopment;
     beforeFreeAgentIds = new Set(session.getFreeAgents().map(p => p.id));
-    yearBeforeRollover = snapBefore.now?.year ?? 0;
-    monthBeforeRollover = snapBefore.now?.month ?? 0;
 
     session.startNewSeason();
 
@@ -80,14 +76,14 @@ describe('GameSession season rollover (carryover):', () => {
 
   it('the game date resets to the next season start after a rollover', () => {
     // Seasons end around May; the next season starts in August of the same calendar year.
-    const now = afterSnap.now;
-    expect(now?.month).toBe(SEASON_START.month);
-    expect(now?.day).toBe(SEASON_START.day);
+    const now = assertDefined(afterSnap.now, 'afterSnap.now missing');
+    expect(now.month).toBe(SEASON_START.month);
+    expect(now.day).toBe(SEASON_START.day);
     // The rollover must advance time (new date is strictly later than before).
-    const before = snapBefore.now!;
-    const isLater = (now!.year > before.year)
-      || (now!.year === before.year && now!.month > before.month)
-      || (now!.year === before.year && now!.month === before.month && now!.day >= before.day);
+    const before = assertDefined(snapBefore.now, 'snapBefore.now missing');
+    const isLater = (now.year > before.year)
+      || (now.year === before.year && now.month > before.month)
+      || (now.year === before.year && now.month === before.month && now.day >= before.day);
     expect(isLater).toBe(true);
   });
 
