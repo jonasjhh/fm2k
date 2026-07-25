@@ -427,8 +427,16 @@ function resolveShot(
 ): FlowTickResult {
   const { attacking, defending, rng, events } = ctx;
   const gkId = defending.gkId;
-  const goalkeeping = gkId ? attr(defending, gkId, 'goalkeeping') : 25;
   const spec = opts?.spec ?? SHOT_DUEL;
+  // GK attribute blend varies by situation: penalty = reflexes (speed), aerial = physical
+  // contest (strength), open play = pure shot-stopping (goalkeeping).
+  const goalkeeping = gkId
+    ? spec === PENALTY_DUEL
+      ? 0.5 * attr(defending, gkId, 'goalkeeping') + 0.5 * attr(defending, gkId, 'speed')
+      : opts?.aerial
+        ? 0.7 * attr(defending, gkId, 'goalkeeping') + 0.3 * attr(defending, gkId, 'strength')
+        : attr(defending, gkId, 'goalkeeping')
+    : 25;
   const shotAttr = spec === PENALTY_DUEL
     ? (attr(attacking, shooterId, 'finishing') + attr(attacking, shooterId, 'technique')) / 2
     : opts?.aerial
@@ -705,13 +713,19 @@ function resolveDeliveryIntoBox(
   const delivery = deliveryCheck(deliverySkill ?? attr(attacking, deliverId, 'passing'), spec, rng, resist);
 
   if (!delivery.onTarget) {
-    // A poor ball: the keeper claims or it runs loose.
+    // A poor ball: the keeper claims if physically capable, otherwise it runs loose.
+    // Claim uses the same 0.7·goalkeeping + 0.3·strength blend as saving an aerial shot —
+    // the GK is jumping under pressure to gather before an attacker can.
     if (defending.gkId && delivery.margin > -0.25) {
-      events.push({
-        type: 'gk_claim', team: defending.side, playerId: defending.gkId,
-        description: `${name(defending, defending.gkId)} claims the ${label}`,
-      });
-      return { events, ball: { mode: 'carried', side: defending.side, carrierId: defending.gkId } };
+      const gkAttr = 0.7 * attr(defending, defending.gkId, 'goalkeeping')
+                   + 0.3 * attr(defending, defending.gkId, 'strength');
+      if (rng() < 0.4 + (gkAttr / 99) * 0.5) {
+        events.push({
+          type: 'gk_claim', team: defending.side, playerId: defending.gkId,
+          description: `${name(defending, defending.gkId)} claims the ${label}`,
+        });
+        return { events, ball: { mode: 'carried', side: defending.side, carrierId: defending.gkId } };
+      }
     }
     return { events, ball: { mode: 'free', at: boxPoint } };
   }
@@ -1359,7 +1373,7 @@ export function flowTick(home: FlowTeam, away: FlowTeam, ball: BallState, rng: (
   const ctx: Ctx = { attacking, defending, rng, events: [] };
 
   // 15C: GK distribution — emit a narrative event then delegate to the appropriate resolver.
-  // GK uses goalkeeping attribute for long kicks (delivery quality), passing for short roll-outs.
+  // Long kicks blend goalkeeping (kicking power/technique) + passing (accuracy); short roll-outs use passing.
   if (carrierId === attacking.gkId) {
     const direct = (attacking.params.passingRisk ?? 50) / 100 * 0.75;
     const isLong = rng() < direct;
@@ -1371,7 +1385,8 @@ export function flowTick(home: FlowTeam, away: FlowTeam, ball: BallState, rng: (
         : `${name(attacking, carrierId)} rolls it out`,
     });
     if (isLong) {
-      return resolveLongBall(ctx, carrierId, { deliverySkill: attr(attacking, carrierId, 'goalkeeping') });
+      return resolveLongBall(ctx, carrierId, { deliverySkill:
+        0.5 * attr(attacking, carrierId, 'goalkeeping') + 0.5 * attr(attacking, carrierId, 'passing') });
     }
     return resolveShortPass(ctx, carrierId);
   }
