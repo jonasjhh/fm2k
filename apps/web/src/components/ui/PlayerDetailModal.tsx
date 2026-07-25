@@ -1,5 +1,6 @@
 import type { ClubPlayer, Player } from '@fm2k/engine';
 import { playerValue } from '@fm2k/engine';
+import { useGameStore } from '@/store/game-store';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
@@ -30,7 +31,9 @@ interface PlayerDetailModalProps {
 }
 
 export default function PlayerDetailModal({ player, onClose, actions, par }: PlayerDetailModalProps) {
+  const positionAwareOvr = useGameStore((s) => s.positionAwareOvr);
   const value = player ? playerValue(player) : 0;
+  const isGk = player?.position === 'GK';
 
   return (
     <Dialog
@@ -91,7 +94,9 @@ export default function PlayerDetailModal({ player, onClose, actions, par }: Pla
                   <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', display: 'block', mb: 0.75 }}>
                     {group.label}
                   </Typography>
-                  {group.attrs.map(({ key, label }) => (
+                  {group.attrs.filter(({ key }) =>
+                    !(positionAwareOvr && !isGk && key === 'goalkeeping'),
+                  ).map(({ key, label }) => (
                     <AttrBar key={key} label={label} value={player.attributes[key]} par={par} />
                   ))}
                   {gi < ATTR_GROUPS.length - 1 && <Divider sx={{ mt: 1 }} />}

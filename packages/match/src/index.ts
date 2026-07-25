@@ -16,7 +16,7 @@ export { PLAYER_POSITION_LABELS, ALL_PLAYER_POSITIONS } from './shared/types.ts'
 export { SECONDARY_POSITIONS } from './shared/position-rules.ts';
 
 // Ratings
-export { calculateOverall, getTeamOVR } from './ratings.ts';
+export { calculateOverall, getTeamOVR, GK_OVERALL_WEIGHTS } from './ratings.ts';
 
 // Tactics pipeline — only the entry points the backend/UI actually consume
 export type { TacticalStyleId, TacticalSliders, TeamTacticsIntent } from './tactics/intent-types.ts';

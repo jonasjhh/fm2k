@@ -86,7 +86,7 @@ function PlayerDetailPanel({ row, canAfford, windowOpen, onBuy, par }: {
 export default function TransfersTab() {
   const {
     clubState, freeAgents, transferWindow, editableCountries, selectedLeagueIds, playerTeamId,
-    signPlayer,
+    signPlayer, positionAwareOvr,
   } = useGameStore(useShallow((s) => ({
     clubState: s.clubState,
     freeAgents: s.freeAgents,
@@ -95,6 +95,7 @@ export default function TransfersTab() {
     selectedLeagueIds: s.selectedLeagueIds,
     playerTeamId: s.playerTeamId,
     signPlayer: s.signPlayer,
+    positionAwareOvr: s.positionAwareOvr,
   })));
 
   // ── filters ──
@@ -127,16 +128,16 @@ export default function TransfersTab() {
           const starterIds = new Set(starters.map(p => p.id));
           for (const p of t.squad) {
             const role = starterIds.has(p.id) ? 'starter' : 'bench';
-            rows.push({ player: p, club: t.name, isFreeAgent: false, price: valuePlayer(p, { role }), ovr: Math.round(calculateOverall(p.attributes)) });
+            rows.push({ player: p, club: t.name, isFreeAgent: false, price: valuePlayer(p, { role }), ovr: Math.round(calculateOverall(p.attributes, positionAwareOvr && p.position === 'GK')) });
           }
         }
       }
     }
     for (const p of freeAgents) {
-      rows.push({ player: p, club: 'Free agent', isFreeAgent: true, price: playerValue(p), ovr: Math.round(calculateOverall(p.attributes)) });
+      rows.push({ player: p, club: 'Free agent', isFreeAgent: true, price: playerValue(p), ovr: Math.round(calculateOverall(p.attributes, positionAwareOvr && p.position === 'GK')) });
     }
     return rows;
-  }, [editableCountries, selectedLeagueIds, freeAgents, playerTeamId]);
+  }, [editableCountries, selectedLeagueIds, freeAgents, playerTeamId, positionAwareOvr]);
 
   const clubNames = useMemo(
     () => [...new Set(allRows.filter(r => !r.isFreeAgent).map(r => r.club))].sort((a, b) => a.localeCompare(b)),

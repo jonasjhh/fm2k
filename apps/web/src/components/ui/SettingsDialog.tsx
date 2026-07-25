@@ -22,9 +22,11 @@ const SPEED_MARKS = [
 export default function SettingsDialog({ open, onClose }: Props) {
   const theme = useTheme();
   const { toggle } = useContext(ColorModeContext);
-  const { simDelayMs, setSimDelay } = useGameStore(useShallow((s) => ({
+  const { simDelayMs, setSimDelay, positionAwareOvr, setPositionAwareOvr } = useGameStore(useShallow((s) => ({
     simDelayMs: s.simDelayMs,
     setSimDelay: s.setSimDelay,
+    positionAwareOvr: s.positionAwareOvr,
+    setPositionAwareOvr: s.setPositionAwareOvr,
   })));
 
   return (
@@ -35,6 +37,15 @@ export default function SettingsDialog({ open, onClose }: Props) {
           control={<Switch checked={theme.palette.mode === 'dark'} onChange={toggle} />}
           label="Dark mode"
         />
+        <Box sx={{ mt: 1 }}>
+          <FormControlLabel
+            control={<Switch checked={positionAwareOvr} onChange={(_, v) => setPositionAwareOvr(v)} />}
+            label="Position-aware ratings"
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 0.5 }}>
+            GK ratings use goalkeeper-specific weights. Goalkeeping is hidden for outfield players.
+          </Typography>
+        </Box>
 
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>

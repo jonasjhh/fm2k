@@ -56,6 +56,7 @@ function sortPlayers(players: ClubPlayer[], col: SortCol, dir: SortDir, slotMap?
 export default function SquadTab() {
   const par = useDivisionPar();
   const clubState = useGameStore((s) => s.clubState);
+  const positionAwareOvr = useGameStore((s) => s.positionAwareOvr);
   const sellPlayer = useGameStore((s) => s.sellPlayer);
   const setStartingXI = useGameStore((s) => s.setStartingXI);
   const setBench = useGameStore((s) => s.setBench);
@@ -91,7 +92,7 @@ export default function SquadTab() {
   const totalValue = squad.reduce((s, p) => s + playerValue(p), 0);
   const avgValue = squad.length ? Math.round(totalValue / squad.length) : 0;
   const avgAge = squad.length ? Math.round(squad.reduce((s, p) => s + p.age, 0) / squad.length) : 0;
-  const avgRating = squad.length ? Math.round(squad.reduce((s, p) => s + calculateOverall(p.attributes), 0) / squad.length) : 0;
+  const avgRating = squad.length ? Math.round(squad.reduce((s, p) => s + calculateOverall(p.attributes, positionAwareOvr && p.position === 'GK'), 0) / squad.length) : 0;
   const playerById = new Map(squad.map(p => [p.id, p]));
 
   function handleSort(col: SortCol) {

@@ -35,6 +35,13 @@ export const SIM_DELAY_MAX = 250;
 export const SIM_DELAY_DEFAULT = 220;
 
 const SIM_DELAY_KEY = 'fm2k-sim-delay';
+const POSITION_AWARE_OVR_KEY = 'fm2k-position-aware-ovr';
+
+function loadPositionAwareOvr(): boolean {
+  if (typeof window === 'undefined') { return true; }
+  const v = window.localStorage.getItem(POSITION_AWARE_OVR_KEY);
+  return v === null ? true : v === 'true';
+}
 
 /** Streaming chunk length (game minutes): the granularity at which a user pause lands. */
 const STREAM_CHUNK_MINUTES = 5;
@@ -117,6 +124,9 @@ interface GameStore {
   streamAway: number;
   streamMinute: number;
   simDelayMs: number;
+  /** When true, OVR for GKs uses goalkeeper-specific weights (excludes finishing/technique/defending)
+   *  and the goalkeeping attribute row is hidden for outfield players in detail views. */
+  positionAwareOvr: boolean;
   /** Whether the near-fullscreen match overlay is showing (opens when the player's
    *  fixture is played or simulated; closes on Next match / explicit close). Not persisted. */
   matchOverlayOpen: boolean;
@@ -153,6 +163,7 @@ interface GameStore {
   skipMatch: () => Promise<void>;      // skip current match to full time
   goToNextMatch: () => Promise<void>;  // advance to & focus the next fixture's matchday
   setSimDelay: (ms: number) => void;
+  setPositionAwareOvr: (on: boolean) => void;
   openMatchOverlay: () => void;        // re-open the overlay (e.g. the match report)
   closeMatchOverlay: () => void;
 
@@ -278,6 +289,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     streamAway: 0,
     streamMinute: 0,
     simDelayMs: loadSimDelay(),
+    positionAwareOvr: loadPositionAwareOvr(),
     matchOverlayOpen: false,
 
     // ── navigation ────────────────────────────────────────────────────────────
@@ -383,6 +395,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const simDelayMs = clampDelay(ms);
       if (typeof window !== 'undefined') { window.localStorage.setItem(SIM_DELAY_KEY, String(simDelayMs)); }
       set({ simDelayMs });
+    },
+
+    setPositionAwareOvr: (on) => {
+      if (typeof window !== 'undefined') { window.localStorage.setItem(POSITION_AWARE_OVR_KEY, String(on)); }
+      set({ positionAwareOvr: on });
     },
 
     // ── tactics ─────────────────────────────────────────────────────────────────
