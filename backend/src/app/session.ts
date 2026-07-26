@@ -91,8 +91,10 @@ function ordinalSuffix(n: number): string {
 /** Minutes added to a kickoff to be sure a match (incl. extra time) has finished. */
 const MATCH_MAX_MINUTES = 130;
 
-/** An injury layoff this long (matches) makes the player's eventual return newspaper-worthy. */
-const LONG_LAYOFF_MATCHES = 4;
+/** An injury layoff this long (days) makes the player's eventual return newspaper-worthy.
+ *  Set at the bottom of the moderate band, so knocks stay toast-only and anything the
+ *  catalogue classes as moderate or worse reaches the paper. */
+const LONG_LAYOFF_DAYS = 14;
 
 /** Free agents seeded per included nation at the start of a new game (scales the pool with size). */
 const INITIAL_FREE_AGENTS_PER_NATION = 40;
@@ -515,7 +517,7 @@ export class GameSession {
     unsubs.push(eventBus.on('player.injured', (p) => {
       // Only the player's own ClubManager emits this — it's always their squad.
       this.pushNotification(
-        `${p.playerName} is injured (out ${p.matchesRemaining} match${p.matchesRemaining === 1 ? '' : 'es'}) — pick a replacement.`,
+        `${p.playerName} is injured (out ${p.days} day${p.days === 1 ? '' : 's'}) — pick a replacement.`,
         'warning',
       );
       this.pushHeadline({ ...injuryHeadline({
@@ -523,25 +525,25 @@ export class GameSession {
       }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
     }));
     // One generic clearance event covers both a medical wing averting an injury before it
-    // ever took hold (originalDuration 0) and a confirmed injury running its course — the
+    // ever took hold (originalDays 0) and a confirmed injury running its course — the
     // wording branches on that signal instead of the engine special-casing "averted".
     unsubs.push(eventBus.on('player.injuryCleared', (p) => {
       this.pushNotification(
-        p.originalDuration === 0
+        p.originalDays === 0
           ? `${p.playerName}'s knock turned out to be nothing serious — cleared by the medical staff.`
           : `${p.playerName} is back from injury and available for selection.`,
         'success',
       );
       // The paper covers the two ends of the clearance spectrum: a scare that came to
-      // nothing, and a long-term absentee back in contention. Short real layoffs (1–3
-      // matches) stay toast-only so the paper isn't flooded with routine knocks.
-      if (p.originalDuration === 0) {
+      // nothing, and a long-term absentee back in contention. Short real layoffs stay
+      // toast-only so the paper isn't flooded with routine knocks.
+      if (p.originalDays === 0) {
         this.pushHeadline({ ...injuryAvertedHeadline({
           playerName: p.playerName, injuryType: p.injuryType, timestamp: this.now,
         }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
-      } else if (p.originalDuration >= LONG_LAYOFF_MATCHES) {
+      } else if (p.originalDays >= LONG_LAYOFF_DAYS) {
         this.pushHeadline({ ...returnHeadline({
-          playerName: p.playerName, matchesMissed: p.originalDuration, timestamp: this.now,
+          playerName: p.playerName, daysMissed: p.originalDays, timestamp: this.now,
         }, this.rng), refs: { players: { [p.playerName]: p.playerId } } });
       }
     }));
@@ -1163,7 +1165,7 @@ export class GameSession {
     this.now = target;
     this.applyClockSideEffects();
     const elapsedDays = daysBetween(previousNow, this.now);
-    this.clubManager?.recoverFitness(elapsedDays);
+    this.clubManager?.advanceTime(elapsedDays, this.now);
     this.tickFacilityMaintenanceIfDue(elapsedDays);
     return perSeason.flat() as OccurrenceEvent[];
   }
@@ -1176,7 +1178,7 @@ export class GameSession {
     this.now = target;
     this.applyClockSideEffects();
     const elapsedDays = daysBetween(previousNow, this.now);
-    this.clubManager?.recoverFitness(elapsedDays);
+    this.clubManager?.advanceTime(elapsedDays, this.now);
     this.tickFacilityMaintenanceIfDue(elapsedDays);
   }
 

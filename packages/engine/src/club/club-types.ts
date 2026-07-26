@@ -12,10 +12,14 @@ export interface ClubPlayer extends Player {
   /** 0–1000 (tenths of a fitness point; the UI displays this divided by 10). The finer
    *  resolution lets recovery vary by tiny, sub-integer amounts (stamina, facility level). */
   fitness: number
-  /** `originalDuration` is the layoff as first confirmed (before any countdown) — kept
-   *  alongside the live countdown so the eventual `player.injuryCleared` event can report
-   *  how serious the injury was, regardless of how much of it has already ticked away. */
-  injury?: { type: string; matchesRemaining: number; originalDuration: number }
+  /** An injury is a fixed period of calendar time, so it is stored as the date the player is
+   *  fit again rather than a countdown of matches. How many fixtures it actually costs then
+   *  depends on how congested the run is — which is the point: the same hamstring pull costs
+   *  one match in a quiet February and three over Christmas. `originalDays` is the layoff as
+   *  first confirmed, kept so `player.injuryCleared` can report how serious it was after
+   *  the fact. */
+  injury?: { type: string; returnDate: GameDateTime; originalDays: number }
+  /** Suspensions stay match-based — those genuinely are counted in matches, not days. */
   suspension?: { matchesRemaining: number }
   /** The player's training focus; defaults to 'balanced' when unset. */
   training?: RegimentId

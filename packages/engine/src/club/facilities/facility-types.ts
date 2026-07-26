@@ -37,10 +37,11 @@ export interface MedicalAxes {
    *  that makes most dead legs a non-event should do nothing at all about a broken leg. The
    *  per-injury `maxAvertChance` clamp caps whatever this composes to. */
   injuryChanceMult: Record<InjurySeverity, number>
-  /** Multiplier on a rolled injury's duration (1 = unfacilitated), floored per injury by its
-   *  `minDurationFraction`. Proportional rather than a flat number of matches: a flat cut takes
-   *  most of a sprain but barely dents a broken leg, which is backwards from intent. */
-  injuryDurationMult: number
+  /** Multiplier on a rolled injury's layoff in days (1 = unfacilitated), per severity band,
+   *  floored per injury by its `minDurationFraction`. Proportional rather than a flat number of
+   *  days, and banded for the same reason prevention is: a surgical theatre should shorten a
+   *  ligament tear without also curing dead legs. */
+  injuryDurationMult: Record<InjurySeverity, number>
   /** Multiplier on the *daily* passive recovery rate (1 = unfacilitated). */
   recoveryMult: number
   /** Flat fitness points added per elapsed day, outside the stamina multiplier — equal
@@ -76,7 +77,9 @@ export type WingEffects = Partial<{
   knockChanceMult: number
   moderateChanceMult: number
   seriousChanceMult: number
-  injuryDurationMult: number
+  knockDurationMult: number
+  moderateDurationMult: number
+  seriousDurationMult: number
   recoveryMult: number
   recoveryFlat: number
   matchDrainMult: number

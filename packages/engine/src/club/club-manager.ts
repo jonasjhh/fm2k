@@ -7,7 +7,7 @@ import {
   effectiveFormationLabel as effectiveFormationLabelOf,
   buildSlotAssignments,
 } from '@fm2k/match';
-import type { GameDateTime } from '@fm2k/timeline';
+import { addDays, isBefore, type GameDateTime } from '@fm2k/timeline';
 import type { LeagueStanding } from '../league/league-types.ts';
 import type {
   ClubState,
@@ -624,7 +624,7 @@ export class ClubManager {
         if (!player || player.injury) { continue; }
         const medicalAxes = FacilityManager.medicalAxes(s.facilities, player);
         // Medical staff can catch/treat an injury before it ever takes hold — a clean
-        // clearance (originalDuration 0), not a distinct "averted" event of its own. Each
+        // clearance (originalDays 0), not a distinct "averted" event of its own. Each
         // injury caps how much of itself is preventable, so a complete medical estate makes
         // most dead legs a non-event and still cannot stop a broken leg.
         const avertChance = Math.min(
@@ -633,23 +633,27 @@ export class ClubManager {
         );
         if (this.rng() < avertChance) {
           clearedInjuries.push({
-            playerId: player.id, playerName: player.name, injuryType: inj.type, originalDuration: 0,
+            playerId: player.id, playerName: player.name, injuryType: inj.type, originalDays: 0,
           });
           continue;
         }
         // Treatment shortens the layoff proportionally, down to the injury's own floor —
         // 1.0 for head injuries, where return-to-play protocol ignores what the club spent.
         const treated = Math.max(
-          inj.baseDuration * inj.minDurationFraction,
-          inj.baseDuration * medicalAxes.injuryDurationMult,
+          inj.baseDays * inj.minDurationFraction,
+          inj.baseDays * medicalAxes.injuryDurationMult[inj.severity],
         );
-        const originalDuration = Math.max(1, Math.round(treated));
-        player.injury = { type: inj.type, matchesRemaining: originalDuration, originalDuration };
+        const originalDays = Math.max(1, Math.round(treated));
+        player.injury = {
+          type: inj.type,
+          returnDate: addDays(payload.timestamp, originalDays),
+          originalDays,
+        };
         newInjuries.push({
           playerId: player.id,
           playerName: player.name,
           injuryType: player.injury.type,
-          matchesRemaining: player.injury.matchesRemaining,
+          days: originalDays,
         });
         // The lineup itself is deliberately left untouched: the manager keeps their
         // picked XI, and starting the next match is blocked by validation until the
@@ -677,34 +681,18 @@ export class ClubManager {
     }
   }
 
-  // Call once per matchday end to tick down injuries and suspensions (these count down per
-  // match missed, not per calendar day — see recoverFitness() for the time-based counterpart).
+  // Call once per matchday end to tick down suspensions — a ban genuinely is counted in
+  // matches missed. Injuries are not: they clear on a date, in advanceTime().
   handleMatchdayComplete(): void {
-    const cleared: GameEvents['player.injuryCleared'][] = [];
     this.stateManager.updateState(state => {
       for (const player of state.squad) {
-        if (player.injury) {
-          player.injury.matchesRemaining--;
-          if (player.injury.matchesRemaining <= 0) {
-            cleared.push({
-              playerId: player.id, playerName: player.name,
-              injuryType: player.injury.type, originalDuration: player.injury.originalDuration,
-            });
-            delete player.injury;
-          }
-        }
-
-        if (player.suspension) {
-          player.suspension.matchesRemaining--;
-          if (player.suspension.matchesRemaining <= 0) {
-            delete player.suspension;
-          }
+        if (!player.suspension) { continue; }
+        player.suspension.matchesRemaining--;
+        if (player.suspension.matchesRemaining <= 0) {
+          delete player.suspension;
         }
       }
     });
-    for (const c of cleared) {
-      this.eventBus?.emit('player.injuryCleared', c);
-    }
   }
 
   // ── Fitness economy knobs ───────────────────────────────────────────────────
@@ -730,7 +718,7 @@ export class ClubManager {
    *  baths, massage room, welfare centre) — equal absolute help to everyone, so it is worth
    *  relatively most to a low-stamina squad. Both are charged per elapsed day, so advancing
    *  seven days in one step matches seven single-day steps exactly. */
-  recoverFitness(days: number): void {
+  private recoverFitness(days: number): void {
     if (days <= 0) { return; }
     this.stateManager.updateState(state => {
       for (const player of state.squad) {
@@ -743,6 +731,32 @@ export class ClubManager {
         player.fitness = Math.min(1000, player.fitness + perDay * days);
       }
     });
+  }
+
+  /** Everything the squad does as the calendar moves: passive fitness recovery over the
+   *  elapsed days, and any injury whose return date has now passed clearing itself.
+   *
+   *  These are one call rather than two on purpose. They are the same event — time passing —
+   *  and every caller that advances the clock owes both. Splitting them would let a code path
+   *  recover fitness while leaving a healed player marked injured, so `recoverFitness` is
+   *  private and this is the only way to move a club forward in time. */
+  advanceTime(days: number, now: GameDateTime): void {
+    this.recoverFitness(days);
+    const cleared: GameEvents['player.injuryCleared'][] = [];
+    this.stateManager.updateState(state => {
+      for (const player of state.squad) {
+        // Fit *on* the return date, not the day after it.
+        if (!player.injury || isBefore(now, player.injury.returnDate)) { continue; }
+        cleared.push({
+          playerId: player.id, playerName: player.name,
+          injuryType: player.injury.type, originalDays: player.injury.originalDays,
+        });
+        delete player.injury;
+      }
+    });
+    for (const c of cleared) {
+      this.eventBus?.emit('player.injuryCleared', c);
+    }
   }
 
   // Call once when a season ends: the whole squad develops (a bigger step than per-match) and ages,

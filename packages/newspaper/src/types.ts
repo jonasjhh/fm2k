@@ -83,6 +83,6 @@ export interface InjuryAvertedHeadlineInput {
 
 export interface ReturnHeadlineInput {
   playerName: string;
-  matchesMissed: number;
+  daysMissed: number;
   timestamp: GameDateTime;
 }

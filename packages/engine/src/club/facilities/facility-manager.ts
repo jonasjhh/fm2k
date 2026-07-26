@@ -61,7 +61,7 @@ export class FacilityManager {
    *  rather than being part of the unconditional medical wing sum above. */
   static medicalAxes(facilities: ClubFacilities, player?: Player): MedicalAxes {
     const injuryChanceMult: Record<InjurySeverity, number> = { knock: 1, moderate: 1, serious: 1 };
-    let injuryDurationMult = 1;
+    const injuryDurationMult: Record<InjurySeverity, number> = { knock: 1, moderate: 1, serious: 1 };
     let recoveryMult = 1;
     let recoveryFlat = 0;
     let matchDrainMult = 1;
@@ -75,7 +75,9 @@ export class FacilityManager {
       injuryChanceMult.knock = compose(injuryChanceMult.knock, def.effects.knockChanceMult, mult);
       injuryChanceMult.moderate = compose(injuryChanceMult.moderate, def.effects.moderateChanceMult, mult);
       injuryChanceMult.serious = compose(injuryChanceMult.serious, def.effects.seriousChanceMult, mult);
-      injuryDurationMult = compose(injuryDurationMult, def.effects.injuryDurationMult, mult);
+      injuryDurationMult.knock = compose(injuryDurationMult.knock, def.effects.knockDurationMult, mult);
+      injuryDurationMult.moderate = compose(injuryDurationMult.moderate, def.effects.moderateDurationMult, mult);
+      injuryDurationMult.serious = compose(injuryDurationMult.serious, def.effects.seriousDurationMult, mult);
       recoveryMult += (def.effects.recoveryMult ?? 0) * mult;
       recoveryFlat += (def.effects.recoveryFlat ?? 0) * mult;
       if (def.effects.matchDrainMult !== undefined) {

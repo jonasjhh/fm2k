@@ -15,8 +15,7 @@ import type { FacilityGroupId, WingDefinition, WingId } from './facility-types.t
 const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   iceBathRecoverySuite: {
     name: 'Ice Bath Recovery Suite',
-    description: 'A plunge-pool setup the whole squad uses daily. On its own it will not get a '
-      + 'tired side through to Saturday — paired with the massage room, it just about will.',
+    description: 'A plunge pool for post-training recovery. Increases daily fitness recovery.',
     costTier: 'basic',
     buildCost: 60_000,
     tierUpkeep: [150, 350, 700],
@@ -24,25 +23,31 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   massageTherapySuite: {
     name: 'Massage Therapy Suite',
-    description: 'Hands-on sports massage: eases strain before it becomes an injury, and adds a '
-      + 'daily trickle of recovery on top of the ice baths.',
+    description: 'A treatment room for sports massage. Prevents knocks and strains, and '
+      + 'increases daily fitness recovery. No use against tears and breaks.',
     costTier: 'basic',
     buildCost: 50_000,
     tierUpkeep: [150, 350, 700],
-    effects: { knockChanceMult: 0.95, moderateChanceMult: 0.95, seriousChanceMult: 0.95, recoveryFlat: 1.5 },
+    effects: { knockChanceMult: 0.86, moderateChanceMult: 0.97, recoveryFlat: 1.5 },
   },
   pitchSidePhysioUnit: {
     name: 'Pitch-side Physio Unit',
-    description: 'Immediate physio attention the moment a knock happens.',
+    description: 'A treatment station at the side of the pitch. Prevents knocks and strains, '
+      + 'and shortens the ones it does not prevent.',
     costTier: 'basic',
     buildCost: 90_000,
     tierUpkeep: [200, 450, 900],
-    effects: { injuryDurationMult: 0.83 },
+    // Touchline treatment is a knock intervention: it turns dead legs around fast and barely
+    // touches anything that needed a scan.
+    effects: {
+      knockChanceMult: 0.90, moderateChanceMult: 0.96,
+      knockDurationMult: 0.90, moderateDurationMult: 0.97,
+    },
   },
   hydrotherapyPool: {
     name: 'Hydrotherapy Pool',
-    description: 'Low-impact water-based rehab. Scales up the squad\'s whole daily recovery rate '
-      + 'rather than adding a fixed amount — the fitter the player, the more it returns.',
+    description: 'A rehabilitation pool for low-impact work. Multiplies daily fitness recovery '
+      + 'rather than adding to it, so higher-stamina players gain more.',
     costTier: 'standard',
     buildCost: 800_000,
     tierUpkeep: [500, 1_100, 2_200],
@@ -50,34 +55,41 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   rehabGym: {
     name: 'Rehab Gym',
-    description: 'A dedicated strength-rehab space to get injured players back faster.',
+    description: 'An injury rehabilitation gym. Shortens recovery time for injuries.',
     costTier: 'standard',
     buildCost: 700_000,
     tierUpkeep: [600, 1_300, 2_600],
-    effects: { injuryDurationMult: 0.67 },
+    // The one wing that shortens all three bands — that breadth, not its depth in any single
+    // band, is what makes it the strongest lever on total time lost.
+    effects: { knockDurationMult: 0.88, moderateDurationMult: 0.85, seriousDurationMult: 0.90 },
   },
   nutritionSportsScienceUnit: {
     name: 'Nutrition & Sports Science Unit',
-    description: 'Diet and conditioning science: fewer soft-tissue injuries, and players finish '
-      + 'matches less spent. Worth double in a two-game week, since it is charged per match.',
+    description: 'A kitchen and conditioning lab. Players finish matches less spent, and pick '
+      + 'up fewer knocks and strains.',
     costTier: 'standard',
     buildCost: 600_000,
     tierUpkeep: [550, 1_200, 2_400],
-    effects: { knockChanceMult: 0.88, moderateChanceMult: 0.88, seriousChanceMult: 0.88, matchDrainMult: 0.93 },
+    // Primarily a fitness wing. Keeping players fresher already lowers injury risk indirectly
+    // (match energy feeds the fatigue term on every injury roll), so the declared injury effect
+    // stays small — otherwise the same benefit is paid for twice.
+    effects: { knockChanceMult: 0.96, moderateChanceMult: 0.96, matchDrainMult: 0.93 },
   },
   playerWelfareCentre: {
     name: 'Player Welfare Centre',
-    description: 'Sports psychology and concussion protocol, keeping players match-ready. Fewer '
-      + 'injuries, plus a steady daily top-up to the squad\'s recovery.',
+    description: 'A player-care suite covering psychology and concussion protocol. Prevents '
+      + 'everything from dead legs to broken bones, and increases daily fitness recovery.',
     costTier: 'standard',
     buildCost: 900_000,
     tierUpkeep: [700, 1_500, 3_000],
-    effects: { knockChanceMult: 0.90, moderateChanceMult: 0.90, seriousChanceMult: 0.90, recoveryFlat: 3 },
+    // The serious band is what this wing is actually for and is left alone; the knock and
+    // moderate bands are trimmed because the daily recovery top-up is already a real benefit.
+    effects: { knockChanceMult: 0.97, moderateChanceMult: 0.97, seriousChanceMult: 0.95, recoveryFlat: 3 },
   },
   cryotherapyChamber: {
     name: 'Cryotherapy Chamber',
-    description: 'Whole-body cold therapy in the hours after a game — a large one-off bounce-back '
-      + 'per match played. Near-worthless on one game a week; it is what lets a squad play twice.',
+    description: 'A whole-body cold chamber. Restores fitness after each match played rather '
+      + 'than each day, so it counts for more the more often you play.',
     costTier: 'premium',
     buildCost: 2_500_000,
     tierUpkeep: [1_800, 3_600, 5_400],
@@ -85,21 +97,28 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   mriDiagnosticImagingSuite: {
     name: 'MRI & Diagnostic Imaging Suite',
-    description: 'In-house scanning for faster, more accurate injury diagnosis.',
+    description: 'An in-house scanner and diagnostics room. Catches strains, tears and breaks '
+      + 'early, so fewer take hold and those that do clear up sooner. Nobody scans a dead leg.',
     costTier: 'premium',
     buildCost: 4_000_000,
     tierUpkeep: [2_200, 4_200, 6_200],
-    effects: { injuryDurationMult: 0.80 },
+    // No knock band at all: nobody scans a dead leg, so nothing here applies to one.
+    effects: {
+      moderateChanceMult: 0.96, seriousChanceMult: 0.96,
+      moderateDurationMult: 0.90, seriousDurationMult: 0.90,
+    },
   },
   surgicalTheatre: {
     name: 'Surgical Theatre',
-    description: 'A club-owned surgical theatre.',
+    description: 'An operating theatre with a surgeon on retainer. Gets players back sooner '
+      + 'from strains, tears and breaks, and prevents a few of them. No help with a dead leg.',
     costTier: 'premium',
     buildCost: 7_000_000,
     tierUpkeep: [3_000, 5_500, 8_000],
+    // The deepest single cut to serious layoffs in the game, and nothing whatsoever below it.
     effects: {
-      injuryDurationMult: 0.73,
-      knockChanceMult: 0.95, moderateChanceMult: 0.95, seriousChanceMult: 0.95,
+      moderateChanceMult: 0.97, seriousChanceMult: 0.92,
+      moderateDurationMult: 0.94, seriousDurationMult: 0.82,
     },
   },
 };
@@ -222,8 +241,8 @@ const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   youthSportsScienceUnit: {
     name: 'Youth Sports Science Unit',
-    description: 'Recovery and injury-prevention science tailored to younger bodies. Under-22s '
-      + 'only, but for them it is the single largest daily recovery source in the game.',
+    description: 'A conditioning unit for academy players. Under-22s only: fewer knocks and '
+      + 'strains, and quicker daily recovery. No use against tears and breaks.',
     costTier: 'premium',
     buildCost: 2_800_000,
     tierUpkeep: [1_300, 2_600, 5_200],

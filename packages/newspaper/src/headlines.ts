@@ -194,12 +194,12 @@ const INJURY_AVERTED_TEMPLATES: readonly InjuryTemplate[] = [
 ];
 
 const RETURN_TEMPLATES: readonly ReturnTemplate[] = [
-  (p, m) => `Boost for the boss: ${p} back after ${m}-match layoff`,
+  (p, d) => `Boost for the boss: ${p} back after ${d}-day layoff`,
   (p) => `${p} returns from the treatment table at last`,
-  (p, m) => `${p} fit again after missing ${m} matches`,
+  (p, d) => `${p} fit again after ${d} days out`,
   (p) => `Like a new signing: ${p} back in contention`,
   (p) => `The long wait is over — ${p} declared fit`,
-  (p, m) => `${p} ends ${m}-match absence`,
+  (p, d) => `${p} ends ${d}-day absence`,
 ];
 
 /** Pre-matchday preview naming the opposition's stand-out player. */
@@ -237,6 +237,6 @@ export function injuryAvertedHeadline(input: InjuryAvertedHeadlineInput, rng: ()
 
 /** A long-term absentee back in contention (short knocks aren't newsworthy). */
 export function returnHeadline(input: ReturnHeadlineInput, rng: () => number = Math.random): NewArticle {
-  const headline = pickTemplate(RETURN_TEMPLATES, rng)(input.playerName, input.matchesMissed);
+  const headline = pickTemplate(RETURN_TEMPLATES, rng)(input.playerName, input.daysMissed);
   return { category: 'injury', headline, timestamp: input.timestamp };
 }

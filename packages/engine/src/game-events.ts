@@ -42,18 +42,20 @@ export type GameEvents = {
     playerId: string
     playerName: string
     injuryType: string
-    matchesRemaining: number
+    /** Layoff in calendar days, post-mitigation — how many fixtures it costs depends
+     *  on how congested the run is, which is the calendar's business, not the injury's. */
+    days: number
   }
   // Fired whenever a player's injury clears, regardless of why: the medical staff
-  // averted it before it ever took hold (originalDuration 0), or a confirmed injury
-  // ran its course (originalDuration = the layoff as first confirmed). Consumers
-  // (notifications, newspaper) branch on originalDuration to phrase themselves —
+  // averted it before it ever took hold (originalDays 0), or a confirmed injury
+  // ran its course (originalDays = the layoff as first confirmed). Consumers
+  // (notifications, newspaper) branch on originalDays to phrase themselves —
   // the engine doesn't special-case the wording.
   'player.injuryCleared': {
     playerId: string
     playerName: string
     injuryType: string
-    originalDuration: number
+    originalDays: number
   }
   // Emitted at season end for each player whose attributes changed through training/ageing.
   'player.developed': {

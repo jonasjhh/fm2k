@@ -565,7 +565,7 @@ describe('MatchOccurrence:', () => {
       state.matchInjuries = [
         ...(state.matchInjuries ?? []),
         {
-          playerId, team: 'home', minute: 5, cause: 'tackled', type: 'dead_leg', baseDuration: 1,
+          playerId, team: 'home', minute: 5, cause: 'tackled', type: 'dead_leg', baseDays: 1,
           severity: 'knock', maxAvertChance: 0.85, minDurationFraction: 0,
         },
       ];

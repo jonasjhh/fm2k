@@ -35,7 +35,8 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 describe('FacilityManager.medicalAxes', () => {
   it('returns the no-op identity when no wings are built', () => {
     expect(FacilityManager.medicalAxes(emptyFacilities())).toEqual({
-      injuryChanceMult: { knock: 1, moderate: 1, serious: 1 }, injuryDurationMult: 1,
+      injuryChanceMult: { knock: 1, moderate: 1, serious: 1 },
+      injuryDurationMult: { knock: 1, moderate: 1, serious: 1 },
       recoveryMult: 1, recoveryFlat: 0, matchDrainMult: 1, postMatchRecovery: 0,
     });
   });
@@ -47,9 +48,13 @@ describe('FacilityManager.medicalAxes', () => {
     build(facilities, 'medical', 'rehabGym');
     build(facilities, 'medical', 'hydrotherapyPool');
     const axes = FacilityManager.medicalAxes(facilities);
-    expect(axes.injuryDurationMult).toBeCloseTo(
-      (M.pitchSidePhysioUnit.effects.injuryDurationMult ?? 1) * (M.rehabGym.effects.injuryDurationMult ?? 1),
+    // The moderate band is where both wings overlap, so it proves they compound rather than
+    // one winning. The serious band only the rehab gym touches, so it proves the physio unit
+    // does not silently leak into a band it declares nothing for.
+    expect(axes.injuryDurationMult.moderate).toBeCloseTo(
+      (M.pitchSidePhysioUnit.effects.moderateDurationMult ?? 1) * (M.rehabGym.effects.moderateDurationMult ?? 1),
     );
+    expect(axes.injuryDurationMult.serious).toBeCloseTo(M.rehabGym.effects.seriousDurationMult ?? 1);
     expect(axes.recoveryMult).toBeCloseTo(1 + (M.hydrotherapyPool.effects.recoveryMult ?? 0));
   });
 
@@ -119,21 +124,23 @@ describe('FacilityManager.medicalAxes', () => {
   it('contributes nothing from a mothballed wing', () => {
     const facilities = emptyFacilities();
     build(facilities, 'medical', 'rehabGym', { mothballed: true });
-    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult).toBe(1);
+    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult.moderate).toBe(1);
   });
 
   it('applies the core_staff effect multiplier (40%)', () => {
     const facilities = emptyFacilities();
-    const base = FACILITY_CATALOGUE.medical.rehabGym.effects.injuryDurationMult ?? 1;
+    const base = FACILITY_CATALOGUE.medical.rehabGym.effects.moderateDurationMult ?? 1;
     build(facilities, 'medical', 'rehabGym', { mode: 'core_staff' });
-    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult).toBeCloseTo(1 - (1 - base) * 0.4);
+    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult.moderate)
+      .toBeCloseTo(1 - (1 - base) * 0.4);
   });
 
   it('applies the skeleton_crew structural floor (5%) instead of zero', () => {
     const facilities = emptyFacilities();
-    const base = FACILITY_CATALOGUE.medical.rehabGym.effects.injuryDurationMult ?? 1;
+    const base = FACILITY_CATALOGUE.medical.rehabGym.effects.moderateDurationMult ?? 1;
     build(facilities, 'medical', 'rehabGym', { mode: 'skeleton_crew' });
-    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult).toBeCloseTo(1 - (1 - base) * 0.05);
+    expect(FacilityManager.medicalAxes(facilities).injuryDurationMult.moderate)
+      .toBeCloseTo(1 - (1 - base) * 0.05);
   });
 });
 

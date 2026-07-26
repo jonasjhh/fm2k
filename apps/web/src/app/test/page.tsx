@@ -159,7 +159,7 @@ export default function MatchSandboxPage() {
             </Typography>
             {injuries.length > 0 && (
               <Typography variant="body2" color="error">
-                Injuries: {injuries.map(u => `${u.playerId} (${u.injury.type}, ${u.injury.baseDuration})`).join(', ')}
+                Injuries: {injuries.map(u => `${u.playerId} (${u.injury.type}, ${u.injury.baseDays})`).join(', ')}
               </Typography>
             )}
             <Divider sx={{ my: 1 }} />

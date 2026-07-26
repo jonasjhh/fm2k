@@ -14,12 +14,13 @@ export { INJURY_TYPES } from './injury-catalogue.ts';
 export interface InjuryReport {
   playerId: string;
   type: string;
-  /** Matches out, before any club medical-facility mitigation. */
-  baseDuration: number;
+  /** Days out, before any club medical-facility mitigation. The club layer turns this into a
+   *  return date — how many fixtures it cost you depends on the calendar, not on the injury. */
+  baseDays: number;
   severity: InjurySeverity;
   /** Ceiling on how much of this the club's medical estate can ever prevent. */
   maxAvertChance: number;
-  /** Floor on treated duration, as a fraction of `baseDuration`. */
+  /** Floor on treated duration, as a fraction of `baseDays`. */
   minDurationFraction: number;
 }
 
@@ -44,7 +45,7 @@ function pickInjury(
   const [lo, hi] = picked.def.duration;
   return {
     type: picked.def.id,
-    baseDuration: lo + Math.floor(rng() * (hi - lo + 1)),
+    baseDays: lo + Math.floor(rng() * (hi - lo + 1)),
     severity: picked.def.severity,
     maxAvertChance: picked.def.maxAvertChance,
     minDurationFraction: picked.def.minDurationFraction,
@@ -71,7 +72,7 @@ const CAUSE_TEXT: Record<InjuryTrigger, string> = {
 
 export function injuryDescription(playerName: string, injury: MatchInjury): string {
   const label = INJURY_BY_ID[injury.type]?.name ?? injury.type.replace(/_/g, ' ');
-  return `Injury! ${playerName} ${CAUSE_TEXT[injury.cause]} — ${label}, out ${injury.baseDuration} match${injury.baseDuration === 1 ? '' : 'es'}`;
+  return `Injury! ${playerName} ${CAUSE_TEXT[injury.cause]} — ${label}, out ${injury.baseDays} day${injury.baseDays === 1 ? '' : 's'}`;
 }
 
 /**
@@ -156,9 +157,9 @@ export function collectExposures(events: MatchEvent[]): InjuryExposure[] {
 export function injuriesBySide(state: MatchState): { home: InjuryReport[]; away: InjuryReport[] } {
   const all = state.matchInjuries ?? [];
   const strip = (
-    { playerId, type, baseDuration, severity, maxAvertChance, minDurationFraction }: MatchInjury,
+    { playerId, type, baseDays, severity, maxAvertChance, minDurationFraction }: MatchInjury,
   ): InjuryReport => (
-    { playerId, type, baseDuration, severity, maxAvertChance, minDurationFraction }
+    { playerId, type, baseDays, severity, maxAvertChance, minDurationFraction }
   );
   return {
     home: all.filter(i => i.team === 'home').map(strip),

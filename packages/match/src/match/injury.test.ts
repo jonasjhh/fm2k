@@ -91,7 +91,7 @@ describe('rollInjuries:', () => {
       playerId: 'carrier', team: 'home', cause: 'tackled',
       type: 'knee_ligament_tear', severity: 'serious',
     });
-    expect(injuries[0].baseDuration).toBeGreaterThanOrEqual(1);
+    expect(injuries[0].baseDays).toBeGreaterThanOrEqual(1);
   });
 
   test('a knock is what a challenge actually produces once the rare bands fail', () => {
@@ -157,14 +157,14 @@ describe('rollInjuries:', () => {
   test('descriptions name the player, cause and layoff', () => {
     const injury: MatchInjury = {
       playerId: 'carrier', team: 'home', minute: 70, cause: 'through_run',
-      type: 'hamstring_pull', baseDuration: 4,
+      type: 'hamstring_pull', baseDays: 21,
       severity: 'moderate', maxAvertChance: 0.45, minDurationFraction: 0.45,
     };
     const text = injuryDescription('Runner', injury);
     expect(text).toContain('Runner');
     expect(text).toContain('sprinting onto the through ball');
     expect(text).toContain('hamstring pull');
-    expect(text).toContain('4 matches');
+    expect(text).toContain('21 days');
   });
 });
 
@@ -208,7 +208,7 @@ describe('in-match injuries (simulator integration):', () => {
         for (const injury of result.injuries[side]) {
           injuriesSeen++;
           expect(INJURY_TYPES).toContain(injury.type);
-          expect(injury.baseDuration).toBeGreaterThanOrEqual(1);
+          expect(injury.baseDays).toBeGreaterThanOrEqual(1);
         }
       }
     }

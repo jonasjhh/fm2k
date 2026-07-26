@@ -3,7 +3,7 @@ import type { ClubManagerConfig } from './club-manager.ts';
 import type { ClubPlayer } from './club-types.ts';
 import type { Player, PlayerPosition, InjuryReport } from '@fm2k/match';
 import { WIDE_EDGE_LATERAL, INJURY_BY_ID } from '@fm2k/match';
-import { createGameDateTime } from '@fm2k/timeline';
+import { addDays, createGameDateTime } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
@@ -13,10 +13,10 @@ import { FacilityManager } from './facilities/facility-manager.ts';
 /** Build the report a match hands the club, taking the mitigation clamps from the injury
  *  catalogue rather than restating them — the catalogue is the tuning surface, so a test that
  *  hard-coded them would silently stop testing the shipped values. */
-function report(playerId: string, type: string, baseDuration: number): InjuryReport {
+function report(playerId: string, type: string, baseDays: number): InjuryReport {
   const def = assertDefined(INJURY_BY_ID[type], `unknown injury type ${type}`);
   return {
-    playerId, type, baseDuration,
+    playerId, type, baseDays,
     severity: def.severity,
     maxAvertChance: def.maxAvertChance,
     minDurationFraction: def.minDurationFraction,
@@ -365,7 +365,7 @@ describe('ClubManager:', () => {
       const [injuredId, suspendedId] = config.benchPlayers;
       const injured = config.squad.find(p => p.id === injuredId) as ClubPlayer | undefined;
       const suspended = config.squad.find(p => p.id === suspendedId) as ClubPlayer | undefined;
-      if (injured) { injured.injury = { type: 'Sprained Ankle', matchesRemaining: 2, originalDuration: 2 }; }
+      if (injured) { injured.injury = { type: 'ankle_sprain', returnDate: addDays(NOW, 20), originalDays: 20 }; }
       if (suspended) { suspended.suspension = { matchesRemaining: 1 }; }
       const manager = new ClubManager(config);
       expect(manager.queueSubstitution(config.startingXI[0], injuredId)).toBe(false);
@@ -878,15 +878,18 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig({ eventBus: bus, budget: 1_000_000 }));
       manager.buildWing('medical', 'rehabGym');
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'knee_injury', 4)] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'knee_injury', 24)] });
       const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      // Proportional, not a flat number of matches off: 4 × the wing's duration multiplier,
-      // floored by knee_injury's own minDurationFraction.
-      const mult = FACILITY_CATALOGUE.medical.rehabGym.effects.injuryDurationMult ?? 1;
+      // Proportional, not a flat number of days off: 24 × the wing's multiplier for the band
+      // this injury sits in, floored by knee_injury's own minDurationFraction.
+      const mult = FACILITY_CATALOGUE.medical.rehabGym.effects.moderateDurationMult ?? 1;
       const expected = Math.max(1, Math.round(Math.max(
-        4 * INJURY_BY_ID.knee_injury.minDurationFraction, 4 * mult,
+        24 * INJURY_BY_ID.knee_injury.minDurationFraction, 24 * mult,
       )));
-      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: expected, originalDuration: expected });
+      expect(player.injury).toEqual({
+        type: 'knee_injury', returnDate: addDays(NOW, expected), originalDays: expected,
+      });
+      expect(expected).toBeLessThan(24);
     });
 
     test('a medical injury-chance wing can avert a reported injury before it takes hold', () => {
@@ -907,9 +910,9 @@ describe('ClubManager:', () => {
       const player = assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found');
       emitMatch(busWith, 'club-1', 'other-1', 0, 0, { home: [report(idWith, 'knee_injury', 4)] });
       expect(assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found').injury).toBeUndefined();
-      // The generic clearance event still fires — originalDuration 0 signals "averted".
+      // The generic clearance event still fires — originalDays 0 signals "averted".
       expect(clearedWith).toEqual([{
-        playerId: idWith, playerName: player.name, injuryType: 'knee_injury', originalDuration: 0,
+        playerId: idWith, playerName: player.name, injuryType: 'knee_injury', originalDays: 0,
       }]);
     });
 
@@ -936,7 +939,7 @@ describe('ClubManager:', () => {
       expect(player.injury).toBeDefined();
       // ...and treatment is floored well short of a full recovery.
       const floor = Math.round(12 * INJURY_BY_ID.broken_leg.minDurationFraction);
-      expect(player.injury?.matchesRemaining).toBeGreaterThanOrEqual(floor);
+      expect(player.injury?.originalDays).toBeGreaterThanOrEqual(floor);
     });
 
     test('no facility shortens a head injury — protocol ignores what the club spent', () => {
@@ -946,9 +949,11 @@ describe('ClubManager:', () => {
         manager.buildWing('medical', wingId);
       }
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'concussion', 9)] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'concussion', 70)] });
       const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(player.injury).toEqual({ type: 'concussion', matchesRemaining: 9, originalDuration: 9 });
+      expect(player.injury).toEqual({
+        type: 'concussion', returnDate: addDays(NOW, 70), originalDays: 70,
+      });
     });
 
     test('an already-injured player is not re-injured', () => {
@@ -974,7 +979,7 @@ describe('ClubManager:', () => {
       injured.forEach(e => {
         expect(typeof e.playerId).toBe('string');
         expect(typeof e.injuryType).toBe('string');
-        expect(e.matchesRemaining).toBeGreaterThanOrEqual(1);
+        expect(e.days).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -1009,30 +1014,20 @@ describe('ClubManager:', () => {
       });
     });
 
-    test('counts down injury matchesRemaining', () => {
+    test('playing matches does not heal an injury — only the calendar does', () => {
+      // The whole point of return dates: a congested run costs you more fixtures for the same
+      // injury, so matchdays must not tick it down.
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'muscle_strain', 2)] });
-      const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      const remaining = assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining;
-      manager.handleMatchdayComplete();
-      const after = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(after.injury?.matchesRemaining).toBe(remaining - 1);
-    });
-
-    test('clears injury when matchesRemaining reaches 0', () => {
-      const bus = new EventBus<GameEvents>();
-      const manager = new ClubManager(makeConfig({ eventBus: bus }));
-      const id = xiOf(manager)[0];
-      // baseDuration 1, medical level 1 → matchesRemaining max(1, 1-0) = 1
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'muscle_strain', 1)] });
-      const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining).toBe(1);
-
-      manager.handleMatchdayComplete();
-      const afterPlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      expect(afterPlayer.injury).toBeUndefined();
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'muscle_strain', 6)] });
+      const before = assertDefined(
+        assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found').injury,
+        'player not injured',
+      );
+      for (let i = 0; i < 5; i++) { manager.handleMatchdayComplete(); }
+      const after = manager.getState().squad.find(p => p.id === id)?.injury;
+      expect(after).toEqual(before);
     });
 
     test('counts down suspension matchesRemaining', () => {
@@ -1249,7 +1244,9 @@ describe('ClubManager (mutation top-up):', () => {
       const manager = new ClubManager(config);
       emitMatch(bus, 'club-1', 'other', 0, 0, { home: [report(p.id, 'hamstring_pull', 3)] });
       const injury = assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').injury;
-      expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3, originalDuration: 3 }); // max(1, 3-(1-1))
+      expect(injury).toEqual({
+        type: 'hamstring_pull', returnDate: addDays(NOW, 3), originalDays: 3,
+      });
     });
 
     test('no reported injury leaves the starter uninjured', () => {
@@ -1293,21 +1290,35 @@ describe('ClubManager (mutation top-up):', () => {
     });
   });
 
-  describe('handleMatchdayComplete', () => {
-    test('ticks an injury down and only clears it when it reaches zero', () => {
+  describe('advanceTime injury clearing', () => {
+    test('clears an injury on its return date, not before', () => {
       const manager = new ClubManager(makeConfig());
       const state = manager.getState();
-      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2, originalDuration: 2 };
+      const injury = { type: 'muscle_strain', returnDate: addDays(NOW, 6), originalDays: 6 };
+      state.squad[0].injury = injury;
       manager.loadState(state);
 
-      manager.handleMatchdayComplete();
-      expect(manager.getState().squad[0].injury).toEqual({ type: 'muscle_strain', matchesRemaining: 1, originalDuration: 2 });
+      manager.advanceTime(5, addDays(NOW, 5));
+      expect(manager.getState().squad[0].injury).toEqual(injury);
 
-      manager.handleMatchdayComplete();
+      // A player is fit *on* the return date, so the sixth day is the one that clears it.
+      manager.advanceTime(1, addDays(NOW, 6));
       expect(manager.getState().squad[0].injury).toBeUndefined();
     });
 
-    test('emits player.injuryCleared with the original duration when a natural recovery completes', () => {
+    test('a single long jump clears an injury that came due mid-jump', () => {
+      // Advancing a month in one step must not step over a return date and leave the player
+      // permanently injured — the check is against the date, not the size of the step.
+      const manager = new ClubManager(makeConfig());
+      const state = manager.getState();
+      state.squad[0].injury = { type: 'knee_injury', returnDate: addDays(NOW, 10), originalDays: 10 };
+      manager.loadState(state);
+
+      manager.advanceTime(30, addDays(NOW, 30));
+      expect(manager.getState().squad[0].injury).toBeUndefined();
+    });
+
+    test('emits player.injuryCleared with the original layoff when a natural recovery completes', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const cleared: GameEvents['player.injuryCleared'][] = [];
@@ -1315,29 +1326,31 @@ describe('ClubManager (mutation top-up):', () => {
 
       const state = manager.getState();
       const player = state.squad[0];
-      player.injury = { type: 'hamstring_pull', matchesRemaining: 1, originalDuration: 3 };
+      player.injury = { type: 'hamstring_pull', returnDate: addDays(NOW, 20), originalDays: 20 };
       manager.loadState(state);
 
-      manager.handleMatchdayComplete();
+      manager.advanceTime(20, addDays(NOW, 20));
       expect(cleared).toEqual([{
-        playerId: player.id, playerName: player.name, injuryType: 'hamstring_pull', originalDuration: 3,
+        playerId: player.id, playerName: player.name, injuryType: 'hamstring_pull', originalDays: 20,
       }]);
     });
 
-    test('does not emit player.injuryCleared while an injury is still counting down', () => {
+    test('does not emit player.injuryCleared while the return date is still ahead', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const cleared: GameEvents['player.injuryCleared'][] = [];
       bus.on('player.injuryCleared', e => cleared.push(e));
 
       const state = manager.getState();
-      state.squad[0].injury = { type: 'muscle_strain', matchesRemaining: 2, originalDuration: 2 };
+      state.squad[0].injury = { type: 'muscle_strain', returnDate: addDays(NOW, 6), originalDays: 6 };
       manager.loadState(state);
 
-      manager.handleMatchdayComplete();
+      manager.advanceTime(2, addDays(NOW, 2));
       expect(cleared).toHaveLength(0);
     });
+  });
 
+  describe('handleMatchdayComplete', () => {
     test('ticks a suspension down and only clears it at zero', () => {
       const manager = new ClubManager(makeConfig());
       const state = manager.getState();
@@ -1354,7 +1367,7 @@ describe('ClubManager (mutation top-up):', () => {
   });
 });
 
-describe('ClubManager.recoverFitness:', () => {
+describe('ClubManager.advanceTime fitness recovery:', () => {
   test('a built medical recovery wing speeds up fitness recovery', () => {
     const withoutWing = new ClubManager(makeConfig());
     const withWing = new ClubManager(makeConfig({ budget: 1_000_000 }));
@@ -1365,8 +1378,8 @@ describe('ClubManager.recoverFitness:', () => {
       m.loadState(state);
     }
 
-    withoutWing.recoverFitness(7);
-    withWing.recoverFitness(7);
+    withoutWing.advanceTime(7, addDays(NOW, 7));
+    withWing.advanceTime(7, addDays(NOW, 7));
 
     expect(withWing.getState().squad[0].fitness).toBeGreaterThan(withoutWing.getState().squad[0].fitness);
   });
@@ -1374,8 +1387,8 @@ describe('ClubManager.recoverFitness:', () => {
   test('does nothing for a zero or negative elapsed-day count', () => {
     const manager = new ClubManager(makeConfig());
     const before = manager.getState().squad[0].fitness;
-    manager.recoverFitness(0);
-    manager.recoverFitness(-3);
+    manager.advanceTime(0, addDays(NOW, 0));
+    manager.advanceTime(-3, addDays(NOW, -3));
     expect(manager.getState().squad[0].fitness).toBe(before);
   });
 
@@ -1385,7 +1398,7 @@ describe('ClubManager.recoverFitness:', () => {
     state.squad[0].fitness = 500;
     state.squad[0].attributes.stamina = 99;
     manager.loadState(state);
-    manager.recoverFitness(7);
+    manager.advanceTime(7, addDays(NOW, 7));
     // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = 24 * 7 * 1.1 = 184.8
     expect(manager.getState().squad[0].fitness).toBeCloseTo(684.8, 5);
   });
@@ -1407,8 +1420,8 @@ describe('ClubManager.recoverFitness:', () => {
       m.loadState(s);
     }
 
-    inOneStep.recoverFitness(7);
-    for (let d = 0; d < 7; d++) { dayByDay.recoverFitness(1); }
+    inOneStep.advanceTime(7, addDays(NOW, 7));
+    for (let d = 0; d < 7; d++) { dayByDay.advanceTime(1, addDays(NOW, d + 1)); }
 
     expect(inOneStep.getState().squad[0].fitness).toBeCloseTo(dayByDay.getState().squad[0].fitness, 9);
   });
@@ -1423,8 +1436,8 @@ describe('ClubManager.recoverFitness:', () => {
       m.loadState(s);
     }
 
-    bare.recoverFitness(7);
-    withFlat.recoverFitness(7);
+    bare.advanceTime(7, addDays(NOW, 7));
+    withFlat.advanceTime(7, addDays(NOW, 7));
 
     const flat = FACILITY_CATALOGUE.medical.iceBathRecoverySuite.effects.recoveryFlat ?? 0;
     expect(withFlat.getState().squad[0].fitness - bare.getState().squad[0].fitness).toBeCloseTo(flat * 7, 6);
@@ -1445,8 +1458,8 @@ describe('ClubManager.recoverFitness:', () => {
     tiredState.squad[0].attributes.stamina = 1;
     tired.loadState(tiredState);
 
-    fit.recoverFitness(7);
-    tired.recoverFitness(7);
+    fit.advanceTime(7, addDays(NOW, 7));
+    tired.advanceTime(7, addDays(NOW, 7));
     expect(fit.getState().squad[0].fitness).toBeGreaterThan(tired.getState().squad[0].fitness);
   });
 
@@ -1455,14 +1468,14 @@ describe('ClubManager.recoverFitness:', () => {
     const state = manager.getState();
     state.squad[0].fitness = 0;
     manager.loadState(state);
-    manager.recoverFitness(3);
+    manager.advanceTime(3, addDays(NOW, 3));
     const after3 = manager.getState().squad[0].fitness;
 
     const manager2 = new ClubManager(makeConfig());
     const state2 = manager2.getState();
     state2.squad[0].fitness = 0;
     manager2.loadState(state2);
-    manager2.recoverFitness(7);
+    manager2.advanceTime(7, addDays(NOW, 7));
     const after7 = manager2.getState().squad[0].fitness;
 
     expect(after3).toBeLessThan(after7);
@@ -1473,7 +1486,7 @@ describe('ClubManager.recoverFitness:', () => {
     const state = manager.getState();
     state.squad[0].fitness = 950;
     manager.loadState(state);
-    manager.recoverFitness(30);
+    manager.advanceTime(30, addDays(NOW, 30));
     expect(manager.getState().squad[0].fitness).toBe(1000);
   });
 });

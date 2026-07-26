@@ -541,7 +541,7 @@ export class DuelMatchSimulator {
         playerId: injury.playerId,
         description: injuryDescription(player?.name ?? injury.playerId, injury),
         resultingState: currentState,
-        metadata: { injuryType: injury.type, baseDuration: injury.baseDuration, cause: injury.cause },
+        metadata: { injuryType: injury.type, baseDays: injury.baseDays, cause: injury.cause },
       });
     }
     return currentState;

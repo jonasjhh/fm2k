@@ -141,10 +141,10 @@ describe('injuryAvertedHeadline:', () => {
 });
 
 describe('returnHeadline:', () => {
-  it('celebrates the comeback with the matches missed', () => {
-    const article = returnHeadline({ playerName: 'Jane Doe', matchesMissed: 6, timestamp: TS }, rngReturning(0));
+  it('celebrates the comeback with the days missed', () => {
+    const article = returnHeadline({ playerName: 'Jane Doe', daysMissed: 24, timestamp: TS }, rngReturning(0));
     expect(article.category).toBe('injury');
     expect(article.headline).toContain('Jane Doe');
-    expect(article.headline).toContain('6');
+    expect(article.headline).toContain('24');
   });
 });

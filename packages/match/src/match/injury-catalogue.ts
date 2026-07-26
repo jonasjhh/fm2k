@@ -36,12 +36,16 @@ export const INJURY_TRIGGERS: readonly InjuryTrigger[] = [
 
 export const INJURY_SEVERITIES: readonly InjurySeverity[] = ['knock', 'moderate', 'serious'];
 
-/** Duration bounds each band must stay inside — a guard against misclassification, asserted in
- *  the catalogue tests rather than enforced at runtime. */
+/** Layoff bounds in *days* each band must stay inside — a guard against misclassification,
+ *  asserted in the catalogue tests rather than enforced at runtime.
+ *
+ *  Days, not matches. An injury is a fixed period of calendar time: how many fixtures it costs
+ *  you depends on how congested your run is, which is the whole point — the same hamstring pull
+ *  costs one match in a quiet February and three over Christmas. */
 export const SEVERITY_DURATION_BOUNDS: Record<InjurySeverity, [number, number]> = {
-  knock: [1, 2],
-  moderate: [2, 5],
-  serious: [8, 15],
+  knock: [3, 10],
+  moderate: [14, 35],
+  serious: [60, 120],
 };
 
 export interface InjuryDefinition {
@@ -49,7 +53,7 @@ export interface InjuryDefinition {
   /** Display label. The UI reads this rather than de-underscoring the id. */
   name: string
   severity: InjurySeverity
-  /** [min, max] matches out, inclusive, before any medical mitigation. */
+  /** [min, max] days out, inclusive, before any medical mitigation. */
   duration: [number, number]
   /** Ceiling on prevention: the most that even a complete medical estate can ever avert.
    *  This is the clamp that stops facilities becoming an injury off-switch — you can physio
@@ -76,98 +80,98 @@ export interface InjuryDefinition {
 export const INJURY_DEFINITIONS: InjuryDefinition[] = [
   // ── knocks: frequent, cheap, the texture of a congested fixture list ──────────
   {
-    id: 'dead_leg', name: 'dead leg', severity: 'knock', duration: [1, 2],
+    id: 'dead_leg', name: 'dead leg', severity: 'knock', duration: [3, 6],
     maxAvertChance: 0.85, minDurationFraction: 0,
     triggers: { tackled: 75, tackling: 40, foul: 80, yellow_foul: 85, red_foul: 100 },
   },
   {
-    id: 'ankle_twist', name: 'twisted ankle', severity: 'knock', duration: [1, 2],
+    id: 'ankle_twist', name: 'twisted ankle', severity: 'knock', duration: [4, 8],
     maxAvertChance: 0.75, minDurationFraction: 0,
     triggers: { tackled: 25, tackling: 60, foul: 20, yellow_foul: 15 },
   },
   {
-    id: 'muscle_strain', name: 'muscle strain', severity: 'knock', duration: [1, 2],
+    id: 'muscle_strain', name: 'muscle strain', severity: 'knock', duration: [4, 9],
     maxAvertChance: 0.80, minDurationFraction: 0.50,
     triggers: { sprint: 100, through_run: 100 },
   },
   {
     // Protocol, not treatment, decides when a head knock clears — hence the immovable floor.
-    id: 'head_knock', name: 'head knock', severity: 'knock', duration: [1, 2],
+    id: 'head_knock', name: 'head knock', severity: 'knock', duration: [6, 10],
     maxAvertChance: 0.40, minDurationFraction: 1.0,
     triggers: { aerial: 65 },
   },
   {
-    id: 'bruised_ribs', name: 'bruised ribs', severity: 'knock', duration: [1, 2],
+    id: 'bruised_ribs', name: 'bruised ribs', severity: 'knock', duration: [5, 10],
     maxAvertChance: 0.60, minDurationFraction: 0.50,
     triggers: { aerial: 35, save: 45 },
   },
   {
-    id: 'finger_injury', name: 'finger injury', severity: 'knock', duration: [1, 2],
+    id: 'finger_injury', name: 'finger injury', severity: 'knock', duration: [3, 7],
     maxAvertChance: 0.60, minDurationFraction: 0.50,
     triggers: { save: 55 },
   },
 
   // ── moderate: you lose the player, but prevention and rehab both bite ─────────
   {
-    id: 'ankle_sprain', name: 'ankle sprain', severity: 'moderate', duration: [2, 4],
+    id: 'ankle_sprain', name: 'ankle sprain', severity: 'moderate', duration: [14, 25],
     maxAvertChance: 0.45, minDurationFraction: 0.35,
     triggers: { tackled: 55, tackling: 70, foul: 60, yellow_foul: 50, red_foul: 45 },
   },
   {
-    id: 'knee_injury', name: 'knee injury', severity: 'moderate', duration: [3, 5],
+    id: 'knee_injury', name: 'knee injury', severity: 'moderate', duration: [21, 35],
     maxAvertChance: 0.35, minDurationFraction: 0.50,
     triggers: { tackled: 45, tackling: 30, foul: 40, yellow_foul: 50, red_foul: 55 },
   },
   {
-    id: 'calf_strain', name: 'calf strain', severity: 'moderate', duration: [2, 4],
+    id: 'calf_strain', name: 'calf strain', severity: 'moderate', duration: [14, 24],
     maxAvertChance: 0.50, minDurationFraction: 0.40,
     triggers: { sprint: 44, through_run: 30 },
   },
   {
-    id: 'groin_strain', name: 'groin strain', severity: 'moderate', duration: [2, 3],
+    id: 'groin_strain', name: 'groin strain', severity: 'moderate', duration: [14, 21],
     maxAvertChance: 0.50, minDurationFraction: 0.40,
     triggers: { sprint: 32, through_run: 15 },
   },
   {
-    id: 'hamstring_pull', name: 'hamstring pull', severity: 'moderate', duration: [3, 5],
+    id: 'hamstring_pull', name: 'hamstring pull', severity: 'moderate', duration: [18, 30],
     maxAvertChance: 0.45, minDurationFraction: 0.45,
     triggers: { sprint: 24, through_run: 55 },
   },
   {
-    id: 'shoulder_injury', name: 'shoulder injury', severity: 'moderate', duration: [2, 4],
+    id: 'shoulder_injury', name: 'shoulder injury', severity: 'moderate', duration: [16, 28],
     maxAvertChance: 0.30, minDurationFraction: 0.55,
     triggers: { aerial: 70 },
   },
   {
-    id: 'neck_strain', name: 'neck strain', severity: 'moderate', duration: [2, 4],
+    id: 'neck_strain', name: 'neck strain', severity: 'moderate', duration: [14, 24],
     maxAvertChance: 0.30, minDurationFraction: 0.55,
     triggers: { aerial: 30 },
   },
   {
-    id: 'wrist_sprain', name: 'wrist sprain', severity: 'moderate', duration: [2, 3],
+    id: 'wrist_sprain', name: 'wrist sprain', severity: 'moderate', duration: [14, 21],
     maxAvertChance: 0.30, minDurationFraction: 0.55,
     triggers: { save: 100 },
   },
 
   // ── serious: rare, and very nearly beyond the reach of money ──────────────────
   {
-    id: 'knee_ligament_tear', name: 'knee ligament tear', severity: 'serious', duration: [8, 12],
+    id: 'knee_ligament_tear', name: 'knee ligament tear', severity: 'serious', duration: [90, 120],
     maxAvertChance: 0.05, minDurationFraction: 0.70,
     triggers: { tackled: 100, tackling: 100, foul: 100, yellow_foul: 60, red_foul: 35 },
   },
   {
     // A surgeon shaves weeks off the recovery. Nothing prevents it happening.
-    id: 'broken_leg', name: 'broken leg', severity: 'serious', duration: [10, 15],
+    id: 'broken_leg', name: 'broken leg', severity: 'serious', duration: [100, 120],
     maxAvertChance: 0.02, minDurationFraction: 0.75,
     triggers: { yellow_foul: 40, red_foul: 65 },
   },
   {
-    id: 'torn_hamstring', name: 'torn hamstring', severity: 'serious', duration: [8, 10],
+    id: 'torn_hamstring', name: 'torn hamstring', severity: 'serious', duration: [60, 84],
     maxAvertChance: 0.08, minDurationFraction: 0.65,
     triggers: { sprint: 100, through_run: 100 },
   },
   {
-    id: 'concussion', name: 'concussion', severity: 'serious', duration: [8, 10],
+    id: 'concussion', name: 'concussion', severity: 'serious', duration: [60, 75],
     maxAvertChance: 0.05, minDurationFraction: 1.0,
     triggers: { aerial: 100 },
   },
