@@ -167,15 +167,16 @@ export function injuriesBySide(state: MatchState): { home: InjuryReport[]; away:
   };
 }
 
-/** Worst first, so a serious injury is never masked by a knock rolled in the same involvement. */
+/** Worst first, so the gravest band gets the low end of the roll and a serious injury is never
+ *  masked by a knock in the same involvement. */
 const SEVERITY_ORDER: readonly InjurySeverity[] = [...INJURY_SEVERITIES].reverse();
 
 /**
- * Roll one minute's exposures against the dedicated injury rng. Each involvement rolls the three
- * severity bands independently, so knock frequency can be tuned without disturbing how often
- * serious injuries happen. At most one injury per player per match (`alreadyInjured` seeds the
- * exclusion — pass everyone already off the pitch too). Deterministic under `injuryRng`; consumes
- * no main-stream rng.
+ * Roll one minute's exposures against the dedicated injury rng. Each involvement takes a single
+ * draw against the severity bands laid end to end, so each band's frequency is exactly its own
+ * exposure number and knock frequency can be tuned without disturbing how often serious injuries
+ * happen. At most one injury per player per match (`alreadyInjured` seeds the exclusion — pass
+ * everyone already off the pitch too). Deterministic under `injuryRng`; consumes no main-stream rng.
  */
 export function rollInjuries(
   events: MatchEvent[],
@@ -193,25 +194,32 @@ export function rollInjuries(
     const energy = state.energy?.[exp.team]?.[exp.playerId] ?? 100;
     const fatigue = fatigueRiskFactor(player, energy);
 
+    // One draw, laid against the bands end to end from worst to lightest. Each band owns an
+    // interval as wide as its own exposure, so its absolute frequency *is* that number: moving
+    // the serious exposure slides the knock interval along without ever narrowing it. Rolling
+    // each band separately instead would make the lighter bands conditional on the graver ones
+    // having missed, which quietly couples the knobs the catalogue exists to keep apart.
+    const roll = injuryRng();
+    let ceiling = 0;
+    let band: InjurySeverity | undefined;
     for (const severity of SEVERITY_ORDER) {
-      // A slot with no candidates (a keeper cannot pick up a serious injury from a save) is
-      // skipped without consuming a draw, so empty slots stay free of side effects.
-      if (INJURY_TABLE[exp.trigger][severity].length === 0) { continue; }
-      const chance = TRIGGER_EXPOSURE[exp.trigger][severity] * fatigue;
-      if (injuryRng() >= chance) { continue; }
-
-      const picked = pickInjury(exp.trigger, severity, injuryRng);
-      if (!picked) { continue; }
-      hit.add(exp.playerId);
-      out.push({
-        playerId: exp.playerId,
-        team: exp.team,
-        minute: state.minute,
-        cause: exp.trigger,
-        ...picked,
-      });
-      break;
+      ceiling += TRIGGER_EXPOSURE[exp.trigger][severity] * fatigue;
+      if (roll < ceiling) { band = severity; break; }
     }
+    // Past every band: unscathed. A band with no exposure has zero width and can never be
+    // selected, which is how a keeper avoids serious injuries from a save.
+    if (!band) { continue; }
+
+    const picked = pickInjury(exp.trigger, band, injuryRng);
+    if (!picked) { continue; }
+    hit.add(exp.playerId);
+    out.push({
+      playerId: exp.playerId,
+      team: exp.team,
+      minute: state.minute,
+      cause: exp.trigger,
+      ...picked,
+    });
   }
   return out;
 }

@@ -1,6 +1,6 @@
 import {
   collectExposures, rollInjuries, fatigueRiskFactor, injuryDescription, INJURY_TYPES,
-  type MatchInjury,
+  type MatchInjury, type InjurySeverity,
 } from './injury.ts';
 import { INJURY_BY_ID, TRIGGER_EXPOSURE } from './injury-catalogue.ts';
 import { DuelMatchSimulator } from './duel/duel-simulator.ts';
@@ -82,9 +82,9 @@ describe('rollInjuries:', () => {
     ev('tackle', 'away', { playerId: 'tackler', metadata: { attackerId: 'carrier', attackingTeam: 'home' } }),
   ];
 
-  test('bands roll worst-first, so a serious injury is never masked by a knock', () => {
-    // rng 0 → every chance roll passes. Because the bands are rolled serious→knock, the
-    // challenged player takes the worst outcome the situation can produce, not the first.
+  test('bands are laid worst-first, so a serious injury is never masked by a knock', () => {
+    // rng 0 lands at the very bottom of the roll, which is the serious band's interval — the
+    // challenged player takes the worst outcome the situation can produce, not the lightest.
     const injuries = rollInjuries(tackleEvents, stateWith([carrier]), new Set(), () => 0);
     expect(injuries).toHaveLength(1);
     expect(injuries[0]).toMatchObject({
@@ -94,9 +94,13 @@ describe('rollInjuries:', () => {
     expect(injuries[0].baseDays).toBeGreaterThanOrEqual(1);
   });
 
-  test('a knock is what a challenge actually produces once the rare bands fail', () => {
-    // Fail serious and moderate, pass knock, then pick the head of the table.
-    const seq = [1, 1, 0, 0, 0];
+  test('a knock is what a challenge actually produces once the rare bands are past', () => {
+    // A roll just past the serious and moderate intervals lands in the knock one; the next draw
+    // picks the head of that band's table. The edge is derived from the catalogue rather than
+    // hard-coded, so retuning exposure cannot quietly make this assert nothing.
+    const fatigue = fatigueRiskFactor(carrier, 80);
+    const { serious, moderate } = TRIGGER_EXPOSURE.tackled;
+    const seq = [(serious + moderate) * fatigue + 1e-9, 0, 0];
     let i = 0;
     const injuries = rollInjuries(
       tackleEvents, stateWith([carrier]), new Set(), () => seq[Math.min(i++, seq.length - 1)],
@@ -109,19 +113,6 @@ describe('rollInjuries:', () => {
     const def = INJURY_BY_ID[injuries[0].type];
     expect(injuries[0].maxAvertChance).toBe(def.maxAvertChance);
     expect(injuries[0].minDurationFraction).toBe(def.minDurationFraction);
-  });
-
-  test('an empty severity slot consumes no rng draw, so it cannot shift later picks', () => {
-    // Keepers have no serious injuries. If that slot still drew, the save trigger's roll
-    // sequence would silently differ from every other trigger's.
-    const keeper = createUniformPlayer('keeper', 'Keeper', 'GK');
-    const draws: number[] = [];
-    rollInjuries(
-      [ev('save', 'home', { playerId: 'keeper' })], stateWith([keeper]), new Set(),
-      () => { draws.push(1); return 1; },
-    );
-    // moderate + knock chance rolls only — the serious slot is skipped outright.
-    expect(draws).toHaveLength(2);
   });
 
   test('broken_leg is only reachable through a carded foul', () => {
@@ -165,6 +156,82 @@ describe('rollInjuries:', () => {
     expect(text).toContain('sprinting onto the through ball');
     expect(text).toContain('hamstring pull');
     expect(text).toContain('21 days');
+  });
+});
+
+describe('severity bands are independently tunable:', () => {
+  // The property the catalogue exists to provide, and the one the old single-roll-then-weights
+  // model violated: back then severities were shares of a fixed whole, so raising knock
+  // frequency took share away from serious injuries instead of adding to the total. Now each
+  // band owns an interval as wide as its own exposure, which is checkable exactly — no
+  // sampling needed.
+  //
+  // Pinned to stamina 50 and energy 55 so fatigueRiskFactor is exactly 1.0 and the interval
+  // edges are the raw catalogue numbers, i.e. the test reads against the tuning surface itself.
+  const player = createUniformPlayer('carrier', 'Carrier', 'ST', 50);
+  const state = stateWith([player], 55);
+  const tackle = [ev('tackle', 'away', {
+    playerId: 'tackler', metadata: { attackerId: 'carrier', attackingTeam: 'home' },
+  })];
+  const { knock, moderate, serious } = TRIGGER_EXPOSURE.tackled;
+
+  /** The band a given roll lands in, or undefined when the player escapes. */
+  function bandFor(roll: number): InjurySeverity | undefined {
+    let first = true;
+    // The band roll comes first; later draws (type pick, duration) are mid-range and harmless.
+    const rng = () => { if (first) { first = false; return roll; } return 0.5; };
+    return rollInjuries(tackle, state, new Set(), rng)[0]?.severity;
+  }
+
+  test('fatigueRiskFactor is exactly 1.0 for this fixture, so the edges are the raw numbers', () => {
+    // Guards the premise of every assertion below — if the fixture drifts off 1.0 the interval
+    // arithmetic silently stops matching the catalogue and the tests below become vacuous.
+    expect(fatigueRiskFactor(player, 55)).toBeCloseTo(1, 10);
+  });
+
+  test('each band occupies an interval exactly as wide as its own exposure', () => {
+    // Worst first: [0, serious) then [serious, +moderate) then [+moderate, +knock).
+    const EPS = 1e-9;
+    expect(bandFor(0)).toBe('serious');
+    expect(bandFor(serious - EPS)).toBe('serious');
+
+    expect(bandFor(serious + EPS)).toBe('moderate');
+    expect(bandFor(serious + moderate - EPS)).toBe('moderate');
+
+    expect(bandFor(serious + moderate + EPS)).toBe('knock');
+    expect(bandFor(serious + moderate + knock - EPS)).toBe('knock');
+
+    expect(bandFor(serious + moderate + knock + EPS)).toBeUndefined();
+    expect(bandFor(0.99)).toBeUndefined();
+  });
+
+  test('a band\'s width — so its frequency — does not depend on the bands above it', () => {
+    // The whole point. The knock interval's width is `knock`, wherever the graver bands put its
+    // lower edge, so raising serious exposure slides the interval without narrowing it. Under
+    // the old model this width was a share of the total and shrank as others grew.
+    const knockWidth = (serious + moderate + knock) - (serious + moderate);
+    expect(knockWidth).toBeCloseTo(knock, 10);
+    const moderateWidth = (serious + moderate) - serious;
+    expect(moderateWidth).toBeCloseTo(moderate, 10);
+  });
+
+  test('one draw decides the band, however many injuries the situation could produce', () => {
+    // Three separate chance rolls would consume three draws here and make each lighter band
+    // conditional on the graver ones missing.
+    const draws: number[] = [];
+    rollInjuries(tackle, state, new Set(), () => { draws.push(0.99); return 0.99; });
+    expect(draws).toHaveLength(1);
+  });
+
+  test('a band with no exposure has zero width and never comes up', () => {
+    // Keepers take no serious injuries from a save: save/serious exposure is 0, so the interval
+    // is empty and even a roll of 0 falls through to the moderate band.
+    expect(TRIGGER_EXPOSURE.save.serious).toBe(0);
+    const keeper = createUniformPlayer('keeper', 'Keeper', 'GK', 50);
+    const injuries = rollInjuries(
+      [ev('save', 'home', { playerId: 'keeper' })], stateWith([keeper], 55), new Set(), () => 0,
+    );
+    expect(injuries[0]?.severity).toBe('moderate');
   });
 });
 

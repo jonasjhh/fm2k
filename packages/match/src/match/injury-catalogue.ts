@@ -5,10 +5,13 @@
  *
  * Two ideas drive the shape:
  *
- *  • **Severity is rolled independently.** Each situation carries a separate exposure for knocks,
- *    moderate injuries and serious ones. Under the old single-roll model the table decided *what*
- *    happened once *something* had, so making knocks more common stole from serious injuries
- *    instead of adding to them. Now the three are genuinely separate knobs.
+ *  • **Each severity has its own exposure.** A situation carries three separate chances — knock,
+ *    moderate, serious — and one roll is laid against them end to end, so each band's frequency is
+ *    exactly the number written here. Under the old model a single chance decided *whether*
+ *    something happened and weights then decided *what*, which made the severities shares of a
+ *    fixed whole: raising knock frequency stole from serious injuries instead of adding to the
+ *    total. These three are genuinely separate knobs, which is what lets a club with no medical
+ *    wings suffer more knocks without also suffering more broken legs.
  *
  *  • **Injuries declare their situations, not the other way round.** Each definition lists the
  *    triggers that can produce it and its weight within that trigger's severity slot; the lookup

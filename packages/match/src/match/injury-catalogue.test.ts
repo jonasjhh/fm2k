@@ -41,6 +41,20 @@ describe('injury catalogue invariants:', () => {
     }
   });
 
+  test('a situation\'s bands fit inside one roll even at maximum fatigue', () => {
+    // The three bands are laid end to end against a single [0,1) draw, so their sum is a real
+    // budget rather than a presentational total. fatigueRiskFactor multiplies all three and
+    // tops out at 3.0 (staminaFactor 1.5 × energyFactor 2.0); if a trigger's bands summed past
+    // 1/3 they would overflow for an exhausted player and the lightest band would be silently
+    // truncated — injuries quietly capped instead of the catalogue being wrong out loud.
+    const MAX_FATIGUE = 3.0;
+    for (const trigger of INJURY_TRIGGERS) {
+      const total = INJURY_SEVERITIES.reduce((s, sev) => s + TRIGGER_EXPOSURE[trigger][sev], 0);
+      expect(`${trigger}: ${(total * MAX_FATIGUE).toFixed(3)} < 1`)
+        .toBe(`${trigger}: ${Math.min(total * MAX_FATIGUE, 0.999).toFixed(3)} < 1`);
+    }
+  });
+
   test('every injury is reachable from at least one situation', () => {
     for (const def of INJURY_DEFINITIONS) {
       const triggers = Object.keys(def.triggers);
