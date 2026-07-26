@@ -77,7 +77,7 @@ function simulate(seasons: number, teamCount: number, seed: number): { history: 
     world = world.map(team => {
       const res = churnSquad(team.squad, {
         rng, youthFactory, nationality: team.nationality,
-        ...bonusesFor(team.trainingLevel), academyBias: academyBiasForLevel(team.academyLevel),
+        axesOf: () => bonusesFor(team.trainingLevel), academyBias: academyBiasForLevel(team.academyLevel),
       });
       for (const pos of res.overflow) { overflow.push({ position: pos, nationality: team.nationality }); }
       return { ...team, squad: res.squad };

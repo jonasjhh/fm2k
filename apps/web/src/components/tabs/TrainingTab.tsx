@@ -64,7 +64,13 @@ function sortSquad(
   });
 }
 
-function DevelopmentCell({ delta }: { delta: PlayerDelta | undefined }) {
+function DevelopmentCell({ delta, joined }: { delta: PlayerDelta | undefined; joined: boolean }) {
+  // A player who arrived mid-season has no baseline to diff against, so they carry no delta.
+  // Saying "no change" for them would be a lie about the training system — a whole academy
+  // intake would read as having stagnated on arrival.
+  if (joined && !delta) {
+    return <Typography variant="caption" color="text.disabled">Joined this season</Typography>;
+  }
   if (!delta || Object.keys(delta.deltas).length === 0) {
     return <Typography variant="caption" color="text.disabled">No change last season</Typography>;
   }
@@ -98,6 +104,8 @@ export default function TrainingTab() {
     () => new Map((clubState?.recentDevelopment ?? []).map(d => [d.playerId, d])),
     [clubState],
   );
+
+  const arrivals = useMemo(() => new Set(clubState?.recentArrivals ?? []), [clubState]);
 
   const regimentCounts = useMemo(() => {
     const counts = new Map<RegimentId, number>(REGIMENT_IDS.map(id => [id, 0]));
@@ -219,13 +227,16 @@ export default function TrainingTab() {
                   onChange={(e) => setTraining(p.id, e.target.value as RegimentId)}
                   sx={{ '& .MuiSelect-select': { py: 0.5 } }}
                 >
-                  {REGIMENT_IDS.map((id) => (
+                  {/* Goalkeeping is the one position-exclusive regiment: it trains nothing an
+                      outfielder can use on the pitch, so offering it is only a way to waste a
+                      season. The engine strips it defensively too (see `regimentWeights`). */}
+                  {REGIMENT_IDS.filter(id => id !== 'goalkeeping' || p.position === 'GK').map((id) => (
                     <MenuItem key={id} value={id}>{REGIMENT_LABELS[id]}</MenuItem>
                   ))}
                 </Select>
               </TableCell>
               <TableCell>
-                <DevelopmentCell delta={deltaByPlayerId.get(p.id)} />
+                <DevelopmentCell delta={deltaByPlayerId.get(p.id)} joined={arrivals.has(p.id)} />
               </TableCell>
             </TableRow>
           ))}

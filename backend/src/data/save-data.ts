@@ -27,7 +27,9 @@ export type SaveType = 'QUICK' | 'AUTO';
 // persist per-field, so old saves can't be migrated (MIN bumped too).
 // v14 added `transferFreeAgentAvailability` (per-free-agent AI pickup-delay dates; optional,
 // so v13 saves still load — a missing map just means every free agent is AI-visible).
-export const SAVE_VERSION = 14;
+// v15 added `clubState.recentArrivals` (players who joined mid-season and so have no development
+// baseline; optional, and an empty list on an older save just means nobody is labelled as new).
+export const SAVE_VERSION = 15;
 export const MIN_LOADABLE_VERSION = 13;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';

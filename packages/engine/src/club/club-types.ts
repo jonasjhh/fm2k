@@ -68,6 +68,11 @@ export interface ClubState {
   /** Each squad player's attributes as of the start of the current season — the baseline
    *  `recentDevelopment` is diffed against; reseeded wholesale each season-end rollover. */
   seasonStartSnapshot: Record<string, PlayerAttributes>
+  /** Players in the squad at the last rollover who had no season-start baseline: youth intake and
+   *  mid-season signings. They are absent from `recentDevelopment` because there is nothing to
+   *  diff, which is *not* the same as having failed to develop — the UI must say so, or a fresh
+   *  16-year-old reads as a player who stagnated. Replaced wholesale each season-end rollover. */
+  recentArrivals: string[]
   /** Manager-chosen dual-shape override (attacking + defending anchor per outfield XI
    *  player) — `null` means both shapes follow `formation`'s predefined template as-is.
    *  Reset to `null` whenever `formation` changes (slot indices and their meaning change

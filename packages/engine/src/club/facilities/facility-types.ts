@@ -1,4 +1,4 @@
-import type { InjurySeverity } from '@fm2k/match';
+import type { FieldLine, InjurySeverity, PlayerAttributes } from '@fm2k/match';
 
 /** Staffing posture for a built wing — describes the staffing situation, not an abstract tier. */
 export type OperatingMode = 'full_staff' | 'core_staff' | 'skeleton_crew'
@@ -55,9 +55,17 @@ export interface MedicalAxes {
   postMatchRecovery: number
 }
 
+/** What the training estate gives *one* player. Position and age scoping is already resolved,
+ *  so a keeper and a striker at the same club get different objects. Structurally the
+ *  `GrowthAxes` the progression layer consumes. */
 export interface TrainingAxes {
   growthBonus: number
   ceilingBonus: number
+  attrGrowthBonus: Partial<Record<keyof PlayerAttributes, number>>
+  /** Multiplier on season-end decline chance; 1 = nothing built. */
+  declineResist: number
+  /** Develop players as though their potential were at least this; 0 = nothing built. */
+  potentialFloor: number
 }
 
 export interface YouthBias {
@@ -84,9 +92,23 @@ export type WingEffects = Partial<{
   recoveryFlat: number
   matchDrainMult: number
   postMatchRecovery: number
+  /** Growth for every attribute of every player in the squad. */
   growthBonus: number
+  /** How far past `potential - 10` this wing lets players develop. At a squad total of
+   *  `CEILING_THRESHOLD` (10) players reach potential exactly; beyond it they surpass it. */
   ceilingBonus: number
-  gkGrowthBonus: number
+  /** Growth for named attributes only — a gym builds legs, a technical pitch builds touch. */
+  attrGrowthBonus: Partial<Record<keyof PlayerAttributes, number>>
+  /** Growth for players in named field lines only. Specialist coaching: narrow, so cheap
+   *  per point, and it makes squad identity a build decision. */
+  positionGrowthBonus: Partial<Record<FieldLine, number>>
+  /** Multiplier on the season-end decline chance for players past 30. Below 1 keeps veterans
+   *  playable longer — the only axis that helps players you already have. */
+  declineResist: number
+  /** Develop players as though their potential were at least this. Lifts the growth *rate* as
+   *  well as the ceiling, so a limited player improves as fast as a good prospect would. The only
+   *  axis aimed at a squad's weakest players rather than its best. */
+  potentialFloor: number
   overallBonus: number
   potentialRangeBonus: [number, number]
   nationalityPool: string[]

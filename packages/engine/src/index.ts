@@ -62,8 +62,9 @@ export type { PlayerInstruction, OverallDistribution, AttributeCategory } from '
 export { divisionOverallDistribution, divisionCategoryBias } from './player/generation-profile.ts';
 export {
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, REGIMENT_LABELS, REGIMENT_DESCRIPTIONS, DEFAULT_REGIMENT, defaultRegiment,
+  CEILING_THRESHOLD,
 } from './player/progression.ts';
-export type { RegimentId, SeasonDevelopment } from './player/progression.ts';
+export type { GrowthAxes, RegimentId, SeasonDevelopment } from './player/progression.ts';
 export {
   retirementChance, makeYouth, generatorYouthFactory, churnSquad, churnFreeAgents, runAiMarket,
   randomIntakeCap, MAX_SQUAD_SIZE, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel,

@@ -37,7 +37,8 @@ export {
   deriveRolesForShape, effectiveFormationLabel,
   effectiveDisplayOrder, emptySlotKey,
 } from './lineup/lineup.ts';
-export { BAND_OF_ROLE, MAX_BAND_SIZE, BAND_ORDER } from './lineup/bands.ts';
+export { BAND_OF_ROLE, MAX_BAND_SIZE, BAND_ORDER, FIELD_LINE } from './lineup/bands.ts';
+export type { FieldLine } from './lineup/bands.ts';
 
 // Position attribute importance (derived from the simulator's own formulas).
 // Consumed by player generation and the tactics UI; replaced by duel-exposure

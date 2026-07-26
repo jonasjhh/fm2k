@@ -145,20 +145,96 @@ describe('FacilityManager.medicalAxes', () => {
 });
 
 describe('FacilityManager.trainingAxes', () => {
+  const TRAINING = FACILITY_CATALOGUE.training;
+
   it('sums growthBonus and ceilingBonus across built training wings', () => {
     const facilities = emptyFacilities();
-    build(facilities, 'training', 'gym'); // +0.08 growth
-    build(facilities, 'training', 'tacticalAnalysisSuite'); // +2 ceiling
+    build(facilities, 'training', 'indoorPitch');
+    build(facilities, 'training', 'sportsScienceAnalyticsLab');
     const axes = FacilityManager.trainingAxes(facilities, makePlayer());
-    expect(axes.growthBonus).toBeCloseTo(0.08);
-    expect(axes.ceilingBonus).toBe(2);
+    const expected = ['indoorPitch', 'sportsScienceAnalyticsLab']
+      .map(id => TRAINING[id].effects);
+    expect(axes.growthBonus).toBeCloseTo(expected.reduce((s, e) => s + (e.growthBonus ?? 0), 0));
+    expect(axes.ceilingBonus).toBe(expected.reduce((s, e) => s + (e.ceilingBonus ?? 0), 0));
   });
 
-  it('only applies the goalkeeping unit bonus to goalkeepers', () => {
+  it('accumulates attrGrowthBonus per attribute, summing wings that overlap', () => {
+    // The set-piece pitch and the technical pitch both develop passing; a player training
+    // passing should get both, while an attribute only one of them covers gets only that one.
     const facilities = emptyFacilities();
-    build(facilities, 'training', 'goalkeepingTrainingUnit'); // +0.10 gk-only
+    build(facilities, 'training', 'outdoorTechnicalPitch');
+    build(facilities, 'training', 'setPiecePitch');
+    const { attrGrowthBonus } = FacilityManager.trainingAxes(facilities, makePlayer());
+    const pitch = TRAINING.outdoorTechnicalPitch.effects.attrGrowthBonus!;
+    const setPiece = TRAINING.setPiecePitch.effects.attrGrowthBonus!;
+    expect(attrGrowthBonus.passing).toBeCloseTo(pitch.passing! + setPiece.passing!);
+    expect(attrGrowthBonus.technique).toBeCloseTo(pitch.technique!);
+    expect(attrGrowthBonus.finishing).toBeCloseTo(setPiece.finishing!);
+    expect(attrGrowthBonus.defending).toBeUndefined();
+  });
+
+  it('applies positionGrowthBonus only to players in the wing\'s field line', () => {
+    const facilities = emptyFacilities();
+    build(facilities, 'training', 'goalkeepingTrainingUnit');
+    const gkBonus = TRAINING.goalkeepingTrainingUnit.effects.positionGrowthBonus!.GK!;
     expect(FacilityManager.trainingAxes(facilities, makePlayer({ position: 'CM' })).growthBonus).toBe(0);
-    expect(FacilityManager.trainingAxes(facilities, makePlayer({ position: 'GK' })).growthBonus).toBeCloseTo(0.10);
+    expect(FacilityManager.trainingAxes(facilities, makePlayer({ position: 'GK' })).growthBonus)
+      .toBeCloseTo(gkBonus);
+  });
+
+  it('gives every field line exactly one specialist wing, so no position is orphaned', () => {
+    // The four lines are each covered once. If a wing were added covering an already-served
+    // line, or a line lost its wing, one part of the squad would silently develop differently
+    // from the rest — the kind of imbalance that is invisible until a save is 10 seasons deep.
+    const covers: Record<string, string[]> = { GK: [], DEF: [], MID: [], ATT: [] };
+    for (const [id, def] of Object.entries(TRAINING)) {
+      for (const line of Object.keys(def.effects.positionGrowthBonus ?? {})) {
+        covers[line].push(id);
+      }
+    }
+    expect(Object.fromEntries(Object.entries(covers).map(([l, ids]) => [l, ids.length])))
+      .toEqual({ GK: 1, DEF: 1, MID: 1, ATT: 1 });
+  });
+
+  it('composes declineResist multiplicatively, and leaves it at 1 with nothing built', () => {
+    const facilities = emptyFacilities();
+    expect(FacilityManager.trainingAxes(facilities, makePlayer()).declineResist).toBe(1);
+    build(facilities, 'training', 'individualCoachingWing');
+    expect(FacilityManager.trainingAxes(facilities, makePlayer()).declineResist)
+      .toBeCloseTo(TRAINING.individualCoachingWing.effects.declineResist!);
+  });
+
+  it('takes the best potentialFloor rather than summing them', () => {
+    // Two wings each promising to develop anyone as a 65 still only develop them as a 65 —
+    // summing would make a pair of them out-develop a genuine prospect, which is nonsense.
+    const facilities = emptyFacilities();
+    expect(FacilityManager.trainingAxes(facilities, makePlayer()).potentialFloor).toBe(0);
+    const floors = Object.values(TRAINING)
+      .map(def => def.effects.potentialFloor ?? 0)
+      .filter(f => f > 0);
+    expect(floors.length).toBeGreaterThan(0);
+    for (const id of Object.keys(TRAINING)) { build(facilities, 'training', id); }
+    expect(FacilityManager.trainingAxes(facilities, makePlayer()).potentialFloor)
+      .toBe(Math.max(...floors));
+  });
+
+  it('scales every training axis by the wing\'s operating mode', () => {
+    // A skeleton crew delivers a fraction of the effect. Asserted across the axes together
+    // because a new axis that forgets its effectMult would otherwise slip through.
+    const full = emptyFacilities();
+    const skeleton = emptyFacilities();
+    for (const f of [full, skeleton]) {
+      for (const id of Object.keys(TRAINING)) {
+        build(f, 'training', id, f === skeleton ? { mode: 'skeleton_crew' } : {});
+      }
+    }
+    const a = FacilityManager.trainingAxes(full, makePlayer());
+    const b = FacilityManager.trainingAxes(skeleton, makePlayer());
+    expect(b.growthBonus).toBeLessThan(a.growthBonus);
+    expect(b.ceilingBonus).toBeLessThan(a.ceilingBonus);
+    expect(b.attrGrowthBonus.passing!).toBeLessThan(a.attrGrowthBonus.passing!);
+    expect(b.declineResist).toBeGreaterThan(a.declineResist); // less resistance = closer to 1
+    expect(b.potentialFloor).toBeLessThan(a.potentialFloor);
   });
 
   it('only applies youth development bonuses to players at or under the youth age cutoff', () => {

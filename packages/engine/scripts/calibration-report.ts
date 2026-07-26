@@ -280,7 +280,7 @@ function churnSection(lines: string[]): void {
         // Average AI training modelled as an equivalent development bonus (6b phase 6),
         // not simulated matches — see plan. Roughly a mid-table training setup.
         rng, youthFactory, nationality: data.nationality,
-        ...trainingBonusesForLevel(facilityForLevel(club.divisionLevel)),
+        axesOf: () => trainingBonusesForLevel(facilityForLevel(club.divisionLevel)),
         academyBias: academyBiasForLevel(facilityForLevel(club.divisionLevel)),
       });
       club.squad = res.squad;

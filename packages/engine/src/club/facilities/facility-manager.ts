@@ -1,4 +1,4 @@
-import type { InjurySeverity, Player } from '@fm2k/match';
+import { FIELD_LINE, type InjurySeverity, type Player, type PlayerAttributes } from '@fm2k/match';
 import {
   ACADEMY_DEVELOPMENT_WING_IDS,
   ACADEMY_HUB_WING_IDS,
@@ -101,16 +101,33 @@ export class FacilityManager {
     };
   }
 
+  /** The training estate as it applies to *this* player: the position- and age-scoped wings are
+   *  resolved here, so a keeper and a striker at the same club come out with different numbers.
+   *  Attribute scoping cannot be resolved yet — which attribute is being trained isn't known
+   *  until the progression layer picks one — so it travels as a map. */
   static trainingAxes(facilities: ClubFacilities, player: Player): TrainingAxes {
     let growthBonus = 0;
     let ceilingBonus = 0;
+    let declineResist = 1;
+    let potentialFloor = 0;
+    const attrGrowthBonus: Partial<Record<keyof PlayerAttributes, number>> = {};
+    const line = FIELD_LINE[player.position];
     for (const { def, instance } of builtWings('training', facilities)) {
       const mult = effectMult(instance);
       growthBonus += (def.effects.growthBonus ?? 0) * mult;
       ceilingBonus += (def.effects.ceilingBonus ?? 0) * mult;
-      if (player.position === 'GK') {
-        growthBonus += (def.effects.gkGrowthBonus ?? 0) * mult;
+      growthBonus += (def.effects.positionGrowthBonus?.[line] ?? 0) * mult;
+      for (const [attr, bonus] of Object.entries(def.effects.attrGrowthBonus ?? {})) {
+        const key = attr as keyof PlayerAttributes;
+        attrGrowthBonus[key] = (attrGrowthBonus[key] ?? 0) + bonus * mult;
       }
+      // Resistances compose the way the medical multipliers do: each wing removes its share of
+      // what is *left*, so stacking them approaches zero without ever making decline impossible.
+      const resist = def.effects.declineResist;
+      if (resist !== undefined) { declineResist *= 1 - (1 - resist) * mult; }
+      // A floor is the best one you have, not the sum of them — two wings that each promise to
+      // develop anyone as a 65 still only develop them as a 65.
+      potentialFloor = Math.max(potentialFloor, (def.effects.potentialFloor ?? 0) * mult);
     }
     if (player.age <= YOUTH_AGE_CUTOFF) {
       for (const { id, def, instance } of builtWings('academy', facilities)) {
@@ -118,7 +135,7 @@ export class FacilityManager {
         growthBonus += (def.effects.youthGrowthBonus ?? 0) * effectMult(instance);
       }
     }
-    return { growthBonus, ceilingBonus };
+    return { growthBonus, ceilingBonus, attrGrowthBonus, declineResist, potentialFloor };
   }
 
   static academyRecruitmentBias(facilities: ClubFacilities): YouthBias {

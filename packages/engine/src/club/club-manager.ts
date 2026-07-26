@@ -79,6 +79,8 @@ export interface ClubManagerConfig {
    *  brand-new club has no history yet). */
   readonly financialLog?: FinancialTransaction[]
   readonly recentDevelopment?: PlayerDelta[]
+  /** Ids of players who joined during the season just ended (no development baseline). */
+  readonly recentArrivals?: string[]
   /** Consecutive weekly maintenance ticks the club's budget has ended negative; defaults to 0
    *  (a brand-new club, or a season rollover, starts with no deficit streak). */
   readonly facilityDeficitStreak?: number
@@ -117,6 +119,7 @@ export class ClubManager {
       stadiumSectors: config.stadiumSectors,
       financialLog: config.financialLog ?? [],
       recentDevelopment: config.recentDevelopment ?? [],
+      recentArrivals: config.recentArrivals ?? [],
       seasonStartSnapshot: Object.fromEntries(squad.map(p => [p.id, p.attributes])),
       shapes: null,
       roleOverrides: {},
@@ -613,9 +616,9 @@ export class ClubManager {
         player.fitness = Math.max(0, Math.min(1000, player.fitness - drain + postMatchRecovery));
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
-        const trainingAxes = FacilityManager.trainingAxes(s.facilities, player);
         player.attributes = trainOnMatch(
-          player, player.training ?? DEFAULT_REGIMENT, trainingAxes.growthBonus, trainingAxes.ceilingBonus, this.rng,
+          player, player.training ?? DEFAULT_REGIMENT,
+          FacilityManager.trainingAxes(s.facilities, player), this.rng,
         );
       }
 
@@ -765,23 +768,14 @@ export class ClubManager {
   // positions NOT backfilled in-club (overflow) so the caller can mint them into the free-agent pool.
   handleSeasonComplete(): PlayerPosition[] {
     const state = this.stateManager.getState();
-    // Season-end batch development isn't per-player here (unlike the per-match tick above), so
-    // GK-only/youth-only training bonuses aren't applied at this granularity yet — a generic
-    // outfield, non-youth reference player gives the squad-wide growth/ceiling bonus instead.
-    const referencePlayer: Player = {
-      id: '', name: '', nationality: this.nationality, age: 99, position: 'CM', potential: 0,
-      attributes: state.squad[0]?.attributes ?? {
-        speed: 0, strength: 0, stamina: 0, passing: 0, technique: 0,
-        finishing: 0, defending: 0, goalkeeping: 0,
-      },
-    };
-    const trainingAxes = FacilityManager.trainingAxes(state.facilities, referencePlayer);
     const result = churnSquad(state.squad, {
       rng: this.rng,
       youthFactory: this.youthFactory,
       nationality: this.nationality,
-      growthBonus: trainingAxes.growthBonus,
-      ceilingBonus: trainingAxes.ceilingBonus,
+      // Resolved per player, so the keeper's coaching wing, the age-gated academy wings and the
+      // attribute-specific pitches all reach season-end development the same way they reach the
+      // per-match tick above.
+      axesOf: p => FacilityManager.trainingAxes(state.facilities, p),
       academyBias: FacilityManager.academyBias(state.facilities),
       regimentOf: p => (p as ClubPlayer).training ?? DEFAULT_REGIMENT,
     });
@@ -797,9 +791,13 @@ export class ClubManager {
     // `processMatchResult` throughout the season) plus this season-end batch — diffed against the
     // snapshot taken at the start of the season, not just churnSquad's narrower pre-batch delta.
     const fullSeasonDevelopment: PlayerDelta[] = [];
+    const arrivals: string[] = [];
     for (const p of result.squad) {
       const before = state.seasonStartSnapshot[p.id];
-      if (!before) { continue; } // joined mid-season (transfer/youth intake) — no baseline to diff against
+      // Joined mid-season (transfer or youth intake): no baseline, so no delta is possible. Record
+      // them separately — silently omitting them makes the UI report "no change" for a player who
+      // simply wasn't here, which is how a whole academy intake came to look like it had stalled.
+      if (!before) { arrivals.push(p.id); continue; }
       const deltas = attributeDelta(before, p.attributes);
       if (Object.keys(deltas).length > 0) {
         fullSeasonDevelopment.push({ playerId: p.id, playerName: p.name, age: p.age, deltas });
@@ -811,6 +809,7 @@ export class ClubManager {
       s.startingXI = s.startingXI.map(id => id && retiredIds.has(id) ? null : id);
       s.benchPlayers = s.benchPlayers.filter(id => !retiredIds.has(id));
       s.recentDevelopment = fullSeasonDevelopment;
+      s.recentArrivals = arrivals;
       s.seasonStartSnapshot = Object.fromEntries(newSquad.map(p => [p.id, p.attributes]));
     });
 

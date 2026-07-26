@@ -8,7 +8,7 @@ import type { FacilityGroupId, WingDefinition, WingId } from './facility-types.t
  *  Build costs are sized so each tier gates to a division rather than all being clearable in the
  *  first two seasons: basic wings (£50k–250k) are a D3 season-one purchase, standard (£550k–2.5M)
  *  costs a D2 club a season's saving or a sold player, and premium (£2.5M–7M) competes head-on
- *  with a £1.2–4M signing on a D1 budget. The full estate totals ≈£40M — just under one
+ *  with a £1.2–4M signing on a D1 budget. The full estate totals ≈£45M — just under one
  *  executive-suite stadium sector — and its ≈£4M/yr full-staff tier-3 upkeep is ~10% of that
  *  capital, the ratio a real building runs at. */
 
@@ -123,62 +123,113 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
 };
 
+/**
+ * Training wings, tuned so a complete estate lands a little ahead of the growth 0.30 / ceiling 15
+ * that `trainingBonusesForLevel` hands every top-division AI club: broad growth 0.20, ceiling 16,
+ * plus roughly 0.07 of attribute-specific growth on the average attribute and 0.08 for the field
+ * line your specialist coach covers. Nothing built is the same floor an unranked AI club sits on.
+ *
+ * The Individual Coaching Wing sits outside that scheme: it is the only wing that targets a
+ * squad's *weakest* players, developing anyone as though they had a potential of at least 65.
+ *
+ * The four field lines are each served by exactly one specialist wing — keepers by the Goalkeeping
+ * Training Unit, midfielders by the Tactical Analysis Suite (analysis is where a midfielder's game
+ * actually improves), defenders and forwards by their coaching units — so no position is orphaned
+ * and none is covered twice.
+ */
 const TRAINING_CATALOGUE: Record<WingId, WingDefinition> = {
   outdoorTechnicalPitch: {
     name: 'Outdoor Technical Pitch',
-    description: 'A no-frills pitch for everyday technical work.',
+    description: 'A no-frills pitch for everyday ball work. Develops passing and technique.',
     costTier: 'basic',
     buildCost: 250_000,
     tierUpkeep: [200, 450, 900],
-    effects: { growthBonus: 0.05 },
+    effects: { attrGrowthBonus: { passing: 0.06, technique: 0.06 } },
   },
   gym: {
     name: 'Gym (Strength & Conditioning)',
-    description: 'Weights and conditioning equipment for physical development.',
+    description: 'Weights and conditioning equipment. Develops speed, strength and stamina.',
     costTier: 'standard',
     buildCost: 900_000,
     tierUpkeep: [550, 1_200, 2_400],
-    effects: { growthBonus: 0.08 },
-  },
-  indoorPitch: {
-    name: 'Indoor Pitch',
-    description: 'A covered pitch so training never gets cancelled.',
-    costTier: 'standard',
-    buildCost: 2_500_000,
-    tierUpkeep: [600, 1_300, 2_600],
-    effects: { growthBonus: 0.07 },
-  },
-  tacticalAnalysisSuite: {
-    name: 'Tactical Analysis Suite',
-    description: 'Video and data analysis raising what players can ultimately learn.',
-    costTier: 'standard',
-    buildCost: 700_000,
-    tierUpkeep: [600, 1_300, 2_600],
-    effects: { ceilingBonus: 2 },
-  },
-  goalkeepingTrainingUnit: {
-    name: 'Goalkeeping Training Unit',
-    description: 'Specialist goalkeeping coaching — benefits keepers only.',
-    costTier: 'standard',
-    buildCost: 800_000,
-    tierUpkeep: [600, 1_300, 2_600],
-    effects: { gkGrowthBonus: 0.10 },
+    effects: { attrGrowthBonus: { speed: 0.06, strength: 0.06, stamina: 0.06 } },
   },
   setPiecePitch: {
     name: 'Set-Piece Pitch',
-    description: 'A pitch marked out for dead-ball practice.',
+    description: 'A pitch marked out for dead-ball practice. Develops finishing and passing.',
     costTier: 'standard',
     buildCost: 1_000_000,
-    tierUpkeep: [1_200, 2_400, 4_800],
-    effects: { ceilingBonus: 2 },
+    tierUpkeep: [500, 1_100, 2_200],
+    effects: { attrGrowthBonus: { finishing: 0.06, passing: 0.05 } },
+  },
+  goalkeepingTrainingUnit: {
+    name: 'Goalkeeping Training Unit',
+    description: 'A separate area for keeper drills. Develops goalkeeping, and goalkeepers '
+      + 'across the board.',
+    costTier: 'standard',
+    buildCost: 800_000,
+    tierUpkeep: [600, 1_300, 2_600],
+    effects: { positionGrowthBonus: { GK: 0.08 }, attrGrowthBonus: { goalkeeping: 0.06 } },
+  },
+  defensiveCoachingUnit: {
+    name: 'Defensive Coaching Unit',
+    description: 'A specialist defensive coach on the staff. Develops defending, and defenders '
+      + 'across the board.',
+    costTier: 'standard',
+    buildCost: 700_000,
+    tierUpkeep: [550, 1_200, 2_400],
+    effects: { positionGrowthBonus: { DEF: 0.08 }, attrGrowthBonus: { defending: 0.05 } },
+  },
+  attackingCoachingUnit: {
+    name: 'Attacking Coaching Unit',
+    description: 'A specialist attacking coach on the staff. Develops finishing, and forwards '
+      + 'across the board.',
+    costTier: 'standard',
+    buildCost: 700_000,
+    tierUpkeep: [550, 1_200, 2_400],
+    effects: { positionGrowthBonus: { ATT: 0.08 }, attrGrowthBonus: { finishing: 0.05 } },
+  },
+  tacticalAnalysisSuite: {
+    name: 'Tactical Analysis Suite',
+    description: 'A video and data room for reviewing matches. Raises the level players can '
+      + 'reach, and develops midfielders.',
+    costTier: 'standard',
+    buildCost: 700_000,
+    tierUpkeep: [600, 1_300, 2_600],
+    effects: { ceilingBonus: 6, positionGrowthBonus: { MID: 0.08 } },
+  },
+  indoorPitch: {
+    name: 'Indoor Pitch',
+    description: 'A covered pitch so training never gets cancelled. Develops every attribute, '
+      + 'and raises the level players can reach.',
+    costTier: 'standard',
+    buildCost: 2_500_000,
+    tierUpkeep: [1_000, 2_100, 4_200],
+    effects: { growthBonus: 0.06, ceilingBonus: 3 },
+  },
+  individualCoachingWing: {
+    name: 'Individual Coaching Wing',
+    description: 'One-to-one rooms for tailored programmes. Develops limited players as though '
+      + 'they had more natural ability, slows the decline of players past thirty, and develops '
+      + 'every attribute.',
+    costTier: 'premium',
+    buildCost: 4_000_000,
+    tierUpkeep: [2_600, 5_200, 7_800],
+    // The only wing aimed at a squad's weakest players. `potentialFloor` lifts the growth *rate*
+    // as well as the ceiling, which is the whole point: a 40-potential player is not held back by
+    // a cap he cannot reach, he is held back by improving too slowly to get near it. At 65 a
+    // limited player tracks a good prospect closely enough to become a genuine starter, without
+    // ever matching one — and it does nothing at all for a player already better than that.
+    effects: { potentialFloor: 65, declineResist: 0.5, growthBonus: 0.04 },
   },
   sportsScienceAnalyticsLab: {
     name: 'Sports Science & Analytics Lab',
-    description: 'Top-end data science — a small edge despite the price tag.',
+    description: 'A full sports-science department with its own data team. Develops every '
+      + 'attribute, and raises the level players can reach.',
     costTier: 'premium',
     buildCost: 3_500_000,
     tierUpkeep: [1_800, 3_600, 5_400],
-    effects: { growthBonus: 0.04 },
+    effects: { growthBonus: 0.10, ceilingBonus: 7 },
   },
 };
 

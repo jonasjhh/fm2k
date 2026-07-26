@@ -1,7 +1,11 @@
 import {
   potentialFactor, ageFactor, facilityFactor, headroom, attainableCeiling, improveChance, declineChance,
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, DEFAULT_REGIMENT,
+  CEILING_THRESHOLD, SEASON_TRIES, regimentWeights,
 } from './progression.ts';
+
+// Each season-end try draws twice: one to pick the attribute, one to roll for improvement.
+const SEASON_TRY_ROLLS = SEASON_TRIES * 2;
 import type { Player, PlayerAttributes } from '@fm2k/match';
 
 // Returns each value once, then repeats the last — scripts successive rng() calls.
@@ -63,18 +67,52 @@ describe('attainableCeiling:', () => {
     expect(attainableCeiling(70, 11)).toBe(71);  // 70-10+11
     expect(attainableCeiling(40, 0)).toBe(45);   // clamped at the floor
   });
+
+  it('puts the ceiling exactly at potential at CEILING_THRESHOLD, and past it above', () => {
+    // The threshold is the whole story of the training group: below it an estate is helping
+    // players reach what they always had in them, above it they surpass it.
+    expect(attainableCeiling(70, CEILING_THRESHOLD)).toBe(70);
+    expect(attainableCeiling(70, CEILING_THRESHOLD - 1)).toBe(69);
+    expect(attainableCeiling(70, CEILING_THRESHOLD + 6)).toBe(76);
+  });
 });
 
 describe('headroom:', () => {
-  it('shrinks toward 0 as the attribute approaches its (potential+facility) ceiling', () => {
+  it('falls linearly over the spread as the attribute approaches its ceiling', () => {
     // ceiling(95,15) = 99 → spread 18
     expect(headroom(81, 95, 15)).toBeCloseTo(1.0, 6); // (99-81)/18
     expect(headroom(90, 95, 15)).toBeCloseTo(0.5, 6);
-    expect(headroom(99, 95, 15)).toBe(0);
-    // an unfacilitated ceiling (85) is reached far sooner
-    expect(headroom(85, 95, 0)).toBe(0);
     expect(headroom(70, 70, 15)).toBeGreaterThan(0);
-    expect(headroom(80, 70, 15)).toBe(0);             // already past the ceiling (75)
+  });
+
+  it('never reaches zero — the ceiling limits growth severely, it does not forbid it', () => {
+    // The whole point of the tail. A squad of modest potentials used to show literally no
+    // movement at season end because every attribute sat on a hard zero; now they plateau and
+    // drift instead, which is what a career actually looks like.
+    expect(headroom(99, 95, 15)).toBeGreaterThan(0);   // exactly at the ceiling
+    expect(headroom(85, 95, 0)).toBeGreaterThan(0);
+    expect(headroom(80, 70, 15)).toBeGreaterThan(0);   // already 5 past the ceiling (75)
+  });
+
+  it('decays past the ceiling, so going further beyond it costs exponentially more', () => {
+    // Without the decay the residual would be a standing licence to keep climbing and every
+    // long career would trend to 99.
+    const at = headroom(75, 70, 15);      // exactly at the ceiling
+    const past5 = headroom(80, 70, 15);
+    const past20 = headroom(95, 70, 15);
+    expect(past5).toBeLessThan(at);
+    expect(past20).toBeLessThan(past5);
+    expect(past20 / past5).toBeLessThan(past5 / at); // strictly convex, not linear
+  });
+
+  it('is continuous and never increases as the attribute rises', () => {
+    // A discontinuity where the ramp meets the tail would show up as a cliff in development.
+    let prev = Infinity;
+    for (let attr = 40; attr <= 99; attr += 0.5) {
+      const h = headroom(attr, 70, 15);
+      expect(h).toBeLessThanOrEqual(prev + 1e-12);
+      prev = h;
+    }
   });
 });
 
@@ -107,6 +145,13 @@ describe('declineChance:', () => {
   it('high potential resists decline', () => {
     expect(declineChance(34, 90)).toBeLessThan(declineChance(34, 40));
   });
+
+  it('declineResist scales the chance down, and defaults to no effect', () => {
+    expect(declineChance(34, 60, 1)).toBe(declineChance(34, 60));
+    expect(declineChance(34, 60, 0.5)).toBeCloseTo(declineChance(34, 60) / 2);
+    // It cannot resurrect a player who was never going to decline in the first place.
+    expect(declineChance(28, 60, 0.5)).toBe(0);
+  });
 });
 
 // ── trainOnMatch ─────────────────────────────────────────────────────────────
@@ -116,7 +161,7 @@ describe('trainOnMatch:', () => {
     // physical regiment, rng[0]=0 → picks the first key (speed); rng[1]=0 → roll under the chance
     const p = player({ age: 18, potential: 85 }, 40);
     const before = p.attributes;
-    const out = trainOnMatch(p, 'physical', 0.3, 15, seq([0, 0]));
+    const out = trainOnMatch(p, 'physical', { growthBonus: 0.3, ceilingBonus: 15 }, seq([0, 0]));
     expect(out.speed).toBe(41);
     expect(before.speed).toBe(40);          // input untouched
     expect(out).not.toBe(before);
@@ -124,7 +169,7 @@ describe('trainOnMatch:', () => {
 
   it('returns the same attributes on a miss', () => {
     const p = player({ age: 18, potential: 85 }, 40);
-    const out = trainOnMatch(p, 'physical', 0.3, 15, seq([0, 0.999]));
+    const out = trainOnMatch(p, 'physical', { growthBonus: 0.3, ceilingBonus: 15 }, seq([0, 0.999]));
     expect(out).toBe(p.attributes);
   });
 
@@ -132,7 +177,7 @@ describe('trainOnMatch:', () => {
     const trained = new Set<string>();
     for (let s = 0; s < 200; s++) {
       const p = player({ age: 18, potential: 90 }, 30);
-      const out = trainOnMatch(p, 'shooting', 0.3, 15, seq([s / 200, 0]));
+      const out = trainOnMatch(p, 'shooting', { growthBonus: 0.3, ceilingBonus: 15 }, seq([s / 200, 0]));
       for (const k of Object.keys(out) as (keyof PlayerAttributes)[]) {
         if (out[k] !== p.attributes[k]) { trained.add(k); }
       }
@@ -143,8 +188,43 @@ describe('trainOnMatch:', () => {
 
   it('does not push an attribute over 99', () => {
     const p = player({ age: 18, potential: 99 }, 99);
-    const out = trainOnMatch(p, 'physical', 0.3, 15, seq([0, 0]));
+    const out = trainOnMatch(p, 'physical', { growthBonus: 0.3, ceilingBonus: 15 }, seq([0, 0]));
     expect(out.speed).toBe(99);
+  });
+
+  it('potentialFloor develops a limited player exactly as a good prospect, and ignores better ones', () => {
+    // The point of the floor: two players with the same attributes and the same rolls, one with
+    // potential 40 and one with 70, develop identically once the wing is built. Without it the
+    // limited player misses a roll the prospect converts.
+    const limited = player({ age: 18, potential: 40 }, 45);
+    const prospect = player({ age: 18, potential: 70 }, 45);
+    const floored = { growthBonus: 0.2, ceilingBonus: 16, potentialFloor: 70 };
+    const bare = { growthBonus: 0.2, ceilingBonus: 16 };
+    const roll = improveChance(45, 70, 18, 0.2, 16, 0.07) * 0.99; // under the prospect's chance
+    expect(trainOnMatch(limited, 'physical', bare, seq([0, roll])).speed).toBe(45);
+    expect(trainOnMatch(prospect, 'physical', bare, seq([0, roll])).speed).toBe(46);
+    expect(trainOnMatch(limited, 'physical', floored, seq([0, roll])).speed).toBe(46);
+    // A player already past the floor is developed on their own potential, not dragged down to it.
+    const elite = player({ age: 18, potential: 95 }, 45);
+    expect(trainOnMatch(elite, 'physical', { ...bare, potentialFloor: 70 }, seq([0, 0.5])))
+      .toEqual(trainOnMatch(elite, 'physical', bare, seq([0, 0.5])));
+  });
+
+  it('attrGrowthBonus lifts only the attribute it names', () => {
+    // A roll that misses on the broad bonus alone but hits once the gym's speed bonus is added:
+    // the same roll trains speed at one club and nothing at the other.
+    // ceilingBonus 10 puts the ceiling at potential, so there is headroom for either to bite.
+    const p = player({ age: 24, potential: 70 }, 50);
+    const bare = { growthBonus: 0, ceilingBonus: 10 };
+    const speedOnly = { ...bare, attrGrowthBonus: { speed: 0.5 } };
+    const base = improveChance(50, 70, 24, 0, 10, 0.07);
+    const lifted = improveChance(50, 70, 24, 0.5, 10, 0.07);
+    const between = (base + lifted) / 2;
+    expect(trainOnMatch(p, 'recovery', bare, seq([0, between])).stamina).toBe(50);
+    // rng[0]=0 picks speed from the physical regiment; the second draw is the improvement roll.
+    expect(trainOnMatch(p, 'physical', speedOnly, seq([0, between])).speed).toBe(51);
+    // Strength is in the same regiment but not in the bonus, so the same roll still misses.
+    expect(trainOnMatch(p, 'physical', speedOnly, seq([0.5, between])).strength).toBe(50);
   });
 });
 
@@ -153,35 +233,69 @@ describe('trainOnMatch:', () => {
 describe('developOverSeason:', () => {
   it('always ages the player by one year', () => {
     const p = player({ age: 24 });
-    expect(developOverSeason(p, 'balanced', 0.1, 6, seq([0.999])).age).toBe(25);
+    expect(developOverSeason(p, 'balanced', { growthBonus: 0.1, ceilingBonus: 6 }, seq([0.999])).age).toBe(25);
   });
 
   it('a young, high-potential player improves when rolls succeed', () => {
     // physical regiment + all-zero rng → every try picks speed and hits; young age, no decline
     const p = player({ age: 18, potential: 85 }, 40);
-    const out = developOverSeason(p, 'physical', 0.3, 15, () => 0);
+    const out = developOverSeason(p, 'physical', { growthBonus: 0.3, ceilingBonus: 15 }, () => 0);
     expect(out.attributes.speed).toBeGreaterThan(40);
     expect(out.age).toBe(19);
   });
 
   it('an old player can decline a physical attribute (legs first)', () => {
     const p = player({ age: 35, potential: 50 }, 60);
-    // 6 tries miss (high rolls), then decline roll low → decline; pick=0 → speed, drop roll 0 → -2
+    // Every improvement try misses, then the decline roll lands: pick=0 → speed, drop roll 0 → -2.
+    // The misses have to be scripted out in full — a short sequence repeats its last value, and
+    // since the ceiling now carries a residual chance rather than a hard zero, a trailing 0 would
+    // convert every remaining try instead of harmlessly failing against an impossible roll.
     const rng = seq([
-      0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999,
+      ...Array(SEASON_TRY_ROLLS).fill(0.999),
       0,    // decline roll (< declineChance)
       0,    // pick a decline attribute (first weighted = speed)
       0,    // drop magnitude roll (< 0.4 → drop 2)
     ]);
-    const out = developOverSeason(p, 'physical', 0, 0, rng);
+    const out = developOverSeason(p, 'physical', { growthBonus: 0, ceilingBonus: 0 }, rng);
     expect(out.attributes.speed).toBe(58);
     expect(out.age).toBe(36);
   });
 
+  it('potentialFloor does not make a limited veteran resist decline', () => {
+    // The floor is a development facility. Coaching a journeyman as though he were a better
+    // player should not also give him a better player's resistance to ageing — decline stays on
+    // true potential, and only declineResist touches it.
+    const p = player({ age: 35, potential: 40 }, 60);
+    const misses = Array(SEASON_TRY_ROLLS).fill(0.999);
+    const roll = declineChance(35, 40) * 0.99; // lands for true potential 40, would miss at 70
+    expect(roll).toBeGreaterThan(declineChance(35, 70));
+    const rolls = [...misses, roll, 0, 0];
+    for (const axes of [
+      { growthBonus: 0, ceilingBonus: 0 },
+      { growthBonus: 0, ceilingBonus: 0, potentialFloor: 70 },
+    ]) {
+      expect(developOverSeason(p, 'physical', axes, seq(rolls)).attributes.speed).toBeLessThan(60);
+    }
+  });
+
+  it('declineResist can spare a veteran the decline that would otherwise land', () => {
+    // Identical player, identical rolls; the decline draw sits between the unfacilitated chance
+    // and the resisted one, so only the club without individual coaching loses a step.
+    const p = player({ age: 35, potential: 50 }, 60);
+    const resist = 0.5;
+    const roll = declineChance(35, 50) * ((1 + resist) / 2); // above resisted, below unresisted
+    const misses = Array(SEASON_TRY_ROLLS).fill(0.999);
+    const rolls = [...misses, roll, 0, 0]; // decline draw, then attribute pick and magnitude
+    expect(developOverSeason(p, 'physical', { growthBonus: 0, ceilingBonus: 0 }, seq(rolls))
+      .attributes.speed).toBeLessThan(60);
+    expect(developOverSeason(p, 'physical', { growthBonus: 0, ceilingBonus: 0, declineResist: resist }, seq(rolls))
+      .attributes.speed).toBe(60);
+  });
+
   it('never drops an attribute below 1 or above 99', () => {
-    const low = developOverSeason(player({ age: 38, potential: 40 }, 1), 'physical', 0, 0, () => 0);
+    const low = developOverSeason(player({ age: 38, potential: 40 }, 1), 'physical', { growthBonus: 0, ceilingBonus: 0 }, () => 0);
     for (const v of Object.values(low.attributes)) { expect(v).toBeGreaterThanOrEqual(1); }
-    const high = developOverSeason(player({ age: 18, potential: 99 }, 99), 'physical', 0.3, 15, () => 0);
+    const high = developOverSeason(player({ age: 18, potential: 99 }, 99), 'physical', { growthBonus: 0.3, ceilingBonus: 15 }, () => 0);
     for (const v of Object.values(high.attributes)) { expect(v).toBeLessThanOrEqual(99); }
   });
 });
@@ -210,7 +324,7 @@ function career(
 ): Player {
   let p = start;
   for (let i = 0; i < seasons; i++) {
-    const { attributes, age } = developOverSeason(p, regiment, growthBonus, ceilingBonus, rng);
+    const { attributes, age } = developOverSeason(p, regiment, { growthBonus, ceilingBonus }, rng);
     p = { ...p, attributes, age };
   }
   return p;
@@ -257,5 +371,51 @@ describe('regiment table:', () => {
     }
     // balanced trains all eight attributes
     expect(Object.keys(TRAINING_REGIMENTS.balanced).length).toBe(8);
+  });
+});
+
+describe('regimentWeights:', () => {
+  it('gives a keeper the regiment exactly as written', () => {
+    for (const id of REGIMENT_IDS) {
+      expect(regimentWeights(id, 'GK')).toEqual(TRAINING_REGIMENTS[id]);
+    }
+  });
+
+  it('strips goalkeeping from every outfield regiment, leaving the rest untouched', () => {
+    for (const id of REGIMENT_IDS) {
+      if (id === 'goalkeeping') { continue; }
+      const w = regimentWeights(id, 'ST');
+      expect(w.goalkeeping).toBeUndefined();
+      // Nothing else changes: same keys, same weights, minus the one.
+      const rest = Object.entries(TRAINING_REGIMENTS[id]).filter(([a]) => a !== 'goalkeeping');
+      expect(w).toEqual(Object.fromEntries(rest));
+    }
+  });
+
+  it('falls back to outfield general work rather than an empty table for a GK regiment on an outfielder', () => {
+    // Only reachable from a save made before the UI stopped offering it. An empty weight table
+    // would make `pickWeighted` return undefined and corrupt the attribute it wrote to.
+    const w = regimentWeights('goalkeeping', 'CB');
+    expect(Object.keys(w).length).toBe(7);
+    expect(w.goalkeeping).toBeUndefined();
+  });
+
+  it('stops an outfielder banking a season of development into goalkeeping', () => {
+    // The bug this exists to prevent: goalkeeping is generated low and never read by the match
+    // engine, so its headroom is always wide and a try spent there converts far more often than
+    // one spent on a plateaued real attribute. Balanced was banking half its output there.
+    // 0.99 on the pick roll lands on the *last* key of the weight table — goalkeeping for a
+    // keeper's balanced regiment, and whatever remains last once it is stripped for an outfielder.
+    // 0.01 on the improve roll then always converts, so this isolates the pick, not the odds.
+    const picksLast = () => seq(Array(SEASON_TRY_ROLLS).fill(0).flatMap(() => [0.99, 0.01]));
+
+    const outfielder = player({ position: 'CM', potential: 70 }, 60);
+    const out = developOverSeason(outfielder, 'balanced', { growthBonus: 0, ceilingBonus: 0 }, picksLast());
+    expect(out.attributes.goalkeeping).toBe(outfielder.attributes.goalkeeping);
+
+    // The same regiment on a keeper still trains it.
+    const keeper = player({ position: 'GK', potential: 70 }, 60);
+    const kOut = developOverSeason(keeper, 'balanced', { growthBonus: 0, ceilingBonus: 0 }, picksLast());
+    expect(kOut.attributes.goalkeeping).toBeGreaterThan(keeper.attributes.goalkeeping);
   });
 });

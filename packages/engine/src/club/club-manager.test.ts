@@ -9,6 +9,7 @@ import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
 import { FACILITY_CATALOGUE } from './facilities/facility-catalogue.ts';
 import { FacilityManager } from './facilities/facility-manager.ts';
+import { improveChance, MATCH_TRAINING_BASE } from '../player/progression.ts';
 
 /** Build the report a match hands the club, taking the mitigation clamps from the injury
  *  catalogue rather than restating them — the catalogue is the tuning surface, so a test that
@@ -1493,27 +1494,52 @@ describe('ClubManager.advanceTime fitness recovery:', () => {
 
 describe('ClubManager training & development:', () => {
   test('a built training ceiling wing raises the attainable ceiling for per-match training', () => {
-    // Default player: potential 70, balanced regiment, rng=0 always picks 'speed'. With no
-    // training wing the unfacilitated ceiling is potential-10=60 — set speed to exactly that
-    // so headroom (and so improveChance) is 0 and rng=0 never clears it (0 < 0 is false). A
-    // built ceiling-axis wing raises the ceiling above the player's current speed, giving
-    // nonzero headroom, so the same rng=0 roll now hits (0 < positive is true).
+    // Set speed to exactly the unfacilitated ceiling (potential-10), where headroom is at its
+    // residual tail rather than zero — the ceiling limits growth severely, it no longer forbids
+    // it — then roll a value strictly between the two clubs' improvement chances. The club with
+    // the ceiling wing converts it; the club without does not. Both chances are derived from the
+    // catalogue and the axes the manager actually composes, so the test cannot drift from them.
+    const SPEED = 70 - 10;
+    const build = (bus: EventBus<GameEvents>, rng: () => number, wing?: string) => {
+      const manager = new ClubManager(makeConfig({ eventBus: bus, rng, budget: 5_000_000 }));
+      if (wing) { manager.buildWing('training', wing); }
+      const state = manager.getState();
+      state.squad[0].attributes.speed = SPEED;
+      manager.loadState(state);
+      return manager;
+    };
+
+    const reference = build(new EventBus<GameEvents>(), () => 0);
+    const player = reference.getState().squad[0];
+    expect(player.potential).toBe(70); // SPEED above is derived from this
+    const chanceFor = (manager: ClubManager) => {
+      const axes = FacilityManager.trainingAxes(manager.getState().facilities, player);
+      return improveChance(
+        SPEED, player.potential, player.age,
+        axes.growthBonus + (axes.attrGrowthBonus.speed ?? 0), axes.ceilingBonus, MATCH_TRAINING_BASE,
+      );
+    };
+    const withWingRef = build(new EventBus<GameEvents>(), () => 0, 'tacticalAnalysisSuite');
+    const bare = chanceFor(reference);
+    const facilitated = chanceFor(withWingRef);
+    expect(facilitated).toBeGreaterThan(bare);
+    expect(bare).toBeGreaterThan(0); // the residual tail, not a hard cap
+    const roll = (bare + facilitated) / 2;
+
+    // rng() is consumed twice per training tick: pick the attribute, then roll. 0 picks speed.
+    const rolls = (): (() => number) => {
+      let i = 0;
+      return () => (i++ % 2 === 0 ? 0 : roll);
+    };
     const busWithout = new EventBus<GameEvents>();
-    const withoutWing = new ClubManager(makeConfig({ eventBus: busWithout, rng: () => 0 }));
-    const stateWithout = withoutWing.getState();
-    stateWithout.squad[0].attributes.speed = 60;
-    withoutWing.loadState(stateWithout);
+    const withoutWing = build(busWithout, rolls());
     emitMatch(busWithout, 'club-1', 'other-1');
-    expect(withoutWing.getState().squad[0].attributes.speed).toBe(60);
+    expect(withoutWing.getState().squad[0].attributes.speed).toBe(SPEED);
 
     const busWith = new EventBus<GameEvents>();
-    const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0, budget: 1_000_000 }));
-    withWing.buildWing('training', 'tacticalAnalysisSuite'); // ceilingBonus +2 at full_staff
-    const stateWith = withWing.getState();
-    stateWith.squad[0].attributes.speed = 60;
-    withWing.loadState(stateWith);
+    const withWing = build(busWith, rolls(), 'tacticalAnalysisSuite');
     emitMatch(busWith, 'club-1', 'other-1');
-    expect(withWing.getState().squad[0].attributes.speed).toBe(61);
+    expect(withWing.getState().squad[0].attributes.speed).toBe(SPEED + 1);
   });
 
   test('setTraining sets a squad player\'s regiment', () => {
@@ -1556,6 +1582,35 @@ describe('ClubManager training & development:', () => {
     expect(developed).toHaveLength(after.squad.length);
     expect(developed[0].age).toBe(26);
     expect(developed[0].deltas.speed).toBeGreaterThan(0);
+  });
+
+  test('a mid-season arrival is reported as new, not as a player who failed to develop', () => {
+    // A youth intake has no season-start baseline, so no delta can exist for them. They must
+    // still be distinguishable from a player who was here all season and stood still — otherwise
+    // every academy intake reads as having stagnated the moment it arrives.
+    const positions: PlayerPosition[] = ['ST', 'LB', 'CB', 'CB', 'RB', 'LM', 'CM', 'CM', 'RM', 'GK', 'ST'];
+    const xi = positions.map(position => makePlayer({ position, age: 40 })); // certain to retire
+    const bench = makeSquad(4);
+    const manager = new ClubManager(makeConfig({
+      squad: [...xi, ...bench], startingXI: xi.map(p => p.id), benchPlayers: bench.map(p => p.id),
+      rng: () => 0, budget: 1_000_000,
+    }));
+    const originalIds = new Set([...xi, ...bench].map(p => p.id));
+
+    manager.handleSeasonComplete();
+
+    const { squad, recentArrivals, recentDevelopment } = manager.getState();
+    const intake = squad.filter(p => !originalIds.has(p.id));
+    expect(intake.length).toBeGreaterThan(0);
+    expect([...recentArrivals].sort()).toEqual(intake.map(p => p.id).sort());
+    // And they are absent from the development list, which is exactly why the flag is needed.
+    for (const p of intake) {
+      expect(recentDevelopment.some(d => d.playerId === p.id)).toBe(false);
+    }
+    // Survivors who were here all season are reported through development, not as arrivals.
+    for (const p of squad.filter(p => originalIds.has(p.id))) {
+      expect(recentArrivals).not.toContain(p.id);
+    }
   });
 
   test('a built academy recruitment hub raises direct-intake quality', () => {

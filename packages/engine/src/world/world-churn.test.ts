@@ -145,7 +145,7 @@ describe('makeBackfillPlayer:', () => {
 
 describe('churnSquad:', () => {
   const opts = (rng: () => number, extra: Partial<Parameters<typeof churnSquad>[1]> = {}) =>
-    ({ rng, youthFactory, nationality: 'norwegian', growthBonus: 0.2, ceilingBonus: 11, academyBias: academyBiasForLevel(3), ...extra });
+    ({ rng, youthFactory, nationality: 'norwegian', axesOf: () => ({ growthBonus: 0.2, ceilingBonus: 11 }), academyBias: academyBiasForLevel(3), ...extra });
 
   it('ages and develops everyone when nobody retires (no overflow)', () => {
     const squad = [player({ id: 'a', age: 18, potential: 90 }, 45), player({ id: 'b', age: 20, potential: 85 }, 45)];

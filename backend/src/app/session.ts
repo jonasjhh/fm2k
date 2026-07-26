@@ -900,6 +900,7 @@ export class GameSession {
       facilities: prevClub.facilities,
       financialLog: prevClub.financialLog,
       recentDevelopment: prevClub.recentDevelopment,
+      recentArrivals: prevClub.recentArrivals,
     });
 
     if (oldDivision && leaguePosition > 0) {
@@ -1030,6 +1031,7 @@ export class GameSession {
       savedClubState.tactics = defaultIntent(savedClubState.formation);
     }
     savedClubState.recentDevelopment ??= [];
+    savedClubState.recentArrivals ??= [];
     savedClubState.seasonStartSnapshot ??= {};
     // Legacy saves keyed shapes/roleOverrides by player id — drop them (revert to formation
     // default) since the model is now slot-keyed. Remove this shim when old saves are gone.
@@ -1271,7 +1273,7 @@ export class GameSession {
       const level = facilityForLevel(division.level);
       const res = churnSquad(team.squad, {
         rng: this.rng, youthFactory: this.youthFactory, nationality: country.nationality,
-        ...trainingBonusesForLevel(level), academyBias: academyBiasForLevel(level),
+        axesOf: () => trainingBonusesForLevel(level), academyBias: academyBiasForLevel(level),
       });
       for (const pos of res.overflow) { overflow.push({ position: pos, nationality: country.nationality }); }
       this.squadTargets.set(team.id, Math.min(MAX_SQUAD_SIZE, res.squad.length));

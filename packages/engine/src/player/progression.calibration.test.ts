@@ -59,11 +59,11 @@ function simulateCareer(s: Scenario, rng: () => number): CareerOutcome {
   for (let y = 0; y < s.seasons; y++) {
     for (let m = 0; m < matches; m++) {
       const before = total(p.attributes);
-      p = { ...p, attributes: trainOnMatch(p, s.regiment, growthBonus, ceilingBonus, rng) };
+      p = { ...p, attributes: trainOnMatch(p, s.regiment, { growthBonus, ceilingBonus }, rng) };
       matchGain += total(p.attributes) - before;
     }
     const before = total(p.attributes);
-    const dev = developOverSeason(p, s.regiment, growthBonus, ceilingBonus, rng);
+    const dev = developOverSeason(p, s.regiment, { growthBonus, ceilingBonus }, rng);
     p = { ...p, attributes: dev.attributes, age: dev.age };
     seasonGain += total(p.attributes) - before;
   }

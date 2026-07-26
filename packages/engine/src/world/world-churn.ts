@@ -1,6 +1,8 @@
 import type { Player, PlayerAttributes, PlayerPosition } from '@fm2k/match';
 import { calculateOverall } from '@fm2k/match';
-import { developOverSeason, DEFAULT_REGIMENT, type RegimentId } from '../player/progression.ts';
+import {
+  developOverSeason, DEFAULT_REGIMENT, type GrowthAxes, type RegimentId,
+} from '../player/progression.ts';
 import { PlayerGenerator } from '@fm2k/players';
 import { playerValue } from '@fm2k/valuation';
 import type { YouthBias } from '../club/facilities/facility-types.ts';
@@ -134,10 +136,10 @@ export interface SquadChurnOptions {
   rng: () => number;
   youthFactory: YouthFactory;
   nationality: string;
-  /** Training Facilities' composed growth-axis bonus (FacilityManager.trainingAxes). */
-  growthBonus: number;
-  /** Training Facilities' composed ceiling-axis bonus (FacilityManager.trainingAxes). */
-  ceilingBonus: number;
+  /** The training estate as it applies to one specific player (FacilityManager.trainingAxes).
+   *  A function rather than a value because the estate is scoped: the keeper's coaching wing and
+   *  the striker's are different wings, so one squad-wide number cannot express it. */
+  axesOf: (player: Player) => GrowthAxes;
   /** Recruitment bias driving youth intake quality (Regional Scouting Hubs, merged with any
    *  intake-quality bonus from youth development wings — see FacilityManager). */
   academyBias: YouthBias;
@@ -185,7 +187,7 @@ export function churnSquad(squad: Player[], opts: SquadChurnOptions): SquadChurn
   const developed: PlayerDelta[] = [];
 
   for (const player of squad) {
-    const dev = developOverSeason(player, regimentOf(player), opts.growthBonus, opts.ceilingBonus, opts.rng);
+    const dev = developOverSeason(player, regimentOf(player), opts.axesOf(player), opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
     const deltas = attributeDelta(player.attributes, dev.attributes);
     if (Object.keys(deltas).length > 0) {
@@ -280,7 +282,7 @@ export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[
   const retiredSpecs: OverflowSpec[] = [];
 
   for (const player of pool) {
-    const dev = developOverSeason(player, DEFAULT_REGIMENT, growthBonus, ceilingBonus, opts.rng);
+    const dev = developOverSeason(player, DEFAULT_REGIMENT, { growthBonus, ceilingBonus }, opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
     if (opts.rng() >= retirementChance(grown.age, calculateOverall(grown.attributes))) {
       next.push(grown);

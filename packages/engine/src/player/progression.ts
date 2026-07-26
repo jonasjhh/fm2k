@@ -46,7 +46,7 @@ export const REGIMENT_DESCRIPTIONS: Record<RegimentId, string> = {
   heading:     'Trains strength, with supporting gains in finishing and defending',
   physical:    'Trains speed, strength and stamina equally — best for young players',
   recovery:    'Trains stamina lightly, with a significantly faster fitness recovery rate',
-  balanced:    'Trains all attributes equally',
+  balanced:    'Trains every attribute equally — outfield players do not train goalkeeping',
 };
 
 /**
@@ -70,6 +70,37 @@ export const TRAINING_REGIMENTS: Record<RegimentId, Partial<Record<AttrKey, numb
   },
 };
 
+function withoutGoalkeeping(
+  weights: Partial<Record<AttrKey, number>>,
+): Partial<Record<AttrKey, number>> {
+  return Object.fromEntries(
+    Object.entries(weights).filter(([attr]) => attr !== 'goalkeeping'),
+  ) as Partial<Record<AttrKey, number>>;
+}
+
+/**
+ * The attributes a regiment actually trains *for this player*. Identical to the raw table for a
+ * keeper; for everyone else `goalkeeping` is stripped out.
+ *
+ * Goalkeeping is the one position-exclusive attribute, and leaving it in an outfielder's pool was
+ * badly distorting: it is generated low and never read by the match engine, so its gap to the
+ * ceiling is always wide and a try spent on it converts almost every time. Balanced banked half its
+ * entire output there — free progress that changed nothing on the pitch, and worse, it made
+ * switching a player *off* Balanced look like the estate had stopped working, when all that
+ * happened was that the padding went away and the real (unchanged) development showed through.
+ */
+export function regimentWeights(
+  regiment: RegimentId, position: PlayerPosition,
+): Partial<Record<AttrKey, number>> {
+  if (position === 'GK') { return TRAINING_REGIMENTS[regiment]; }
+  const outfield = withoutGoalkeeping(TRAINING_REGIMENTS[regiment]);
+  // The Goalkeeping regiment trains nothing an outfielder can use. The UI does not offer it to
+  // them, so this is a guard for older saves rather than a route anyone takes on purpose — fall
+  // back to general work instead of leaving an empty table for `pickWeighted`.
+  if (Object.keys(outfield).length === 0) { return regimentWeights('balanced', position); }
+  return outfield;
+}
+
 /** Extra fitness recovery multiplier applied when a player is on the Recovery regiment. */
 export const RECOVERY_REGIMENT_MULT = 2.2;
 
@@ -81,9 +112,13 @@ const DECLINE_WEIGHTS: Partial<Record<AttrKey, number>> = {
 };
 
 // Tuning (deliberately modest — most players plateau well short of world class).
-const BASE_MATCH = 0.07;   // per-played-match improvement base (tiny per match)
+/** Per-played-match improvement base (tiny per match). Exported so tests can derive the exact
+ *  chance a training tick uses instead of restating it. */
+export const MATCH_TRAINING_BASE = 0.07;
 const BASE_SEASON = 0.30;  // per season-end "try" base — the bulk of development
-const SEASON_TRIES = 50;   // weighted improvement attempts at season end
+/** Weighted improvement attempts at season end. Exported so tests can script an exact rng
+ *  sequence through a season instead of hard-coding a draw count that silently drifts. */
+export const SEASON_TRIES = 50;
 const ATTR_MAX = 99;
 const ATTR_MIN = 1;
 
@@ -106,11 +141,38 @@ export function ageFactor(age: number): number {
 }
 
 /**
+ * What a club's training estate contributes to one player's development. `FacilityManager
+ * .trainingAxes` produces this per player, so the position- and age-scoped wings have already
+ * been resolved by the time it arrives here — these numbers apply to *this* player unconditionally.
+ */
+export interface GrowthAxes {
+  /** Growth that applies to every attribute alike. */
+  growthBonus: number
+  /** How near potential this player can get — see `attainableCeiling`. */
+  ceilingBonus: number
+  /** Extra growth for named attributes only, on top of `growthBonus`. A gym develops legs and
+   *  a technical pitch develops touch; this is what stops every wing being interchangeable. */
+  attrGrowthBonus?: Partial<Record<AttrKey, number>>
+  /** Multiplier on the season-end decline chance for players past 30. 1 = unfacilitated. */
+  declineResist?: number
+  /** Treat a player's potential as at least this, for development purposes only. Potential gates
+   *  the improvement *rate* (`potentialFactor`) as well as the ceiling, so lifting it is what lets
+   *  a club develop a limited player at the same speed as a good prospect — a facility that turns
+   *  anyone into a usable starter. Worth nothing to a player already above it. */
+  potentialFloor?: number
+}
+
+/** The growth bonus that actually applies to one attribute: the broad figure plus whatever
+ *  the attribute-specific wings add for it. */
+function growthFor(axes: GrowthAxes, attr: AttrKey): number {
+  return axes.growthBonus + (axes.attrGrowthBonus?.[attr] ?? 0);
+}
+
+/**
  * Training facilities scale gains modestly (the ceiling, above, carries the bigger gate to
- * full potential). `growthBonus` is the sum of every built Training wing's contribution
- * (FacilityManager.trainingAxes) — 0 with nothing built (the old worst case), up to roughly
- * +0.24 fully built (deliberately short of the old best case, since the new system also adds
- * genuinely new strategic depth the flat level never had).
+ * full potential). The argument is the effective bonus for the attribute being trained — the
+ * broad `growthBonus` plus any `attrGrowthBonus` for it. 0 with nothing built; a complete
+ * estate reaches roughly +0.35 for a player its specialist wings cover.
  */
 export function facilityFactor(growthBonus: number): number {
   return clamp(0.9, 1.5, 0.9 + growthBonus);
@@ -118,20 +180,56 @@ export function facilityFactor(growthBonus: number): number {
 
 const CEILING_SPREAD = 18; // how gradually growth tapers as an attribute nears its ceiling
 
+/** The `ceilingBonus` at which a player's ceiling equals their potential exactly. Below it an
+ *  estate is helping players reach what they always had in them; above it they surpass it. */
+export const CEILING_THRESHOLD = 10;
+
 /**
  * The attribute level a player can realistically *approach* — set by potential and gated by
  * `ceilingBonus` (the sum of every built Training wing's ceiling contribution). A soft target,
  * not a hard cap: growth tapers asymptotically near it and variance means a player may fall
  * short, so reaching it is a chance, not a guarantee. -10 is the unfacilitated baseline (the old
  * worst case); each ceiling-axis wing adds to it.
+ *
+ * **10 is the threshold that matters.** Below it the estate is closing the gap to potential —
+ * a player at a poorly-equipped club never finds out what they could have been. At exactly 10
+ * the ceiling *is* potential. Above it the player develops past their potential, which is why
+ * `CEILING_THRESHOLD` wings are premium and rare: reaching potential is what a good training
+ * ground does, and exceeding it is what a world-class one does.
+ *
+ * A `potentialFloor` (see `GrowthAxes`) reaches this by raising the `potential` passed in, so it
+ * lifts the ceiling and the growth rate together rather than uncapping a player who still cannot
+ * move.
  */
 export function attainableCeiling(potential: number, ceilingBonus: number): number {
   return clamp(45, 99, potential - 10 + ceilingBonus);
 }
 
-/** Headroom toward the (potential- and facility-derived) ceiling; growth stops as it nears 0. */
+/** Residual headroom *at* the ceiling, as a fraction of a full-headroom try. The ceiling severely
+ *  limits growth rather than forbidding it: a player who has arrived still improves occasionally,
+ *  so stagnation reads as a plateau a player drifts into, not a wall they hit on a fixed date. */
+const HEADROOM_TAIL = 0.20;
+/** Attribute points past the ceiling over which the residual falls by 1/e. Without this decay the
+ *  residual would be a permanent licence to keep climbing and every long career would trend to 99;
+ *  with it, going further past the ceiling costs exponentially more, so careers settle. */
+const HEADROOM_TAIL_DECAY = 6;
+
+/**
+ * Headroom toward the (potential- and facility-derived) ceiling. Falls linearly over
+ * `CEILING_SPREAD` points as an attribute approaches the ceiling, then — instead of hitting zero —
+ * flattens into `HEADROOM_TAIL` and decays exponentially beyond it.
+ *
+ * The tail is the difference between a cap and a plateau. With a hard zero, a player whose
+ * attribute reached the ceiling could *never* improve it again: a squad full of modest potentials
+ * showed literally no movement at season end, which reads as the game being broken rather than as
+ * players having peaked. With the tail they still edge up now and then, ever more rarely, until
+ * age-driven decline overtakes the gains and they start slipping — a career arc rather than a wall.
+ */
 export function headroom(attrValue: number, potential: number, ceilingBonus: number): number {
-  return clamp(0, 1, (attainableCeiling(potential, ceilingBonus) - attrValue) / CEILING_SPREAD);
+  const gap = attainableCeiling(potential, ceilingBonus) - attrValue;
+  const ramp = clamp(0, 1, gap / CEILING_SPREAD);
+  const tail = HEADROOM_TAIL * Math.exp(Math.min(0, gap) / HEADROOM_TAIL_DECAY);
+  return Math.max(ramp, tail);
 }
 
 /** The chance a single attribute improves on one tick. */
@@ -143,12 +241,21 @@ export function improveChance(
       * headroom(attrValue, potential, ceilingBonus));
 }
 
-/** Chance an old player declines at season end — 0 before 31, rising with age, eased by potential. */
-export function declineChance(age: number, potential: number): number {
+/** The potential a player is *developed as*: their own, or the floor a training estate guarantees.
+ *  Deliberately not used for decline resistance — the floor is a development facility, not a
+ *  reason a limited 33-year-old holds their legs together. */
+function developedPotential(player: Player, axes: GrowthAxes): number {
+  return Math.max(player.potential, axes.potentialFloor ?? 0);
+}
+
+/** Chance an old player declines at season end — 0 before 31, rising with age, eased by potential
+ *  and by `declineResist` (individual coaching: the one axis that helps the players you already
+ *  have rather than the ones you are growing). */
+export function declineChance(age: number, potential: number, declineResist = 1): number {
   if (age < 31) { return 0; }
   const base = clamp(0, 0.85, (age - 30) * 0.12);
   const potentialResist = clamp(0.5, 1, 1 - (potential - 50) / 200);
-  return base * potentialResist;
+  return base * potentialResist * declineResist;
 }
 
 /** Pick one attribute key from a weight table, deterministically given `rng`. */
@@ -168,11 +275,14 @@ function pickWeighted(weights: Partial<Record<AttrKey, number>>, rng: () => numb
  * Returns the (possibly unchanged) attributes — never mutates the input.
  */
 export function trainOnMatch(
-  player: Player, regiment: RegimentId, growthBonus: number, ceilingBonus: number, rng: () => number,
+  player: Player, regiment: RegimentId, axes: GrowthAxes, rng: () => number,
 ): PlayerAttributes {
-  const attr = pickWeighted(TRAINING_REGIMENTS[regiment], rng);
+  const attr = pickWeighted(regimentWeights(regiment, player.position), rng);
   const cur = player.attributes[attr];
-  if (rng() < improveChance(cur, player.potential, player.age, growthBonus, ceilingBonus, BASE_MATCH)) {
+  const chance = improveChance(
+    cur, developedPotential(player, axes), player.age, growthFor(axes, attr), axes.ceilingBonus, MATCH_TRAINING_BASE,
+  );
+  if (rng() < chance) {
     return { ...player.attributes, [attr]: Math.min(ATTR_MAX, cur + 1) };
   }
   return player.attributes;
@@ -189,18 +299,22 @@ export interface SeasonDevelopment {
  * An older player can still improve; decline is only a *chance*.
  */
 export function developOverSeason(
-  player: Player, regiment: RegimentId, growthBonus: number, ceilingBonus: number, rng: () => number,
+  player: Player, regiment: RegimentId, axes: GrowthAxes, rng: () => number,
 ): SeasonDevelopment {
   const attributes: PlayerAttributes = { ...player.attributes };
 
   for (let i = 0; i < SEASON_TRIES; i++) {
-    const attr = pickWeighted(TRAINING_REGIMENTS[regiment], rng);
-    if (rng() < improveChance(attributes[attr], player.potential, player.age, growthBonus, ceilingBonus, BASE_SEASON)) {
+    const attr = pickWeighted(regimentWeights(regiment, player.position), rng);
+    const chance = improveChance(
+      attributes[attr], developedPotential(player, axes), player.age, growthFor(axes, attr),
+      axes.ceilingBonus, BASE_SEASON,
+    );
+    if (rng() < chance) {
       attributes[attr] = Math.min(ATTR_MAX, attributes[attr] + 1);
     }
   }
 
-  if (rng() < declineChance(player.age, player.potential)) {
+  if (rng() < declineChance(player.age, player.potential, axes.declineResist ?? 1)) {
     const attr = pickWeighted(DECLINE_WEIGHTS, rng);
     const drop = rng() < 0.4 ? 2 : 1;
     attributes[attr] = Math.max(ATTR_MIN, attributes[attr] - drop);
