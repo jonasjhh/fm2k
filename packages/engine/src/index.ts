@@ -68,6 +68,7 @@ export type { GrowthAxes, RegimentId, SeasonDevelopment } from './player/progres
 export {
   retirementChance, makeYouth, generatorYouthFactory, churnSquad, churnFreeAgents, runAiMarket,
   randomIntakeCap, MAX_SQUAD_SIZE, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel,
+  expireFreeAgency, FREE_AGENCY_MIN_AGE,
 } from './world/world-churn.ts';
 export type {
   YouthFactory, PlayerDelta, SquadChurnOptions, SquadChurnResult, PoolChurnOptions, OverflowSpec,

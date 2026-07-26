@@ -40,6 +40,9 @@ export interface TransferManagerConfig {
   /** AI-visibility dates carried along with `initialFreeAgents` (season rollover keeps the
    *  pickup-delay drip intact for players still waiting). Defaults to none = all visible. */
   readonly initialFreeAgentAvailability?: Record<string, GameDateTime>
+  /** Remaining free-agency seasons carried across a rollover, so a player who has already used
+   *  up part of their window doesn't get a fresh one every season. Defaults to none. */
+  readonly initialFreeAgentSeasonsLeft?: Record<string, number>
 }
 
 export class TransferManager {
@@ -72,11 +75,14 @@ export class TransferManager {
       refreshedOnMatchday: 0,
       freeAgents: config.initialFreeAgents ?? [],
       freeAgentAvailability: config.initialFreeAgentAvailability ?? {},
+      freeAgentSeasonsLeft: config.initialFreeAgentSeasonsLeft ?? {},
     });
   }
 
   loadState(state: TransferState): void {
-    this.stateManager.setState({ ...state, freeAgents: state.freeAgents ?? [] });
+    this.stateManager.setState({
+      ...state, freeAgents: state.freeAgents ?? [], freeAgentSeasonsLeft: state.freeAgentSeasonsLeft ?? {},
+    });
   }
 
   getFreeAgents(): Player[] {
@@ -128,6 +134,15 @@ export class TransferManager {
       s.freeAgents = players;
       s.freeAgentAvailability = next;
     });
+  }
+
+  /** Remaining free-agency seasons per player, as `expireFreeAgency` consumes and returns it. */
+  getFreeAgentSeasonsLeft(): Record<string, number> {
+    return this.stateManager.getState().freeAgentSeasonsLeft ?? {};
+  }
+
+  setFreeAgentSeasonsLeft(seasonsLeft: Record<string, number>): void {
+    this.stateManager.updateState(s => { s.freeAgentSeasonsLeft = seasonsLeft; });
   }
 
   getState(): TransferState {

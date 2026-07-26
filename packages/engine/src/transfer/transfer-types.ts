@@ -17,4 +17,10 @@ export interface TransferState {
   /** Calendar date each free agent becomes visible to AI clubs (drawn as a small daily pickup
    *  chance at listing time). Missing entry = visible immediately (old saves, seeded pools). */
   freeAgentAvailability?: Record<string, GameDateTime>
+  /** Seasons of free agency each player has left before they drop out of the professional game.
+   *  A counter rather than a calendar date because the game calendar resets every season (see
+   *  `setFreeAgents`' `restampAll`), so a stored date would read as far in the future after a
+   *  rollover — and expiry is only ever evaluated at a rollover anyway. Missing entry = not yet
+   *  counted (a prospect under `FREE_AGENCY_MIN_AGE`, or an old save). */
+  freeAgentSeasonsLeft?: Record<string, number>
 }

@@ -226,6 +226,10 @@ export interface PoolChurnOptions {
   /** Share of pool replacements minted as ready-made backfill players instead of academy
    *  youths, so the market always carries some signable squad players; defaults to 0.6. */
   backfillShare?: number;
+  /** Ids whose free agency has run out (`expireFreeAgency`). Treated exactly like retirees:
+   *  removed and replaced 1:1, so going unsigned is an exit from the game rather than a licence
+   *  to sit in the pool forever. */
+  expired?: Set<string>;
 }
 
 // ── backfill players ────────────────────────────────────────────────────────────
@@ -273,6 +277,41 @@ export function makeBackfillPlayer(
  * Age/develop the free-agent pool and retire its veterans, then conserve population: replace each
  * pool retiree 1:1 with a fresh youth (same position), and mint the supplied club `overflow`.
  */
+/** Age from which going unsigned starts running down a player's career. Below it a prospect can
+ *  sit in the pool indefinitely: nobody's career ends at seventeen for want of a club, and the
+ *  pool is the only place a young free-agent talent can be found. */
+export const FREE_AGENCY_MIN_AGE = 21;
+/** Seasons of free agency a newly-counted player draws. The spread is what stops a whole cohort
+ *  — notably the 120-odd seeded at game start — expiring on the same rollover. */
+const FREE_AGENCY_SEASONS: [number, number] = [1, 2];
+
+/**
+ * Run down every free agent's remaining seasons and report who has run out.
+ *
+ * Without this the pool only ever grows: it gains club overflow every season and loses players
+ * only when a club signs one, so it silts up with players nobody wanted, quietly developing
+ * forever. Going unsigned is itself an exit from the professional game.
+ *
+ * Pure, and separate from `churnFreeAgents` so the counter bookkeeping can be tested on its own.
+ * Players under `FREE_AGENCY_MIN_AGE` are left uncounted and keep no entry, so a prospect who
+ * ages past the threshold simply draws a fresh window then — the rule self-heals rather than
+ * needing a stamp at the moment they enter the pool.
+ */
+export function expireFreeAgency(
+  pool: Player[], seasonsLeft: Record<string, number>, rng: () => number,
+): { expired: Set<string>; next: Record<string, number> } {
+  const expired = new Set<string>();
+  const next: Record<string, number> = {};
+  const [lo, hi] = FREE_AGENCY_SEASONS;
+  for (const player of pool) {
+    if (player.age < FREE_AGENCY_MIN_AGE) { continue; }
+    const drawn = seasonsLeft[player.id] ?? lo + Math.floor(rng() * (hi - lo + 1));
+    const remaining = drawn - 1;
+    if (remaining <= 0) { expired.add(player.id); } else { next[player.id] = remaining; }
+  }
+  return { expired, next };
+}
+
 export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[] {
   // Neutral mid-tier defaults — equivalent to the old flat training-facility level 2.
   const growthBonus = opts.growthBonus ?? 0.1;
@@ -284,10 +323,13 @@ export function churnFreeAgents(pool: Player[], opts: PoolChurnOptions): Player[
   for (const player of pool) {
     const dev = developOverSeason(player, DEFAULT_REGIMENT, { growthBonus, ceilingBonus }, opts.rng);
     const grown: Player = { ...player, attributes: dev.attributes, age: dev.age };
-    if (opts.rng() >= retirementChance(grown.age, calculateOverall(grown.attributes))) {
-      next.push(grown);
-    } else {
+    // The roll is always drawn, even for a player already expiring, so adding free-agency expiry
+    // doesn't shift the seeded rng stream for everyone downstream of them.
+    const retires = opts.rng() < retirementChance(grown.age, calculateOverall(grown.attributes));
+    if (retires || opts.expired?.has(grown.id)) {
       retiredSpecs.push({ position: grown.position, nationality: grown.nationality }); // replace 1:1
+    } else {
+      next.push(grown);
     }
   }
 

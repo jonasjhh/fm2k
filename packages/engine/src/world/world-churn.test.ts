@@ -1,5 +1,5 @@
 import {
-  retirementChance, makeYouth, makeBackfillPlayer, churnSquad, churnFreeAgents, runAiMarket, academyBiasForLevel, type YouthFactory,
+  retirementChance, makeYouth, makeBackfillPlayer, churnSquad, churnFreeAgents, expireFreeAgency, FREE_AGENCY_MIN_AGE, runAiMarket, academyBiasForLevel, type YouthFactory,
 } from './world-churn.ts';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 import type { YouthBias } from '../club/facilities/facility-types.ts';
@@ -180,7 +180,72 @@ describe('churnSquad:', () => {
   });
 });
 
+describe('expireFreeAgency:', () => {
+  it('leaves prospects under the age threshold uncounted, so they can wait indefinitely', () => {
+    const pool = [player({ id: 'kid', age: FREE_AGENCY_MIN_AGE - 1 })];
+    const { expired, next } = expireFreeAgency(pool, {}, () => 0);
+    expect(expired.size).toBe(0);
+    expect(next).toEqual({});
+  });
+
+  it('draws a window on first count, runs it down, then expires the player', () => {
+    const pool = [player({ id: 'vet', age: 30 })];
+    // rng 0 draws the shortest window (1 season), so one pass exhausts it.
+    expect(expireFreeAgency(pool, {}, () => 0).expired.has('vet')).toBe(true);
+    // The longest window survives its first pass with one season left, then goes.
+    const first = expireFreeAgency(pool, {}, () => 0.99);
+    expect(first.expired.size).toBe(0);
+    expect(first.next.vet).toBe(1);
+    expect(expireFreeAgency(pool, first.next, () => 0.99).expired.has('vet')).toBe(true);
+  });
+
+  it('spreads windows across a cohort, so a seeded pool does not all expire at once', () => {
+    // The whole point of the spread: 120-odd players seeded at game start must not vanish
+    // together on the first rollover.
+    const cohort = Array.from({ length: 60 }, (_, i) => player({ id: `fa${i}`, age: 26 }));
+    let s = 1;
+    const rng = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    const { expired, next } = expireFreeAgency(cohort, {}, rng);
+    expect(expired.size).toBeGreaterThan(0);
+    expect(Object.keys(next).length).toBeGreaterThan(0);
+    expect(expired.size + Object.keys(next).length).toBe(cohort.length);
+  });
+
+  it('forgets players who have left the pool rather than carrying their counters forever', () => {
+    const { next } = expireFreeAgency([player({ id: 'stays', age: 26 })], { gone: 2, stays: 2 }, () => 0);
+    expect(next).toEqual({ stays: 1 });
+  });
+});
+
 describe('churnFreeAgents:', () => {
+  it('replaces an expired free agent 1:1, exactly as it would a retiree', () => {
+    // Going unsigned is an exit from the game: without this the pool only ever grows, silting up
+    // with players nobody wanted who keep developing forever.
+    const pool = [player({ id: 'unwanted', age: 26 }, 40), player({ id: 'kept', age: 26 }, 55)];
+    const res = churnFreeAgents(pool, {
+      rng: () => 0.999, youthFactory, overflow: [], expired: new Set(['unwanted']),
+    });
+    expect(res).toHaveLength(2);
+    expect(res.map(p => p.id)).toContain('kept');
+    expect(res.map(p => p.id)).not.toContain('unwanted');
+    expect(res.filter(p => p.id.startsWith('youth-'))).toHaveLength(1);
+  });
+
+  it('still draws the retirement roll for an expiring player, so those behind them are unshifted', () => {
+    // The roll is drawn even when expiry has already decided the outcome. Skipping it would pull
+    // every later player's development forward in the seeded stream, so introducing expiry would
+    // silently change worlds it should not touch. (The replacement mint does add draws — that is
+    // unavoidable and comes after the loop.)
+    const mk = () => [player({ id: 'a', age: 26 }, 50), player({ id: 'b', age: 26 }, 50)];
+    let seed = 9;
+    const rngOf = () => { seed = 9; return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; };
+    const bWith = churnFreeAgents(mk(), { rng: rngOf(), youthFactory, overflow: [], expired: new Set(['a']) })
+      .find(p => p.id === 'b');
+    const bWithout = churnFreeAgents(mk(), { rng: rngOf(), youthFactory, overflow: [] })
+      .find(p => p.id === 'b');
+    expect(bWith?.attributes).toEqual(bWithout?.attributes);
+  });
+
   it('replaces its own retirees 1:1 and mints the supplied club overflow (conserving population)', () => {
     const pool = [player({ id: 'old1', age: 42 }, 50), player({ id: 'kid', age: 22 }, 55)];
     const res = churnFreeAgents(pool, {

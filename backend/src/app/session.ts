@@ -6,7 +6,7 @@ import {
   defaultIntent, aiIntent, resolveMatchParameters, NEUTRAL_PARAMS, buildMatchInsights, recentForm,
   recentFormAcross, formModifier,
   makeYouth, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel, generatorYouthFactory, acceptBid, valuePlayer, playerValue, transferWindow, runAiMarket,
-  churnSquad, churnFreeAgents, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
+  churnSquad, churnFreeAgents, expireFreeAgency, MAX_SQUAD_SIZE, selectStartingXIWithSlots, carryOverLineup,
   prizeMoneyFor, CUP_PRIZE, buildSlotAssignments, MAX_BENCH_SIZE,
 } from '@fm2k/engine';
 import {
@@ -923,6 +923,7 @@ export class GameSession {
       },
       initialFreeAgents: prevTransfer.freeAgents,
       initialFreeAgentAvailability: prevTransfer.freeAgentAvailability,
+      initialFreeAgentSeasonsLeft: prevTransfer.freeAgentSeasonsLeft,
       rng: this.rng,
     });
 
@@ -975,6 +976,7 @@ export class GameSession {
       transferListings: snap.transferListings,
       transferFreeAgents: this.transferManager?.getFreeAgents() ?? [],
       transferFreeAgentAvailability: this.transferManager?.getState().freeAgentAvailability ?? {},
+      transferFreeAgentSeasonsLeft: this.transferManager?.getState().freeAgentSeasonsLeft ?? {},
     };
   }
 
@@ -1041,6 +1043,8 @@ export class GameSession {
       refreshedOnMatchday: save.currentMatchday,
       freeAgents: save.transferFreeAgents ?? [],
       freeAgentAvailability: save.transferFreeAgentAvailability ?? {},
+      // Absent on a pre-v16 save: everyone simply draws a fresh window at the next rollover.
+      freeAgentSeasonsLeft: save.transferFreeAgentSeasonsLeft ?? {},
     };
     built.transferManager.loadState(transferState);
 
@@ -1285,9 +1289,16 @@ export class GameSession {
       // fresh mints and holdovers alike drip into AI visibility over the first week or two of
       // the new season, so the pre-season AI window can't hoover the batch before the manager
       // has seen it.
-      this.transferManager.setFreeAgents(churnFreeAgents(this.transferManager.getFreeAgents(), {
-        rng: this.rng, youthFactory: this.youthFactory, overflow,
+      // Run down free agency before churning: anyone whose window has closed leaves the game and
+      // is replaced 1:1, which is what keeps the pool from silting up with players nobody signed.
+      const pool = this.transferManager.getFreeAgents();
+      const { expired, next } = expireFreeAgency(
+        pool, this.transferManager.getFreeAgentSeasonsLeft(), this.rng,
+      );
+      this.transferManager.setFreeAgents(churnFreeAgents(pool, {
+        rng: this.rng, youthFactory: this.youthFactory, overflow, expired,
       }), this.now, true);
+      this.transferManager.setFreeAgentSeasonsLeft(next);
     }
   }
 

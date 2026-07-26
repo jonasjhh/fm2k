@@ -29,7 +29,10 @@ export type SaveType = 'QUICK' | 'AUTO';
 // so v13 saves still load — a missing map just means every free agent is AI-visible).
 // v15 added `clubState.recentArrivals` (players who joined mid-season and so have no development
 // baseline; optional, and an empty list on an older save just means nobody is labelled as new).
-export const SAVE_VERSION = 15;
+// v16 added `transferFreeAgentSeasonsLeft` (how many more seasons each free agent may go unsigned
+// before dropping out of the game; optional, so an older save just has everyone draw a fresh
+// window at its next rollover rather than expiring anyone early).
+export const SAVE_VERSION = 16;
 export const MIN_LOADABLE_VERSION = 13;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';
@@ -64,6 +67,7 @@ export interface SaveData extends FlatWorld {
   transferFreeAgents?: Player[];
   /** Calendar date each pooled free agent becomes visible to AI clubs (pickup-delay drip). */
   transferFreeAgentAvailability?: Record<string, GameDateTime>;
+  transferFreeAgentSeasonsLeft?: Record<string, number>;
 }
 
 export function saveKey(type: SaveType, teamName: string): string {
