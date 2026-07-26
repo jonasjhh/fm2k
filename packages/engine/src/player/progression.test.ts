@@ -1,8 +1,9 @@
 import {
   potentialFactor, ageFactor, facilityFactor, headroom, attainableCeiling, improveChance, declineChance,
   trainOnMatch, developOverSeason, TRAINING_REGIMENTS, REGIMENT_IDS, DEFAULT_REGIMENT,
-  CEILING_THRESHOLD, SEASON_TRIES, regimentWeights,
+  CEILING_THRESHOLD, SEASON_TRIES, regimentWeights, defaultRegiment,
 } from './progression.ts';
+import { ALL_PLAYER_POSITIONS } from '@fm2k/match';
 
 // Each season-end try draws twice: one to pick the attribute, one to roll for improvement.
 const SEASON_TRY_ROLLS = SEASON_TRIES * 2;
@@ -371,6 +372,35 @@ describe('regiment table:', () => {
     }
     // balanced trains all eight attributes
     expect(Object.keys(TRAINING_REGIMENTS.balanced).length).toBe(8);
+  });
+});
+
+describe('defaultRegiment:', () => {
+  it('lets age override position at both ends of a career', () => {
+    // A 16-year-old keeper builds an athletic base like everyone else, and a 33-year-old striker
+    // is past the point where specialising pays.
+    expect(defaultRegiment('GK', 18)).toBe('physical');
+    expect(defaultRegiment('ST', 33)).toBe('balanced');
+  });
+
+  it('gives every position a regiment in the prime years, and one that actually trains it', () => {
+    for (const position of ALL_PLAYER_POSITIONS) {
+      const regiment = defaultRegiment(position, 25);
+      const weights = regimentWeights(regiment, position);
+      expect(Object.keys(weights).length).toBeGreaterThan(0);
+    }
+    expect(defaultRegiment('GK', 25)).toBe('goalkeeping');
+    expect(defaultRegiment('CB', 25)).toBe('defending');
+    expect(defaultRegiment('ST', 25)).toBe('shooting');
+  });
+
+  it('never hands an outfielder the keeper regiment, which would train them nothing', () => {
+    for (const position of ALL_PLAYER_POSITIONS) {
+      if (position === 'GK') { continue; }
+      for (const age of [16, 25, 33]) {
+        expect(defaultRegiment(position, age)).not.toBe('goalkeeping');
+      }
+    }
   });
 });
 

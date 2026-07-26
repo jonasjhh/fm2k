@@ -32,7 +32,11 @@ export type SaveType = 'QUICK' | 'AUTO';
 // v16 added `transferFreeAgentSeasonsLeft` (how many more seasons each free agent may go unsigned
 // before dropping out of the game; optional, so an older save just has everyone draw a fresh
 // window at its next rollover rather than expiring anyone early).
-export const SAVE_VERSION = 16;
+// v17 renamed two academy wings that were no longer what their ids claimed — goalkeepingAcademyHub
+// → academyPartnership and defensiveAcademyHub → regionalScoutingNetwork — as the academy stopped
+// being position-scoped. Remapped on load (see renamed-wing-migration.ts), so older saves keep the
+// buildings they paid for.
+export const SAVE_VERSION = 17;
 export const MIN_LOADABLE_VERSION = 13;
 
 export type SaveCompatibility = 'ok' | 'outdated' | 'incompatible';

@@ -72,13 +72,20 @@ export interface YouthBias {
   overallBonus: number
   potentialRangeBonus: [number, number]
   nationalityPool: string[]
-  gkOverallBonus: number
-  gkPotentialRangeBonus: [number, number]
+  /** Years to pull the top of the intake age range down by. A better academy finds players
+   *  earlier, which compounds: extra seasons at a young `ageFactor` are worth more than a few
+   *  points of starting ability. */
+  intakeAgeBias: number
+  /** Per-prospect chance of drawing an elevated potential band instead of the normal one. A fat
+   *  tail rather than a shifted mean: what makes an academy memorable is not that every intake is
+   *  slightly better, but that occasionally one is exceptional. */
+  wonderkidChance: number
 }
 
 export interface AcademyIntakeQualityBonus {
   overallBonus: number
   potentialRangeBonus: [number, number]
+  intakeAgeBias: number
 }
 
 export type WingEffects = Partial<{
@@ -109,12 +116,21 @@ export type WingEffects = Partial<{
    *  well as the ceiling, so a limited player improves as fast as a good prospect would. The only
    *  axis aimed at a squad's weakest players rather than its best. */
   potentialFloor: number
+  /** Starting ability of every prospect this club's scouting brings in. */
   overallBonus: number
+  /** Widens the potential band prospects are drawn from, at both ends. */
   potentialRangeBonus: [number, number]
+  /** Nationalities this hub recruits from, overriding the club's own. Flavour: it marks an
+   *  intake as an import rather than changing what the player is worth. */
   nationalityPool: string[]
-  gkOverallBonus: number
-  gkPotentialRangeBonus: [number, number]
+  /** Years younger this hub finds its prospects — see `YouthBias.intakeAgeBias`. */
+  intakeAgeBias: number
+  /** Chance a prospect is a wonderkid — see `YouthBias.wonderkidChance`. */
+  wonderkidChance: number
   youthGrowthBonus: number
+  /** Ceiling bonus for under-22s only: how close this club's graduates get to their potential,
+   *  as opposed to how fast they travel (`youthGrowthBonus`). */
+  youthCeilingBonus: number
   /** Under-22s only. Applies to the knock and moderate bands — youth conditioning science
    *  prevents the breakdowns young bodies are prone to, not catastrophic contact injuries. */
   youthInjuryChanceMult: number

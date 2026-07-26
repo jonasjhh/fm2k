@@ -133,6 +133,7 @@ export class FacilityManager {
       for (const { id, def, instance } of builtWings('academy', facilities)) {
         if (!ACADEMY_DEVELOPMENT_WING_IDS.includes(id)) { continue; }
         growthBonus += (def.effects.youthGrowthBonus ?? 0) * effectMult(instance);
+        ceilingBonus += (def.effects.youthCeilingBonus ?? 0) * effectMult(instance);
       }
     }
     return { growthBonus, ceilingBonus, attrGrowthBonus, declineResist, potentialFloor };
@@ -142,10 +143,9 @@ export class FacilityManager {
     let overallBonus = 0;
     let potentialLow = 0;
     let potentialHigh = 0;
+    let intakeAgeBias = 0;
+    let wonderkidChance = 0;
     const nationalityPool: string[] = [];
-    let gkOverallBonus = 0;
-    let gkPotentialLow = 0;
-    let gkPotentialHigh = 0;
     for (const { id, def, instance } of builtWings('academy', facilities)) {
       if (!ACADEMY_HUB_WING_IDS.includes(id)) { continue; }
       const mult = effectMult(instance);
@@ -154,17 +154,17 @@ export class FacilityManager {
       potentialLow += lo * mult;
       potentialHigh += hi * mult;
       if (def.effects.nationalityPool) { nationalityPool.push(...def.effects.nationalityPool); }
-      gkOverallBonus += (def.effects.gkOverallBonus ?? 0) * mult;
-      const [gkLo, gkHi] = def.effects.gkPotentialRangeBonus ?? [0, 0];
-      gkPotentialLow += gkLo * mult;
-      gkPotentialHigh += gkHi * mult;
+      intakeAgeBias += (def.effects.intakeAgeBias ?? 0) * mult;
+      // Chances compose as independent draws rather than summing, so stacking hubs can never
+      // guarantee a wonderkid — the tail stays a tail.
+      wonderkidChance = 1 - (1 - wonderkidChance) * (1 - (def.effects.wonderkidChance ?? 0) * mult);
     }
     return {
       overallBonus,
       potentialRangeBonus: [potentialLow, potentialHigh],
       nationalityPool,
-      gkOverallBonus,
-      gkPotentialRangeBonus: [gkPotentialLow, gkPotentialHigh],
+      intakeAgeBias,
+      wonderkidChance,
     };
   }
 
@@ -172,6 +172,7 @@ export class FacilityManager {
     let overallBonus = 0;
     let potentialLow = 0;
     let potentialHigh = 0;
+    let intakeAgeBias = 0;
     for (const { id, def, instance } of builtWings('academy', facilities)) {
       if (!ACADEMY_DEVELOPMENT_WING_IDS.includes(id)) { continue; }
       const mult = effectMult(instance);
@@ -179,13 +180,13 @@ export class FacilityManager {
       const [lo, hi] = def.effects.intakePotentialRangeBonus ?? [0, 0];
       potentialLow += lo * mult;
       potentialHigh += hi * mult;
+      intakeAgeBias += (def.effects.intakeAgeBias ?? 0) * mult;
     }
-    return { overallBonus, potentialRangeBonus: [potentialLow, potentialHigh] };
+    return { overallBonus, potentialRangeBonus: [potentialLow, potentialHigh], intakeAgeBias };
   }
 
-  /** The full bias fed to makeYouth: Regional Scouting Hubs' recruitment bias, plus the
-   *  Academy Boarding House's intake-quality bonus layered on top of the outfield bonus
-   *  (the Boarding House isn't goalkeeper-specific, so it doesn't touch the gk fields). */
+  /** The full bias fed to makeYouth: the recruitment hubs' bias, plus the development wings'
+   *  intake-quality bonus layered on top. */
   static academyBias(facilities: ClubFacilities): YouthBias {
     const recruitment = FacilityManager.academyRecruitmentBias(facilities);
     const intake = FacilityManager.academyIntakeQualityBonus(facilities);
@@ -196,6 +197,7 @@ export class FacilityManager {
         recruitment.potentialRangeBonus[0] + intake.potentialRangeBonus[0],
         recruitment.potentialRangeBonus[1] + intake.potentialRangeBonus[1],
       ],
+      intakeAgeBias: recruitment.intakeAgeBias + intake.intakeAgeBias,
     };
   }
 

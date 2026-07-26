@@ -1,12 +1,12 @@
 import {
-  retirementChance, makeYouth, makeBackfillPlayer, churnSquad, churnFreeAgents, expireFreeAgency, FREE_AGENCY_MIN_AGE, runAiMarket, academyBiasForLevel, type YouthFactory,
+  retirementChance, makeYouth, makeBackfillPlayer, churnSquad, churnFreeAgents, expireFreeAgency, FREE_AGENCY_MIN_AGE, runAiMarket, academyBiasForLevel, facilityForLevel, trainingBonusesForLevel, type YouthFactory,
 } from './world-churn.ts';
 import type { Player, PlayerAttributes } from '@fm2k/match';
 import type { YouthBias } from '../club/facilities/facility-types.ts';
 
 const NO_BIAS: YouthBias = {
   overallBonus: 0, potentialRangeBonus: [0, 0], nationalityPool: [],
-  gkOverallBonus: 0, gkPotentialRangeBonus: [0, 0],
+  intakeAgeBias: 0, wonderkidChance: 0,
 };
 
 function attrs(v: number): PlayerAttributes {
@@ -49,6 +49,26 @@ describe('retirementChance:', () => {
   });
 });
 
+describe('AI facility approximations:', () => {
+  it('maps division level to a facility tier, clamped at both ends', () => {
+    expect(facilityForLevel(1)).toBe(4); // top flight gets the elite approximation
+    expect(facilityForLevel(2)).toBe(3);
+    expect(facilityForLevel(4)).toBe(1); // and it never drops below the unfacilitated floor
+    expect(facilityForLevel(9)).toBe(1);
+    expect(facilityForLevel(0)).toBe(4);
+  });
+
+  it('maps facility tier to training axes that rise with tier and floor off the scale', () => {
+    const levels = [1, 2, 3, 4].map(trainingBonusesForLevel);
+    for (let i = 1; i < levels.length; i++) {
+      expect(levels[i].growthBonus).toBeGreaterThan(levels[i - 1].growthBonus);
+      expect(levels[i].ceilingBonus).toBeGreaterThan(levels[i - 1].ceilingBonus);
+    }
+    expect(trainingBonusesForLevel(1)).toEqual({ growthBonus: 0, ceilingBonus: 0 });
+    expect(trainingBonusesForLevel(99)).toEqual({ growthBonus: 0, ceilingBonus: 0 });
+  });
+});
+
 describe('makeYouth:', () => {
   it('mints a 16–19 prospect in the requested position with bias-banded potential', () => {
     const y = makeYouth('ST', academyBiasForLevel(4), 'spanish', youthFactory, () => 0.5);
@@ -73,14 +93,37 @@ describe('makeYouth:', () => {
     expect(y.potential).toBeLessThanOrEqual(62);
   });
 
-  it('a goalkeeper intake uses the bias\'s gk-specific bonuses, not its outfield ones', () => {
-    const bias: YouthBias = {
-      overallBonus: 0, potentialRangeBonus: [0, 0], nationalityPool: [],
-      gkOverallBonus: 20, gkPotentialRangeBonus: [20, 20],
-    };
+  it('treats every position alike — a keeper prospect is generated exactly as an outfielder is', () => {
+    // No academy wing is position-scoped: a bonus that only pays out when a random retirement
+    // happens to match a position is a lottery ticket, not a purchase decision.
+    const bias: YouthBias = { ...NO_BIAS, overallBonus: 8, potentialRangeBonus: [10, 10] };
     const gk = makeYouth('GK', bias, 'n', youthFactory, () => 0.5);
     const outfield = makeYouth('ST', bias, 'n', youthFactory, () => 0.5);
-    expect(gk.potential).toBeGreaterThan(outfield.potential);
+    expect(gk.potential).toBe(outfield.potential);
+    expect(gk.attributes).toEqual(outfield.attributes);
+  });
+
+  it('an age bias finds prospects younger without collapsing the range onto one year', () => {
+    const young = makeYouth('CM', { ...NO_BIAS, intakeAgeBias: 1 }, 'n', youthFactory, () => 0.99);
+    expect(young.age).toBe(18); // top of 16–18 rather than 16–19
+    // However many wings stack, at least one year of spread survives.
+    const floored = makeYouth('CM', { ...NO_BIAS, intakeAgeBias: 99 }, 'n', youthFactory, () => 0.99);
+    expect(floored.age).toBe(16);
+  });
+
+  it('the wonderkid tail lifts potential above the band, and is only rolled when bought', () => {
+    const bias = { ...NO_BIAS, wonderkidChance: 1 };
+    // rng 0.5 → mid-band potential 51; the tail adds 8 + round(0.5 * 7) = 12.
+    expect(makeYouth('CM', bias, 'n', youthFactory, () => 0.5).potential).toBe(63);
+    // With no chance bought, no roll is drawn at all — so the stream is unchanged for every
+    // other club in the world.
+    let calls = 0;
+    const counting = () => { calls++; return 0.5; };
+    makeYouth('CM', NO_BIAS, 'n', youthFactory, counting);
+    const withoutTail = calls;
+    calls = 0;
+    makeYouth('CM', bias, 'n', youthFactory, counting);
+    expect(calls).toBeGreaterThan(withoutTail);
   });
 
   it('a non-empty nationalityPool overrides the passed nationality', () => {

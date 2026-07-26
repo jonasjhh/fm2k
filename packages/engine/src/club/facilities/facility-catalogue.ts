@@ -233,62 +233,106 @@ const TRAINING_CATALOGUE: Record<WingId, WingDefinition> = {
   },
 };
 
+/**
+ * Academy wings, tuned so a complete estate lands a little ahead of the overall +12 / potential
+ * [+18,+24] that `academyBiasForLevel` hands every top-division AI club: overall +14 and potential
+ * [+20,+29], i.e. a 40-overall prospect with potential 60–91 against the AI's 38 and 58–86. On top
+ * of that sit two things no AI club gets — a younger intake age and the wonderkid tail.
+ *
+ * **No wing is position-scoped.** A bonus that only pays out when a random retirement happens to
+ * match a position is a lottery ticket rather than a purchase decision, so every hub improves every
+ * prospect. (This is why there is no goalkeeping hub: keeper prospects are generated exactly like
+ * outfielders.)
+ *
+ * The five recruitment hubs form a ladder of *reach* — Home Nations, Regional, Continental, South
+ * American — with the Academy Partnership as the one rung that buys better *method* instead: an
+ * agreement with a well-run academy elsewhere that funnels its graduates to you.
+ */
+/** Nationalities the Continental Hub recruits from — every nation @fm2k/names can actually name a
+ *  player in, so an import reads as foreign rather than as a mislabelled domestic player. */
+const CONTINENTAL_NATIONALITIES = [
+  'english', 'swedish', 'danish', 'french', 'german', 'italian', 'spanish',
+];
+
 const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
   homeNationsHub: {
     name: 'Home Nations Hub',
-    description: 'Domestic scouting covering the basics reliably.',
+    description: 'Domestic scouting covering the basics reliably. Brings in slightly better '
+      + 'prospects with a little more potential.',
     costTier: 'basic',
     buildCost: 150_000,
     tierUpkeep: [300, 650, 1_300],
-    effects: { overallBonus: 2, potentialRangeBonus: [2, 2] },
+    effects: { overallBonus: 3, potentialRangeBonus: [2, 3] },
   },
-  defensiveAcademyHub: {
-    name: 'Defensive Academy Hub',
-    description: 'A scouting focus on defensively reliable youngsters.',
-    costTier: 'standard',
-    buildCost: 700_000,
-    tierUpkeep: [550, 1_200, 2_400],
-    effects: { overallBonus: 3, potentialRangeBonus: [2, 4] },
-  },
-  goalkeepingAcademyHub: {
-    name: 'Goalkeeping Academy Hub',
-    description: 'Dedicated goalkeeper scouting — affects keeper intake only.',
+  academyPartnership: {
+    name: 'Academy Partnership',
+    description: 'A standing agreement with a well-run academy elsewhere, whose graduates come '
+      + 'to you first. Brings in better prospects with more potential.',
     costTier: 'standard',
     buildCost: 550_000,
     tierUpkeep: [450, 950, 1_900],
-    effects: { gkOverallBonus: 4, gkPotentialRangeBonus: [3, 5] },
+    effects: { overallBonus: 3, potentialRangeBonus: [3, 4] },
+  },
+  regionalScoutingNetwork: {
+    name: 'Regional Scouting Network',
+    description: 'Scouts working every district of the country rather than the nearest few. '
+      + 'Brings in notably better prospects with more potential.',
+    costTier: 'standard',
+    buildCost: 700_000,
+    tierUpkeep: [550, 1_200, 2_400],
+    effects: { overallBonus: 4, potentialRangeBonus: [4, 5] },
   },
   continentalHub: {
     name: 'Continental Hub',
-    description: 'Wider scouting reach into foreign markets.',
+    description: 'Scouting reach across the continent. Brings in better prospects with '
+      + 'considerably more potential, some of them foreign.',
     costTier: 'standard',
     buildCost: 1_200_000,
     tierUpkeep: [600, 1_300, 2_600],
-    effects: { potentialRangeBonus: [4, 6] },
+    effects: {
+      overallBonus: 2,
+      potentialRangeBonus: [5, 7],
+      nationalityPool: CONTINENTAL_NATIONALITIES,
+    },
   },
   southAmericanHub: {
     name: 'South American Hub',
-    description: 'The rarest, highest-ceiling intakes money can scout for.',
+    description: 'The rarest, highest-ceiling intakes money can scout for. Brings in prospects '
+      + 'with far more potential, often foreign, and occasionally an exceptional talent.',
     costTier: 'premium',
     buildCost: 4_000_000,
     tierUpkeep: [2_000, 4_000, 6_000],
-    effects: { potentialRangeBonus: [6, 10] },
+    // The wonderkid tail is what justifies the price over simply being a bigger number: the same
+    // elevated-potential draw the free-agent pool already uses for its rare elite prospects.
+    // Spanish, deliberately: @fm2k/names carries no South American name data, and Spanish is the
+    // closest it has. Labelling these prospects 'brazilian' would give them a Norwegian or German
+    // name, which reads as a bug; a Spanish-named import at least reads as an import. Revisit if
+    // Brazilian/Argentinian name data is ever added.
+    effects: {
+      overallBonus: 1,
+      potentialRangeBonus: [5, 8],
+      nationalityPool: ['spanish'],
+      wonderkidChance: 0.10,
+    },
   },
   youthTrainingPitchAndGym: {
     name: 'Youth Training Pitch & Gym',
-    description: 'Development facilities scaled for younger players.',
+    description: 'Development facilities scaled for younger players. Under-22s develop faster '
+      + 'and get closer to their natural ceiling.',
     costTier: 'standard',
     buildCost: 1_500_000,
     tierUpkeep: [400, 850, 1_700],
-    effects: { youthGrowthBonus: 0.10 },
+    effects: { youthGrowthBonus: 0.10, youthCeilingBonus: 5 },
   },
   academyBoardingHouse: {
     name: 'Academy Boarding House',
-    description: 'Quality-of-life housing for academy intakes.',
+    description: 'Quality-of-life housing for academy intakes. Slightly better prospects with a '
+      + 'little more potential, and young enough to still be worth housing.',
     costTier: 'standard',
     buildCost: 2_500_000,
     tierUpkeep: [650, 1_400, 2_800],
-    effects: { intakeOverallBonus: 1, intakePotentialRangeBonus: [1, 2] },
+    // Beds are why you can take a prospect at sixteen rather than waiting until they are grown.
+    effects: { intakeOverallBonus: 1, intakePotentialRangeBonus: [1, 2], intakeAgeBias: 1 },
   },
   youthSportsScienceUnit: {
     name: 'Youth Sports Science Unit',
@@ -315,8 +359,8 @@ export const ACADEMY_WING_IDS = Object.keys(ACADEMY_CATALOGUE);
  *  development wings, which drive growth/welfare of players already at the club). */
 export const ACADEMY_HUB_WING_IDS = [
   'homeNationsHub',
-  'defensiveAcademyHub',
-  'goalkeepingAcademyHub',
+  'academyPartnership',
+  'regionalScoutingNetwork',
   'continentalHub',
   'southAmericanHub',
 ];

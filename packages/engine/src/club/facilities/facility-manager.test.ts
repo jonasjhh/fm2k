@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Player } from '@fm2k/match';
 import { FacilityManager } from './facility-manager.ts';
-import { FACILITY_CATALOGUE } from './facility-catalogue.ts';
+import { FACILITY_CATALOGUE, ACADEMY_HUB_WING_IDS } from './facility-catalogue.ts';
 import { createEmptyFacilities as emptyFacilities } from './facility-types.ts';
 import type { ClubFacilities, FacilityGroupId, WingId, WingInstance } from './facility-types.ts';
 import { DEFICIT_WEEKS_BEFORE_MOTHBALL, YOUTH_AGE_CUTOFF } from './facility-weights.ts';
@@ -252,34 +252,65 @@ describe('FacilityManager.trainingAxes', () => {
 });
 
 describe('FacilityManager.academyRecruitmentBias', () => {
+  const ACADEMY = FACILITY_CATALOGUE.academy;
+
   it('sums overall/potential bonuses across hub wings only, ignoring development wings', () => {
     const facilities = emptyFacilities();
-    build(facilities, 'academy', 'homeNationsHub'); // overall +2, potential +[2,2]
-    build(facilities, 'academy', 'defensiveAcademyHub'); // overall +3, potential +[2,4]
-    build(facilities, 'academy', 'youthTrainingPitchAndGym'); // development wing, no recruitment effect
+    build(facilities, 'academy', 'homeNationsHub');
+    build(facilities, 'academy', 'regionalScoutingNetwork');
+    build(facilities, 'academy', 'youthTrainingPitchAndGym'); // development wing: no recruitment effect
     const bias = FacilityManager.academyRecruitmentBias(facilities);
-    expect(bias.overallBonus).toBeCloseTo(5);
-    expect(bias.potentialRangeBonus).toEqual([4, 6]);
+    const hubs = ['homeNationsHub', 'regionalScoutingNetwork'];
+    const sum = (pick: (e: typeof ACADEMY[string]['effects']) => number) =>
+      hubs.reduce((t, id) => t + pick(ACADEMY[id].effects), 0);
+    expect(bias.overallBonus).toBeCloseTo(sum(e => e.overallBonus ?? 0));
+    expect(bias.potentialRangeBonus).toEqual([
+      sum(e => (e.potentialRangeBonus ?? [0, 0])[0]),
+      sum(e => (e.potentialRangeBonus ?? [0, 0])[1]),
+    ]);
   });
 
-  it('tracks goalkeeper-specific bonuses separately from outfield bonuses', () => {
+  it('treats every prospect alike — no hub is scoped to a position', () => {
+    // A bonus that only pays out when a random retirement happens to match a position is a
+    // lottery ticket rather than a purchase decision, so no academy wing carries one.
+    for (const id of ACADEMY_HUB_WING_IDS) {
+      const effects = ACADEMY[id].effects as Record<string, unknown>;
+      expect(effects.gkOverallBonus).toBeUndefined();
+      expect(effects.gkPotentialRangeBonus).toBeUndefined();
+      expect(effects.positionGrowthBonus).toBeUndefined();
+    }
+  });
+
+  it('composes wonderkid chance as independent draws, so stacking hubs can never guarantee one', () => {
     const facilities = emptyFacilities();
-    build(facilities, 'academy', 'goalkeepingAcademyHub'); // gkOverall +4, gkPotential +[3,5]
-    const bias = FacilityManager.academyRecruitmentBias(facilities);
-    expect(bias.overallBonus).toBe(0);
-    expect(bias.gkOverallBonus).toBeCloseTo(4);
-    expect(bias.gkPotentialRangeBonus).toEqual([3, 5]);
+    const withTail = ACADEMY_HUB_WING_IDS.filter(id => (ACADEMY[id].effects.wonderkidChance ?? 0) > 0);
+    expect(withTail.length).toBeGreaterThan(0); // the tail must be buyable somewhere
+    for (const id of withTail) { build(facilities, 'academy', id); }
+    const { wonderkidChance } = FacilityManager.academyRecruitmentBias(facilities);
+    const summed = withTail.reduce((t, id) => t + (ACADEMY[id].effects.wonderkidChance ?? 0), 0);
+    expect(wonderkidChance).toBeGreaterThan(0);
+    expect(wonderkidChance).toBeLessThan(1);
+    expect(wonderkidChance).toBeLessThanOrEqual(summed);
+  });
+
+  it('collects the nationality pools of the hubs that recruit abroad', () => {
+    const facilities = emptyFacilities();
+    build(facilities, 'academy', 'continentalHub');
+    const { nationalityPool } = FacilityManager.academyRecruitmentBias(facilities);
+    expect(nationalityPool).toEqual(ACADEMY.continentalHub.effects.nationalityPool);
   });
 });
 
 describe('FacilityManager.academyIntakeQualityBonus', () => {
   it('sums intake bonuses across development wings only, ignoring hub wings', () => {
     const facilities = emptyFacilities();
-    build(facilities, 'academy', 'academyBoardingHouse'); // overall +1, potential +[1,2]
-    build(facilities, 'academy', 'homeNationsHub'); // hub wing, no intake-quality effect
+    build(facilities, 'academy', 'academyBoardingHouse');
+    build(facilities, 'academy', 'homeNationsHub'); // hub wing: no intake-quality effect
     const bonus = FacilityManager.academyIntakeQualityBonus(facilities);
-    expect(bonus.overallBonus).toBeCloseTo(1);
-    expect(bonus.potentialRangeBonus).toEqual([1, 2]);
+    const house = FACILITY_CATALOGUE.academy.academyBoardingHouse.effects;
+    expect(bonus.overallBonus).toBeCloseTo(house.intakeOverallBonus ?? 0);
+    expect(bonus.potentialRangeBonus).toEqual(house.intakePotentialRangeBonus);
+    expect(bonus.intakeAgeBias).toBeCloseTo(house.intakeAgeBias ?? 0);
   });
 });
 

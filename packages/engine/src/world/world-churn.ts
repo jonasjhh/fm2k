@@ -54,6 +54,12 @@ const YOUTH_BASE_POTENTIAL_RANGE: [number, number] = [40, 62];
 const YOUTH_AGE_MIN = 16;
 const YOUTH_AGE_MAX = 19;
 
+// A wonderkid is an intake whose potential is drawn from an elevated band. Shared between the
+// academy (a hub that buys the tail) and the free-agent backfill's rare elite prospects, so the
+// world has one notion of "exceptional talent" rather than two that drift apart.
+const WONDERKID_CHANCE = 0.15;      // within the backfill elite band only → ~1.5% of all backfill
+const WONDERKID_POTENTIAL_BONUS: [number, number] = [8, 15];
+
 /** Maps a division level (1 = top flight) to the 1–4 facility-quality tier used to approximate
  *  AI clubs' training and academy — D1 gets elite (4), D2 experienced (3), D3+ junior (2 or 1). */
 export function facilityForLevel(divisionLevel: number): number {
@@ -77,7 +83,9 @@ export function academyBiasForLevel(level: number): YouthBias {
   const l = clamp(1, 4, Math.round(level));
   const overallBonus = (l - 1) * 4;
   const potentialRangeBonus: [number, number] = [(l - 1) * 6, (l - 1) * 8];
-  return { overallBonus, potentialRangeBonus, nationalityPool: [], gkOverallBonus: overallBonus, gkPotentialRangeBonus: potentialRangeBonus };
+  // No age bias and no wonderkid tail: those are the two things a real estate buys that a
+  // division-derived approximation deliberately does not hand out for free.
+  return { overallBonus, potentialRangeBonus, nationalityPool: [], intakeAgeBias: 0, wonderkidChance: 0 };
 }
 
 /** A factory that mints a youth player to the requested spec (injected; impure part lives here). */
@@ -95,21 +103,27 @@ export function generatorYouthFactory(rng: () => number = Math.random): YouthFac
   });
 }
 
-/** Build a youth spec from the recruitment bias (Regional Scouting Hubs, or an AI-club
- *  equivalent via academyBiasForLevel), then mint via the factory. Goalkeeper intakes use the
- *  bias's GK-specific bonuses instead of its outfield ones (e.g. the Goalkeeping Academy Hub);
- *  a non-empty `nationalityPool` overrides the passed `nationality` for this prospect. */
+/** Build a youth spec from the recruitment bias (the academy hubs, or an AI-club equivalent via
+ *  academyBiasForLevel), then mint via the factory. Every position is treated alike — no wing is
+ *  position-scoped, so a keeper prospect is generated exactly as an outfielder is. A non-empty
+ *  `nationalityPool` overrides the passed `nationality` for this prospect. */
 export function makeYouth(
   position: PlayerPosition, bias: YouthBias, nationality: string, factory: YouthFactory, rng: () => number,
 ): Player {
-  const isGK = position === 'GK';
-  const overallBonus = isGK ? bias.gkOverallBonus : bias.overallBonus;
-  const [bonusLo, bonusHi] = isGK ? bias.gkPotentialRangeBonus : bias.potentialRangeBonus;
-  const overall = YOUTH_BASE_OVERALL + overallBonus + Math.round((rng() - 0.5) * 8);
-  const pLo = YOUTH_BASE_POTENTIAL_RANGE[0] + bonusLo;
-  const pHi = YOUTH_BASE_POTENTIAL_RANGE[1] + bonusHi;
-  const potential = Math.round(pLo + rng() * (pHi - pLo));
-  const age = YOUTH_AGE_MIN + Math.floor(rng() * (YOUTH_AGE_MAX - YOUTH_AGE_MIN + 1));
+  const overall = YOUTH_BASE_OVERALL + bias.overallBonus + Math.round((rng() - 0.5) * 8);
+  const pLo = YOUTH_BASE_POTENTIAL_RANGE[0] + bias.potentialRangeBonus[0];
+  const pHi = YOUTH_BASE_POTENTIAL_RANGE[1] + bias.potentialRangeBonus[1];
+  let potential = Math.round(pLo + rng() * (pHi - pLo));
+  // The roll is only drawn by a club that has bought the tail, so adding wonderkids doesn't
+  // shift the seeded stream for every other club in the world.
+  if (bias.wonderkidChance > 0 && rng() < bias.wonderkidChance) {
+    const [bLo, bHi] = WONDERKID_POTENTIAL_BONUS;
+    potential += bLo + Math.round(rng() * (bHi - bLo));
+  }
+  // A better academy finds them earlier. The floor keeps at least one year in the range however
+  // many wings stack, so the intake never collapses onto a single age.
+  const ageMax = Math.max(YOUTH_AGE_MIN, YOUTH_AGE_MAX - Math.round(bias.intakeAgeBias));
+  const age = YOUTH_AGE_MIN + Math.floor(rng() * (ageMax - YOUTH_AGE_MIN + 1));
   const pickedNationality = bias.nationalityPool.length > 0
     ? bias.nationalityPool[Math.floor(rng() * bias.nationalityPool.length)]
     : nationality;
@@ -127,7 +141,7 @@ export interface PlayerDelta {
   deltas: Partial<Record<AttrKey, number>>;
 }
 
-/** Default per-season direct youth intake a club receives: a random 1 or 2. */
+/** Default per-season direct youth intake a club receives: a random 2 or 3. */
 export function randomIntakeCap(rng: () => number): number {
   return 2 + Math.floor(rng() * 2);
 }
@@ -245,8 +259,6 @@ const BACKFILL_ELITE_SHARE = 0.1;   // OVR 70+ tapering (genuine D1 starters)
 const BACKFILL_AGE_MIN = 21;
 const BACKFILL_AGE_SPAN = 12;       // 21–32 years old
 const BACKFILL_POTENTIAL_HEADROOM = 4;
-const WONDERKID_CHANCE = 0.15;      // within the elite band only → ~1.5% of all backfill
-const WONDERKID_POTENTIAL_BONUS: [number, number] = [8, 15];
 
 /** Mint a ready-made free agent along the division-spanning quality pyramid. */
 export function makeBackfillPlayer(

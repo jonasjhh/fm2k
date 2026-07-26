@@ -37,6 +37,7 @@ import {
   writeSave, SAVE_VERSION, type SaveData, type SaveType,
 } from '../data/save-data.ts';
 import { dropLegacyPlayerKeyedShapes } from '../data/legacy-shape-migration.ts';
+import { remapRenamedWings } from '../data/renamed-wing-migration.ts';
 import {
   budgetStartFor, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
   MARKET_REFRESH_INTERVAL, ALL_PLAYER_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
@@ -1037,7 +1038,7 @@ export class GameSession {
     savedClubState.seasonStartSnapshot ??= {};
     // Legacy saves keyed shapes/roleOverrides by player id — drop them (revert to formation
     // default) since the model is now slot-keyed. Remove this shim when old saves are gone.
-    built.clubManager.loadState(dropLegacyPlayerKeyedShapes(savedClubState));
+    built.clubManager.loadState(remapRenamedWings(dropLegacyPlayerKeyedShapes(savedClubState)));
     const transferState: TransferState = {
       listings: save.transferListings,
       refreshedOnMatchday: save.currentMatchday,
