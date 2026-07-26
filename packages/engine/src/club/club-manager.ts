@@ -624,14 +624,26 @@ export class ClubManager {
         if (!player || player.injury) { continue; }
         const medicalAxes = FacilityManager.medicalAxes(s.facilities, player);
         // Medical staff can catch/treat an injury before it ever takes hold — a clean
-        // clearance (originalDuration 0), not a distinct "averted" event of its own.
-        if (this.rng() >= medicalAxes.injuryChanceMult) {
+        // clearance (originalDuration 0), not a distinct "averted" event of its own. Each
+        // injury caps how much of itself is preventable, so a complete medical estate makes
+        // most dead legs a non-event and still cannot stop a broken leg.
+        const avertChance = Math.min(
+          1 - medicalAxes.injuryChanceMult[inj.severity],
+          inj.maxAvertChance,
+        );
+        if (this.rng() < avertChance) {
           clearedInjuries.push({
             playerId: player.id, playerName: player.name, injuryType: inj.type, originalDuration: 0,
           });
           continue;
         }
-        const originalDuration = Math.max(1, Math.round(inj.baseDuration - medicalAxes.injuryDurationReduction));
+        // Treatment shortens the layoff proportionally, down to the injury's own floor —
+        // 1.0 for head injuries, where return-to-play protocol ignores what the club spent.
+        const treated = Math.max(
+          inj.baseDuration * inj.minDurationFraction,
+          inj.baseDuration * medicalAxes.injuryDurationMult,
+        );
+        const originalDuration = Math.max(1, Math.round(treated));
         player.injury = { type: inj.type, matchesRemaining: originalDuration, originalDuration };
         newInjuries.push({
           playerId: player.id,

@@ -1,3 +1,5 @@
+import type { InjurySeverity } from '@fm2k/match';
+
 /** Staffing posture for a built wing — describes the staffing situation, not an abstract tier. */
 export type OperatingMode = 'full_staff' | 'core_staff' | 'skeleton_crew'
 
@@ -31,8 +33,14 @@ export function createEmptyFacilities(): ClubFacilities {
 }
 
 export interface MedicalAxes {
-  injuryDurationReduction: number
-  injuryChanceMult: number
+  /** Prevention multiplier per severity band (1 = unfacilitated). Banded because a physio room
+   *  that makes most dead legs a non-event should do nothing at all about a broken leg. The
+   *  per-injury `maxAvertChance` clamp caps whatever this composes to. */
+  injuryChanceMult: Record<InjurySeverity, number>
+  /** Multiplier on a rolled injury's duration (1 = unfacilitated), floored per injury by its
+   *  `minDurationFraction`. Proportional rather than a flat number of matches: a flat cut takes
+   *  most of a sprain but barely dents a broken leg, which is backwards from intent. */
+  injuryDurationMult: number
   /** Multiplier on the *daily* passive recovery rate (1 = unfacilitated). */
   recoveryMult: number
   /** Flat fitness points added per elapsed day, outside the stamina multiplier — equal
@@ -65,8 +73,10 @@ export interface AcademyIntakeQualityBonus {
 }
 
 export type WingEffects = Partial<{
-  injuryDurationReduction: number
-  injuryChanceMult: number
+  knockChanceMult: number
+  moderateChanceMult: number
+  seriousChanceMult: number
+  injuryDurationMult: number
   recoveryMult: number
   recoveryFlat: number
   matchDrainMult: number
@@ -80,6 +90,8 @@ export type WingEffects = Partial<{
   gkOverallBonus: number
   gkPotentialRangeBonus: [number, number]
   youthGrowthBonus: number
+  /** Under-22s only. Applies to the knock and moderate bands — youth conditioning science
+   *  prevents the breakdowns young bodies are prone to, not catastrophic contact injuries. */
   youthInjuryChanceMult: number
   youthRecoveryFlat: number
   intakeOverallBonus: number

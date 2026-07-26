@@ -2,12 +2,26 @@ import { ClubManager } from './club-manager.ts';
 import type { ClubManagerConfig } from './club-manager.ts';
 import type { ClubPlayer } from './club-types.ts';
 import type { Player, PlayerPosition, InjuryReport } from '@fm2k/match';
-import { WIDE_EDGE_LATERAL } from '@fm2k/match';
+import { WIDE_EDGE_LATERAL, INJURY_BY_ID } from '@fm2k/match';
 import { createGameDateTime } from '@fm2k/timeline';
 import { EventBus, assertDefined } from '@fm2k/state';
 import type { GameEvents } from '../game-events.ts';
 import type { LeagueStanding } from '../league/league-types.ts';
 import { FACILITY_CATALOGUE } from './facilities/facility-catalogue.ts';
+import { FacilityManager } from './facilities/facility-manager.ts';
+
+/** Build the report a match hands the club, taking the mitigation clamps from the injury
+ *  catalogue rather than restating them — the catalogue is the tuning surface, so a test that
+ *  hard-coded them would silently stop testing the shipped values. */
+function report(playerId: string, type: string, baseDuration: number): InjuryReport {
+  const def = assertDefined(INJURY_BY_ID[type], `unknown injury type ${type}`);
+  return {
+    playerId, type, baseDuration,
+    severity: def.severity,
+    maxAvertChance: def.maxAvertChance,
+    minDurationFraction: def.minDurationFraction,
+  };
+}
 
 const NOW = createGameDateTime(2025, 8, 16, 15, 0);
 
@@ -832,7 +846,7 @@ describe('ClubManager:', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const starters = xiOf(manager);
-      const injuries: InjuryReport[] = starters.map(id => ({ playerId: id, type: 'muscle_strain', baseDuration: 2 }));
+      const injuries: InjuryReport[] = starters.map(id => (report(id, 'muscle_strain', 2)));
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: injuries });
       const state = manager.getState();
       state.squad.filter(p => starters.includes(p.id)).forEach(p => expect(p.injury).toBeDefined());
@@ -843,7 +857,7 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const starters = xiOf(manager);
       const injuredId = starters[3];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: injuredId, type: 'muscle_strain', baseDuration: 2 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(injuredId, 'muscle_strain', 2)] });
       const state = manager.getState();
       expect(state.startingXI).toEqual(starters);
       const injured = state.squad.find(p => p.id === injuredId);
@@ -862,33 +876,36 @@ describe('ClubManager:', () => {
     test('medical wings mitigate injury duration', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus, budget: 1_000_000 }));
-      manager.buildWing('medical', 'rehabGym'); // -1.0 matches at full_staff
+      manager.buildWing('medical', 'rehabGym');
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 4 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'knee_injury', 4)] });
       const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
-      // max(1, round(4 - 1.0)); originalDuration is set once and equals the confirmed layoff.
-      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: 3, originalDuration: 3 });
+      // Proportional, not a flat number of matches off: 4 × the wing's duration multiplier,
+      // floored by knee_injury's own minDurationFraction.
+      const mult = FACILITY_CATALOGUE.medical.rehabGym.effects.injuryDurationMult ?? 1;
+      const expected = Math.max(1, Math.round(Math.max(
+        4 * INJURY_BY_ID.knee_injury.minDurationFraction, 4 * mult,
+      )));
+      expect(player.injury).toEqual({ type: 'knee_injury', matchesRemaining: expected, originalDuration: expected });
     });
 
     test('a medical injury-chance wing can avert a reported injury before it takes hold', () => {
-      // rng is constant 0.97 for every call: in the training loop this misses every player's
-      // tiny improvement chance (harmless), then at the injury-chance check, 0.97 is below the
-      // built wing's 0.95 chance mult (so it's "caught"), but without any wing the chance mult
-      // is 1 (0.97 >= 1 is false, so the injury always proceeds).
+      // rng is a constant just under the wing's avert chance: with the wing built the injury is
+      // caught before it takes hold, without it the avert chance is 0 and the injury proceeds.
       const busWithout = new EventBus<GameEvents>();
-      const withoutWing = new ClubManager(makeConfig({ eventBus: busWithout, rng: () => 0.97 }));
+      const withoutWing = new ClubManager(makeConfig({ eventBus: busWithout, rng: () => 0.01 }));
       const idWithout = xiOf(withoutWing)[0];
-      emitMatch(busWithout, 'club-1', 'other-1', 0, 0, { home: [{ playerId: idWithout, type: 'knee_injury', baseDuration: 4 }] });
+      emitMatch(busWithout, 'club-1', 'other-1', 0, 0, { home: [report(idWithout, 'knee_injury', 4)] });
       expect(assertDefined(withoutWing.getState().squad.find(p => p.id === idWithout), 'player not found').injury).toBeDefined();
 
       const busWith = new EventBus<GameEvents>();
-      const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0.97, budget: 1_000_000 }));
-      withWing.buildWing('medical', 'massageTherapySuite'); // injuryChanceMult ×0.95 at full_staff
+      const withWing = new ClubManager(makeConfig({ eventBus: busWith, rng: () => 0.01, budget: 1_000_000 }));
+      withWing.buildWing('medical', 'massageTherapySuite');
       const idWith = xiOf(withWing)[0];
       const clearedWith: GameEvents['player.injuryCleared'][] = [];
       busWith.on('player.injuryCleared', e => clearedWith.push(e));
       const player = assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found');
-      emitMatch(busWith, 'club-1', 'other-1', 0, 0, { home: [{ playerId: idWith, type: 'knee_injury', baseDuration: 4 }] });
+      emitMatch(busWith, 'club-1', 'other-1', 0, 0, { home: [report(idWith, 'knee_injury', 4)] });
       expect(assertDefined(withWing.getState().squad.find(p => p.id === idWith), 'player not found').injury).toBeUndefined();
       // The generic clearance event still fires — originalDuration 0 signals "averted".
       expect(clearedWith).toEqual([{
@@ -896,13 +913,51 @@ describe('ClubManager:', () => {
       }]);
     });
 
+    test('a full medical estate still cannot prevent a broken leg', () => {
+      // The per-injury clamp is what stops facilities becoming an injury off-switch. Build
+      // everything, then use an rng far below any plausible avert chance: the leg still breaks.
+      // The rng sits above broken_leg's clamp but far below what the wings compose to
+      // unclamped — so the injury standing is proof the clamp bound, not that the estate is weak.
+      const clamp = INJURY_BY_ID.broken_leg.maxAvertChance;
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({
+        eventBus: bus, rng: () => clamp + 0.01, budget: 100_000_000,
+      }));
+      for (const wingId of Object.keys(FACILITY_CATALOGUE.medical)) {
+        manager.buildWing('medical', wingId);
+      }
+      const unclamped = 1 - FacilityManager
+        .medicalAxes(manager.getState().facilities).injuryChanceMult.serious;
+      expect(unclamped).toBeGreaterThan(clamp + 0.01);
+
+      const id = xiOf(manager)[0];
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'broken_leg', 12)] });
+      const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
+      expect(player.injury).toBeDefined();
+      // ...and treatment is floored well short of a full recovery.
+      const floor = Math.round(12 * INJURY_BY_ID.broken_leg.minDurationFraction);
+      expect(player.injury?.matchesRemaining).toBeGreaterThanOrEqual(floor);
+    });
+
+    test('no facility shortens a head injury — protocol ignores what the club spent', () => {
+      const bus = new EventBus<GameEvents>();
+      const manager = new ClubManager(makeConfig({ eventBus: bus, rng: () => 0.99, budget: 100_000_000 }));
+      for (const wingId of Object.keys(FACILITY_CATALOGUE.medical)) {
+        manager.buildWing('medical', wingId);
+      }
+      const id = xiOf(manager)[0];
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'concussion', 9)] });
+      const player = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
+      expect(player.injury).toEqual({ type: 'concussion', matchesRemaining: 9, originalDuration: 9 });
+    });
+
     test('an already-injured player is not re-injured', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'ankle_sprain', baseDuration: 3 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'ankle_sprain', 3)] });
       const first = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found').injury;
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'knee_injury', baseDuration: 9 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'knee_injury', 9)] });
       const second = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found').injury;
       expect(second).toEqual(first);
     });
@@ -913,7 +968,7 @@ describe('ClubManager:', () => {
       const injured: GameEvents['player.injured'][] = [];
       bus.on('player.injured', e => injured.push(e));
       const starters = xiOf(manager);
-      const injuries: InjuryReport[] = starters.map(id => ({ playerId: id, type: 'muscle_strain', baseDuration: 2 }));
+      const injuries: InjuryReport[] = starters.map(id => (report(id, 'muscle_strain', 2)));
       emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: injuries });
       expect(injured).toHaveLength(starters.length);
       injured.forEach(e => {
@@ -958,7 +1013,7 @@ describe('ClubManager:', () => {
       const bus = new EventBus<GameEvents>();
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = xiOf(manager)[0];
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'muscle_strain', baseDuration: 2 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'muscle_strain', 2)] });
       const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
       const remaining = assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining;
       manager.handleMatchdayComplete();
@@ -971,7 +1026,7 @@ describe('ClubManager:', () => {
       const manager = new ClubManager(makeConfig({ eventBus: bus }));
       const id = xiOf(manager)[0];
       // baseDuration 1, medical level 1 → matchesRemaining max(1, 1-0) = 1
-      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [{ playerId: id, type: 'muscle_strain', baseDuration: 1 }] });
+      emitMatch(bus, 'club-1', 'other-1', 0, 0, { home: [report(id, 'muscle_strain', 1)] });
       const beforePlayer = assertDefined(manager.getState().squad.find(p => p.id === id), 'player not found');
       expect(assertDefined(beforePlayer.injury, 'player not injured').matchesRemaining).toBe(1);
 
@@ -1192,7 +1247,7 @@ describe('ClubManager (mutation top-up):', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus);
       const manager = new ClubManager(config);
-      emitMatch(bus, 'club-1', 'other', 0, 0, { home: [{ playerId: p.id, type: 'hamstring_pull', baseDuration: 3 }] });
+      emitMatch(bus, 'club-1', 'other', 0, 0, { home: [report(p.id, 'hamstring_pull', 3)] });
       const injury = assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').injury;
       expect(injury).toEqual({ type: 'hamstring_pull', matchesRemaining: 3, originalDuration: 3 }); // max(1, 3-(1-1))
     });

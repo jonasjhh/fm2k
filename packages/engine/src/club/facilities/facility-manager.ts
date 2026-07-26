@@ -1,4 +1,4 @@
-import type { Player } from '@fm2k/match';
+import type { InjurySeverity, Player } from '@fm2k/match';
 import {
   ACADEMY_DEVELOPMENT_WING_IDS,
   ACADEMY_HUB_WING_IDS,
@@ -60,18 +60,22 @@ export class FacilityManager {
    *  Youth Academy development wing, not a Medical one, so it's only applied per-player here
    *  rather than being part of the unconditional medical wing sum above. */
   static medicalAxes(facilities: ClubFacilities, player?: Player): MedicalAxes {
-    let injuryDurationReduction = 0;
-    let injuryChanceMult = 1;
+    const injuryChanceMult: Record<InjurySeverity, number> = { knock: 1, moderate: 1, serious: 1 };
+    let injuryDurationMult = 1;
     let recoveryMult = 1;
     let recoveryFlat = 0;
     let matchDrainMult = 1;
     let postMatchRecovery = 0;
+    /** Wings compose multiplicatively, each scaled down by how the wing is staffed. */
+    const compose = (current: number, effect: number | undefined, mult: number): number =>
+      effect === undefined ? current : current * (1 - (1 - effect) * mult);
+
     for (const { def, instance } of builtWings('medical', facilities)) {
       const mult = effectMult(instance);
-      injuryDurationReduction += (def.effects.injuryDurationReduction ?? 0) * mult;
-      if (def.effects.injuryChanceMult !== undefined) {
-        injuryChanceMult *= 1 - (1 - def.effects.injuryChanceMult) * mult;
-      }
+      injuryChanceMult.knock = compose(injuryChanceMult.knock, def.effects.knockChanceMult, mult);
+      injuryChanceMult.moderate = compose(injuryChanceMult.moderate, def.effects.moderateChanceMult, mult);
+      injuryChanceMult.serious = compose(injuryChanceMult.serious, def.effects.seriousChanceMult, mult);
+      injuryDurationMult = compose(injuryDurationMult, def.effects.injuryDurationMult, mult);
       recoveryMult += (def.effects.recoveryMult ?? 0) * mult;
       recoveryFlat += (def.effects.recoveryFlat ?? 0) * mult;
       if (def.effects.matchDrainMult !== undefined) {
@@ -83,14 +87,14 @@ export class FacilityManager {
       for (const { id, def, instance } of builtWings('academy', facilities)) {
         if (!ACADEMY_DEVELOPMENT_WING_IDS.includes(id)) { continue; }
         const mult = effectMult(instance);
-        if (def.effects.youthInjuryChanceMult !== undefined) {
-          injuryChanceMult *= 1 - (1 - def.effects.youthInjuryChanceMult) * mult;
-        }
+        const youth = def.effects.youthInjuryChanceMult;
+        injuryChanceMult.knock = compose(injuryChanceMult.knock, youth, mult);
+        injuryChanceMult.moderate = compose(injuryChanceMult.moderate, youth, mult);
         recoveryFlat += (def.effects.youthRecoveryFlat ?? 0) * mult;
       }
     }
     return {
-      injuryDurationReduction, injuryChanceMult,
+      injuryChanceMult, injuryDurationMult,
       recoveryMult, recoveryFlat, matchDrainMult, postMatchRecovery,
     };
   }

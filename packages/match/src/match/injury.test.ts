@@ -2,6 +2,7 @@ import {
   collectExposures, rollInjuries, fatigueRiskFactor, injuryDescription, INJURY_TYPES,
   type MatchInjury,
 } from './injury.ts';
+import { INJURY_BY_ID, TRIGGER_EXPOSURE } from './injury-catalogue.ts';
 import { DuelMatchSimulator } from './duel/duel-simulator.ts';
 import { mulberry32 } from './rng.ts';
 import { createTestTeam, createUniformPlayer } from './test-fixtures.ts';
@@ -29,27 +30,34 @@ function stateWith(players: Player[], energy = 80): MatchState {
 const carrier = createUniformPlayer('carrier', 'Carrier', 'ST');
 
 describe('collectExposures:', () => {
-  test('a tackle exposes both the challenged carrier (full) and the tackler (reduced)', () => {
+  test('a tackle exposes the challenged carrier and the tackler as distinct situations', () => {
+    // They are separate triggers, not one trigger with a multiplier: a tackler plants and
+    // twists where the player they hit takes it in the thigh, so the injuries differ too.
     const exposures = collectExposures([
       ev('tackle', 'away', { playerId: 'tackler', metadata: { attackerId: 'carrier', attackingTeam: 'home' } }),
     ]);
-    expect(exposures).toHaveLength(2);
-    const [challenged, tacklerExp] = exposures;
-    expect(challenged).toMatchObject({ playerId: 'carrier', team: 'home', trigger: 'challenge', mult: 1 });
-    expect(tacklerExp).toMatchObject({ playerId: 'tackler', team: 'away', trigger: 'challenge', mult: 0.5 });
+    expect(exposures).toEqual([
+      { playerId: 'carrier', team: 'home', trigger: 'tackled' },
+      { playerId: 'tackler', team: 'away', trigger: 'tackling' },
+    ]);
   });
 
-  test('a carded foul multiplies the fouled player\'s risk; a straight red multiplies it most', () => {
+  test('a foul\'s trigger reflects the card it drew, so each carries its own exposure', () => {
     const foul = (cards: MatchEvent[]) => collectExposures([
       ev('foul', 'away', { playerId: 'tackler', metadata: { attackerId: 'carrier', attackingTeam: 'home' } }),
       ...cards,
     ])[0];
-    const clean = foul([]);
-    const yellow = foul([ev('yellow_card', 'away', { playerId: 'tackler' })]);
-    const red = foul([ev('red_card', 'away', { playerId: 'tackler' })]);
-    expect(clean.mult).toBe(1);
-    expect(yellow.mult).toBe(2);
-    expect(red.mult).toBe(6);
+    expect(foul([]).trigger).toBe('foul');
+    expect(foul([ev('yellow_card', 'away', { playerId: 'tackler' })]).trigger).toBe('yellow_foul');
+    expect(foul([ev('red_card', 'away', { playerId: 'tackler' })]).trigger).toBe('red_foul');
+  });
+
+  test('the exposure table prices a carded foul above a clean one, and a tackler below both', () => {
+    // What used to be YELLOW_FOUL_MULT/RED_FOUL_MULT/TACKLER_FACTOR now lives as tunable rows.
+    const knock = (t: keyof typeof TRIGGER_EXPOSURE) => TRIGGER_EXPOSURE[t].knock;
+    expect(knock('tackling')).toBeLessThan(knock('tackled'));
+    expect(knock('foul')).toBeLessThan(knock('yellow_foul'));
+    expect(knock('yellow_foul')).toBeLessThan(knock('red_foul'));
   });
 
   test('sprints, through-ball runs, aerial duels and saves expose the right player', () => {
@@ -74,12 +82,46 @@ describe('rollInjuries:', () => {
     ev('tackle', 'away', { playerId: 'tackler', metadata: { attackerId: 'carrier', attackingTeam: 'home' } }),
   ];
 
-  test('a forced roll produces an impact injury for the challenged player', () => {
-    // rng 0 → every chance roll passes; type pick lands on the first table entry.
+  test('bands roll worst-first, so a serious injury is never masked by a knock', () => {
+    // rng 0 → every chance roll passes. Because the bands are rolled serious→knock, the
+    // challenged player takes the worst outcome the situation can produce, not the first.
     const injuries = rollInjuries(tackleEvents, stateWith([carrier]), new Set(), () => 0);
     expect(injuries).toHaveLength(1);
-    expect(injuries[0]).toMatchObject({ playerId: 'carrier', team: 'home', cause: 'challenge', type: 'dead_leg' });
+    expect(injuries[0]).toMatchObject({
+      playerId: 'carrier', team: 'home', cause: 'tackled',
+      type: 'knee_ligament_tear', severity: 'serious',
+    });
     expect(injuries[0].baseDuration).toBeGreaterThanOrEqual(1);
+  });
+
+  test('a knock is what a challenge actually produces once the rare bands fail', () => {
+    // Fail serious and moderate, pass knock, then pick the head of the table.
+    const seq = [1, 1, 0, 0, 0];
+    let i = 0;
+    const injuries = rollInjuries(
+      tackleEvents, stateWith([carrier]), new Set(), () => seq[Math.min(i++, seq.length - 1)],
+    );
+    expect(injuries[0]).toMatchObject({ type: 'dead_leg', severity: 'knock' });
+  });
+
+  test('an injury carries its own mitigation clamps for the club layer to honour', () => {
+    const injuries = rollInjuries(tackleEvents, stateWith([carrier]), new Set(), () => 0);
+    const def = INJURY_BY_ID[injuries[0].type];
+    expect(injuries[0].maxAvertChance).toBe(def.maxAvertChance);
+    expect(injuries[0].minDurationFraction).toBe(def.minDurationFraction);
+  });
+
+  test('an empty severity slot consumes no rng draw, so it cannot shift later picks', () => {
+    // Keepers have no serious injuries. If that slot still drew, the save trigger's roll
+    // sequence would silently differ from every other trigger's.
+    const keeper = createUniformPlayer('keeper', 'Keeper', 'GK');
+    const draws: number[] = [];
+    rollInjuries(
+      [ev('save', 'home', { playerId: 'keeper' })], stateWith([keeper]), new Set(),
+      () => { draws.push(1); return 1; },
+    );
+    // moderate + knock chance rolls only — the serious slot is skipped outright.
+    expect(draws).toHaveLength(2);
   });
 
   test('broken_leg is only reachable through a carded foul', () => {
@@ -116,6 +158,7 @@ describe('rollInjuries:', () => {
     const injury: MatchInjury = {
       playerId: 'carrier', team: 'home', minute: 70, cause: 'through_run',
       type: 'hamstring_pull', baseDuration: 4,
+      severity: 'moderate', maxAvertChance: 0.45, minDurationFraction: 0.45,
     };
     const text = injuryDescription('Runner', injury);
     expect(text).toContain('Runner');

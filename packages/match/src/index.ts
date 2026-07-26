@@ -49,7 +49,11 @@ export { MatchOccurrence } from './match/match-occurrence.ts';
 export type { MatchOccurrenceConfig } from './match/match-occurrence.ts';
 export type { EventType, MatchEvent, MatchResult, MatchStatistics, DuelTally } from './match/types.ts';
 export type { DuelType } from './match/duel/duels.ts';
-export type { InjuryReport } from './match/injury.ts';
+export type { InjuryReport, InjurySeverity, InjuryTrigger } from './match/injury.ts';
+export type { InjuryDefinition } from './match/injury-catalogue.ts';
+export {
+  INJURY_DEFINITIONS, INJURY_BY_ID, INJURY_TYPES, INJURY_SEVERITIES, INJURY_TRIGGERS,
+} from './match/injury-catalogue.ts';
 
 // Standalone simulation contract (the /test sandbox + calibration)
 export { simulateMatch } from './match/simulate.ts';

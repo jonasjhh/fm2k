@@ -29,7 +29,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'basic',
     buildCost: 50_000,
     tierUpkeep: [150, 350, 700],
-    effects: { injuryChanceMult: 0.95, recoveryFlat: 1.5 },
+    effects: { knockChanceMult: 0.95, moderateChanceMult: 0.95, seriousChanceMult: 0.95, recoveryFlat: 1.5 },
   },
   pitchSidePhysioUnit: {
     name: 'Pitch-side Physio Unit',
@@ -37,7 +37,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'basic',
     buildCost: 90_000,
     tierUpkeep: [200, 450, 900],
-    effects: { injuryDurationReduction: 0.5 },
+    effects: { injuryDurationMult: 0.83 },
   },
   hydrotherapyPool: {
     name: 'Hydrotherapy Pool',
@@ -54,7 +54,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'standard',
     buildCost: 700_000,
     tierUpkeep: [600, 1_300, 2_600],
-    effects: { injuryDurationReduction: 1.0 },
+    effects: { injuryDurationMult: 0.67 },
   },
   nutritionSportsScienceUnit: {
     name: 'Nutrition & Sports Science Unit',
@@ -63,7 +63,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'standard',
     buildCost: 600_000,
     tierUpkeep: [550, 1_200, 2_400],
-    effects: { injuryChanceMult: 0.88, matchDrainMult: 0.93 },
+    effects: { knockChanceMult: 0.88, moderateChanceMult: 0.88, seriousChanceMult: 0.88, matchDrainMult: 0.93 },
   },
   playerWelfareCentre: {
     name: 'Player Welfare Centre',
@@ -72,7 +72,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'standard',
     buildCost: 900_000,
     tierUpkeep: [700, 1_500, 3_000],
-    effects: { injuryChanceMult: 0.90, recoveryFlat: 3 },
+    effects: { knockChanceMult: 0.90, moderateChanceMult: 0.90, seriousChanceMult: 0.90, recoveryFlat: 3 },
   },
   cryotherapyChamber: {
     name: 'Cryotherapy Chamber',
@@ -89,7 +89,7 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'premium',
     buildCost: 4_000_000,
     tierUpkeep: [2_200, 4_200, 6_200],
-    effects: { injuryDurationReduction: 0.6 },
+    effects: { injuryDurationMult: 0.80 },
   },
   surgicalTheatre: {
     name: 'Surgical Theatre',
@@ -97,7 +97,10 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
     costTier: 'premium',
     buildCost: 7_000_000,
     tierUpkeep: [3_000, 5_500, 8_000],
-    effects: { injuryDurationReduction: 0.8, injuryChanceMult: 0.95 },
+    effects: {
+      injuryDurationMult: 0.73,
+      knockChanceMult: 0.95, moderateChanceMult: 0.95, seriousChanceMult: 0.95,
+    },
   },
 };
 

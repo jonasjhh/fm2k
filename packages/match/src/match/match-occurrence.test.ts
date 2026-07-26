@@ -564,7 +564,10 @@ describe('MatchOccurrence:', () => {
       const state = occ.getMatchState();
       state.matchInjuries = [
         ...(state.matchInjuries ?? []),
-        { playerId, team: 'home', minute: 5, cause: 'challenge', type: 'dead_leg', baseDuration: 1 },
+        {
+          playerId, team: 'home', minute: 5, cause: 'tackled', type: 'dead_leg', baseDuration: 1,
+          severity: 'knock', maxAvertChance: 0.85, minDurationFraction: 0,
+        },
       ];
       state.currentPlayers.home = state.currentPlayers.home.filter(p => p.id !== playerId);
     }
