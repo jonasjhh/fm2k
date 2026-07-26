@@ -923,6 +923,13 @@ export class GameSession {
       rng: this.rng,
     });
 
+    // The carried-over stamps were drawn from the *old* season's calendar (churnWorld restamps
+    // from the end of the season it just finished, ~May). The clock now jumps forward to August,
+    // which would put every one of those dates in the past and hand the AI the whole pool on the
+    // first pre-season window. Redraw the delays from the new season start instead, so the
+    // manager keeps their week-or-two head start on the fresh batch.
+    this.transferManager.setFreeAgents(prevTransfer.freeAgents, newSeasonStart, true);
+
     this.seedSquadTargets(this.world);
 
     this.currentMatchday = 0;
