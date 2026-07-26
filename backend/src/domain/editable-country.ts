@@ -7,7 +7,7 @@ import type { Team, CountryKey, StructuredDivision } from '@fm2k/engine';
 export interface EditableCountry {
   id: CountryKey;
   name: string;         // display name: "Norway", "England", etc.
-  nationality: string;  // demonym: "norwegian", "english", etc.
+  nationality: string;  // capitalised demonym: "Norwegian", "English", etc.
   divisions: EditableDivision[];
 }
 

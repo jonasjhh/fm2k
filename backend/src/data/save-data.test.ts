@@ -31,7 +31,7 @@ function attrs(v: number): PlayerAttributes {
 
 function player(id: string, extra: Partial<Player> = {}): Player {
   return {
-    id, name: id, nationality: 'norwegian', age: 24, position: 'CM', potential: 80,
+    id, name: id, nationality: 'Norwegian', age: 24, position: 'CM', potential: 80,
     attributes: attrs(70), ...extra,
   } as Player;
 }
@@ -52,7 +52,7 @@ function flatWorld(teamId = 't1', tactics?: TeamTactics) {
     player('s1'), player('s2', { position: 'ST', attributes: attrs(88) }), player('b1', { position: 'GK' }),
   ].map(p => ({ ...p, clubId: teamId }));
   const division: WorldDivision = { id: 'd1', name: 'Eliteserien', level: 1, countryId: 'norway' };
-  const country: WorldCountry = { id: 'norway', name: 'Norway', nationality: 'norwegian' };
+  const country: WorldCountry = { id: 'norway', name: 'Norway', nationality: 'Norwegian' };
   return {
     players: squadPlayers,
     teams: [team],

@@ -10,7 +10,7 @@ export function createTestPlayer(id: string, name: string, position: PlayerPosit
   return {
     id,
     name,
-    nationality: 'norwegian',
+    nationality: 'Norwegian',
     age: 25,
     position,
     potential: 70,
@@ -30,7 +30,7 @@ export function createTestPlayer(id: string, name: string, position: PlayerPosit
 /** Flat profile: every attribute = `quality` (stamina 75 kept for the 70 default). */
 export function createUniformPlayer(id: string, name: string, position: PlayerPosition, quality = 70): Player {
   return {
-    id, name, nationality: 'norwegian', age: 25, position, potential: quality,
+    id, name, nationality: 'Norwegian', age: 25, position, potential: quality,
     attributes: {
       speed: quality, strength: quality, passing: quality,
       finishing: quality, technique: quality, defending: quality,

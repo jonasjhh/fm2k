@@ -23,7 +23,7 @@ function makePlayer(attrs: Partial<PlayerAttributes> = {}): Player {
   return {
     id,
     name: `Transfer Player ${playerCounter}`,
-    nationality: 'norwegian',
+    nationality: 'Norwegian',
     age: 25,
     position: 'CM',
     potential: 70,
@@ -48,7 +48,7 @@ function makeManager(overrides: Partial<TransferManagerConfig> = {}): TransferMa
 // Minimal ClubManager for purchase tests
 function makeClubManager(budget: number): ClubManager {
   const squad: Player[] = Array.from({ length: 15 }, (_, i) => ({
-    id: `sq-${i}`, name: `Squad ${i}`, nationality: 'norwegian', age: 25,
+    id: `sq-${i}`, name: `Squad ${i}`, nationality: 'Norwegian', age: 25,
     position: 'CM' as const, potential: 70,
     attributes: makeAttrs(),
   }));

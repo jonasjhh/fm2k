@@ -56,7 +56,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
     id,
     name: `Player ${playerCounter}`,
-    nationality: 'norwegian',
+    nationality: 'Norwegian',
     age: 25,
     position: 'CM',
     potential: 70,

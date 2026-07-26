@@ -14,7 +14,7 @@ function attrs(v: number): PlayerAttributes {
 }
 
 function player(over: Partial<Player> & { id: string }, attrValue = 60): Player {
-  return { name: over.id, nationality: 'norwegian', age: 24, position: 'CM', potential: 75, attributes: attrs(attrValue), ...over };
+  return { name: over.id, nationality: 'Norwegian', age: 24, position: 'CM', potential: 75, attributes: attrs(attrValue), ...over };
 }
 
 // A youth factory that simply echoes its spec so generated youth are inspectable.
@@ -71,9 +71,9 @@ describe('AI facility approximations:', () => {
 
 describe('makeYouth:', () => {
   it('mints a 16–19 prospect in the requested position with bias-banded potential', () => {
-    const y = makeYouth('ST', academyBiasForLevel(4), 'spanish', youthFactory, () => 0.5);
+    const y = makeYouth('ST', academyBiasForLevel(4), 'Spanish', youthFactory, () => 0.5);
     expect(y.position).toBe('ST');
-    expect(y.nationality).toBe('spanish');
+    expect(y.nationality).toBe('Spanish');
     expect(y.age).toBeGreaterThanOrEqual(16);
     expect(y.age).toBeLessThanOrEqual(19);
     // L4-equivalent potential band is [58, 86]; rng=0.5 → midpoint.
@@ -88,7 +88,7 @@ describe('makeYouth:', () => {
   });
 
   it('with no bias built, falls back to the unfacilitated floor', () => {
-    const y = makeYouth('ST', NO_BIAS, 'spanish', youthFactory, () => 0);
+    const y = makeYouth('ST', NO_BIAS, 'Spanish', youthFactory, () => 0);
     expect(y.potential).toBeGreaterThanOrEqual(40);
     expect(y.potential).toBeLessThanOrEqual(62);
   });
@@ -128,7 +128,7 @@ describe('makeYouth:', () => {
 
   it('a non-empty nationalityPool overrides the passed nationality', () => {
     const bias: YouthBias = { ...NO_BIAS, nationalityPool: ['brazilian'] };
-    const y = makeYouth('ST', bias, 'norwegian', youthFactory, () => 0.5);
+    const y = makeYouth('ST', bias, 'Norwegian', youthFactory, () => 0.5);
     expect(y.nationality).toBe('brazilian');
   });
 });
@@ -188,7 +188,7 @@ describe('makeBackfillPlayer:', () => {
 
 describe('churnSquad:', () => {
   const opts = (rng: () => number, extra: Partial<Parameters<typeof churnSquad>[1]> = {}) =>
-    ({ rng, youthFactory, nationality: 'norwegian', axesOf: () => ({ growthBonus: 0.2, ceilingBonus: 11 }), academyBias: academyBiasForLevel(3), ...extra });
+    ({ rng, youthFactory, nationality: 'Norwegian', axesOf: () => ({ growthBonus: 0.2, ceilingBonus: 11 }), academyBias: academyBiasForLevel(3), ...extra });
 
   it('ages and develops everyone when nobody retires (no overflow)', () => {
     const squad = [player({ id: 'a', age: 18, potential: 90 }, 45), player({ id: 'b', age: 20, potential: 85 }, 45)];
@@ -293,7 +293,7 @@ describe('churnFreeAgents:', () => {
     const pool = [player({ id: 'old1', age: 42 }, 50), player({ id: 'kid', age: 22 }, 55)];
     const res = churnFreeAgents(pool, {
       rng: () => 0, youthFactory,
-      overflow: [{ position: 'ST', nationality: 'norwegian' }, { position: 'CB', nationality: 'english' }],
+      overflow: [{ position: 'ST', nationality: 'Norwegian' }, { position: 'CB', nationality: 'English' }],
     });
     // old1 retires (→1 replacement youth), kid survives; +2 overflow youth = 1 survivor + 3 youth
     expect(res).toHaveLength(4);

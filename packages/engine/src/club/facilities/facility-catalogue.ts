@@ -251,7 +251,7 @@ const TRAINING_CATALOGUE: Record<WingId, WingDefinition> = {
 /** Nationalities the Continental Hub recruits from — every nation @fm2k/names can actually name a
  *  player in, so an import reads as foreign rather than as a mislabelled domestic player. */
 const CONTINENTAL_NATIONALITIES = [
-  'english', 'swedish', 'danish', 'french', 'german', 'italian', 'spanish',
+  'English', 'Swedish', 'Danish', 'French', 'German', 'Italian', 'Spanish',
 ];
 
 const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
@@ -311,7 +311,7 @@ const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
     effects: {
       overallBonus: 1,
       potentialRangeBonus: [5, 8],
-      nationalityPool: ['spanish'],
+      nationalityPool: ['Spanish'],
       wonderkidChance: 0.10,
     },
   },

@@ -22,7 +22,7 @@ function build(facilities: ClubFacilities, group: FacilityGroupId, wingId: WingI
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
-    id: 'p1', name: 'Test Player', nationality: 'norwegian', age: 25, position: 'CM', potential: 70,
+    id: 'p1', name: 'Test Player', nationality: 'Norwegian', age: 25, position: 'CM', potential: 70,
     attributes: {
       speed: 10, strength: 10,
       passing: 10, finishing: 10, technique: 10,

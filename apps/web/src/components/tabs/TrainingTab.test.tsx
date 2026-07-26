@@ -20,7 +20,7 @@ function attrs(v = 40): PlayerAttributes {
 
 function player(id: string, name: string, age = 25): ClubPlayer {
   return {
-    id, name, nationality: 'norwegian', age, position: 'CM', potential: 70,
+    id, name, nationality: 'Norwegian', age, position: 'CM', potential: 70,
     attributes: attrs(), fitness: 1000,
   } as ClubPlayer;
 }

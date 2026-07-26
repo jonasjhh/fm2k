@@ -133,7 +133,7 @@ describe('GameSession pre-game editor:', () => {
       const team = firstTeam(s);
       const before = team.squad.length;
       const incoming: Omit<Player, 'id'> = {
-        name: 'Newbie', nationality: 'norwegian', age: 20, position: 'ST', potential: 80, attributes: attrs(75),
+        name: 'Newbie', nationality: 'Norwegian', age: 20, position: 'ST', potential: 80, attributes: attrs(75),
       };
 
       s.addPlayer(team.id, incoming);

@@ -17,7 +17,7 @@ function division(id: string, level: number, n: number) {
 
 function country(): EditableCountry {
   return {
-    id: 'england', name: 'England', nationality: 'english',
+    id: 'england', name: 'England', nationality: 'English',
     divisions: [division('d1', 1, 6), division('d2', 2, 6), division('d3', 3, 6)],
   };
 }
@@ -81,7 +81,7 @@ describe('applyPromotionRelegation:', () => {
 
   it('given a single division then there are no movements and teams are unchanged', () => {
     const single: EditableCountry = {
-      id: 'england', name: 'England', nationality: 'english',
+      id: 'england', name: 'England', nationality: 'English',
       divisions: [division('d1', 1, 6)],
     };
     const world = buildWorld([single]);

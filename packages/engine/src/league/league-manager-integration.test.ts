@@ -14,7 +14,7 @@ function makePlayer(id: string): Player {
   return {
     id,
     name: id,
-    nationality: 'norwegian',
+    nationality: 'Norwegian',
     age: 25,
     position: 'CM',
     potential: 70,
