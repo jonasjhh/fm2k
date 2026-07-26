@@ -63,6 +63,9 @@ export class FacilityManager {
     let injuryDurationReduction = 0;
     let injuryChanceMult = 1;
     let recoveryMult = 1;
+    let recoveryFlat = 0;
+    let matchDrainMult = 1;
+    let postMatchRecovery = 0;
     for (const { def, instance } of builtWings('medical', facilities)) {
       const mult = effectMult(instance);
       injuryDurationReduction += (def.effects.injuryDurationReduction ?? 0) * mult;
@@ -70,6 +73,11 @@ export class FacilityManager {
         injuryChanceMult *= 1 - (1 - def.effects.injuryChanceMult) * mult;
       }
       recoveryMult += (def.effects.recoveryMult ?? 0) * mult;
+      recoveryFlat += (def.effects.recoveryFlat ?? 0) * mult;
+      if (def.effects.matchDrainMult !== undefined) {
+        matchDrainMult *= 1 - (1 - def.effects.matchDrainMult) * mult;
+      }
+      postMatchRecovery += (def.effects.postMatchRecovery ?? 0) * mult;
     }
     if (player && player.age <= YOUTH_AGE_CUTOFF) {
       for (const { id, def, instance } of builtWings('academy', facilities)) {
@@ -78,10 +86,13 @@ export class FacilityManager {
         if (def.effects.youthInjuryChanceMult !== undefined) {
           injuryChanceMult *= 1 - (1 - def.effects.youthInjuryChanceMult) * mult;
         }
-        recoveryMult += (def.effects.youthRecoveryMult ?? 0) * mult;
+        recoveryFlat += (def.effects.youthRecoveryFlat ?? 0) * mult;
       }
     }
-    return { injuryDurationReduction, injuryChanceMult, recoveryMult };
+    return {
+      injuryDurationReduction, injuryChanceMult,
+      recoveryMult, recoveryFlat, matchDrainMult, postMatchRecovery,
+    };
   }
 
   static trainingAxes(facilities: ClubFacilities, player: Player): TrainingAxes {

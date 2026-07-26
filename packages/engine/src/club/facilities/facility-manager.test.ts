@@ -35,18 +35,59 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 describe('FacilityManager.medicalAxes', () => {
   it('returns the no-op identity when no wings are built', () => {
     expect(FacilityManager.medicalAxes(emptyFacilities())).toEqual({
-      injuryDurationReduction: 0, injuryChanceMult: 1, recoveryMult: 1,
+      injuryDurationReduction: 0, injuryChanceMult: 1,
+      recoveryMult: 1, recoveryFlat: 0, matchDrainMult: 1, postMatchRecovery: 0,
     });
   });
 
   it('sums duration reduction and recovery bonuses across built wings at full staff', () => {
+    const M = FACILITY_CATALOGUE.medical;
     const facilities = emptyFacilities();
-    build(facilities, 'medical', 'pitchSidePhysioUnit'); // -0.5 matches
-    build(facilities, 'medical', 'rehabGym'); // -1.0 matches
-    build(facilities, 'medical', 'hydrotherapyPool'); // +0.15 recovery
+    build(facilities, 'medical', 'pitchSidePhysioUnit');
+    build(facilities, 'medical', 'rehabGym');
+    build(facilities, 'medical', 'hydrotherapyPool');
     const axes = FacilityManager.medicalAxes(facilities);
-    expect(axes.injuryDurationReduction).toBeCloseTo(1.5);
-    expect(axes.recoveryMult).toBeCloseTo(1.15);
+    expect(axes.injuryDurationReduction).toBeCloseTo(
+      (M.pitchSidePhysioUnit.effects.injuryDurationReduction ?? 0) + (M.rehabGym.effects.injuryDurationReduction ?? 0),
+    );
+    expect(axes.recoveryMult).toBeCloseTo(1 + (M.hydrotherapyPool.effects.recoveryMult ?? 0));
+  });
+
+  it('sums the flat per-day recovery trickle across the basic recovery wings', () => {
+    const M = FACILITY_CATALOGUE.medical;
+    const facilities = emptyFacilities();
+    build(facilities, 'medical', 'iceBathRecoverySuite');
+    build(facilities, 'medical', 'massageTherapySuite');
+    expect(FacilityManager.medicalAxes(facilities).recoveryFlat).toBeCloseTo(
+      (M.iceBathRecoverySuite.effects.recoveryFlat ?? 0) + (M.massageTherapySuite.effects.recoveryFlat ?? 0),
+    );
+  });
+
+  it('combines match-drain multipliers multiplicatively and leaves the other axes untouched', () => {
+    const facilities = emptyFacilities();
+    build(facilities, 'medical', 'nutritionSportsScienceUnit');
+    const axes = FacilityManager.medicalAxes(facilities);
+    expect(axes.matchDrainMult).toBeCloseTo(
+      FACILITY_CATALOGUE.medical.nutritionSportsScienceUnit.effects.matchDrainMult ?? 1,
+    );
+    expect(axes.recoveryFlat).toBe(0);
+    expect(axes.postMatchRecovery).toBe(0);
+  });
+
+  it('sums the per-match bounce-back from the premium recovery wing', () => {
+    const facilities = emptyFacilities();
+    build(facilities, 'medical', 'cryotherapyChamber');
+    expect(FacilityManager.medicalAxes(facilities).postMatchRecovery).toBeCloseTo(
+      FACILITY_CATALOGUE.medical.cryotherapyChamber.effects.postMatchRecovery ?? 0,
+    );
+  });
+
+  it('adds the youth sports-science flat recovery only for under-22s', () => {
+    const facilities = emptyFacilities();
+    build(facilities, 'academy', 'youthSportsScienceUnit');
+    const expected = FACILITY_CATALOGUE.academy.youthSportsScienceUnit.effects.youthRecoveryFlat ?? 0;
+    expect(FacilityManager.medicalAxes(facilities, makePlayer({ age: 20 })).recoveryFlat).toBeCloseTo(expected);
+    expect(FacilityManager.medicalAxes(facilities, makePlayer({ age: 25 })).recoveryFlat).toBe(0);
   });
 
   it('combines injury-chance multipliers multiplicatively, not additively', () => {

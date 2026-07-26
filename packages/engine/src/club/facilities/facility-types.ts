@@ -33,7 +33,17 @@ export function createEmptyFacilities(): ClubFacilities {
 export interface MedicalAxes {
   injuryDurationReduction: number
   injuryChanceMult: number
+  /** Multiplier on the *daily* passive recovery rate (1 = unfacilitated). */
   recoveryMult: number
+  /** Flat fitness points added per elapsed day, outside the stamina multiplier — equal
+   *  absolute help to every player, so it's worth relatively most to a weak squad. */
+  recoveryFlat: number
+  /** Multiplier on the fitness a match costs (1 = unfacilitated). Worth double in a
+   *  two-game week, which is where it earns its keep. */
+  matchDrainMult: number
+  /** One-off flat fitness restored immediately after each match played. Scales with
+   *  fixture congestion rather than with the calendar. */
+  postMatchRecovery: number
 }
 
 export interface TrainingAxes {
@@ -58,6 +68,9 @@ export type WingEffects = Partial<{
   injuryDurationReduction: number
   injuryChanceMult: number
   recoveryMult: number
+  recoveryFlat: number
+  matchDrainMult: number
+  postMatchRecovery: number
   growthBonus: number
   ceilingBonus: number
   gkGrowthBonus: number
@@ -68,7 +81,7 @@ export type WingEffects = Partial<{
   gkPotentialRangeBonus: [number, number]
   youthGrowthBonus: number
   youthInjuryChanceMult: number
-  youthRecoveryMult: number
+  youthRecoveryFlat: number
   intakeOverallBonus: number
   intakePotentialRangeBonus: [number, number]
 }>

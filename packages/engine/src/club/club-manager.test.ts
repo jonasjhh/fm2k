@@ -1136,6 +1136,42 @@ describe('ClubManager (mutation top-up):', () => {
       expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(840);
     });
 
+    test('conditioning softens the match drain in proportion to matchDrainMult', () => {
+      const drainMult = FACILITY_CATALOGUE.medical.nutritionSportsScienceUnit.effects.matchDrainMult ?? 1;
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus);
+      const conditioned = new ClubManager({ ...config, budget: 5_000_000 });
+      conditioned.buildWing('medical', 'nutritionSportsScienceUnit');
+
+      emitMatch(bus, 'club-1', 'other');
+
+      // Unfacilitated drain is 160 (stamina 10 -> 20 energy * 8); conditioning scales it down.
+      const after = assertDefined(conditioned.getState().squad.find(s => s.id === p.id), 'player not found');
+      expect(1000 - after.fitness).toBeCloseTo(160 * drainMult, 6);
+      expect(1000 - after.fitness).toBeLessThan(160);
+    });
+
+    test('the premium bounce-back hands fitness straight back after each match', () => {
+      const bounce = FACILITY_CATALOGUE.medical.cryotherapyChamber.effects.postMatchRecovery ?? 0;
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus);
+      const manager = new ClubManager({ ...config, budget: 5_000_000 });
+      manager.buildWing('medical', 'cryotherapyChamber');
+      emitMatch(bus, 'club-1', 'other');
+      // 160 drain, then the one-off restore on top.
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness)
+        .toBeCloseTo(1000 - 160 + bounce, 6);
+    });
+
+    test('the bounce-back never pushes a player above full fitness', () => {
+      const bus = new EventBus<GameEvents>();
+      const { p, config } = starterConfig(() => 0.99, bus, 99); // stamina 99 -> minimum drain of 5
+      const manager = new ClubManager({ ...config, budget: 5_000_000 });
+      manager.buildWing('medical', 'cryotherapyChamber');
+      emitMatch(bus, 'club-1', 'other');
+      expect(assertDefined(manager.getState().squad.find(s => s.id === p.id), 'player not found').fitness).toBe(1000);
+    });
+
     test('processes a match where the club is the away team', () => {
       const bus = new EventBus<GameEvents>();
       const { p, config } = starterConfig(() => 0.99, bus);
@@ -1288,15 +1324,55 @@ describe('ClubManager.recoverFitness:', () => {
     expect(manager.getState().squad[0].fitness).toBe(before);
   });
 
-  test('recovers ~+210 over 7 elapsed days at high stamina (99) — the +21/week baseline', () => {
+  test('recovers ~+185 over 7 unfacilitated days at high stamina (99)', () => {
     const manager = new ClubManager(makeConfig());
     const state = manager.getState();
     state.squad[0].fitness = 500;
     state.squad[0].attributes.stamina = 99;
     manager.loadState(state);
     manager.recoverFitness(7);
-    // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = (210/7)*7*1.1 = 231
-    expect(manager.getState().squad[0].fitness).toBeCloseTo(731, 5);
+    // staminaMult at 99 = 0.9 + 0.2*1 = 1.1; recovered = 24 * 7 * 1.1 = 184.8
+    expect(manager.getState().squad[0].fitness).toBeCloseTo(684.8, 5);
+  });
+
+  test('a multi-day advance recovers exactly as much as the same days taken one at a time', () => {
+    // recoverFitness is called with whatever the clock jumped by, which varies with the fixture
+    // calendar. Both the rate and the flat medical trickle must scale by `days`, or a player's
+    // fitness would silently depend on how coarsely the manager clicks through the season.
+    const build = (m: ClubManager) => {
+      m.buildWing('medical', 'iceBathRecoverySuite'); // recoveryFlat
+      m.buildWing('medical', 'hydrotherapyPool');     // recoveryMult
+    };
+    const inOneStep = new ClubManager(makeConfig({ budget: 5_000_000 }));
+    const dayByDay = new ClubManager(makeConfig({ budget: 5_000_000 }));
+    for (const m of [inOneStep, dayByDay]) {
+      build(m);
+      const s = m.getState();
+      s.squad[0].fitness = 100;
+      m.loadState(s);
+    }
+
+    inOneStep.recoverFitness(7);
+    for (let d = 0; d < 7; d++) { dayByDay.recoverFitness(1); }
+
+    expect(inOneStep.getState().squad[0].fitness).toBeCloseTo(dayByDay.getState().squad[0].fitness, 9);
+  });
+
+  test('the flat medical trickle is added on top of the stamina-scaled rate', () => {
+    const bare = new ClubManager(makeConfig({ budget: 5_000_000 }));
+    const withFlat = new ClubManager(makeConfig({ budget: 5_000_000 }));
+    withFlat.buildWing('medical', 'iceBathRecoverySuite');
+    for (const m of [bare, withFlat]) {
+      const s = m.getState();
+      s.squad[0].fitness = 100;
+      m.loadState(s);
+    }
+
+    bare.recoverFitness(7);
+    withFlat.recoverFitness(7);
+
+    const flat = FACILITY_CATALOGUE.medical.iceBathRecoverySuite.effects.recoveryFlat ?? 0;
+    expect(withFlat.getState().squad[0].fitness - bare.getState().squad[0].fitness).toBeCloseTo(flat * 7, 6);
   });
 
   test('a higher-stamina player recovers more than a lower-stamina one over the same days', () => {

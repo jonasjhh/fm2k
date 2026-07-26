@@ -15,19 +15,21 @@ import type { FacilityGroupId, WingDefinition, WingId } from './facility-types.t
 const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   iceBathRecoverySuite: {
     name: 'Ice Bath Recovery Suite',
-    description: 'A simple plunge-pool setup that takes the edge off post-match soreness.',
+    description: 'A plunge-pool setup the whole squad uses daily. On its own it will not get a '
+      + 'tired side through to Saturday — paired with the massage room, it just about will.',
     costTier: 'basic',
     buildCost: 60_000,
     tierUpkeep: [150, 350, 700],
-    effects: { recoveryMult: 0.06 },
+    effects: { recoveryFlat: 2.5 },
   },
   massageTherapySuite: {
     name: 'Massage Therapy Suite',
-    description: 'Hands-on sports massage to ease strain before it becomes an injury.',
+    description: 'Hands-on sports massage: eases strain before it becomes an injury, and adds a '
+      + 'daily trickle of recovery on top of the ice baths.',
     costTier: 'basic',
     buildCost: 50_000,
     tierUpkeep: [150, 350, 700],
-    effects: { injuryChanceMult: 0.95 },
+    effects: { injuryChanceMult: 0.95, recoveryFlat: 1.5 },
   },
   pitchSidePhysioUnit: {
     name: 'Pitch-side Physio Unit',
@@ -39,11 +41,12 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   hydrotherapyPool: {
     name: 'Hydrotherapy Pool',
-    description: 'Low-impact water-based rehab that speeds up general fitness recovery.',
+    description: 'Low-impact water-based rehab. Scales up the squad\'s whole daily recovery rate '
+      + 'rather than adding a fixed amount — the fitter the player, the more it returns.',
     costTier: 'standard',
     buildCost: 800_000,
     tierUpkeep: [500, 1_100, 2_200],
-    effects: { recoveryMult: 0.15 },
+    effects: { recoveryMult: 0.12 },
   },
   rehabGym: {
     name: 'Rehab Gym',
@@ -55,27 +58,30 @@ const MEDICAL_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   nutritionSportsScienceUnit: {
     name: 'Nutrition & Sports Science Unit',
-    description: 'Diet and conditioning science that cuts down on soft-tissue injuries.',
+    description: 'Diet and conditioning science: fewer soft-tissue injuries, and players finish '
+      + 'matches less spent. Worth double in a two-game week, since it is charged per match.',
     costTier: 'standard',
     buildCost: 600_000,
     tierUpkeep: [550, 1_200, 2_400],
-    effects: { injuryChanceMult: 0.88 },
+    effects: { injuryChanceMult: 0.88, matchDrainMult: 0.93 },
   },
   playerWelfareCentre: {
     name: 'Player Welfare Centre',
-    description: 'Sports psychology and concussion protocol, goalkeeping players match-ready.',
+    description: 'Sports psychology and concussion protocol, keeping players match-ready. Fewer '
+      + 'injuries, plus a steady daily top-up to the squad\'s recovery.',
     costTier: 'standard',
     buildCost: 900_000,
     tierUpkeep: [700, 1_500, 3_000],
-    effects: { injuryChanceMult: 0.90, recoveryMult: 0.05 },
+    effects: { injuryChanceMult: 0.90, recoveryFlat: 3 },
   },
   cryotherapyChamber: {
     name: 'Cryotherapy Chamber',
-    description: 'Whole-body cold therapy — a premium recovery boost with diminishing returns.',
+    description: 'Whole-body cold therapy in the hours after a game — a large one-off bounce-back '
+      + 'per match played. Near-worthless on one game a week; it is what lets a squad play twice.',
     costTier: 'premium',
     buildCost: 2_500_000,
     tierUpkeep: [1_800, 3_600, 5_400],
-    effects: { recoveryMult: 0.10 },
+    effects: { postMatchRecovery: 45 },
   },
   mriDiagnosticImagingSuite: {
     name: 'MRI & Diagnostic Imaging Suite',
@@ -213,11 +219,12 @@ const ACADEMY_CATALOGUE: Record<WingId, WingDefinition> = {
   },
   youthSportsScienceUnit: {
     name: 'Youth Sports Science Unit',
-    description: 'Recovery and injury-prevention science tailored to younger bodies.',
+    description: 'Recovery and injury-prevention science tailored to younger bodies. Under-22s '
+      + 'only, but for them it is the single largest daily recovery source in the game.',
     costTier: 'premium',
     buildCost: 2_800_000,
     tierUpkeep: [1_300, 2_600, 5_200],
-    effects: { youthInjuryChanceMult: 0.90, youthRecoveryMult: 0.10 },
+    effects: { youthInjuryChanceMult: 0.90, youthRecoveryFlat: 3 },
   },
 };
 

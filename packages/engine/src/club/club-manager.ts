@@ -605,7 +605,12 @@ export class ClubManager {
         const energySpent = ourEnergy?.[player.id] !== undefined
           ? 100 - ourEnergy[player.id]
           : Math.max(5, 25 - Math.floor(player.attributes.stamina / 2));
-        player.fitness = Math.max(0, player.fitness - Math.max(0, energySpent) * ClubManager.MATCH_FITNESS_DRAIN_PER_ENERGY);
+        // Conditioning (Nutrition & Sports Science) softens what the match costs; the premium
+        // bounce-back (Cryotherapy) hands a chunk straight back afterwards. Both are charged
+        // per match rather than per day, so they scale with fixture congestion.
+        const { matchDrainMult, postMatchRecovery } = FacilityManager.medicalAxes(s.facilities, player);
+        const drain = Math.max(0, energySpent) * ClubManager.MATCH_FITNESS_DRAIN_PER_ENERGY * matchDrainMult;
+        player.fitness = Math.max(0, Math.min(1000, player.fitness - drain + postMatchRecovery));
 
         // A played match carries a tiny chance of attribute growth (the per-match training tick).
         const trainingAxes = FacilityManager.trainingAxes(s.facilities, player);
@@ -692,28 +697,38 @@ export class ClubManager {
 
   // ── Fitness economy knobs ───────────────────────────────────────────────────
   // Fitness is 0–1000 (100% = 1000). Two levers set the whole economy:
-  //   • drain  = energy a player burned in a match × MATCH_FITNESS_DRAIN_PER_ENERGY
-  //   • regain = FITNESS_RECOVERY_PER_DAY per elapsed calendar day (× stamina/medical/regiment)
-  // At the current values a full-match outfielder loses ~140–200 fitness, while a normal
-  // 7-day week regains ~210 — so one game/week tops back up to 100%, but a congested
-  // two-game (league + cup) week nets roughly −110 (~11%), making rotation matter.
+  //   • drain  = energy burned in a match × MATCH_FITNESS_DRAIN_PER_ENERGY (× medical matchDrainMult)
+  //   • regain = FITNESS_RECOVERY_PER_DAY per elapsed calendar day (× stamina/medical/regiment),
+  //              plus a flat per-day medical trickle, plus a one-off medical bounce-back per match.
+  // Measured drain for a full-match outfielder: ~188 at stamina 40, ~158 at 60, ~128 at 80.
+  // Calibrated against squad stamina by division (D3 ≈ 40, D2 ≈ 48, D1 ≈ 67 for starters):
+  // unfacilitated, one game a week is a slow bleed; the two basic medical wings together just
+  // clear the seven-day turnaround; standard wings make one game comfortable and two survivable;
+  // the premium bounce-back is what lets a top squad play twice a week without rotating.
   private static readonly MATCH_FITNESS_DRAIN_PER_ENERGY = 8;
-  private static readonly FITNESS_RECOVERY_PER_DAY = 210 / 7; // ~30/day; ~+210/week at neutral stamina
+  private static readonly FITNESS_RECOVERY_PER_DAY = 24; // ~+168/week before stamina/medical
 
   /** Passive fitness recovery scaled by actual elapsed game-calendar days, and very slightly
    *  by the player's own stamina (fitter players shake off fatigue marginally faster) — a
    *  congested run of fixtures recovers proportionally less than a normal week, a long gap
-   *  recovers more. Medical wings (Hydrotherapy, Cryotherapy, etc.) drive the recovery bonus. */
+   *  recovers more.
+   *
+   *  Two medical contributions stack here: `recoveryMult` scales the stamina-driven rate
+   *  (Hydrotherapy), while `recoveryFlat` adds a fixed amount per day outside it (the ice
+   *  baths, massage room, welfare centre) — equal absolute help to everyone, so it is worth
+   *  relatively most to a low-stamina squad. Both are charged per elapsed day, so advancing
+   *  seven days in one step matches seven single-day steps exactly. */
   recoverFitness(days: number): void {
     if (days <= 0) { return; }
     this.stateManager.updateState(state => {
       for (const player of state.squad) {
-        const recoveryMult = FacilityManager.medicalAxes(state.facilities, player).recoveryMult;
+        const { recoveryMult, recoveryFlat } = FacilityManager.medicalAxes(state.facilities, player);
         // 0.9–1.1x across the stamina range — deliberately tiny, not a tactical decision.
         const staminaMult = 0.9 + 0.2 * Math.max(0, Math.min(1, player.attributes.stamina / 99));
         const regimentMult = player.training === 'recovery' ? RECOVERY_REGIMENT_MULT : 1;
-        const recovered = ClubManager.FITNESS_RECOVERY_PER_DAY * days * staminaMult * recoveryMult * regimentMult;
-        player.fitness = Math.min(1000, player.fitness + recovered);
+        const perDay = ClubManager.FITNESS_RECOVERY_PER_DAY * staminaMult * recoveryMult * regimentMult
+          + recoveryFlat;
+        player.fitness = Math.min(1000, player.fitness + perDay * days);
       }
     });
   }
