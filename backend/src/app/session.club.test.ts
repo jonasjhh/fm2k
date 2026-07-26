@@ -1,5 +1,6 @@
 import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
+import { budgetStartFor } from './config.ts';
 
 function newGame() {
   const session = new GameSession();
@@ -230,4 +231,34 @@ describe('GameSession facilities:', () => {
     const log = club(session).financialLog;
     expect(log.some(tx => tx.type === 'facility_maintenance')).toBe(true);
   }, 15_000);
+});
+
+describe('GameSession starting budget by division:', () => {
+  /** Start a new game in the Nth division of the first editable country. */
+  function startInDivision(index: number) {
+    const session = new GameSession();
+    const country = session.getEditableCountries()[0];
+    const division = country.divisions[index];
+    session.startGame(division.teams[0].id, [country.id]);
+    return { budget: club(session).budget, level: division.level };
+  }
+
+  it('gives each division level its configured starting budget', () => {
+    const country = new GameSession().getEditableCountries()[0];
+    for (let i = 0; i < country.divisions.length; i++) {
+      const { budget, level } = startInDivision(i);
+      expect(budget).toBe(budgetStartFor(level));
+    }
+  });
+
+  it('starts a top-flight club with strictly more than a lower-division one', () => {
+    const country = new GameSession().getEditableCountries()[0];
+    // Guards the ordering itself, not just the lookup: a table where D3 out-earned D1 would
+    // still satisfy the per-level check above.
+    expect(country.divisions.length).toBeGreaterThan(1);
+    const budgets = country.divisions.map((_, i) => startInDivision(i).budget);
+    for (let i = 0; i < budgets.length - 1; i++) {
+      expect(budgets[i]).toBeGreaterThan(budgets[i + 1]);
+    }
+  });
 });

@@ -1,6 +1,6 @@
 import { assertDefined } from '@fm2k/state';
 import { GameSession } from './session.ts';
-import { BUDGET_START, SEASON_START } from './config.ts';
+import { budgetStartFor, SEASON_START } from './config.ts';
 
 /**
  * Characterization tests for everything `startNewSeason()` must carry across the
@@ -103,10 +103,11 @@ describe('GameSession season rollover (carryover):', () => {
   it('a brand-new game always gets fresh-game defaults regardless of season-rollover behavior', () => {
     const session = new GameSession();
     const country = session.getEditableCountries()[0];
-    const teamId = country.divisions[0].teams[0].id;
+    const division = country.divisions[0];
+    const teamId = division.teams[0].id;
     session.startGame(teamId, [country.id]);
     const cs = assertDefined(session.snapshot().clubState, 'clubState missing');
-    expect(cs.budget).toBe(BUDGET_START);
+    expect(cs.budget).toBe(budgetStartFor(division.level));
     expect(cs.startingXI).toHaveLength(11);
     expect(session.getFreeAgents().length).toBeGreaterThan(0);
     expect(cs.financialLog).toHaveLength(0);

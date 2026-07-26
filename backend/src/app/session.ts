@@ -38,7 +38,7 @@ import {
 } from '../data/save-data.ts';
 import { dropLegacyPlayerKeyedShapes } from '../data/legacy-shape-migration.ts';
 import {
-  BUDGET_START, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
+  budgetStartFor, STADIUM_START, SEASON_START, EVENTS_PER_MINUTE, MARKET_SIZE,
   MARKET_REFRESH_INTERVAL, ALL_PLAYER_POSITIONS, LEAGUE_MATCHDAYS, CUP_ROUND_NAMES, cupCompetitionId,
   qualifierCompetitionId,
 } from './config.ts';
@@ -764,7 +764,7 @@ export class GameSession {
       clubName: team.name,
       divisionId: division.id,
       squad: team.squad,
-      budget: BUDGET_START,
+      budget: budgetStartFor(division.level),
       formation: team.formation,
       tactics: intent,
       startingXI: initialXI.starters.map(p => p.id),
