@@ -549,11 +549,12 @@ describe('ClubManager:', () => {
 
   describe('buildWing:', () => {
     test('deducts buildCost and creates a full_staff, tier-1 wing when budget allows', () => {
-      const manager = new ClubManager(makeConfig());
       const cost = FACILITY_CATALOGUE.medical.rehabGym.buildCost;
+      const budget = cost * 2;
+      const manager = new ClubManager(makeConfig({ budget }));
       const result = manager.buildWing('medical', 'rehabGym');
       expect(result).toBe(true);
-      expect(manager.getState().budget).toBe(500_000 - cost);
+      expect(manager.getState().budget).toBe(budget - cost);
       expect(manager.getState().facilities.medical.wings.rehabGym).toEqual({
         mothballed: false, forcedMothball: false,
         mode: 'full_staff', staffTier: 1,
@@ -561,7 +562,7 @@ describe('ClubManager:', () => {
     });
 
     test('records a facility_build transaction', () => {
-      const manager = new ClubManager(makeConfig());
+      const manager = new ClubManager(makeConfig({ budget: FACILITY_CATALOGUE.training.gym.buildCost }));
       manager.buildWing('training', 'gym');
       const log = manager.getState().financialLog;
       expect(log).toHaveLength(1);
@@ -584,7 +585,10 @@ describe('ClubManager:', () => {
     });
 
     test('can build wings across all three facility groups independently', () => {
-      const manager = new ClubManager(makeConfig({ budget: 1_000_000 }));
+      const budget = FACILITY_CATALOGUE.medical.rehabGym.buildCost
+        + FACILITY_CATALOGUE.training.gym.buildCost
+        + FACILITY_CATALOGUE.academy.homeNationsHub.buildCost;
+      const manager = new ClubManager(makeConfig({ budget }));
       manager.buildWing('medical', 'rehabGym');
       manager.buildWing('training', 'gym');
       manager.buildWing('academy', 'homeNationsHub');
@@ -626,15 +630,20 @@ describe('ClubManager:', () => {
   });
 
   describe('tickFacilityMaintenance:', () => {
+    // Budget the wing exactly, plus a float too small to cover one week of tier-1 upkeep, so the
+    // first maintenance tick is guaranteed to tip the club into deficit whatever the catalogue says.
+    const ICE_BATH = FACILITY_CATALOGUE.medical.iceBathRecoverySuite;
+    const FLOAT = ICE_BATH.tierUpkeep[0] - 50;
+    const DEFICIT_BUDGET = ICE_BATH.buildCost + FLOAT;
+
     test('a single deficit week bills upkeep, lets the budget go negative, and mothballs nothing', () => {
-      // 18,000 buildCost + 100 leaves 100 in budget; 150/wk upkeep tips it negative.
-      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      const manager = new ClubManager(makeConfig({ budget: DEFICIT_BUDGET }));
       manager.buildWing('medical', 'iceBathRecoverySuite');
 
       const events = manager.tickFacilityMaintenance();
 
       expect(events).toEqual([]);
-      expect(manager.getState().budget).toBe(-50);
+      expect(manager.getState().budget).toBe(FLOAT - ICE_BATH.tierUpkeep[0]);
       expect(manager.getState().facilityDeficitStreak).toBe(1);
       expect(assertDefined(manager.getState().facilities.medical.wings.iceBathRecoverySuite, 'wing not built').mothballed).toBe(false);
       const log = manager.getState().financialLog;
@@ -642,7 +651,7 @@ describe('ClubManager:', () => {
     });
 
     test('two consecutive deficit weeks force-mothball every built wing club-wide and reset the streak', () => {
-      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      const manager = new ClubManager(makeConfig({ budget: DEFICIT_BUDGET }));
       manager.buildWing('medical', 'iceBathRecoverySuite');
       manager.tickFacilityMaintenance(); // first deficit week
 
@@ -656,7 +665,7 @@ describe('ClubManager:', () => {
     });
 
     test('a budget that recovers to non-negative resets the streak with no other effect', () => {
-      const manager = new ClubManager(makeConfig({ budget: 18_100 }));
+      const manager = new ClubManager(makeConfig({ budget: DEFICIT_BUDGET }));
       manager.buildWing('medical', 'iceBathRecoverySuite');
       manager.tickFacilityMaintenance(); // first deficit week, streak becomes 1
       manager.recordGateReceipt(1_000_000, 'opponent-1', NOW); // budget recovers

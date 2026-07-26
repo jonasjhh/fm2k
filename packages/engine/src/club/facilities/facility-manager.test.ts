@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Player } from '@fm2k/match';
 import { FacilityManager } from './facility-manager.ts';
+import { FACILITY_CATALOGUE } from './facility-catalogue.ts';
 import { createEmptyFacilities as emptyFacilities } from './facility-types.ts';
 import type { ClubFacilities, FacilityGroupId, WingId, WingInstance } from './facility-types.ts';
 import { DEFICIT_WEEKS_BEFORE_MOTHBALL, YOUTH_AGE_CUTOFF } from './facility-weights.ts';
@@ -140,9 +141,10 @@ describe('FacilityManager.academyIntakeQualityBonus', () => {
 
 describe('FacilityManager.wingCost', () => {
   it('previews tier-1 upkeep for an unbuilt wing', () => {
+    const def = FACILITY_CATALOGUE.medical.rehabGym;
     const cost = FacilityManager.wingCost('medical', 'rehabGym', emptyFacilities());
-    expect(cost.buildCost).toBe(90_000);
-    expect(cost.weeklyUpkeep).toBe(600);
+    expect(cost.buildCost).toBe(def.buildCost);
+    expect(cost.weeklyUpkeep).toBe(def.tierUpkeep[0]);
   });
 
   it('reflects the actual staff tier and mode for a built wing', () => {
